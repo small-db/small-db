@@ -5,7 +5,7 @@ struct Row<'a> {
 }
 
 impl<'a> Row<'a> {
-    fn new(scheme: &RowScheme) -> Row  {
+    fn new(scheme: &RowScheme) -> Row {
         // let mut cells: Vec<&'a Cell> = Vec::new();
         let mut cells: Vec<Box<dyn Cell>> = Vec::new();
         // for i in 0..scheme.filedsCount() {
@@ -20,7 +20,7 @@ impl<'a> Row<'a> {
                 }
             }
         }
-            // cells.push(Box::new(dyn Cell));
+        // cells.push(Box::new(dyn Cell));
         // row.set_cell(0, Box::new(IntCell::new(-1)));
         // }
         Row {
@@ -29,9 +29,9 @@ impl<'a> Row<'a> {
         }
     }
 
-    fn set_cell(&'a mut self, i: u32, c: impl Cell) {
-        let new_c = Box::new(c.clone());
-        self.cells.push(new_c);
+    fn set_cell(&'a mut self, i: u32, c: Box<dyn Cell>) {
+        // let new_c = Box::new(c);
+        self.cells.push(c);
         // use std::mem;
         // mem::replace(&mut self.cells[i as usize], None)
     }
@@ -109,24 +109,51 @@ struct FieldItem {
 trait Cell {
     // fn new() -> Cell;
     // fn copy(&self) -> Cell where Self: Sized;
-    fn new_clone(&self);
+    // fn new_clone(&self);
 }
 
-// #[derive(Copy, Clone, PartialEq, Debug)]
+// // Splitting CellClone into its own trait allows us to provide a blanket
+// // implementation for all compatible types, without having to implement the
+// // rest of Cell.  In this case, we implement it for all types that have
+// // 'static lifetime (*i.e.* they don't contain non-'static pointers), and
+// // implement both Cell and Clone.  Don't ask me how the compiler resolves
+// // implementing CellClone for Cell when Cell requires CellClone; I
+// // have *no* idea why this works.
+// trait CellClone {
+//     fn clone_box(&self) -> Box<Cell>;
+// }
+
+// impl<T> CellClone for T
+// where
+//     T: 'static + Cell + Clone,
+// {
+//     fn clone_box(&self) -> Box<Cell> {
+//         Box::new(self.clone())
+//     }
+// }
+
+// // We can now implement Clone manually by forwarding to clone_box.
+// impl Clone for Box<Cell> {
+//     fn clone(&self) -> Box<Cell> {
+//         self.clone_box()
+//     }
+// }
+
+#[derive(Copy, Clone, PartialEq, Debug)]
 struct IntCell {
     value: i128,
 }
 
 impl IntCell {
     fn new(v: i128) -> IntCell {
-        IntCell{value: v}
+        IntCell { value: v }
     }
 }
 
 impl Cell for IntCell {
-    fn new_clone(&self){
-        // self.clone()
-    }
+    // fn new_clone(&self){
+    //     // self.clone()
+    // }
 }
 // impl Copy for IntCell {}
 
@@ -162,5 +189,6 @@ mod tests {
 
         let mut row = Row::new(&scheme);
         row.set_cell(0, Box::new(IntCell::new(-1)));
+        row.set_cell(1, Box::new(IntCell::new(0)));
     }
 }
