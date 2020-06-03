@@ -1,47 +1,35 @@
-struct Row<'a> {
-    scheme: &'a RowScheme,
-    // cells: Vec<&'a dyn Cell>,
+use std::any::Any;
+
+struct Row {
+    scheme: RowScheme,
     cells: Vec<Box<dyn Cell>>,
 }
 
-impl<'a> Row<'a> {
-    fn new(scheme: &RowScheme) -> Row {
-        // let mut cells: Vec<&'a Cell> = Vec::new();
+impl Row {
+    fn new(scheme: RowScheme) -> Row {
         let mut cells: Vec<Box<dyn Cell>> = Vec::new();
-        // for i in 0..scheme.filedsCount() {
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    // cells.push(IntCell::new(0));
                     cells.push(Box::new(IntCell::new(0)));
                 }
-                Type::STRING => {
-                    // cells.push(Box::new(Strin::new(0)));
-                }
+                Type::STRING => {}
             }
         }
-        // cells.push(Box::new(dyn Cell));
-        // row.set_cell(0, Box::new(IntCell::new(-1)));
-        // }
         Row {
             scheme: scheme,
             cells: Vec::new(),
         }
     }
 
-    fn set_cell(&'a mut self, i: u32, c: Box<dyn Cell>) {
-        // let new_c = Box::new(c);
+    fn set_cell(&mut self, i: u32, c: Box<dyn Cell>) {
         self.cells.push(c);
-        // use std::mem;
-        // mem::replace(&mut self.cells[i as usize], None)
+    }
+
+    fn get_cell(&mut self, i: u32) -> Box<dyn Cell> {
+        self.cells[i as usize].clone_box()
     }
 }
-
-// impl Default for Row {
-//     fn default() -> Row {
-//         Row { fields: Vec::new() }
-//     }
-// }
 
 struct RowScheme {
     fields: Vec<FieldItem>,
@@ -106,38 +94,29 @@ struct FieldItem {
     field_name: String,
 }
 
-trait Cell {
-    // fn new() -> Cell;
-    // fn copy(&self) -> Cell where Self: Sized;
-    // fn new_clone(&self);
+trait Cell: CellClone {
+    fn as_any(&self) -> &dyn Any;
 }
 
-// // Splitting CellClone into its own trait allows us to provide a blanket
-// // implementation for all compatible types, without having to implement the
-// // rest of Cell.  In this case, we implement it for all types that have
-// // 'static lifetime (*i.e.* they don't contain non-'static pointers), and
-// // implement both Cell and Clone.  Don't ask me how the compiler resolves
-// // implementing CellClone for Cell when Cell requires CellClone; I
-// // have *no* idea why this works.
-// trait CellClone {
-//     fn clone_box(&self) -> Box<Cell>;
-// }
+trait CellClone {
+    fn clone_box(&self) -> Box<Cell>;
+}
 
-// impl<T> CellClone for T
-// where
-//     T: 'static + Cell + Clone,
-// {
-//     fn clone_box(&self) -> Box<Cell> {
-//         Box::new(self.clone())
-//     }
-// }
+impl<T> CellClone for T
+where
+    T: 'static + Cell + Clone,
+{
+    fn clone_box(&self) -> Box<Cell> {
+        Box::new(self.clone())
+    }
+}
 
-// // We can now implement Clone manually by forwarding to clone_box.
-// impl Clone for Box<Cell> {
-//     fn clone(&self) -> Box<Cell> {
-//         self.clone_box()
-//     }
-// }
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<Cell> {
+    fn clone(&self) -> Box<Cell> {
+        self.clone_box()
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 struct IntCell {
@@ -151,11 +130,10 @@ impl IntCell {
 }
 
 impl Cell for IntCell {
-    // fn new_clone(&self){
-    //     // self.clone()
-    // }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
-// impl Copy for IntCell {}
 
 #[cfg(test)]
 mod tests {
@@ -187,8 +165,17 @@ mod tests {
     fn modify_fields() {
         let scheme = simple_int_row_scheme(2, "");
 
-        let mut row = Row::new(&scheme);
+        let mut row = Row::new(scheme);
         row.set_cell(0, Box::new(IntCell::new(-1)));
         row.set_cell(1, Box::new(IntCell::new(0)));
+
+        assert_eq!(
+            IntCell::new(-1),
+            *row.get_cell(0).as_any().downcast_ref::<IntCell>().unwrap()
+        );
+        assert_eq!(
+            IntCell::new(0),
+            *row.get_cell(1).as_any().downcast_ref::<IntCell>().unwrap()
+        );
     }
 }
