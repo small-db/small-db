@@ -17,21 +17,21 @@ pub trait Cell: CellClone {
 }
 
 pub trait CellClone {
-    fn clone_box(&self) -> Box<Cell>;
+    fn clone_box(&self) -> Box<dyn Cell>;
 }
 
 impl<T> CellClone for T
     where
         T: 'static + Cell + Clone,
 {
-    fn clone_box(&self) -> Box<Cell> {
+    fn clone_box(&self) -> Box<dyn Cell> {
         Box::new(self.clone())
     }
 }
 
 // We can now implement Clone manually by forwarding to clone_box.
-impl Clone for Box<Cell> {
-    fn clone(&self) -> Box<Cell> {
+impl Clone for Box<dyn Cell> {
+    fn clone(&self) -> Box<dyn Cell> {
         self.clone_box()
     }
 }

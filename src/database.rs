@@ -19,7 +19,7 @@ impl Database {
 }
 
 pub struct Catalog {
-    table_id_table_map: HashMap<i32, Box<Table>>,
+    table_id_table_map: HashMap<i32, Box<dyn Table>>,
 }
 
 impl Catalog {

@@ -68,10 +68,26 @@ mod tests {
         };
         db.get_catalog().add_table(Box::new(table_1), "table1", "");
         db.get_catalog().add_table(Box::new(table_2), "table2", "");
-//        db.get_catalog().add_table(table_2, "table2", "");
 
         let expected = simple_int_row_scheme(2, "");
         let actual = db.get_catalog().get_row_scheme(table_id_1);
         assert_eq!(expected, *actual);
+    }
+
+    mod heap_table_test {
+        use super::*;
+        use std::collections::HashMap;
+
+        #[test]
+        fn get_id() {
+            // setup
+            let hf = create_random_heap_table(
+                2,
+                20,
+                1000,
+                HashMap::new(),
+                Vec::new(),
+            );
+        }
     }
 }
