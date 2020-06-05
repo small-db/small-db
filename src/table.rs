@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use rand::Rng;
 use std::fs::File;
 use std::io::prelude::*;
+use bit_vec::BitVec;
 
 pub trait Table {
     fn get_row_scheme(&self) -> &RowScheme;
@@ -72,12 +73,24 @@ pub fn create_random_heap_table(
     }
 
 //    write tuples to a heap file
-    let bytesPerPage = 1024;
-    let mut bytesPerRow = 0;
+    let bytes_per_page = 1024;
+    let mut bytes_per_row = 0;
     use crate::row::*;
     let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
     for i in 0..columns {
-        bytesPerRow += get_type_length(row_scheme.get_field_type(i));
+        bytes_per_row += get_type_length(row_scheme.get_field_type(i));
     }
-    debug!("bytes per row: {}", bytesPerRow);
+    debug!("bytes per row: {}", bytes_per_row);
+    let mut rows_per_page= (bytes_per_page * 8) / (bytes_per_row * 8 + 1);
+    debug!("rows per page: {}", rows_per_page);
+    let mut header_bytes = rows_per_page / 8;
+//    ceiling
+    if header_bytes * 8 < rows_per_page {
+        header_bytes += 1;
+    }
+    debug!("header bytes: {}", header_bytes);
+
+//    constract header
+    let mut bv = BitVec::from_elem(header_bytes as usize * 8, false);
+    debug!("bit vec: {:?}", bv);
 }
