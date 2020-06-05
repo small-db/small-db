@@ -1,9 +1,17 @@
 use std::any::Any;
+//use std::intrinsics::type_id;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     INT,
     STRING,
+}
+
+pub fn get_type_length(t: Type) -> i32 {
+    match t {
+        Type::INT => 4,
+        _ => -1,
+    }
 }
 
 #[derive(PartialEq, Debug)]

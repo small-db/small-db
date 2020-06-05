@@ -1,0 +1,327 @@
+warning: unused import: `std::collections::HashMap`
+ --> src/lib.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `env_logger`
+ --> src/lib.rs:2:5
+  |
+2 | use env_logger;
+  |     ^^^^^^^^^^
+
+warning: unused variable: `bytesPerPage`
+  --> src/table.rs:79:9
+   |
+79 |     let bytesPerPage = 1024;
+   |         ^^^^^^^^^^^^ help: consider prefixing with an underscore: `_bytesPerPage`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `column_specification`
+  --> src/table.rs:51:5
+   |
+51 |     column_specification: HashMap<i32, i32>,
+   |     ^^^^^^^^^^^^^^^^^^^^ help: consider prefixing with an underscore: `_column_specification`
+
+warning: unused variable: `tuples`
+  --> src/table.rs:52:5
+   |
+52 |     tuples: Vec<Vec<i32>>,
+   |     ^^^^^^ help: consider prefixing with an underscore: `_tuples`
+
+warning: unused variable: `table_name`
+  --> src/database.rs:40:63
+   |
+40 |     pub(crate) fn add_table(&mut self, table: Box<dyn Table>, table_name: &str, primary_key: &str) {
+   |                                                               ^^^^^^^^^^ help: consider prefixing with an underscore: `_table_name`
+
+warning: unused variable: `primary_key`
+  --> src/database.rs:40:81
+   |
+40 |     pub(crate) fn add_table(&mut self, table: Box<dyn Table>, table_name: &str, primary_key: &str) {
+   |                                                                                 ^^^^^^^^^^^ help: consider prefixing with an underscore: `_primary_key`
+
+warning: struct is never constructed: `Row`
+ --> src/row.rs:3:12
+  |
+3 | pub struct Row {
+  |            ^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: method is never used: `new`
+ --> src/row.rs:9:5
+  |
+9 |     pub fn new(scheme: RowScheme) -> Row {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `set_cell`
+  --> src/row.rs:25:5
+   |
+25 |     pub fn set_cell(&mut self, i: i32, c: Box<dyn Cell>) {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `get_cell`
+  --> src/row.rs:29:5
+   |
+29 |     pub fn get_cell(&mut self, i: i32) -> Box<dyn Cell> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `new`
+  --> src/row.rs:47:5
+   |
+47 |     fn new(fields: Vec<FieldItem>) -> RowScheme {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `merge`
+  --> src/row.rs:51:5
+   |
+51 |     pub fn merge(scheme1: RowScheme, scheme2: RowScheme) -> RowScheme {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `filedsCount`
+  --> src/row.rs:66:5
+   |
+66 |     pub(crate) fn filedsCount(&self) -> i32 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `get_field_type`
+  --> src/row.rs:70:5
+   |
+70 |     pub(crate) fn get_field_type(&self, i: i32) -> Type {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function is never used: `simple_int_row_scheme`
+  --> src/row.rs:81:8
+   |
+81 | pub fn simple_int_row_scheme(number: i32, name_prefix: &str) -> RowScheme {
+   |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant is never constructed: `INT`
+ --> src/cell.rs:6:5
+  |
+6 |     INT,
+  |     ^^^
+
+warning: variant is never constructed: `STRING`
+ --> src/cell.rs:7:5
+  |
+7 |     STRING,
+  |     ^^^^^^
+
+warning: function is never used: `get_type_length`
+  --> src/cell.rs:10:8
+   |
+10 | pub fn get_type_length(t: Type) -> i32 {
+   |        ^^^^^^^^^^^^^^^
+
+warning: method is never used: `new`
+  --> src/cell.rs:53:5
+   |
+53 |     pub(crate) fn new(v: i128) -> IntCell {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function is never used: `create_random_heap_table`
+  --> src/table.rs:47:8
+   |
+47 | pub fn create_random_heap_table(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct is never constructed: `Database`
+ --> src/database.rs:5:12
+  |
+5 | pub struct Database {
+  |            ^^^^^^^^
+
+warning: method is never used: `new`
+  --> src/database.rs:10:5
+   |
+10 |     pub(crate) fn new() -> Database {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `get_catalog`
+  --> src/database.rs:16:5
+   |
+16 |     pub(crate) fn get_catalog(&mut self) -> &mut Catalog {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct is never constructed: `Catalog`
+  --> src/database.rs:21:12
+   |
+21 | pub struct Catalog {
+   |            ^^^^^^^
+
+warning: method is never used: `new`
+  --> src/database.rs:26:5
+   |
+26 |     fn new() -> Catalog {
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `get_row_scheme`
+  --> src/database.rs:32:5
+   |
+32 |     pub(crate) fn get_row_scheme(&self, table_id: i32) -> &RowScheme {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method is never used: `add_table`
+  --> src/database.rs:40:5
+   |
+40 |     pub(crate) fn add_table(&mut self, table: Box<dyn Table>, table_name: &str, primary_key: &str) {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `filedsCount` should have a snake case name
+  --> src/row.rs:66:19
+   |
+66 |     pub(crate) fn filedsCount(&self) -> i32 {
+   |                   ^^^^^^^^^^^ help: convert the identifier to snake case: `fileds_count`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: unused `std::result::Result` that must be used
+  --> src/table.rs:73:13
+   |
+73 |             file.write_fmt(format_args!("{} ", value));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_must_use)]` on by default
+   = note: this `Result` may be an `Err` variant, which should be handled
+
+warning: unused `std::result::Result` that must be used
+  --> src/table.rs:75:9
+   |
+75 |         file.write(b"\n");
+   |         ^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+
+warning: variable `bytesPerPage` should have a snake case name
+  --> src/table.rs:79:9
+   |
+79 |     let bytesPerPage = 1024;
+   |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `bytes_per_page`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: variable `bytesPerRow` should have a snake case name
+  --> src/table.rs:80:13
+   |
+80 |     let mut bytesPerRow = 0;
+   |             ^^^^^^^^^^^ help: convert the identifier to snake case: `bytes_per_row`
+
+warning: unused import: `std::collections::HashMap`
+ --> src/lib.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `env_logger`
+ --> src/lib.rs:2:5
+  |
+2 | use env_logger;
+  |     ^^^^^^^^^^
+
+warning: unused variable: `bytesPerPage`
+  --> src/table.rs:79:9
+   |
+79 |     let bytesPerPage = 1024;
+   |         ^^^^^^^^^^^^ help: consider prefixing with an underscore: `_bytesPerPage`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `column_specification`
+  --> src/table.rs:51:5
+   |
+51 |     column_specification: HashMap<i32, i32>,
+   |     ^^^^^^^^^^^^^^^^^^^^ help: consider prefixing with an underscore: `_column_specification`
+
+warning: unused variable: `tuples`
+  --> src/table.rs:52:5
+   |
+52 |     tuples: Vec<Vec<i32>>,
+   |     ^^^^^^ help: consider prefixing with an underscore: `_tuples`
+
+warning: unused variable: `table_name`
+  --> src/database.rs:40:63
+   |
+40 |     pub(crate) fn add_table(&mut self, table: Box<dyn Table>, table_name: &str, primary_key: &str) {
+   |                                                               ^^^^^^^^^^ help: consider prefixing with an underscore: `_table_name`
+
+warning: unused variable: `primary_key`
+  --> src/database.rs:40:81
+   |
+40 |     pub(crate) fn add_table(&mut self, table: Box<dyn Table>, table_name: &str, primary_key: &str) {
+   |                                                                                 ^^^^^^^^^^^ help: consider prefixing with an underscore: `_primary_key`
+
+warning: unused variable: `hf`
+  --> src/lib.rs:85:17
+   |
+85 |             let hf = create_random_heap_table(
+   |                 ^^ help: consider prefixing with an underscore: `_hf`
+
+warning: field is never read: `scheme`
+ --> src/row.rs:4:5
+  |
+4 |     scheme: RowScheme,
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: method is never used: `new`
+  --> src/row.rs:47:5
+   |
+47 |     fn new(fields: Vec<FieldItem>) -> RowScheme {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant is never constructed: `STRING`
+ --> src/cell.rs:7:5
+  |
+7 |     STRING,
+  |     ^^^^^^
+
+warning: method `filedsCount` should have a snake case name
+  --> src/row.rs:66:19
+   |
+66 |     pub(crate) fn filedsCount(&self) -> i32 {
+   |                   ^^^^^^^^^^^ help: convert the identifier to snake case: `fileds_count`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: unused `std::result::Result` that must be used
+  --> src/table.rs:73:13
+   |
+73 |             file.write_fmt(format_args!("{} ", value));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_must_use)]` on by default
+   = note: this `Result` may be an `Err` variant, which should be handled
+
+warning: unused `std::result::Result` that must be used
+  --> src/table.rs:75:9
+   |
+75 |         file.write(b"\n");
+   |         ^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+
+warning: variable `bytesPerPage` should have a snake case name
+  --> src/table.rs:79:9
+   |
+79 |     let bytesPerPage = 1024;
+   |         ^^^^^^^^^^^^ help: convert the identifier to snake case: `bytes_per_page`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: variable `bytesPerRow` should have a snake case name
+  --> src/table.rs:80:13
+   |
+80 |     let mut bytesPerRow = 0;
+   |             ^^^^^^^^^^^ help: convert the identifier to snake case: `bytes_per_row`
+
+    Finished test [unoptimized + debuginfo] target(s) in 0.02s
+     Running target/debug/deps/simple_db_rust-9ebe1ffdec7a2abf
+   Doc-tests simple-db-rust

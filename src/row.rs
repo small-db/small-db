@@ -22,11 +22,11 @@ impl Row {
         }
     }
 
-    pub fn set_cell(&mut self, i: u32, c: Box<dyn Cell>) {
+    pub fn set_cell(&mut self, i: i32, c: Box<dyn Cell>) {
         self.cells[i as usize] = c;
     }
 
-    pub fn get_cell(&mut self, i: u32) -> Box<dyn Cell> {
+    pub fn get_cell(&mut self, i: i32) -> Box<dyn Cell> {
         self.cells[i as usize].clone_box()
     }
 }
@@ -63,11 +63,11 @@ impl RowScheme {
         new_scheme
     }
 
-    pub(crate) fn filedsCount(&self) -> u32 {
-        self.fields.len() as u32
+    pub(crate) fn filedsCount(&self) -> i32 {
+        self.fields.len() as i32
     }
 
-    pub(crate) fn get_field_type(&self, i: u32) -> Type {
+    pub(crate) fn get_field_type(&self, i: i32) -> Type {
         self.fields[i as usize].field_type
     }
 }
@@ -78,7 +78,7 @@ impl Default for RowScheme {
     }
 }
 
-pub fn simple_int_row_scheme(number: u32, name_prefix: &str) -> RowScheme {
+pub fn simple_int_row_scheme(number: i32, name_prefix: &str) -> RowScheme {
     let mut fields: Vec<FieldItem> = Vec::new();
     for i in 0..number {
         let field = FieldItem {

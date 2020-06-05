@@ -1,4 +1,6 @@
 use crate::row::RowScheme;
+use crate::cell::*;
+use log::{debug, info, error};
 use std::collections::HashMap;
 use rand::Rng;
 use std::fs::File;
@@ -29,7 +31,7 @@ pub struct HeapTable {
     pub row_scheme: RowScheme,
 }
 
-impl Table for HeapTableTable {
+impl Table for HeapTable {
     fn get_row_scheme(&self) -> &RowScheme {
         &self.row_scheme
     }
@@ -60,16 +62,22 @@ pub fn create_random_heap_table(
         new_tuples.push(row_tuples);
     }
 
-//    write tuples to a heap file
-
 //    write tuples to a readable file
     let mut file = File::create("readable.txt").unwrap();
-    file.write_fmt(format_args!("{}", 1));
+    for row_tuples in new_tuples {
+        for value in row_tuples {
+            file.write_fmt(format_args!("{} ", value));
+        }
+        file.write(b"\n");
+    }
 
-
-//fn main() -> std::io::Result<()> {
-//    let mut file = File::create("foo.txt")?;
-//    file.write_all(b"Hello, world!")?;
-//    Ok(())
-//}
+//    write tuples to a heap file
+    let bytesPerPage = 1024;
+    let mut bytesPerRow = 0;
+    use crate::row::*;
+    let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
+    for i in 0..columns {
+        bytesPerRow += get_type_length(row_scheme.get_field_type(i));
+    }
+    debug!("bytes per row: {}", bytesPerRow);
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use env_logger;
 
 mod row;
 mod cell;
@@ -11,6 +12,21 @@ mod tests {
     use crate::cell::*;
     use crate::table::*;
     use crate::database::*;
+
+    use std::panic;
+
+    fn run_test<T>(test: T) -> ()
+        where T: FnOnce() -> () + panic::UnwindSafe
+    {
+//        setup
+        env_logger::init();
+
+        let result = panic::catch_unwind(|| {
+            test()
+        });
+
+        assert!(result.is_ok())
+    }
 
     #[test]
     fn combine() {
@@ -80,14 +96,17 @@ mod tests {
 
         #[test]
         fn get_id() {
-            // setup
-            let hf = create_random_heap_table(
-                2,
-                20,
-                1000,
-                HashMap::new(),
-                Vec::new(),
-            );
+            run_test(|| {
+
+                // setup
+                let hf = create_random_heap_table(
+                    2,
+                    20,
+                    1000,
+                    HashMap::new(),
+                    Vec::new(),
+                );
+            })
         }
     }
 }
