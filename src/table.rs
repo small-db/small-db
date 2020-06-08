@@ -31,7 +31,18 @@ impl Table for SkeletonTable {
 
 pub struct HeapTable {
     pub table_id: i32,
+    pub file: File,
     pub row_scheme: RowScheme,
+}
+
+impl HeapTable {
+    fn new(file: File, row_scheme: RowScheme) -> HeapTable {
+        HeapTable {
+            table_id: 0,
+            file,
+            row_scheme,
+        }
+    }
 }
 
 impl Table for HeapTable {
@@ -50,7 +61,8 @@ pub fn create_random_heap_table(
     max_value: i32,
     column_specification: HashMap<i32, i32>,
     cells: Vec<Vec<i32>>,
-) {
+//) -> Box<dyn Table> {
+) -> HeapTable {
 //    generate cells
     let mut new_cells: Vec<Vec<i32>> = Vec::new();
     for _ in 0..rows {
@@ -129,8 +141,12 @@ pub fn create_random_heap_table(
 //        padding
         let padding_bytes: usize = bytes_per_page - bv.to_bytes().len() - bytes_per_row * sub_cells.len();
         debug!("padding size: {} bytes", padding_bytes);
-//        TODO: update slice init
         let bytes_array = [0 as u8; 4096];
         file.write(&bytes_array[0..padding_bytes]);
     }
+
+    let row_scheme = simple_int_row_scheme(columns, "");
+    let table = HeapTable::new(file, row_scheme);
+    table
+//    Box::new(table)
 }

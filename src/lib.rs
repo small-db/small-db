@@ -68,27 +68,27 @@ mod tests {
         );
     }
 
-    #[test]
-    fn get_row_scheme() {
-        // setup
-        let mut db = Database::new();
-        let table_id_1 = 3;
-        let table_id_2 = 5;
-        let table_1 = SkeletonTable {
-            table_id: table_id_1,
-            row_scheme: simple_int_row_scheme(2, ""),
-        };
-        let table_2 = SkeletonTable {
-            table_id: table_id_2,
-            row_scheme: simple_int_row_scheme(2, ""),
-        };
-        db.get_catalog().add_table(Box::new(table_1), "table1", "");
-        db.get_catalog().add_table(Box::new(table_2), "table2", "");
-
-        let expected = simple_int_row_scheme(2, "");
-        let actual = db.get_catalog().get_row_scheme(table_id_1);
-        assert_eq!(expected, *actual);
-    }
+//    #[test]
+//    fn get_row_scheme() {
+//        // setup
+//        let mut db = Database::new();
+//        let table_id_1 = 3;
+//        let table_id_2 = 5;
+//        let table_1 = SkeletonTable {
+//            table_id: table_id_1,
+//            row_scheme: simple_int_row_scheme(2, ""),
+//        };
+//        let table_2 = SkeletonTable {
+//            table_id: table_id_2,
+//            row_scheme: simple_int_row_scheme(2, ""),
+//        };
+//        db.get_catalog().add_table(Box::new(table_1), "table1", "");
+//        db.get_catalog().add_table(Box::new(table_2), "table2", "");
+//
+//        let expected = simple_int_row_scheme(2, "");
+//        let actual = db.get_catalog().get_row_scheme(table_id_1);
+//        assert_eq!(expected, *actual);
+//    }
 
     mod heap_table_test {
         use super::*;
@@ -97,15 +97,20 @@ mod tests {
         #[test]
         fn get_id() {
             run_test(|| {
-
                 // setup
-                let hf = create_random_heap_table(
+                let mut db = Database::new();
+//                create table
+                let table = create_random_heap_table(
                     2,
                     20,
                     1000,
                     HashMap::new(),
                     Vec::new(),
                 );
+//                add to catalog
+                db.get_catalog().add_table(Box::new(&table), "heap table", "");
+
+                let table_id = table.get_id();
             })
         }
     }
