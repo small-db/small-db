@@ -7,10 +7,10 @@ pub enum Type {
     STRING,
 }
 
-pub fn get_type_length(t: Type) -> i32 {
+pub fn get_type_length(t: Type) -> usize {
     match t {
         Type::INT => 4,
-        _ => -1,
+        _ => 0,
     }
 }
 
