@@ -20,12 +20,6 @@ impl Database {
 }
 
 pub struct Catalog {
-    //    1: box<trail>
-
-    //    2: option<box<trail>
-    //    table_id_table_map: HashMap<i32, Option<Box<dyn Table>>>,
-
-    //    3: Rc
     table_id_table_map: HashMap<i32, Rc<dyn Table>>,
 }
 

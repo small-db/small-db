@@ -1,6 +1,7 @@
 use crate::cell::*;
 use crate::row::RowScheme;
 use crate::row::*;
+use crate::bufferpool::*;
 use bit_vec::BitVec;
 use log::Level::Debug;
 use log::{debug, error, info};
@@ -12,6 +13,7 @@ use std::io::prelude::*;
 pub trait Table {
     fn get_row_scheme(&self) -> &RowScheme;
     fn get_id(&self) -> i32;
+    fn get_num_pages(&self) -> usize;
 }
 
 pub struct SkeletonTable {
@@ -26,6 +28,10 @@ impl Table for SkeletonTable {
 
     fn get_id(&self) -> i32 {
         self.table_id
+    }
+
+    fn get_num_pages(&self) -> usize {
+        0
     }
 }
 
@@ -52,6 +58,11 @@ impl Table for HeapTable {
 
     fn get_id(&self) -> i32 {
         self.table_id
+    }
+
+    fn get_num_pages(&self) -> usize {
+        let metadata = self.file.metadata().unwrap();
+        metadata.len() as usize / BufferPool::get_page_size()
     }
 }
 
