@@ -4,7 +4,12 @@ use crate::bufferpool::BufferPool;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub static mut db: Database = Database::new();
+//pub static mut db: Database = Database::new();
+
+use lazy_static::lazy_static;
+lazy_static! {
+    pub static ref db: Database = Database::new();
+}
 
 pub struct Database {
     catalog: Catalog,
