@@ -14,6 +14,9 @@ mod tests {
     use crate::database::*;
 
     use std::panic;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+    use std::borrow::Borrow;
 
     fn run_test<T>(test: T) -> ()
         where T: FnOnce() -> () + panic::UnwindSafe
@@ -68,31 +71,30 @@ mod tests {
         );
     }
 
-//    #[test]
-//    fn get_row_scheme() {
-//        // setup
-//        let mut db = Database::new();
-//        let table_id_1 = 3;
-//        let table_id_2 = 5;
-//        let table_1 = SkeletonTable {
-//            table_id: table_id_1,
-//            row_scheme: simple_int_row_scheme(2, ""),
-//        };
-//        let table_2 = SkeletonTable {
-//            table_id: table_id_2,
-//            row_scheme: simple_int_row_scheme(2, ""),
-//        };
-//        db.get_catalog().add_table(Box::new(table_1), "table1", "");
-//        db.get_catalog().add_table(Box::new(table_2), "table2", "");
-//
-//        let expected = simple_int_row_scheme(2, "");
-//        let actual = db.get_catalog().get_row_scheme(table_id_1);
-//        assert_eq!(expected, *actual);
-//    }
+    #[test]
+    fn get_row_scheme() {
+        // setup
+        let mut db = Database::new();
+        let table_id_1 = 3;
+        let table_id_2 = 5;
+        let table_1 = SkeletonTable {
+            table_id: table_id_1,
+            row_scheme: simple_int_row_scheme(2, ""),
+        };
+        let table_2 = SkeletonTable {
+            table_id: table_id_2,
+            row_scheme: simple_int_row_scheme(2, ""),
+        };
+        db.get_catalog().add_table(Rc::new(table_1), "table1", "");
+        db.get_catalog().add_table(Rc::new(table_2), "table2", "");
+
+        let expected = simple_int_row_scheme(2, "");
+        let actual = db.get_catalog().get_row_scheme(table_id_1);
+        assert_eq!(expected, *actual);
+    }
 
     mod heap_table_test {
         use super::*;
-        use std::collections::HashMap;
 
         #[test]
         fn get_id() {
@@ -107,10 +109,10 @@ mod tests {
                     HashMap::new(),
                     Vec::new(),
                 );
-//                add to catalog
-                db.get_catalog().add_table(Box::new(&table), "heap table", "");
+                let a: Rc<dyn Table> = Rc::new(table);
+                db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
 
-                let table_id = table.get_id();
+                let table_id = Rc::clone(&a).get_id();
             })
         }
     }
