@@ -29,8 +29,8 @@ pub trait CellClone {
 }
 
 impl<T> CellClone for T
-    where
-        T: 'static + Cell + Clone,
+where
+    T: 'static + Cell + Clone,
 {
     fn clone_box(&self) -> Box<dyn Cell> {
         Box::new(self.clone())

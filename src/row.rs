@@ -1,4 +1,4 @@
-use crate::cell::{Type, Cell, IntCell, FieldItem};
+use crate::cell::{Cell, FieldItem, IntCell, Type};
 
 pub struct Row {
     scheme: RowScheme,
@@ -38,7 +38,12 @@ pub struct RowScheme {
 
 impl PartialEq for RowScheme {
     fn eq(&self, other: &Self) -> bool {
-        let matching = self.fields.iter().zip(&other.fields).filter(|&(a, b)| a == b).count();
+        let matching = self
+            .fields
+            .iter()
+            .zip(&other.fields)
+            .filter(|&(a, b)| a == b)
+            .count();
         self.fields.len() == matching
     }
 }

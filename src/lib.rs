@@ -1,32 +1,31 @@
-use std::collections::HashMap;
 use env_logger;
+use std::collections::HashMap;
 
-mod row;
 mod cell;
-mod table;
 mod database;
+mod row;
+mod table;
 
 #[cfg(test)]
 mod tests {
-    use crate::row::*;
     use crate::cell::*;
-    use crate::table::*;
     use crate::database::*;
+    use crate::row::*;
+    use crate::table::*;
 
-    use std::panic;
-    use std::collections::HashMap;
-    use std::rc::Rc;
     use std::borrow::Borrow;
+    use std::collections::HashMap;
+    use std::panic;
+    use std::rc::Rc;
 
     fn run_test<T>(test: T) -> ()
-        where T: FnOnce() -> () + panic::UnwindSafe
+    where
+        T: FnOnce() -> () + panic::UnwindSafe,
     {
-//        setup
+        //        setup
         env_logger::init();
 
-        let result = panic::catch_unwind(|| {
-            test()
-        });
+        let result = panic::catch_unwind(|| test());
 
         assert!(result.is_ok())
     }
@@ -101,14 +100,8 @@ mod tests {
             run_test(|| {
                 // setup
                 let mut db = Database::new();
-//                create table
-                let table = create_random_heap_table(
-                    2,
-                    20,
-                    1000,
-                    HashMap::new(),
-                    Vec::new(),
-                );
+                //                create table
+                let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
                 let a: Rc<dyn Table> = Rc::new(table);
                 db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
 

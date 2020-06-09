@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::row::RowScheme;
 use crate::table::Table;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Database {
@@ -20,12 +20,12 @@ impl Database {
 }
 
 pub struct Catalog {
-//    1: box<trail>
+    //    1: box<trail>
 
-//    2: option<box<trail>
-//    table_id_table_map: HashMap<i32, Option<Box<dyn Table>>>,
+    //    2: option<box<trail>
+    //    table_id_table_map: HashMap<i32, Option<Box<dyn Table>>>,
 
-//    3: Rc
+    //    3: Rc
     table_id_table_map: HashMap<i32, Rc<dyn Table>>,
 }
 
@@ -45,6 +45,7 @@ impl Catalog {
     }
 
     pub(crate) fn add_table(&mut self, table: Rc<dyn Table>, table_name: &str, primary_key: &str) {
-        self.table_id_table_map.insert(table.get_id(), Rc::clone(&table));
+        self.table_id_table_map
+            .insert(table.get_id(), Rc::clone(&table));
     }
 }

@@ -1,13 +1,13 @@
-use crate::row::RowScheme;
 use crate::cell::*;
-use log::{debug, info, error};
-use std::collections::HashMap;
+use crate::row::RowScheme;
+use crate::row::*;
+use bit_vec::BitVec;
+use log::Level::Debug;
+use log::{debug, error, info};
 use rand::Rng;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use bit_vec::BitVec;
-use crate::row::*;
-use log::Level::Debug;
 
 pub trait Table {
     fn get_row_scheme(&self) -> &RowScheme;
@@ -61,9 +61,9 @@ pub fn create_random_heap_table(
     max_value: i32,
     column_specification: HashMap<i32, i32>,
     cells: Vec<Vec<i32>>,
-//) -> Box<dyn Table> {
+    //) -> Box<dyn Table> {
 ) -> HeapTable {
-//    generate cells
+    //    generate cells
     let mut new_cells: Vec<Vec<i32>> = Vec::new();
     for _ in 0..rows {
         let mut row_cells: Vec<i32> = Vec::new();
@@ -74,7 +74,7 @@ pub fn create_random_heap_table(
         new_cells.push(row_cells);
     }
 
-//    write cells to a readable file
+    //    write cells to a readable file
     let mut file = File::create("readable.txt").unwrap();
     for row_cells in &new_cells {
         for value in row_cells {
@@ -83,7 +83,7 @@ pub fn create_random_heap_table(
         file.write(b"\n");
     }
 
-//    write cells to a heap file
+    //    write cells to a heap file
     let bytes_per_page: usize = 1024;
     let mut bytes_per_row: usize = 0;
     let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
@@ -94,13 +94,13 @@ pub fn create_random_heap_table(
     let mut rows_per_page = (bytes_per_page * 8) / (bytes_per_row * 8 + 1);
     debug!("rows per page: {}", rows_per_page);
     let mut header_bytes = rows_per_page / 8;
-//    ceiling
+    //    ceiling
     if header_bytes * 8 < rows_per_page {
         header_bytes += 1;
     }
     debug!("header size: {} bytes", header_bytes);
 
-//    pagination
+    //    pagination
     let mut paginated_cells: Vec<Vec<Vec<i32>>> = Vec::new();
 
     let mut start: usize = 0;
@@ -121,25 +121,26 @@ pub fn create_random_heap_table(
 
     let mut file = File::create("heap.db").unwrap();
     for sub_cells in &paginated_cells {
-//    constract header
+        //    constract header
         let mut bv = BitVec::from_elem(header_bytes as usize * 8, false);
         for i in 0..sub_cells.len() {
             bv.set(i, true);
         }
         debug!("bit vec: {:?}", bv);
 
-//    write header
+        //    write header
         file.write(&bv.to_bytes());
 
-//        write data
+        //        write data
         for row in sub_cells {
             for cell in row {
                 file.write(&cell.to_be_bytes());
             }
         }
 
-//        padding
-        let padding_bytes: usize = bytes_per_page - bv.to_bytes().len() - bytes_per_row * sub_cells.len();
+        //        padding
+        let padding_bytes: usize =
+            bytes_per_page - bv.to_bytes().len() - bytes_per_row * sub_cells.len();
         debug!("padding size: {} bytes", padding_bytes);
         let bytes_array = [0 as u8; 4096];
         file.write(&bytes_array[0..padding_bytes]);
@@ -148,5 +149,5 @@ pub fn create_random_heap_table(
     let row_scheme = simple_int_row_scheme(columns, "");
     let table = HeapTable::new(file, row_scheme);
     table
-//    Box::new(table)
+    //    Box::new(table)
 }
