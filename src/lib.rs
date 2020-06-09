@@ -131,6 +131,7 @@ mod tests {
             })
         }
 
+        #[test]
         fn get_row_scheme() {
             // setup
             let gv = set_up();
@@ -141,6 +142,7 @@ mod tests {
             assert_eq!(row_scheme, *heap_table.get_row_scheme());
         }
 
+        #[test]
         fn get_num_pages() {
             // setup
             let gv = set_up();
@@ -148,9 +150,7 @@ mod tests {
             let mut row_scheme = gv.row_scheme;
             let mut heap_table = gv.heap_table;
 
-            print!("wtf");
             debug!("num of pages: {}", heap_table.get_num_pages());
-            info!("num of pages: {}", heap_table.get_num_pages());
             assert_eq!(1, heap_table.get_num_pages());
         }
     }

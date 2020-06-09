@@ -62,7 +62,9 @@ impl Table for HeapTable {
 
     fn get_num_pages(&self) -> usize {
         let metadata = self.file.metadata().unwrap();
-        metadata.len() as usize / BufferPool::get_page_size()
+        let n = metadata.len() as f64 / BufferPool::get_page_size() as f64;
+//        round::cell(n, 0) as usize
+        n.ceil() as usize
     }
 }
 
