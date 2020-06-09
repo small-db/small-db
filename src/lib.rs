@@ -1,12 +1,17 @@
 use env_logger;
 use std::collections::HashMap;
+use crate::database::Database;
 
 mod cell;
 mod database;
 mod row;
 mod table;
 mod bufferpool;
-mod transaction;
+mod transaction_id;
+mod sequential_scan;
+mod permissions;
+mod page;
+
 
 #[cfg(test)]
 mod tests {
@@ -14,6 +19,7 @@ mod tests {
     use crate::database::*;
     use crate::row::*;
     use crate::table::*;
+    use crate::transaction_id::*;
 
     use std::borrow::Borrow;
     use std::collections::HashMap;
@@ -169,6 +175,23 @@ mod tests {
                 let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
                 debug!("{:?}", cells);
                 debug!("{:?}", cells.len());
+
+//                test if match
+                let tid = TransactionID::new();
+                debug!("tid: {}", tid.id);
+
+                use crate::sequential_scan::SequentialScan;
+
+                let scan = SequentialScan::new(tid, table.get_id(), "");
+
+                scan::open();
+
+                for expected_row in &cells {
+                    let actual_row = scan.next();
+                    assert_eq!(expected_row, actual_row);
+                }
+
+
 //                for columns in &column_sizes {
 //                    for rows in &row_sizes {
 //                        debug!("{} {}", columns, rows);

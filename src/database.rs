@@ -1,21 +1,30 @@
 use crate::row::RowScheme;
 use crate::table::Table;
+use crate::bufferpool::BufferPool;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+pub static mut db: Database = Database::new();
+
 pub struct Database {
     catalog: Catalog,
+    buffer_pool: BufferPool,
 }
 
 impl Database {
     pub(crate) fn new() -> Database {
         Database {
             catalog: Catalog::new(),
+            buffer_pool: BufferPool::new(),
         }
     }
 
     pub(crate) fn get_catalog(&mut self) -> &mut Catalog {
         &mut self.catalog
+    }
+
+    pub(crate) fn get_buffer_pool(&mut self) -> &mut BufferPool {
+        &mut self.buffer_pool
     }
 }
 
