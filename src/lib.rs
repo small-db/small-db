@@ -6,6 +6,7 @@ mod database;
 mod row;
 mod table;
 mod bufferpool;
+mod transaction;
 
 #[cfg(test)]
 mod tests {
@@ -21,8 +22,8 @@ mod tests {
     use log::{debug, error, info};
 
     fn run_test<T>(test: T) -> ()
-    where
-        T: FnOnce() -> () + panic::UnwindSafe,
+        where
+            T: FnOnce() -> () + panic::UnwindSafe,
     {
         //        setup
         env_logger::init();
@@ -103,55 +104,78 @@ mod tests {
             row_scheme: RowScheme,
         }
 
-        fn set_up() -> GlobalVars {
-            //            create db
-            let mut db = Database::new();
+//        fn set_up() -> GlobalVars {
+//            //            create db
+//            let mut db = Database::new();
+//
+//            // create table
+//            let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
+//            let a: Rc<dyn Table> = Rc::new(table);
+//            db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
+//
+//            GlobalVars {
+//                db: db,
+//                heap_table: Rc::clone(&a),
+//                row_scheme: simple_int_row_scheme(2, ""),
+//            }
+//        }
+//
+//        #[test]
+//        fn get_id() {
+//            run_test(|| {
+//                // setup
+//                let gv = set_up();
+//                let mut db = gv.db;
+//                let mut heap_table = gv.heap_table;
+//
+//                let table_id = Rc::clone(&heap_table).get_id();
+//            })
+//        }
+//
+//        #[test]
+//        fn get_row_scheme() {
+//            // setup
+//            let gv = set_up();
+//            let mut db = gv.db;
+//            let mut row_scheme = gv.row_scheme;
+//            let mut heap_table = gv.heap_table;
+//
+//            assert_eq!(row_scheme, *heap_table.get_row_scheme());
+//        }
+//
+//        #[test]
+//        fn get_num_pages() {
+//            // setup
+//            let gv = set_up();
+//            let mut db = gv.db;
+//            let mut row_scheme = gv.row_scheme;
+//            let mut heap_table = gv.heap_table;
+//
+//            debug!("num of pages: {}", heap_table.get_num_pages());
+//            assert_eq!(1, heap_table.get_num_pages());
+//        }
+    }
 
-            // create table
-            let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
-            let a: Rc<dyn Table> = Rc::new(table);
-            db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
-
-            GlobalVars {
-                db: db,
-                heap_table: Rc::clone(&a),
-                row_scheme: simple_int_row_scheme(2, ""),
-            }
-        }
+    mod scan_test {
+        use super::*;
 
         #[test]
-        fn get_id() {
+        fn test_small() {
             run_test(|| {
-                // setup
-                let gv = set_up();
-                let mut db = gv.db;
-                let mut heap_table = gv.heap_table;
+                let column_sizes = [1, 2, 3, 4, 5];
+                let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
-                let table_id = Rc::clone(&heap_table).get_id();
+                let mut cells: Vec<Vec<i32>> = Vec::new();
+                let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
+                debug!("{:?}", cells);
+                debug!("{:?}", cells.len());
+//                for columns in &column_sizes {
+//                    for rows in &row_sizes {
+//                        debug!("{} {}", columns, rows);
+//                        let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
+//                    }
+//                }
             })
-        }
-
-        #[test]
-        fn get_row_scheme() {
-            // setup
-            let gv = set_up();
-            let mut db = gv.db;
-            let mut row_scheme = gv.row_scheme;
-            let mut heap_table = gv.heap_table;
-
-            assert_eq!(row_scheme, *heap_table.get_row_scheme());
-        }
-
-        #[test]
-        fn get_num_pages() {
-            // setup
-            let gv = set_up();
-            let mut db = gv.db;
-            let mut row_scheme = gv.row_scheme;
-            let mut heap_table = gv.heap_table;
-
-            debug!("num of pages: {}", heap_table.get_num_pages());
-            assert_eq!(1, heap_table.get_num_pages());
         }
     }
 }

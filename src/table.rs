@@ -73,11 +73,11 @@ pub fn create_random_heap_table(
     rows: i32,
     max_value: i32,
     column_specification: HashMap<i32, i32>,
-    cells: Vec<Vec<i32>>,
+    new_cells: &mut Vec<Vec<i32>>,
     //) -> Box<dyn Table> {
 ) -> HeapTable {
     //    generate cells
-    let mut new_cells: Vec<Vec<i32>> = Vec::new();
+//    let mut new_cells: Vec<Vec<i32>> = Vec::new();
     for _ in 0..rows {
         let mut row_cells: Vec<i32> = Vec::new();
         for _ in 0..columns {
@@ -89,7 +89,7 @@ pub fn create_random_heap_table(
 
     //    write cells to a readable file
     let mut file = File::create("readable.txt").unwrap();
-    for row_cells in &new_cells {
+    for row_cells in new_cells.iter() {
         for value in row_cells {
             file.write_fmt(format_args!("{} ", value));
         }
