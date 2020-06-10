@@ -11,6 +11,7 @@ mod transaction_id;
 mod sequential_scan;
 mod permissions;
 mod page;
+mod page_id;
 
 
 #[cfg(test)]
