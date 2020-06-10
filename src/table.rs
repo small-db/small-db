@@ -31,12 +31,12 @@ pub struct SkeletonTable {
 // impl SkeletonTable {
 // pub fn new() -> SkeletonTable {
 //
-//    }
-//}
+// }
+// }
 
 impl Table for SkeletonTable {
     fn get_row_scheme(&self) -> Arc<RowScheme> {
-        //        &self.row_scheme
+        // &self.row_scheme
         Arc::clone(&self.row_scheme)
     }
 
@@ -72,8 +72,8 @@ impl HeapTable {
 
 impl Table for HeapTable {
     // fn get_row_scheme(&self) -> &RowScheme {
-    //        &self.row_scheme
-    //    }
+    // &self.row_scheme
+    // }
 
     fn get_row_scheme(&self) -> Arc<RowScheme> {
         Arc::clone(&self.row_scheme)
@@ -101,7 +101,7 @@ pub fn create_random_heap_table(
     max_value: i32,
     column_specification: HashMap<i32, i32>,
     new_cells: &mut Vec<Vec<i32>>,
-    //) -> Box<dyn Table> {
+    // ) -> Box<dyn Table> {
 ) -> HeapTable {
     // generate cells
     // let mut new_cells: Vec<Vec<i32>> = Vec::new();

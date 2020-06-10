@@ -80,27 +80,27 @@ mod tests {
         );
     }
 
-    //    #[test]
+    // #[test]
     // fn get_row_scheme() {
-    //        // setup
-    //// let mut db = Database::new();
+    // // setup
+    // // let mut db = Database::new();
     // let table_id_1 = 3;
     // let table_id_2 = 5;
     // let table_1 = SkeletonTable {
     // table_id: table_id_1,
     // row_scheme: Arc::new(simple_int_row_scheme(2, "")),
-    //        };
+    // };
     // let table_2 = SkeletonTable {
     // table_id: table_id_2,
     // row_scheme: Arc::new(simple_int_row_scheme(2, "")),
-    //        };
+    // };
     // db.get_catalog().add_table(Arc::new(table_1), "table1", "");
     // db.get_catalog().add_table(Arc::new(table_2), "table2", "");
     //
     // let expected = simple_int_row_scheme(2, "");
     // let actual = db.get_catalog().get_row_scheme(table_id_1);
     // assert_eq!(expected, *actual);
-    //    }
+    // }
 
     mod heap_table_test {
         use super::*;
@@ -112,10 +112,10 @@ mod tests {
         }
 
         // fn set_up() -> GlobalVars {
-        //            // create db
+        // // create db
         // let mut db = Database::new();
         //
-        //            // create table
+        // // create table
         // let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
         // let a: Rc<dyn Table> = Rc::new(table);
         // db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
@@ -124,35 +124,35 @@ mod tests {
         // db: db,
         // heap_table: Rc::clone(&a),
         // row_scheme: simple_int_row_scheme(2, ""),
-        //            }
-        //        }
+        // }
+        // }
         //
-        //        #[test]
+        // #[test]
         // fn get_id() {
         // run_test(|| {
-        //                // setup
+        // // setup
         // let gv = set_up();
         // let mut db = gv.db;
         // let mut heap_table = gv.heap_table;
         //
         // let table_id = Rc::clone(&heap_table).get_id();
-        //            })
-        //        }
+        // })
+        // }
         //
-        //        #[test]
+        // #[test]
         // fn get_row_scheme() {
-        //            // setup
+        // // setup
         // let gv = set_up();
         // let mut db = gv.db;
         // let mut row_scheme = gv.row_scheme;
         // let mut heap_table = gv.heap_table;
         //
         // assert_eq!(row_scheme, *heap_table.get_row_scheme());
-        //        }
+        // }
         //
-        //        #[test]
+        // #[test]
         // fn get_num_pages() {
-        //            // setup
+        // // setup
         // let gv = set_up();
         // let mut db = gv.db;
         // let mut row_scheme = gv.row_scheme;
@@ -160,7 +160,7 @@ mod tests {
         //
         // debug!("num of pages: {}", heap_table.get_num_pages());
         // assert_eq!(1, heap_table.get_num_pages());
-        //        }
+        // }
     }
 
     mod scan_test {
@@ -203,14 +203,14 @@ mod tests {
                 // for expected_row in &cells {
                 // let actual_row = scan.next();
                 // assert_eq!(expected_row, actual_row);
-                //                }
+                // }
 
                 // for columns in &column_sizes {
                 // for rows in &row_sizes {
                 // debug!("{} {}", columns, rows);
                 // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
-                //                    }
-                //                }
+                // }
+                // }
             })
         }
     }

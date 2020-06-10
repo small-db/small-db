@@ -7,5 +7,5 @@ clean:
 
 fmt:
 	cargo fmt
-	sed -i -E 's|(//)\s*(\w)|\1 \2|' **/*.rs
+	sed -i -E 's|(//)\s*(\S)|\1 \2|' **/*.rs
 

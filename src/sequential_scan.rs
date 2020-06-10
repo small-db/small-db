@@ -29,10 +29,10 @@ impl SequentialScan {
 
     // pub fn open() {
     //
-    //    }
+    // }
     //
     // pub fn next(&self) {
-    //    }
+    // }
 }
 
 impl Iterator for SequentialScan {
