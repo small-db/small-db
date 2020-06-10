@@ -178,8 +178,8 @@ mod tests {
                 debug!("{:?}", cells);
                 debug!("{:?}", cells.len());
 
-                let table_pointer = Arc::new(table);
-                db.get_catalog().add_table(Arc::clone(&table), "table", "");
+                let table_pointer: Arc<dyn Table> = Arc::new(table);
+                db.get_catalog().add_table(Arc::clone(&table_pointer), "table", "");
 
                 // test if match
                 let tid = TransactionID::new();
@@ -187,7 +187,7 @@ mod tests {
 
                 use crate::sequential_scan::SequentialScan;
 
-                let mut scan = SequentialScan::new(tid, table.get_id(), "");
+                let mut scan = SequentialScan::new(tid, table_pointer.get_id(), "");
 
                 // scan::open();
                 //
