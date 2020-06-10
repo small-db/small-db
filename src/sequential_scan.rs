@@ -3,6 +3,7 @@ use crate::row::Row;
 use crate::database::Database;
 use crate::database::db;
 use crate::permissions::Permissions;
+use crate::page_id::*;
 use std::rc::Rc;
 
 pub struct SequentialScan {
@@ -13,7 +14,11 @@ pub struct SequentialScan {
 
 impl SequentialScan {
     pub fn new(tid: TransactionID, table_id: i32, table_alias: &str) -> SequentialScan {
-        db.get_buffer_pool().get_page(&tid, table_id, Permissions{});
+        let page_id = HeapPageID{
+            table_id: table_id,
+            page_index: 0,
+        };
+        db.get_buffer_pool().get_page(&tid, page_id, Permissions{});
 
         SequentialScan {
             tid: Rc::new(tid),

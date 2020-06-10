@@ -3,24 +3,35 @@ use crate::row::RowScheme;
 use crate::row::*;
 use crate::bufferpool::*;
 use bit_vec::BitVec;
-use log::Level::Debug;
+//use log::Level::Debug;
 use log::{debug, error, info};
 use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::Arc;
+use std::path::Path;
+use std::fmt::Debug;
 
-pub trait Table: Send + Sync {
+pub trait Table: Debug + Send + Sync {
     fn get_row_scheme(&self) -> Arc<RowScheme>;
     fn get_id(&self) -> i32;
     fn get_num_pages(&self) -> usize;
+    fn get_file(&self) -> &File;
 }
 
+#[derive(Debug)]
 pub struct SkeletonTable {
     pub table_id: i32,
+    pub file: File,
     pub row_scheme: Arc<RowScheme>,
 }
+
+//impl SkeletonTable {
+//    pub fn new() -> SkeletonTable {
+//
+//    }
+//}
 
 impl Table for SkeletonTable {
     fn get_row_scheme(&self) -> Arc<RowScheme> {
@@ -35,8 +46,13 @@ impl Table for SkeletonTable {
     fn get_num_pages(&self) -> usize {
         0
     }
+
+    fn get_file(&self) -> &File {
+        &self.file
+    }
 }
 
+#[derive(Debug)]
 pub struct HeapTable {
     pub table_id: i32,
     pub file: File,
@@ -71,6 +87,10 @@ impl Table for HeapTable {
         let n = metadata.len() as f64 / BufferPool::get_page_size() as f64;
 //        round::cell(n, 0) as usize
         n.ceil() as usize
+    }
+
+    fn get_file(&self) -> &File {
+        &self.file
     }
 }
 
