@@ -15,7 +15,7 @@ impl BufferPool {
         4096
     }
 
-    pub fn get_page(tid: TransactionID, table_id: i32, permission: Permissions) -> Rc<dyn Page> {
+    pub fn get_page(&self, tid: &TransactionID, table_id: i32, permission: Permissions) -> Rc<dyn Page> {
         Rc::new(HeapPage{})
     }
 }

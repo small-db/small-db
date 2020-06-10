@@ -1,5 +1,6 @@
 use crate::cell::{Cell, FieldItem, IntCell, Type};
 
+#[derive(Debug)]
 pub struct Row {
     scheme: RowScheme,
     cells: Vec<Box<dyn Cell>>,

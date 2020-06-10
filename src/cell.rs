@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::fmt::Debug;
 //use std::intrinsics::type_id;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -20,7 +21,7 @@ pub struct FieldItem {
     pub field_name: String,
 }
 
-pub trait Cell: CellClone {
+pub trait Cell: Debug + CellClone {
     fn as_any(&self) -> &dyn Any;
 }
 

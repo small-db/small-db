@@ -183,10 +183,19 @@ mod tests {
 
                 use crate::sequential_scan::SequentialScan;
 
-                let scan = SequentialScan::new(tid, table.get_id(), "");
+                let mut scan = SequentialScan::new(tid, table.get_id(), "");
 
 //                scan::open();
 //
+                let mut row_index = 0;
+                for actual_row in scan.next() {
+//                    let actual_row_vec: Vec<?>
+//                    let expected_row = cells[row_index];
+//                    assert_eq!(expected_row, actual_row);
+
+                    debug!("{:?}", actual_row);
+                }
+
 //                for expected_row in &cells {
 //                    let actual_row = scan.next();
 //                    assert_eq!(expected_row, actual_row);

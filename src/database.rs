@@ -13,26 +13,23 @@ lazy_static! {
 
 pub struct Database {
     catalog: Arc<Mutex<Catalog>>,
-    buffer_pool: BufferPool,
+    buffer_pool: Arc<Mutex<BufferPool>>,
 }
 
 impl Database {
     pub(crate) fn new() -> Database {
         Database {
             catalog: Arc::new(Mutex::new(Catalog::new())),
-            buffer_pool: BufferPool::new(),
+            buffer_pool: Arc::new(Mutex::new(BufferPool::new())),
         }
     }
 
     pub(crate) fn get_catalog(&self) -> MutexGuard<Catalog> {
-//        &mut self.catalog
-//        &mut *self.catalog.borrow_mut()
-//        Arc::clone(&self.catalog)
         self.catalog.lock().unwrap()
     }
 
-    pub(crate) fn get_buffer_pool(&mut self) -> &mut BufferPool {
-        &mut self.buffer_pool
+    pub(crate) fn get_buffer_pool(&self) -> MutexGuard<BufferPool> {
+        self.buffer_pool.lock().unwrap()
     }
 }
 
