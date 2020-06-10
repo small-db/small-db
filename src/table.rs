@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 
-pub trait Table {
+pub trait Table: Send + Sync {
     fn get_row_scheme(&self) -> &RowScheme;
     fn get_id(&self) -> i32;
     fn get_num_pages(&self) -> usize;

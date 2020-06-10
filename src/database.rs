@@ -4,9 +4,8 @@ use crate::bufferpool::BufferPool;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-//pub static mut db: Database = Database::new();
-
 use lazy_static::lazy_static;
+use std::sync::Arc;
 lazy_static! {
     pub static ref db: Database = Database::new();
 }
@@ -34,7 +33,7 @@ impl Database {
 }
 
 pub struct Catalog {
-    table_id_table_map: HashMap<i32, Rc<dyn Table>>,
+    table_id_table_map: HashMap<i32, Arc<dyn Table>>,
 }
 
 impl Catalog {
@@ -52,8 +51,8 @@ impl Catalog {
         }
     }
 
-    pub(crate) fn add_table(&mut self, table: Rc<dyn Table>, table_name: &str, primary_key: &str) {
+    pub(crate) fn add_table(&mut self, table: Arc<dyn Table>, table_name: &str, primary_key: &str) {
         self.table_id_table_map
-            .insert(table.get_id(), Rc::clone(&table));
+            .insert(table.get_id(), Arc::clone(&table));
     }
 }

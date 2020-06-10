@@ -1,7 +1,7 @@
 use crate::transaction_id::TransactionID;
 use crate::row::Row;
 use crate::database::Database;
-use crate::database::db;
+//use crate::database::db;
 
 pub struct SequentialScan {
     pub tid: TransactionID,

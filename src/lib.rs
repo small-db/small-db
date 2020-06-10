@@ -26,6 +26,7 @@ mod tests {
     use std::panic;
     use std::rc::Rc;
     use log::{debug, error, info};
+    use std::sync::Arc;
 
     fn run_test<T>(test: T) -> ()
         where
@@ -82,7 +83,7 @@ mod tests {
     #[test]
     fn get_row_scheme() {
         // setup
-        let mut db = Database::new();
+//        let mut db = Database::new();
         let table_id_1 = 3;
         let table_id_2 = 5;
         let table_1 = SkeletonTable {
@@ -93,8 +94,8 @@ mod tests {
             table_id: table_id_2,
             row_scheme: simple_int_row_scheme(2, ""),
         };
-        db.get_catalog().add_table(Rc::new(table_1), "table1", "");
-        db.get_catalog().add_table(Rc::new(table_2), "table2", "");
+        db.get_catalog().add_table(Arc::new(table_1), "table1", "");
+        db.get_catalog().add_table(Arc::new(table_2), "table2", "");
 
         let expected = simple_int_row_scheme(2, "");
         let actual = db.get_catalog().get_row_scheme(table_id_1);
@@ -184,12 +185,12 @@ mod tests {
 
                 let scan = SequentialScan::new(tid, table.get_id(), "");
 
-                scan::open();
-
-                for expected_row in &cells {
-                    let actual_row = scan.next();
-                    assert_eq!(expected_row, actual_row);
-                }
+//                scan::open();
+//
+//                for expected_row in &cells {
+//                    let actual_row = scan.next();
+//                    assert_eq!(expected_row, actual_row);
+//                }
 
 
 //                for columns in &column_sizes {
