@@ -175,8 +175,12 @@ mod tests {
 
                 let mut cells: Vec<Vec<i32>> = Vec::new();
                 let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
+
                 debug!("{:?}", cells);
                 debug!("{:?}", cells.len());
+
+                let table_pointer = Arc::new(table);
+                db.get_catalog().add_table(Arc::clone(&table), "table", "");
 
 //                test if match
                 let tid = TransactionID::new();

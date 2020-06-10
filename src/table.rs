@@ -2,6 +2,7 @@ use crate::cell::*;
 use crate::row::RowScheme;
 use crate::row::*;
 use crate::bufferpool::*;
+use crate::database::*;
 use bit_vec::BitVec;
 //use log::Level::Debug;
 use log::{debug, error, info};
@@ -187,6 +188,11 @@ pub fn create_random_heap_table(
 
     let row_scheme = simple_int_row_scheme(columns, "");
     let table = HeapTable::new(file, row_scheme);
+
+//    let poing = Arc::new(table)
+//    add to catalog
+//    db.get_catalog().add_table(Arc::new(table), "table", "");
+
     table
     //    Box::new(table)
 }

@@ -3,11 +3,13 @@ use crate::table::Table;
 use crate::bufferpool::BufferPool;
 use std::collections::HashMap;
 use std::rc::Rc;
+use log::{debug, error, info};
 
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::cell::RefCell;
 use std::fs::File;
+
 lazy_static! {
     pub static ref db: Database = Database::new();
 }
@@ -59,6 +61,7 @@ impl Catalog {
     }
 
     pub fn get_table(&self, table_id: i32) -> Arc<dyn Table> {
+        debug!("{:?}", self.table_id_table_map);
         Arc::clone(self.table_id_table_map.get(&table_id).unwrap())
     }
 }
