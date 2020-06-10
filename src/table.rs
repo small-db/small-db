@@ -9,21 +9,23 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::Arc;
 
 pub trait Table: Send + Sync {
-    fn get_row_scheme(&self) -> &RowScheme;
+    fn get_row_scheme(&self) -> Arc<RowScheme>;
     fn get_id(&self) -> i32;
     fn get_num_pages(&self) -> usize;
 }
 
 pub struct SkeletonTable {
     pub table_id: i32,
-    pub row_scheme: RowScheme,
+    pub row_scheme: Arc<RowScheme>,
 }
 
 impl Table for SkeletonTable {
-    fn get_row_scheme(&self) -> &RowScheme {
-        &self.row_scheme
+    fn get_row_scheme(&self) -> Arc<RowScheme> {
+//        &self.row_scheme
+        Arc::clone(&self.row_scheme)
     }
 
     fn get_id(&self) -> i32 {
@@ -38,7 +40,7 @@ impl Table for SkeletonTable {
 pub struct HeapTable {
     pub table_id: i32,
     pub file: File,
-    pub row_scheme: RowScheme,
+    pub row_scheme: Arc<RowScheme>,
 }
 
 impl HeapTable {
@@ -46,14 +48,18 @@ impl HeapTable {
         HeapTable {
             table_id: 0,
             file,
-            row_scheme,
+            row_scheme: Arc::new(row_scheme),
         }
     }
 }
 
 impl Table for HeapTable {
-    fn get_row_scheme(&self) -> &RowScheme {
-        &self.row_scheme
+//    fn get_row_scheme(&self) -> &RowScheme {
+//        &self.row_scheme
+//    }
+
+    fn get_row_scheme(&self) -> Arc<RowScheme> {
+        Arc::clone(&self.row_scheme)
     }
 
     fn get_id(&self) -> i32 {

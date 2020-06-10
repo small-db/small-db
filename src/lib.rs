@@ -88,11 +88,11 @@ mod tests {
         let table_id_2 = 5;
         let table_1 = SkeletonTable {
             table_id: table_id_1,
-            row_scheme: simple_int_row_scheme(2, ""),
+            row_scheme: Arc::new(simple_int_row_scheme(2, "")),
         };
         let table_2 = SkeletonTable {
             table_id: table_id_2,
-            row_scheme: simple_int_row_scheme(2, ""),
+            row_scheme: Arc::new(simple_int_row_scheme(2, "")),
         };
         db.get_catalog().add_table(Arc::new(table_1), "table1", "");
         db.get_catalog().add_table(Arc::new(table_2), "table2", "");

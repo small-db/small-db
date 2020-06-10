@@ -5,26 +5,30 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use lazy_static::lazy_static;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::cell::RefCell;
 lazy_static! {
     pub static ref db: Database = Database::new();
 }
 
 pub struct Database {
-    catalog: Catalog,
+    catalog: Arc<Mutex<Catalog>>,
     buffer_pool: BufferPool,
 }
 
 impl Database {
     pub(crate) fn new() -> Database {
         Database {
-            catalog: Catalog::new(),
+            catalog: Arc::new(Mutex::new(Catalog::new())),
             buffer_pool: BufferPool::new(),
         }
     }
 
-    pub(crate) fn get_catalog(&mut self) -> &mut Catalog {
-        &mut self.catalog
+    pub(crate) fn get_catalog(&self) -> MutexGuard<Catalog> {
+//        &mut self.catalog
+//        &mut *self.catalog.borrow_mut()
+//        Arc::clone(&self.catalog)
+        self.catalog.lock().unwrap()
     }
 
     pub(crate) fn get_buffer_pool(&mut self) -> &mut BufferPool {
@@ -43,7 +47,7 @@ impl Catalog {
         }
     }
 
-    pub(crate) fn get_row_scheme(&self, table_id: i32) -> &RowScheme {
+    pub(crate) fn get_row_scheme(&self, table_id: i32) -> Arc<RowScheme> {
         let t = self.table_id_table_map.get(&table_id);
         match t {
             Some(t) => t.get_row_scheme(),
