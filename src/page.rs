@@ -1,10 +1,5 @@
-pub trait Page {
-}
+pub trait Page {}
 
-pub struct HeapPage {
+pub struct HeapPage {}
 
-}
-
-impl Page for HeapPage {
-
-}
+impl Page for HeapPage {}

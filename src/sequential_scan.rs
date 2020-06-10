@@ -1,9 +1,9 @@
-use crate::transaction_id::TransactionID;
-use crate::row::Row;
-use crate::database::Database;
 use crate::database::db;
-use crate::permissions::Permissions;
+use crate::database::Database;
 use crate::page_id::*;
+use crate::permissions::Permissions;
+use crate::row::Row;
+use crate::transaction_id::TransactionID;
 use std::rc::Rc;
 
 pub struct SequentialScan {
@@ -14,11 +14,11 @@ pub struct SequentialScan {
 
 impl SequentialScan {
     pub fn new(tid: TransactionID, table_id: i32, table_alias: &str) -> SequentialScan {
-        let page_id = HeapPageID{
+        let page_id = HeapPageID {
             table_id: table_id,
             page_index: 0,
         };
-        db.get_buffer_pool().get_page(&tid, page_id, Permissions{});
+        db.get_buffer_pool().get_page(&tid, page_id, Permissions {});
 
         SequentialScan {
             tid: Rc::new(tid),
@@ -27,12 +27,12 @@ impl SequentialScan {
         }
     }
 
-//    pub fn open() {
-//
-//    }
-//
-//    pub fn next(&self) {
-//    }
+    // pub fn open() {
+    //
+    //    }
+    //
+    // pub fn next(&self) {
+    //    }
 }
 
 impl Iterator for SequentialScan {

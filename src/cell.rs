@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::fmt::Debug;
-//use std::intrinsics::type_id;
+// use std::intrinsics::type_id;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {

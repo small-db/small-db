@@ -1,18 +1,17 @@
+use crate::database::Database;
 use env_logger;
 use std::collections::HashMap;
-use crate::database::Database;
 
+mod bufferpool;
 mod cell;
 mod database;
-mod row;
-mod table;
-mod bufferpool;
-mod transaction_id;
-mod sequential_scan;
-mod permissions;
 mod page;
 mod page_id;
-
+mod permissions;
+mod row;
+mod sequential_scan;
+mod table;
+mod transaction_id;
 
 #[cfg(test)]
 mod tests {
@@ -22,18 +21,18 @@ mod tests {
     use crate::table::*;
     use crate::transaction_id::*;
 
+    use log::{debug, error, info};
     use std::borrow::Borrow;
     use std::collections::HashMap;
     use std::panic;
     use std::rc::Rc;
-    use log::{debug, error, info};
     use std::sync::Arc;
 
     fn run_test<T>(test: T) -> ()
-        where
-            T: FnOnce() -> () + panic::UnwindSafe,
+    where
+        T: FnOnce() -> () + panic::UnwindSafe,
     {
-        //        setup
+        // setup
         env_logger::init();
 
         let result = panic::catch_unwind(|| test());
@@ -81,27 +80,27 @@ mod tests {
         );
     }
 
-//    #[test]
-//    fn get_row_scheme() {
-//        // setup
-////        let mut db = Database::new();
-//        let table_id_1 = 3;
-//        let table_id_2 = 5;
-//        let table_1 = SkeletonTable {
-//            table_id: table_id_1,
-//            row_scheme: Arc::new(simple_int_row_scheme(2, "")),
-//        };
-//        let table_2 = SkeletonTable {
-//            table_id: table_id_2,
-//            row_scheme: Arc::new(simple_int_row_scheme(2, "")),
-//        };
-//        db.get_catalog().add_table(Arc::new(table_1), "table1", "");
-//        db.get_catalog().add_table(Arc::new(table_2), "table2", "");
-//
-//        let expected = simple_int_row_scheme(2, "");
-//        let actual = db.get_catalog().get_row_scheme(table_id_1);
-//        assert_eq!(expected, *actual);
-//    }
+    //    #[test]
+    // fn get_row_scheme() {
+    //        // setup
+    //// let mut db = Database::new();
+    // let table_id_1 = 3;
+    // let table_id_2 = 5;
+    // let table_1 = SkeletonTable {
+    // table_id: table_id_1,
+    // row_scheme: Arc::new(simple_int_row_scheme(2, "")),
+    //        };
+    // let table_2 = SkeletonTable {
+    // table_id: table_id_2,
+    // row_scheme: Arc::new(simple_int_row_scheme(2, "")),
+    //        };
+    // db.get_catalog().add_table(Arc::new(table_1), "table1", "");
+    // db.get_catalog().add_table(Arc::new(table_2), "table2", "");
+    //
+    // let expected = simple_int_row_scheme(2, "");
+    // let actual = db.get_catalog().get_row_scheme(table_id_1);
+    // assert_eq!(expected, *actual);
+    //    }
 
     mod heap_table_test {
         use super::*;
@@ -112,56 +111,56 @@ mod tests {
             row_scheme: RowScheme,
         }
 
-//        fn set_up() -> GlobalVars {
-//            //            create db
-//            let mut db = Database::new();
-//
-//            // create table
-//            let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
-//            let a: Rc<dyn Table> = Rc::new(table);
-//            db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
-//
-//            GlobalVars {
-//                db: db,
-//                heap_table: Rc::clone(&a),
-//                row_scheme: simple_int_row_scheme(2, ""),
-//            }
-//        }
-//
-//        #[test]
-//        fn get_id() {
-//            run_test(|| {
-//                // setup
-//                let gv = set_up();
-//                let mut db = gv.db;
-//                let mut heap_table = gv.heap_table;
-//
-//                let table_id = Rc::clone(&heap_table).get_id();
-//            })
-//        }
-//
-//        #[test]
-//        fn get_row_scheme() {
-//            // setup
-//            let gv = set_up();
-//            let mut db = gv.db;
-//            let mut row_scheme = gv.row_scheme;
-//            let mut heap_table = gv.heap_table;
-//
-//            assert_eq!(row_scheme, *heap_table.get_row_scheme());
-//        }
-//
-//        #[test]
-//        fn get_num_pages() {
-//            // setup
-//            let gv = set_up();
-//            let mut db = gv.db;
-//            let mut row_scheme = gv.row_scheme;
-//            let mut heap_table = gv.heap_table;
-//
-//            debug!("num of pages: {}", heap_table.get_num_pages());
-//            assert_eq!(1, heap_table.get_num_pages());
-//        }
+        // fn set_up() -> GlobalVars {
+        //            // create db
+        // let mut db = Database::new();
+        //
+        //            // create table
+        // let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
+        // let a: Rc<dyn Table> = Rc::new(table);
+        // db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
+        //
+        // GlobalVars {
+        // db: db,
+        // heap_table: Rc::clone(&a),
+        // row_scheme: simple_int_row_scheme(2, ""),
+        //            }
+        //        }
+        //
+        //        #[test]
+        // fn get_id() {
+        // run_test(|| {
+        //                // setup
+        // let gv = set_up();
+        // let mut db = gv.db;
+        // let mut heap_table = gv.heap_table;
+        //
+        // let table_id = Rc::clone(&heap_table).get_id();
+        //            })
+        //        }
+        //
+        //        #[test]
+        // fn get_row_scheme() {
+        //            // setup
+        // let gv = set_up();
+        // let mut db = gv.db;
+        // let mut row_scheme = gv.row_scheme;
+        // let mut heap_table = gv.heap_table;
+        //
+        // assert_eq!(row_scheme, *heap_table.get_row_scheme());
+        //        }
+        //
+        //        #[test]
+        // fn get_num_pages() {
+        //            // setup
+        // let gv = set_up();
+        // let mut db = gv.db;
+        // let mut row_scheme = gv.row_scheme;
+        // let mut heap_table = gv.heap_table;
+        //
+        // debug!("num of pages: {}", heap_table.get_num_pages());
+        // assert_eq!(1, heap_table.get_num_pages());
+        //        }
     }
 
     mod scan_test {
@@ -182,7 +181,7 @@ mod tests {
                 let table_pointer = Arc::new(table);
                 db.get_catalog().add_table(Arc::clone(&table), "table", "");
 
-//                test if match
+                // test if match
                 let tid = TransactionID::new();
                 debug!("tid: {}", tid.id);
 
@@ -190,29 +189,28 @@ mod tests {
 
                 let mut scan = SequentialScan::new(tid, table.get_id(), "");
 
-//                scan::open();
-//
+                // scan::open();
+                //
                 let mut row_index = 0;
                 for actual_row in scan.next() {
-//                    let actual_row_vec: Vec<?>
-//                    let expected_row = cells[row_index];
-//                    assert_eq!(expected_row, actual_row);
+                    // let actual_row_vec: Vec<?>
+                    // let expected_row = cells[row_index];
+                    // assert_eq!(expected_row, actual_row);
 
                     debug!("{:?}", actual_row);
                 }
 
-//                for expected_row in &cells {
-//                    let actual_row = scan.next();
-//                    assert_eq!(expected_row, actual_row);
-//                }
+                // for expected_row in &cells {
+                // let actual_row = scan.next();
+                // assert_eq!(expected_row, actual_row);
+                //                }
 
-
-//                for columns in &column_sizes {
-//                    for rows in &row_sizes {
-//                        debug!("{} {}", columns, rows);
-//                        let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
-//                    }
-//                }
+                // for columns in &column_sizes {
+                // for rows in &row_sizes {
+                // debug!("{} {}", columns, rows);
+                // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
+                //                    }
+                //                }
             })
         }
     }

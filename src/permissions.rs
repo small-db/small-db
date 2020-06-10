@@ -1,2 +1,1 @@
-pub struct Permissions {
-}
+pub struct Permissions {}

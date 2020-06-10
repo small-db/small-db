@@ -7,8 +7,6 @@ pub struct TransactionID {
 impl TransactionID {
     pub fn new() -> TransactionID {
         let id = rand::thread_rng().gen_range(1, 100);
-        TransactionID {
-            id
-        }
+        TransactionID { id }
     }
 }

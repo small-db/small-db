@@ -6,10 +6,10 @@ pub struct HeapPageID {
 }
 
 impl HeapPageID {
-//    pub fn new(table_id)
-//    pub fn get_table_id(&self) -> i32 {
-//        self.table_id
-//    }
+    // pub fn new(table_id)
+    // pub fn get_table_id(&self) -> i32 {
+    // self.table_id
+    //    }
 }
 
 impl PageID for HeapPageID {}

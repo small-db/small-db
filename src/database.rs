@@ -1,14 +1,14 @@
+use crate::bufferpool::BufferPool;
 use crate::row::RowScheme;
 use crate::table::Table;
-use crate::bufferpool::BufferPool;
+use log::{debug, error, info};
 use std::collections::HashMap;
 use std::rc::Rc;
-use log::{debug, error, info};
 
 use lazy_static::lazy_static;
-use std::sync::{Arc, Mutex, MutexGuard};
 use std::cell::RefCell;
 use std::fs::File;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 lazy_static! {
     pub static ref db: Database = Database::new();
