@@ -29,8 +29,8 @@ mod tests {
     use std::sync::Arc;
 
     fn run_test<T>(test: T) -> ()
-    where
-        T: FnOnce() -> () + panic::UnwindSafe,
+        where
+            T: FnOnce() -> () + panic::UnwindSafe,
     {
         // setup
         env_logger::init();
@@ -38,6 +38,38 @@ mod tests {
         let result = panic::catch_unwind(|| test());
 
         assert!(result.is_ok())
+    }
+
+    //    #[test]
+    fn init_log() {
+        use std::env;
+        use std::io::Write;
+        use log::LevelFilter;
+        use env_logger::Builder;
+
+        let mut builder = Builder::from_default_env();
+
+        builder
+            .format_timestamp_secs()
+            .format(|buf, record|
+                writeln!(
+                    buf,
+                    "[{} - {}] [{}:{}] {}",
+//                record
+//                builder.format_timestamp_secs(),
+                    record.level(),
+                    record.target(),
+                    record.file().unwrap(),
+                    record.line().unwrap(),
+                    record.args()
+                ))
+            .filter(None, LevelFilter::Debug)
+//            .format_timestamp_secs()
+            .init();
+
+        error!("error message");
+        info!("info message");
+        debug!("debug message");
     }
 
     #[test]
@@ -168,50 +200,52 @@ mod tests {
 
         #[test]
         fn test_small() {
-            run_test(|| {
-                let column_sizes = [1, 2, 3, 4, 5];
-                let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
+            init_log();
 
-                let mut cells: Vec<Vec<i32>> = Vec::new();
-                let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
+//            run_test(|| {
+            let column_sizes = [1, 2, 3, 4, 5];
+            let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
-                debug!("{:?}", cells);
-                debug!("{:?}", cells.len());
+            let mut cells: Vec<Vec<i32>> = Vec::new();
+            let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
 
-                let table_pointer: Arc<dyn Table> = Arc::new(table);
-                db.get_catalog().add_table(Arc::clone(&table_pointer), "table", "");
+            debug!("{:?}", cells);
+            debug!("{:?}", cells.len());
 
-                // test if match
-                let tid = TransactionID::new();
-                debug!("tid: {}", tid.id);
+            let table_pointer: Arc<dyn Table> = Arc::new(table);
+            db.get_catalog().add_table(Arc::clone(&table_pointer), "table", "");
 
-                use crate::sequential_scan::SequentialScan;
+            // test if match
+            let tid = TransactionID::new();
+            debug!("tid: {}", tid.id);
 
-                let mut scan = SequentialScan::new(tid, table_pointer.get_id(), "");
+            use crate::sequential_scan::SequentialScan;
 
-                // scan::open();
-                //
-                let mut row_index = 0;
-                for actual_row in scan.next() {
-                    // let actual_row_vec: Vec<?>
-                    // let expected_row = cells[row_index];
-                    // assert_eq!(expected_row, actual_row);
+            let mut scan = SequentialScan::new(tid, table_pointer.get_id(), "");
 
-                    debug!("{:?}", actual_row);
-                }
-
-                // for expected_row in &cells {
-                // let actual_row = scan.next();
+            // scan::open();
+            //
+            let mut row_index = 0;
+            for actual_row in scan.next() {
+                // let actual_row_vec: Vec<?>
+                // let expected_row = cells[row_index];
                 // assert_eq!(expected_row, actual_row);
-                // }
 
-                // for columns in &column_sizes {
-                // for rows in &row_sizes {
-                // debug!("{} {}", columns, rows);
-                // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
-                // }
-                // }
-            })
+                debug!("{:?}", actual_row);
+            }
+
+            // for expected_row in &cells {
+            // let actual_row = scan.next();
+            // assert_eq!(expected_row, actual_row);
+            // }
+
+            // for columns in &column_sizes {
+            // for rows in &row_sizes {
+            // debug!("{} {}", columns, rows);
+            // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
+            // }
+            // }
+//            })
         }
     }
 }
