@@ -2,7 +2,7 @@ use crate::database::*;
 use crate::page::*;
 use crate::page_id::*;
 use crate::permissions::Permissions;
-use crate::table::{HeapTable, Table};
+use crate::table::*;
 use crate::transaction_id::TransactionID;
 use log::{debug, error, info};
 use std::io::Read;
@@ -31,8 +31,8 @@ impl BufferPool {
         // get page form buffer
 
         // if page not exist in buffer, get it from disk
-        // let table: Arc<dyn Table> = db.get_catalog().get_table(page_id.table_id);
-        let table: Arc<dyn Table> = Database::global().get_catalog().get_table(page_id.table_id);
+        // let table: Arc<HeapTable> = db.get_catalog().get_table(page_id.table_id);
+        let table: Arc<HeapTable> = Database::global().get_catalog().get_table(page_id.table_id);
         debug!("table: {:?}, table file: {:?}", table, table.get_file());
 
         // read page content
@@ -42,6 +42,6 @@ impl BufferPool {
 
         // convert to page object
 
-        Rc::new(HeapPage::new())
+        Rc::new(HeapPage::new(&[]))
     }
 }

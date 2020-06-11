@@ -28,7 +28,7 @@ impl SequentialScan {
 //        let rows = page.get_rows();
 
 //        read table's first page
-        let table = Database::global().get_catalog().get_table(table_id);
+        let mut table = Database::global().get_catalog().get_table(table_id);
         let page = table.read_page(0);
         let rows = page.get_rows();
 

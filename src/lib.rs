@@ -140,7 +140,7 @@ mod tests {
 
         struct GlobalVars {
             db: Database,
-            heap_table: Rc<dyn Table>,
+            heap_table: Rc<HeapTable>,
             row_scheme: RowScheme,
         }
 
@@ -150,7 +150,7 @@ mod tests {
         //
         // // create table
         // let table = create_random_heap_table(2, 20, 1000, HashMap::new(), Vec::new());
-        // let a: Rc<dyn Table> = Rc::new(table);
+        // let a: Rc<HeapTable> = Rc::new(table);
         // db.get_catalog().add_table(Rc::clone(&a), "heap table", "");
         //
         // GlobalVars {
@@ -214,7 +214,7 @@ mod tests {
             debug!("{:?}", cells);
             debug!("{:?}", cells.len());
 
-            let table_pointer: Arc<dyn Table> = Arc::new(table);
+            let table_pointer: Arc<HeapTable> = Arc::new(table);
             Database::global()
                 .get_catalog()
                 .add_table(Arc::clone(&table_pointer), "table", "");

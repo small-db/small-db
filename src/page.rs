@@ -13,7 +13,7 @@ pub struct HeapPage {
 }
 
 impl HeapPage {
-    pub fn new() -> HeapPage {
+    pub fn new(bytes: &[u8]) -> HeapPage {
         HeapPage{
             rows: Arc::new(Vec::new()),
         }

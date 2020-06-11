@@ -1,6 +1,6 @@
 use crate::bufferpool::BufferPool;
 use crate::row::RowScheme;
-use crate::table::Table;
+use crate::table::*;
 use log::{debug, error, info};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -55,7 +55,7 @@ impl Database {
 }
 
 pub struct Catalog {
-    table_id_table_map: HashMap<i32, Arc<dyn Table>>,
+    table_id_table_map: HashMap<i32, Arc<HeapTable>>,
 }
 
 impl Catalog {
@@ -73,12 +73,12 @@ impl Catalog {
         }
     }
 
-    pub(crate) fn add_table(&mut self, table: Arc<dyn Table>, table_name: &str, primary_key: &str) {
+    pub(crate) fn add_table(&mut self, table: Arc<HeapTable>, table_name: &str, primary_key: &str) {
         self.table_id_table_map
             .insert(table.get_id(), Arc::clone(&table));
     }
 
-    pub fn get_table(&self, table_id: i32) -> Arc<dyn Table> {
+    pub fn get_table(&self, table_id: i32) -> Arc<HeapTable> {
         debug!("{:?}", self.table_id_table_map);
         Arc::clone(self.table_id_table_map.get(&table_id).unwrap())
     }

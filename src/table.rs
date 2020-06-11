@@ -13,15 +13,18 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
-use crate::page::Page;
+use crate::page::{Page, HeapPage};
+use std::io::SeekFrom;
+use std::rc::Rc;
+use std::borrow::BorrowMut;
 
-pub trait Table: Debug + Send + Sync {
-    fn get_row_scheme(&self) -> Arc<RowScheme>;
-    fn get_id(&self) -> i32;
-    fn get_num_pages(&self) -> usize;
-    fn get_file(&self) -> &File;
-    fn read_page(&self, page_id: i32) -> &Page;
-}
+//pub trait Table: Debug + Send + Sync {
+//    fn get_row_scheme(&self) -> Arc<RowScheme>;
+//    fn get_id(&self) -> i32;
+//    fn get_num_pages(&self) -> usize;
+//    fn get_file(&self) -> &File;
+//    fn read_page(&self, page_id: i32) -> &Page;
+//}
 
 //#[derive(Debug)]
 //pub struct SkeletonTable {
@@ -58,46 +61,49 @@ pub trait Table: Debug + Send + Sync {
 #[derive(Debug)]
 pub struct HeapTable {
     pub table_id: i32,
-    pub file: File,
+    pub file: Arc<File>,
     pub row_scheme: Arc<RowScheme>,
 }
 
 impl HeapTable {
-    fn new(file: File, row_scheme: RowScheme) -> HeapTable {
+    pub fn new(file: File, row_scheme: RowScheme) -> HeapTable {
         HeapTable {
             table_id: 0,
-            file,
+            file: Arc::new(file),
             row_scheme: Arc::new(row_scheme),
         }
     }
-}
-
-impl Table for HeapTable {
+//}
+//
+//impl Table for HeapTable {
     // fn get_row_scheme(&self) -> &RowScheme {
     // &self.row_scheme
     // }
 
-    fn get_row_scheme(&self) -> Arc<RowScheme> {
+    pub fn get_row_scheme(&self) -> Arc<RowScheme> {
         Arc::clone(&self.row_scheme)
     }
 
-    fn get_id(&self) -> i32 {
+    pub fn get_id(&self) -> i32 {
         self.table_id
     }
 
-    fn get_num_pages(&self) -> usize {
+    pub fn get_num_pages(&self) -> usize {
         let metadata = self.file.metadata().unwrap();
         let n = metadata.len() as f64 / BufferPool::get_page_size() as f64;
         // round::cell(n, 0) as usize
         n.ceil() as usize
     }
 
-    fn get_file(&self) -> &File {
+    pub fn get_file(&self) -> &File {
         &self.file
     }
 
-    fn read_page(&self, page_id: i32) -> &Page {
-
+    pub fn read_page(&mut self, page_id: i32) -> &dyn Page {
+//        self.file.seek();
+//        self.file .seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
+//        self.file.
+        &HeapPage::new(&[])
     }
 }
 
@@ -107,7 +113,7 @@ pub fn create_random_heap_table(
     max_value: i32,
     column_specification: HashMap<i32, i32>,
     new_cells: &mut Vec<Vec<i32>>,
-    // ) -> Box<dyn Table> {
+    // ) -> Box<HeapTable> {
 ) -> HeapTable {
     // generate cells
     // let mut new_cells: Vec<Vec<i32>> = Vec::new();
