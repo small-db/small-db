@@ -37,7 +37,7 @@ impl BufferPool {
 //        read page content
         let mut buffer : [u8; 4096] = [0; 4096];
         let bytes = table.get_file().read_exact(&mut buffer) ;
-        debug!("buffer: {:x?}", buffer);
+//        debug!("buffer: {:x?}", buffer);
 
 //        convert to page object
 
