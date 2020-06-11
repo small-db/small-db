@@ -6,13 +6,15 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use std::cell::RefCell;
 use std::fs::File;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-lazy_static! {
-    pub static ref db: Database = Database::new();
-}
+// lazy_static! {
+// pub static ref db: Database = Database::new();
+// }
+static DB: OnceCell<Database> = OnceCell::new();
 
 pub struct Database {
     catalog: Arc<Mutex<Catalog>>,
@@ -25,6 +27,24 @@ impl Database {
             catalog: Arc::new(Mutex::new(Catalog::new())),
             buffer_pool: Arc::new(Mutex::new(BufferPool::new())),
         }
+    }
+
+    pub fn global() -> &'static Database {
+        DB.get_or_init(|| {
+            Database::new()
+        })
+//        match DB.get() {
+//            Some(db) => db,
+//            None => {
+//                let db = Database::new();
+//                DB.set(db).unwrap_or_default();
+////                DB.get().unwrap()
+//                DB.get_or_init(|| {
+//
+//                })
+//            }
+//        }
+        // expect("db is not initialized")
     }
 
     pub(crate) fn get_catalog(&self) -> MutexGuard<Catalog> {

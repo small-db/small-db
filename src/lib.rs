@@ -29,8 +29,8 @@ mod tests {
     use std::sync::Arc;
 
     fn run_test<T>(test: T) -> ()
-        where
-            T: FnOnce() -> () + panic::UnwindSafe,
+    where
+        T: FnOnce() -> () + panic::UnwindSafe,
     {
         // setup
         env_logger::init();
@@ -40,31 +40,32 @@ mod tests {
         assert!(result.is_ok())
     }
 
-    //    #[test]
+    // #[test]
     fn init_log() {
+        use env_logger::Builder;
+        use log::LevelFilter;
         use std::env;
         use std::io::Write;
-        use log::LevelFilter;
-        use env_logger::Builder;
 
         let mut builder = Builder::from_default_env();
 
         builder
             .format_timestamp_secs()
-            .format(|buf, record|
+            .format(|buf, record| {
                 writeln!(
                     buf,
                     "[{} - {}] [{}:{}] {}",
-//                record
-//                builder.format_timestamp_secs(),
+                    // record
+                    // builder.format_timestamp_secs(),
                     record.level(),
                     record.target(),
                     record.file().unwrap(),
                     record.line().unwrap(),
                     record.args()
-                ))
+                )
+            })
             .filter(None, LevelFilter::Debug)
-//            .format_timestamp_secs()
+            // .format_timestamp_secs()
             .init();
 
         error!("error message");
@@ -201,8 +202,9 @@ mod tests {
         #[test]
         fn test_small() {
             init_log();
+            // let db = Database::new();
 
-//            run_test(|| {
+            // run_test(|| {
             let column_sizes = [1, 2, 3, 4, 5];
             let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
@@ -213,7 +215,9 @@ mod tests {
             debug!("{:?}", cells.len());
 
             let table_pointer: Arc<dyn Table> = Arc::new(table);
-            db.get_catalog().add_table(Arc::clone(&table_pointer), "table", "");
+            Database::global()
+                .get_catalog()
+                .add_table(Arc::clone(&table_pointer), "table", "");
 
             // test if match
             let tid = TransactionID::new();
@@ -245,7 +249,7 @@ mod tests {
             // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
             // }
             // }
-//            })
+            // })
         }
     }
 }

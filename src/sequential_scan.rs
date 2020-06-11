@@ -1,4 +1,4 @@
-use crate::database::db;
+// use crate::database::db;
 use crate::database::Database;
 use crate::page_id::*;
 use crate::permissions::Permissions;
@@ -18,7 +18,9 @@ impl SequentialScan {
             table_id: table_id,
             page_index: 0,
         };
-        db.get_buffer_pool().get_page(&tid, page_id, Permissions {});
+        Database::global()
+            .get_buffer_pool()
+            .get_page(&tid, page_id, Permissions {});
 
         SequentialScan {
             tid: Rc::new(tid),
