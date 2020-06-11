@@ -1,5 +1,27 @@
-pub trait Page {}
+use crate::row::Row;
+use std::rc::Rc;
+use std::alloc::handle_alloc_error;
+use std::sync::Arc;
 
-pub struct HeapPage {}
+pub trait Page {
+//    pub fn iter(&self) -> Rc<Iterator<Row>> {}
+    fn get_rows(&self) -> Arc<Vec<Row>>;
+}
 
-impl Page for HeapPage {}
+pub struct HeapPage {
+    rows: Arc<Vec<Row>>,
+}
+
+impl HeapPage {
+    pub fn new() -> HeapPage {
+        HeapPage{
+            rows: Arc::new(Vec::new()),
+        }
+    }
+}
+
+impl Page for HeapPage {
+    fn get_rows(&self) -> Arc<Vec<Row>> {
+        Arc::clone(&self.rows)
+    }
+}

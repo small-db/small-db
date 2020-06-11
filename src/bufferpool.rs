@@ -42,6 +42,6 @@ impl BufferPool {
 
         // convert to page object
 
-        Rc::new(HeapPage {})
+        Rc::new(HeapPage::new())
     }
 }

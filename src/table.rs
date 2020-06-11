@@ -13,45 +13,47 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
+use crate::page::Page;
 
 pub trait Table: Debug + Send + Sync {
     fn get_row_scheme(&self) -> Arc<RowScheme>;
     fn get_id(&self) -> i32;
     fn get_num_pages(&self) -> usize;
     fn get_file(&self) -> &File;
+    fn read_page(&self, page_id: i32) -> &Page;
 }
 
-#[derive(Debug)]
-pub struct SkeletonTable {
-    pub table_id: i32,
-    pub file: File,
-    pub row_scheme: Arc<RowScheme>,
-}
-
-// impl SkeletonTable {
-// pub fn new() -> SkeletonTable {
+//#[derive(Debug)]
+//pub struct SkeletonTable {
+//    pub table_id: i32,
+//    pub file: File,
+//    pub row_scheme: Arc<RowScheme>,
+//}
 //
-// }
-// }
-
-impl Table for SkeletonTable {
-    fn get_row_scheme(&self) -> Arc<RowScheme> {
-        // &self.row_scheme
-        Arc::clone(&self.row_scheme)
-    }
-
-    fn get_id(&self) -> i32 {
-        self.table_id
-    }
-
-    fn get_num_pages(&self) -> usize {
-        0
-    }
-
-    fn get_file(&self) -> &File {
-        &self.file
-    }
-}
+//// impl SkeletonTable {
+//// pub fn new() -> SkeletonTable {
+////
+//// }
+//// }
+//
+//impl Table for SkeletonTable {
+//    fn get_row_scheme(&self) -> Arc<RowScheme> {
+//        // &self.row_scheme
+//        Arc::clone(&self.row_scheme)
+//    }
+//
+//    fn get_id(&self) -> i32 {
+//        self.table_id
+//    }
+//
+//    fn get_num_pages(&self) -> usize {
+//        0
+//    }
+//
+//    fn get_file(&self) -> &File {
+//        &self.file
+//    }
+//}
 
 #[derive(Debug)]
 pub struct HeapTable {
@@ -92,6 +94,10 @@ impl Table for HeapTable {
 
     fn get_file(&self) -> &File {
         &self.file
+    }
+
+    fn read_page(&self, page_id: i32) -> &Page {
+
     }
 }
 
