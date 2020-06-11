@@ -30,20 +30,18 @@ impl Database {
     }
 
     pub fn global() -> &'static Database {
-        DB.get_or_init(|| {
-            Database::new()
-        })
-//        match DB.get() {
-//            Some(db) => db,
-//            None => {
-//                let db = Database::new();
-//                DB.set(db).unwrap_or_default();
-////                DB.get().unwrap()
-//                DB.get_or_init(|| {
-//
-//                })
-//            }
-//        }
+        DB.get_or_init(|| Database::new())
+        // match DB.get() {
+        // Some(db) => db,
+        // None => {
+        // let db = Database::new();
+        // DB.set(db).unwrap_or_default();
+        // //                DB.get().unwrap()
+        // DB.get_or_init(|| {
+        //
+        // })
+        // }
+        // }
         // expect("db is not initialized")
     }
 
