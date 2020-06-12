@@ -55,7 +55,7 @@ impl Database {
 }
 
 pub struct Catalog {
-    table_id_table_map: HashMap<i32, Arc<HeapTable>>,
+    table_id_table_map: HashMap<i32, Arc<Mutex<HeapTable>>>,
 }
 
 impl Catalog {
@@ -68,18 +68,23 @@ impl Catalog {
     pub(crate) fn get_row_scheme(&self, table_id: i32) -> Arc<RowScheme> {
         let t = self.table_id_table_map.get(&table_id);
         match t {
-            Some(t) => t.get_row_scheme(),
+            Some(t) => t.lock().unwrap().get_row_scheme(),
             None => panic!(""),
         }
     }
 
-    pub(crate) fn add_table(&mut self, table: Arc<HeapTable>, table_name: &str, primary_key: &str) {
+    pub(crate) fn add_table(
+        &mut self,
+        table: HeapTable,
+        table_name: &str,
+        primary_key: &str,
+    ) {
         self.table_id_table_map
-            .insert(table.get_id(), Arc::clone(&table));
+            .insert(table.get_id(), Arc::new(Mutex::new(table)));
     }
 
-    pub fn get_table(&self, table_id: i32) -> Arc<HeapTable> {
-        debug!("{:?}", self.table_id_table_map);
-        Arc::clone(self.table_id_table_map.get(&table_id).unwrap())
+    pub fn get_table(&self, table_id: i32) -> MutexGuard<HeapTable> {
+//        debug!("{:?}", self.table_id_table_map);
+        self.table_id_table_map.get(&table_id).unwrap().lock().unwrap()
     }
 }

@@ -5,58 +5,58 @@ use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
+use crate::page::{HeapPage, Page};
 use log::{debug, error, info};
 use rand::Rng;
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
-use std::sync::Arc;
-use crate::page::{Page, HeapPage};
 use std::io::SeekFrom;
+use std::path::Path;
 use std::rc::Rc;
-use std::borrow::BorrowMut;
+use std::sync::Arc;
 
-//pub trait Table: Debug + Send + Sync {
-//    fn get_row_scheme(&self) -> Arc<RowScheme>;
-//    fn get_id(&self) -> i32;
-//    fn get_num_pages(&self) -> usize;
-//    fn get_file(&self) -> &File;
-//    fn read_page(&self, page_id: i32) -> &Page;
-//}
+// pub trait Table: Debug + Send + Sync {
+// fn get_row_scheme(&self) -> Arc<RowScheme>;
+// fn get_id(&self) -> i32;
+// fn get_num_pages(&self) -> usize;
+// fn get_file(&self) -> &File;
+// fn read_page(&self, page_id: i32) -> &Page;
+// }
 
-//#[derive(Debug)]
-//pub struct SkeletonTable {
-//    pub table_id: i32,
-//    pub file: File,
-//    pub row_scheme: Arc<RowScheme>,
-//}
+// #[derive(Debug)]
+// pub struct SkeletonTable {
+// pub table_id: i32,
+// pub file: File,
+// pub row_scheme: Arc<RowScheme>,
+// }
 //
-//// impl SkeletonTable {
-//// pub fn new() -> SkeletonTable {
-////
-//// }
-//// }
+// // impl SkeletonTable {
+// // pub fn new() -> SkeletonTable {
+// //
+// // }
+// // }
 //
-//impl Table for SkeletonTable {
-//    fn get_row_scheme(&self) -> Arc<RowScheme> {
-//        // &self.row_scheme
-//        Arc::clone(&self.row_scheme)
-//    }
+// impl Table for SkeletonTable {
+// fn get_row_scheme(&self) -> Arc<RowScheme> {
+// // &self.row_scheme
+// Arc::clone(&self.row_scheme)
+// }
 //
-//    fn get_id(&self) -> i32 {
-//        self.table_id
-//    }
+// fn get_id(&self) -> i32 {
+// self.table_id
+// }
 //
-//    fn get_num_pages(&self) -> usize {
-//        0
-//    }
+// fn get_num_pages(&self) -> usize {
+// 0
+// }
 //
-//    fn get_file(&self) -> &File {
-//        &self.file
-//    }
-//}
+// fn get_file(&self) -> &File {
+// &self.file
+// }
+// }
 
 #[derive(Debug)]
 pub struct HeapTable {
@@ -73,9 +73,9 @@ impl HeapTable {
             row_scheme: Arc::new(row_scheme),
         }
     }
-//}
-//
-//impl Table for HeapTable {
+    // }
+    //
+    // impl Table for HeapTable {
     // fn get_row_scheme(&self) -> &RowScheme {
     // &self.row_scheme
     // }
@@ -99,11 +99,11 @@ impl HeapTable {
         &self.file
     }
 
-    pub fn read_page(&mut self, page_id: i32) -> &dyn Page {
-//        self.file.seek();
-//        self.file .seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
-//        self.file.
-        &HeapPage::new(&[])
+    pub fn read_page(&mut self, page_id: i32) -> HeapPage {
+        // self.file.seek();
+        // self.file .seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
+        // self.file.
+        HeapPage::new(&[])
     }
 }
 

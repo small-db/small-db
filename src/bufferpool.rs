@@ -7,7 +7,7 @@ use crate::transaction_id::TransactionID;
 use log::{debug, error, info};
 use std::io::Read;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct BufferPool {}
 
@@ -32,7 +32,8 @@ impl BufferPool {
 
         // if page not exist in buffer, get it from disk
         // let table: Arc<HeapTable> = db.get_catalog().get_table(page_id.table_id);
-        let table: Arc<HeapTable> = Database::global().get_catalog().get_table(page_id.table_id);
+        let catlog = Database::global().get_catalog();
+        let mut table = catlog.get_table(page_id.table_id);
         debug!("table: {:?}, table file: {:?}", table, table.get_file());
 
         // read page content
