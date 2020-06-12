@@ -5,6 +5,7 @@ use crate::page_id::*;
 use crate::permissions::Permissions;
 use crate::row::Row;
 use crate::transaction_id::TransactionID;
+use log::{debug, error, info};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -18,6 +19,7 @@ pub struct SequentialScan {
 
 impl SequentialScan {
     pub fn new(tid: TransactionID, table_id: i32, table_alias: &str) -> SequentialScan {
+        debug!("start seq scan init");
         // let page_id = HeapPageID {
         // table_id: table_id,
         // page_index: 0,
@@ -32,6 +34,8 @@ impl SequentialScan {
         let mut table = catlog.get_table(table_id);
         let page = table.read_page(0);
         let rows = page.get_rows();
+
+        debug!("finish seq scan init");
 
         SequentialScan {
             tid: Rc::new(tid),

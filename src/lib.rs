@@ -28,17 +28,17 @@ mod tests {
     use std::rc::Rc;
     use std::sync::Arc;
 
-    fn run_test<T>(test: T) -> ()
-    where
-        T: FnOnce() -> () + panic::UnwindSafe,
-    {
-        // setup
-        env_logger::init();
-
-        let result = panic::catch_unwind(|| test());
-
-        assert!(result.is_ok())
-    }
+    // fn run_test<T>(test: T) -> ()
+    // where
+    // T: FnOnce() -> () + panic::UnwindSafe,
+    // {
+    // // setup
+    // env_logger::init();
+    //
+    // let result = panic::catch_unwind(|| test());
+    //
+    // assert!(result.is_ok())
+    // }
 
     // #[test]
     fn init_log() {
@@ -67,51 +67,47 @@ mod tests {
             .filter(None, LevelFilter::Debug)
             // .format_timestamp_secs()
             .init();
-
-        error!("error message");
-        info!("info message");
-        debug!("debug message");
     }
 
-    #[test]
-    fn combine() {
-        let scheme1 = simple_int_row_scheme(1, "scheme1");
-        let scheme2 = simple_int_row_scheme(2, "scheme1");
+    // #[test]
+    // fn combine() {
+    // let scheme1 = simple_int_row_scheme(1, "scheme1");
+    // let scheme2 = simple_int_row_scheme(2, "scheme1");
+    //
+    // let scheme3 = RowScheme::merge(scheme1, scheme2);
+    //
+    // assert_eq!(scheme3.filedsCount(), 3);
+    // }
+    //
+    // #[test]
+    // fn get_field_type() {
+    // let lengths = vec![1, 2, 1000];
+    //
+    // for l in lengths {
+    // let scheme = simple_int_row_scheme(l, "");
+    // for i in 0..l {
+    // assert_eq!(Type::INT, scheme.get_field_type(i));
+    // }
+    // }
+    // }
 
-        let scheme3 = RowScheme::merge(scheme1, scheme2);
-
-        assert_eq!(scheme3.filedsCount(), 3);
-    }
-
-    #[test]
-    fn get_field_type() {
-        let lengths = vec![1, 2, 1000];
-
-        for l in lengths {
-            let scheme = simple_int_row_scheme(l, "");
-            for i in 0..l {
-                assert_eq!(Type::INT, scheme.get_field_type(i));
-            }
-        }
-    }
-
-    #[test]
-    fn modify_fields() {
-        let scheme = simple_int_row_scheme(2, "");
-
-        let mut row = Row::new(scheme);
-        row.set_cell(0, Box::new(IntCell::new(-1)));
-        row.set_cell(1, Box::new(IntCell::new(0)));
-
-        assert_eq!(
-            IntCell::new(-1),
-            *row.get_cell(0).as_any().downcast_ref::<IntCell>().unwrap()
-        );
-        assert_eq!(
-            IntCell::new(0),
-            *row.get_cell(1).as_any().downcast_ref::<IntCell>().unwrap()
-        );
-    }
+    // #[test]
+    // fn modify_fields() {
+    // let scheme = simple_int_row_scheme(2, "");
+    //
+    // let mut row = Row::new(scheme);
+    // row.set_cell(0, Box::new(IntCell::new(-1)));
+    // row.set_cell(1, Box::new(IntCell::new(0)));
+    //
+    // assert_eq!(
+    // IntCell::new(-1),
+    // *row.get_cell(0).as_any().downcast_ref::<IntCell>().unwrap()
+    // );
+    // assert_eq!(
+    // IntCell::new(0),
+    // *row.get_cell(1).as_any().downcast_ref::<IntCell>().unwrap()
+    // );
+    // }
 
     // #[test]
     // fn get_row_scheme() {
@@ -138,11 +134,11 @@ mod tests {
     mod heap_table_test {
         use super::*;
 
-        struct GlobalVars {
-            db: Database,
-            heap_table: Rc<HeapTable>,
-            row_scheme: RowScheme,
-        }
+        // struct GlobalVars {
+        // db: Database,
+        // heap_table: Rc<HeapTable>,
+        // row_scheme: RowScheme,
+        // }
 
         // fn set_up() -> GlobalVars {
         // // create db
@@ -198,6 +194,7 @@ mod tests {
 
     mod scan_test {
         use super::*;
+        use std::sync::Mutex;
 
         #[test]
         fn test_small() {
@@ -211,13 +208,18 @@ mod tests {
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
 
+            let table_wrapper = Arc::new(Mutex::new(table));
+
             debug!("{:?}", cells);
             debug!("{:?}", cells.len());
 
-            let table_pointer: Arc<HeapTable> = Arc::new(table);
-            Database::global()
-                .get_catalog()
-                .add_table(Arc::clone(&table_pointer), "table", "");
+            // let table_pointer: Arc<HeapTable> = Arc::new(table);
+            let mut catlog = Database::global().get_catalog();
+            catlog.add_table(Arc::clone(&table_wrapper), "table", "");
+            // let mut table = catlog.get_table(table_id);
+            // Database::global()
+            // .get_catalog()
+            // .add_table(Arc::clone(&table_pointer), "table", "");
 
             // test if match
             let tid = TransactionID::new();
@@ -225,7 +227,7 @@ mod tests {
 
             use crate::sequential_scan::SequentialScan;
 
-            let mut scan = SequentialScan::new(tid, table_pointer.get_id(), "");
+            let mut scan = SequentialScan::new(tid, table_wrapper.lock().unwrap().get_id(), "");
 
             // scan::open();
             //

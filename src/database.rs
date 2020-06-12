@@ -75,16 +75,20 @@ impl Catalog {
 
     pub(crate) fn add_table(
         &mut self,
-        table: HeapTable,
+        table: Arc<Mutex<HeapTable>>,
         table_name: &str,
         primary_key: &str,
     ) {
         self.table_id_table_map
-            .insert(table.get_id(), Arc::new(Mutex::new(table)));
+            .insert(table.lock().unwrap().table_id, Arc::clone(&table));
     }
 
     pub fn get_table(&self, table_id: i32) -> MutexGuard<HeapTable> {
-//        debug!("{:?}", self.table_id_table_map);
-        self.table_id_table_map.get(&table_id).unwrap().lock().unwrap()
+        // debug!("{:?}", self.table_id_table_map);
+        self.table_id_table_map
+            .get(&table_id)
+            .unwrap()
+            .lock()
+            .unwrap()
     }
 }
