@@ -46,11 +46,11 @@ impl Database {
     }
 
     pub(crate) fn get_catalog(&self) -> MutexGuard<Catalog> {
-        self.catalog.lock().unwrap()
+        self.catalog.try_lock().unwrap()
     }
 
     pub(crate) fn get_buffer_pool(&self) -> MutexGuard<BufferPool> {
-        self.buffer_pool.lock().unwrap()
+        self.buffer_pool.try_lock().unwrap()
     }
 }
 
@@ -88,7 +88,7 @@ impl Catalog {
         self.table_id_table_map
             .get(&table_id)
             .unwrap()
-            .lock()
+            .try_lock()
             .unwrap()
     }
 }

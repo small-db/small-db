@@ -216,6 +216,7 @@ mod tests {
             // let table_pointer: Arc<HeapTable> = Arc::new(table);
             let mut catlog = Database::global().get_catalog();
             catlog.add_table(Arc::clone(&table_wrapper), "table", "");
+            drop(catlog);
             // let mut table = catlog.get_table(table_id);
             // Database::global()
             // .get_catalog()
