@@ -194,6 +194,7 @@ mod tests {
 
     mod scan_test {
         use super::*;
+        use crate::sequential_scan::SequentialScan;
         use std::sync::Mutex;
 
         #[test]
@@ -213,46 +214,23 @@ mod tests {
             debug!("{:?}", cells);
             debug!("{:?}", cells.len());
 
-            // let table_pointer: Arc<HeapTable> = Arc::new(table);
-            let mut catlog = Database::global().get_catalog();
-            catlog.add_table(Arc::clone(&table_wrapper), "table", "");
-            drop(catlog);
-            // let mut table = catlog.get_table(table_id);
-            // Database::global()
-            // .get_catalog()
-            // .add_table(Arc::clone(&table_pointer), "table", "");
+            {
+                let mut catlog = Database::global().get_catalog();
+                catlog.add_table(Arc::clone(&table_wrapper), "table", "");
+            }
 
             // test if match
             let tid = TransactionID::new();
             debug!("tid: {}", tid.id);
 
-            use crate::sequential_scan::SequentialScan;
+            let tabld_id = table_wrapper.try_lock().unwrap().get_id();
 
-            let mut scan = SequentialScan::new(tid, table_wrapper.lock().unwrap().get_id(), "");
+            let mut scan = SequentialScan::new(tid, tabld_id, "");
 
-            // scan::open();
-            //
             let mut row_index = 0;
             for actual_row in scan.next() {
-                // let actual_row_vec: Vec<?>
-                // let expected_row = cells[row_index];
-                // assert_eq!(expected_row, actual_row);
-
                 debug!("{:?}", actual_row);
             }
-
-            // for expected_row in &cells {
-            // let actual_row = scan.next();
-            // assert_eq!(expected_row, actual_row);
-            // }
-
-            // for columns in &column_sizes {
-            // for rows in &row_sizes {
-            // debug!("{} {}", columns, rows);
-            // let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), Vec::new());
-            // }
-            // }
-            // })
         }
     }
 }
