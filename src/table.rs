@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Mutex, Arc, MutexGuard};
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;
@@ -61,7 +61,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct HeapTable {
     pub table_id: i32,
-    pub file: Arc<File>,
+    pub file: Arc<Mutex<File>>,
     pub row_scheme: Arc<RowScheme>,
 }
 
@@ -69,7 +69,7 @@ impl HeapTable {
     pub fn new(file: File, row_scheme: RowScheme) -> HeapTable {
         HeapTable {
             table_id: 0,
-            file: Arc::new(file),
+            file: Arc::new(Mutex::new(file)),
             row_scheme: Arc::new(row_scheme),
         }
     }
@@ -89,20 +89,38 @@ impl HeapTable {
     }
 
     pub fn get_num_pages(&self) -> usize {
-        let metadata = self.file.metadata().unwrap();
+        let metadata = self.file.try_lock().unwrap().metadata().unwrap();
         let n = metadata.len() as f64 / BufferPool::get_page_size() as f64;
         // round::cell(n, 0) as usize
         n.ceil() as usize
     }
 
-    pub fn get_file(&self) -> &File {
-        &self.file
+    pub fn get_file(&self) -> MutexGuard<File> {
+        match self.file.try_lock() {
+            Ok(a) => a,
+            _ => unreachable!(),
+        }
     }
 
     pub fn read_page(&mut self, page_id: i32) -> HeapPage {
-        // self.file.seek();
-        // self.file .seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
-        // self.file.
+        self.get_file().seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
+        let mut buf: [u8; 4096] = [0; 4096];
+        self.get_file().read_exact(&mut buf);
+        // use hex::encode;
+        // debug!("read bytes: {}", hex::encode(buf));
+        debug!("read page {} from file {:?}", page_id, self.get_file());
+        let mut start = 0;
+        use itertools::Itertools;
+        // debug!("{:02x} ", buf.iter().format(""));
+
+        debug!("{:?}", buf[0]);
+        debug!("{:x?}", buf[0]);
+
+        // while start < buf.len()  {
+        //     debug!("{:?}", buf[start..start+8]);
+        //     start += 8;
+        // }
+
         HeapPage::new(&[])
     }
 }

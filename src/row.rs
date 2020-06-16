@@ -1,8 +1,9 @@
 use crate::cell::{Cell, FieldItem, IntCell, Type};
+use std::{rc::Rc, cell::RefCell};
 
 #[derive(Debug)]
 pub struct Row {
-    scheme: RowScheme,
+    scheme: Rc<RefCell<RowScheme>>,
     cells: Vec<Box<dyn Cell>>,
 }
 
@@ -18,7 +19,7 @@ impl Row {
             }
         }
         Row {
-            scheme: scheme,
+            scheme: Rc::new(RefCell::new(scheme)),
             cells: cells,
         }
     }
@@ -30,7 +31,16 @@ impl Row {
     pub fn get_cell(&mut self, i: i32) -> Box<dyn Cell> {
         self.cells[i as usize].clone_box()
     }
+
+    // FIXME: `impl Copy for Row` and get rid of this silly function.
+    pub fn copy_row(&self) -> Row {
+        Row {
+            scheme: Rc::clone(&self.scheme),
+            cells: self.cells.to_vec(),
+        }
+    }
 }
+
 
 #[derive(Debug)]
 pub struct RowScheme {
