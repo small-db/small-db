@@ -25,7 +25,7 @@ impl BufferPool {
         tid: &TransactionID,
         page_id: HeapPageID,
         permission: Permissions,
-    ) -> Rc<dyn Page> {
+    ) -> Rc<HeapPage> {
         // require lock
 
         // get page form buffer

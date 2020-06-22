@@ -5,7 +5,7 @@ use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
-use crate::page::{HeapPage, Page};
+use crate::page::*;
 use log::{debug, error, info};
 use rand::Rng;
 use std::borrow::BorrowMut;

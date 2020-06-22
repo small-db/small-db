@@ -1,6 +1,6 @@
 // use crate::database::db;
 use crate::database::Database;
-use crate::page::Page;
+use crate::page::*;
 use crate::page_id::*;
 use crate::permissions::Permissions;
 use crate::row::Row;
@@ -26,6 +26,7 @@ impl SequentialScan {
         let mut table = catlog.get_table(table_id);
         let page = table.read_page(0);
         let rows = page.get_rows();
+        debug!("rows: {:?}", rows);
 
         debug!("finish seq scan init");
 
