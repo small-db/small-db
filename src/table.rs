@@ -66,7 +66,8 @@ pub struct HeapTable {
 }
 
 impl HeapTable {
-    pub fn new(file: File, row_scheme: RowScheme) -> HeapTable {
+    pub fn new(file_path: &str, row_scheme: RowScheme) -> HeapTable {
+        let mut file = File::open(file_path).unwrap();
         HeapTable {
             table_id: 0,
             file: Arc::new(Mutex::new(file)),
@@ -113,8 +114,9 @@ impl HeapTable {
         use itertools::Itertools;
         // debug!("{:02x} ", buf.iter().format(""));
 
-        debug!("{:?}", buf[0]);
+        // debug!("{:?}", buf[0]);
         debug!("{:x?}", buf[0]);
+        debug!("buffer len: {}", buf.len());
 
         // while start < buf.len()  {
         //     debug!("{:?}", buf[start..start+8]);
@@ -145,7 +147,8 @@ pub fn create_random_heap_table(
     }
 
     // write cells to a readable file
-    let mut file = File::create("readable.txt").unwrap();
+    let path = "./readable.txt";
+    let mut file = File::create(path).unwrap();
     for row_cells in new_cells.iter() {
         for value in row_cells {
             file.write_fmt(format_args!("{} ", value));
@@ -189,7 +192,8 @@ pub fn create_random_heap_table(
         end = start + rows_per_page as usize;
     }
 
-    let mut file = File::create("heap.db").unwrap();
+    let table_path = "./heap.db";
+    let mut file = File::create(table_path).unwrap();
     for sub_cells in &paginated_cells {
         // constract header
         let mut bv = BitVec::from_elem(header_bytes as usize * 8, false);
@@ -217,7 +221,7 @@ pub fn create_random_heap_table(
     }
 
     let row_scheme = simple_int_row_scheme(columns, "");
-    let table = HeapTable::new(file, row_scheme);
+    let table = HeapTable::new(table_path, row_scheme);
 
     // let poing = Arc::new(table)
     // add to catalog
