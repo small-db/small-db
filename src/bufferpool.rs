@@ -38,11 +38,15 @@ impl BufferPool {
 
         // read page content
         let mut buffer: [u8; 4096] = [0; 4096];
-        let bytes = table.get_file().read_exact(&mut buffer);
+        let mut bytes: Vec<u8> = Vec::new();
+        table.get_file().read_exact(&mut buffer);
+        for b in buffer.into_iter() {
+            bytes.push(*b);
+        }
         // debug!("buffer: {:x?}", buffer);
 
         // convert to page object
 
-        Rc::new(HeapPage::new(page_id, &[]))
+        Rc::new(HeapPage::new(page_id, bytes))
     }
 }

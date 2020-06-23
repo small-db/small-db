@@ -123,7 +123,7 @@ impl HeapTable {
         //     start += 8;
         // }
 
-        HeapPage::new(HeapPageID{page_index: page_id, table_id: self.table_id}, &[])
+        HeapPage::new(HeapPageID{page_index: page_id, table_id: self.table_id}, Vec::new())
     }
 }
 
