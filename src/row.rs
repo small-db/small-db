@@ -86,6 +86,10 @@ impl RowScheme {
     pub(crate) fn get_field_type(&self, i: i32) -> Type {
         self.fields[i as usize].field_type
     }
+
+    pub fn get_size(&self) -> usize {
+        self.fields.len() * 4
+    }
 }
 
 impl Default for RowScheme {

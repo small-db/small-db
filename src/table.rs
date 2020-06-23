@@ -5,7 +5,7 @@ use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
-use crate::page::*;
+use crate::{page_id::HeapPageID, page::*};
 use log::{debug, error, info};
 use rand::Rng;
 use std::borrow::BorrowMut;
@@ -91,7 +91,7 @@ impl HeapTable {
 
     pub fn get_num_pages(&self) -> usize {
         let metadata = self.file.try_lock().unwrap().metadata().unwrap();
-        let n = metadata.len() as f64 / BufferPool::get_page_size() as f64;
+        let n = metadata.len() as f64 / Database::global().get_buffer_pool().get_page_size() as f64;
         // round::cell(n, 0) as usize
         n.ceil() as usize
     }
@@ -103,7 +103,7 @@ impl HeapTable {
         }
     }
 
-    pub fn read_page(&mut self, page_id: i32) -> HeapPage {
+    pub fn read_page(&self, page_id: i32) -> HeapPage {
         self.get_file().seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
         let mut buf: [u8; 4096] = [0; 4096];
         self.get_file().read_exact(&mut buf);
@@ -123,7 +123,7 @@ impl HeapTable {
         //     start += 8;
         // }
 
-        HeapPage::new(&[])
+        HeapPage::new(HeapPageID{page_index: page_id, table_id: self.table_id}, &[])
     }
 }
 

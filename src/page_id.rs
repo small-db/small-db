@@ -1,4 +1,4 @@
-pub trait PageID {}
+// pub trait PageID {}
 
 pub struct HeapPageID {
     pub table_id: i32,
@@ -12,4 +12,4 @@ impl HeapPageID {
     // }
 }
 
-impl PageID for HeapPageID {}
+// impl PageID for HeapPageID {}

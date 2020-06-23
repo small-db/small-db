@@ -195,7 +195,7 @@ mod tests {
     mod scan_test {
         use super::*;
         use crate::sequential_scan::SequentialScan;
-        use std::sync::Mutex;
+        use std::sync::{RwLock, Mutex};
 
         #[test]
         fn test_small() {
@@ -209,13 +209,13 @@ mod tests {
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
 
-            let table_wrapper = Arc::new(Mutex::new(table));
+            let table_wrapper = Arc::new(RwLock::new(table));
 
             debug!("{:?}", cells);
             debug!("{:?}", cells.len());
 
             {
-                let mut catlog = Database::global().get_catalog();
+                let mut catlog = Database::global().get_write_catalog();
                 catlog.add_table(Arc::clone(&table_wrapper), "table", "");
             }
 
@@ -223,7 +223,7 @@ mod tests {
             let tid = TransactionID::new();
             debug!("tid: {}", tid.id);
 
-            let tabld_id = table_wrapper.try_lock().unwrap().get_id();
+            let tabld_id = table_wrapper.try_read().unwrap().get_id();
 
             let mut scan = SequentialScan::new(tid, tabld_id, "");
 

@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use once_cell::sync::OnceCell;
 use std::cell::RefCell;
 use std::fs::File;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // lazy_static! {
 // pub static ref db: Database = Database::new();
@@ -17,15 +17,15 @@ use std::sync::{Arc, Mutex, MutexGuard};
 static DB: OnceCell<Database> = OnceCell::new();
 
 pub struct Database {
-    catalog: Arc<Mutex<Catalog>>,
-    buffer_pool: Arc<Mutex<BufferPool>>,
+    catalog: Arc<RwLock<Catalog>>,
+    buffer_pool: Arc<RwLock<BufferPool>>,
 }
 
 impl Database {
     pub(crate) fn new() -> Database {
         Database {
-            catalog: Arc::new(Mutex::new(Catalog::new())),
-            buffer_pool: Arc::new(Mutex::new(BufferPool::new())),
+            catalog: Arc::new(RwLock::new(Catalog::new())),
+            buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
         }
     }
 
@@ -45,17 +45,37 @@ impl Database {
         // expect("db is not initialized")
     }
 
-    pub(crate) fn get_catalog(&self) -> MutexGuard<Catalog> {
-        self.catalog.try_lock().unwrap()
+    pub(crate) fn get_catalog(&self) -> RwLockReadGuard<Catalog> {
+        // debug!("read catalog");
+        self.catalog.try_read().unwrap()
     }
 
-    pub(crate) fn get_buffer_pool(&self) -> MutexGuard<BufferPool> {
-        self.buffer_pool.try_lock().unwrap()
+    pub(crate) fn get_buffer_pool(&self) -> RwLockReadGuard<BufferPool> {
+        // debug!("read buffer pool");
+        self.buffer_pool.try_read().unwrap()
+    }
+
+    pub(crate) fn get_write_catalog(&self) -> RwLockWriteGuard<Catalog> {
+        // debug!("write catalog");
+        self.catalog.try_write().unwrap()
+    }
+
+    pub(crate) fn get_write_buffer_pool(&self) -> RwLockWriteGuard<BufferPool> {
+        // debug!("write buffer pool");
+        self.buffer_pool.try_write().unwrap()
     }
 }
 
+// #[stable(feature = "rust1", since = "1.0.0")]
+// unsafe impl Drop for RwLockReadGuard<'_, BufferPool> {
+//     fn drop(&mut self) {
+//         // IMPORTANT: This code needs to be kept in sync with `RwLock::into_inner`.
+//         unsafe { self.inner.destroy() }
+//     }
+// }
+
 pub struct Catalog {
-    table_id_table_map: HashMap<i32, Arc<Mutex<HeapTable>>>,
+    table_id_table_map: HashMap<i32, Arc<RwLock<HeapTable>>>,
 }
 
 impl Catalog {
@@ -68,27 +88,36 @@ impl Catalog {
     pub(crate) fn get_row_scheme(&self, table_id: i32) -> Arc<RowScheme> {
         let t = self.table_id_table_map.get(&table_id);
         match t {
-            Some(t) => t.lock().unwrap().get_row_scheme(),
+            Some(t) => t.try_read().unwrap().get_row_scheme(),
             None => panic!(""),
         }
     }
 
     pub(crate) fn add_table(
         &mut self,
-        table: Arc<Mutex<HeapTable>>,
+        table: Arc<RwLock<HeapTable>>,
         table_name: &str,
         primary_key: &str,
     ) {
         self.table_id_table_map
-            .insert(table.lock().unwrap().table_id, Arc::clone(&table));
+            .insert(table.try_read().unwrap().table_id, Arc::clone(&table));
     }
 
-    pub fn get_table(&self, table_id: i32) -> MutexGuard<HeapTable> {
+    pub fn get_table(&self, table_id: i32) -> RwLockReadGuard<HeapTable> {
         // debug!("{:?}", self.table_id_table_map);
         self.table_id_table_map
             .get(&table_id)
             .unwrap()
-            .try_lock()
+            .try_read()
+            .unwrap()
+    }
+
+    pub fn get_write_table(&self, table_id: i32) -> RwLockWriteGuard<HeapTable> {
+        // debug!("{:?}", self.table_id_table_map);
+        self.table_id_table_map
+            .get(&table_id)
+            .unwrap()
+            .try_write()
             .unwrap()
     }
 }

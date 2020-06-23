@@ -23,7 +23,7 @@ impl SequentialScan {
 
         // read table's first page
         let catlog = Database::global().get_catalog();
-        let mut table = catlog.get_table(table_id);
+        let table = catlog.get_table(table_id);
         let page = table.read_page(0);
         let rows = page.get_rows();
         debug!("rows: {:?}", rows);

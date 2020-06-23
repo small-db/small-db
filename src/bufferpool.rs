@@ -16,7 +16,7 @@ impl BufferPool {
         BufferPool {}
     }
 
-    pub fn get_page_size() -> usize {
+    pub fn get_page_size(&self) -> usize {
         4096
     }
 
@@ -43,6 +43,6 @@ impl BufferPool {
 
         // convert to page object
 
-        Rc::new(HeapPage::new(&[]))
+        Rc::new(HeapPage::new(page_id, &[]))
     }
 }
