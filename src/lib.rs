@@ -207,8 +207,18 @@ mod tests {
             let column_sizes = [1, 2, 3, 4, 5];
             let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
+            validate_sacn(1, 2);
+            // for column_size in &column_sizes {
+            // for row_size in &row_sizes {
+            // validate_sacn(*column_size, *row_size);
+            // }
+            // }
+        }
+
+        fn validate_sacn(columns: i32, rows: i32) {
+            info!("start validate scan, columns: {}, rows: {}", columns, rows);
             let mut cells: Vec<Vec<i32>> = Vec::new();
-            let table = create_random_heap_table(3, 5000, 10000, HashMap::new(), &mut cells);
+            let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), &mut cells);
 
             let table_wrapper = Arc::new(RwLock::new(table));
 
@@ -235,11 +245,8 @@ mod tests {
                 // compare cells and rows
                 assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
-
-                if row_index >= cells.len() {
-                    break;
-                }
             }
+
             if row_index < cells.len() {
                 info!(
                     "scanned rows not enough, scanned: {}, origin: {}",

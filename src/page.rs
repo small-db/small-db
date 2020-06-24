@@ -36,10 +36,13 @@ impl HeapPage {
         // let reader = BufReader::new(header);
         let mut start = header_size;
         let mut end = start + row_scheme.get_size();
-        for _ in 0..HeapPage::get_rows_count(&row_scheme) {
+        for slot_id in 0..HeapPage::get_rows_count(&row_scheme) {
             // let row: Row = read_row(reader, &row_scheme);
             let row: Row = Row::new(Arc::clone(&row_scheme), &bytes[start..end]);
-            rows.push(row);
+
+            if HeapPage::is_slot_used(&header, slot_id) {
+                rows.push(row);
+            }
 
             start = end;
             end += row_scheme.get_size();
@@ -53,6 +56,7 @@ impl HeapPage {
         }
     }
 
+    // TODO: only return alocated rows
     pub fn get_rows(&self) -> Arc<Vec<Row>> {
         Arc::clone(&self.rows)
     }
@@ -63,6 +67,13 @@ impl HeapPage {
 
     fn get_header_size(row_scheme: &RowScheme) -> usize {
         (HeapPage::get_rows_count(&row_scheme) + 7) / 8
+    }
+
+    fn is_slot_used(header: &Vec<u8>, slot_id: usize) -> bool {
+        let byte_index = slot_id / 8;
+        let byte = header[byte_index];
+        let bit_index = slot_id % 8;
+        (byte & (1 << bit_index)) != 0
     }
 }
 

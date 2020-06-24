@@ -17,7 +17,7 @@ impl BufferPool {
     }
 
     pub fn get_page_size(&self) -> usize {
-        PAGE_SIZE
+        4096
     }
 
     pub fn get_page(
