@@ -3,7 +3,7 @@ use crate::{database::*, page_id::HeapPageID};
 use log::debug;
 use std::alloc::handle_alloc_error;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::{io::BufReader, sync::Arc};
 
 // pub trait Page {
 // // pub fn iter(&self) -> Rc<Iterator<Row>> {}
@@ -27,13 +27,29 @@ impl HeapPage {
         for b in bytes[0..header_size].into_iter() {
             header.push(*b);
         }
-        // header.append(bytes[0..HeapPage::get_header_size(&row_scheme)]);
-        debug!("header: {:?}", header);
+        debug!("header: {:x?}", header);
+
+        let allocated_rows_count = get_allocated(&header);
+
+        // read rows
+        let mut rows: Vec<Row> = Vec::new();
+        // let reader = BufReader::new(header);
+        let mut start = header_size;
+        let mut end = start + row_scheme.get_size();
+        for _ in 0..HeapPage::get_rows_count(&row_scheme) {
+            // let row: Row = read_row(reader, &row_scheme);
+            let row: Row = Row::new(Arc::clone(&row_scheme), &bytes[start..end]);
+            rows.push(row);
+
+            start = end;
+            end += row_scheme.get_size();
+        }
+
         HeapPage {
             page_id,
             row_scheme: row_scheme,
             header,
-            rows: Arc::new(Vec::new()),
+            rows: Arc::new(rows),
         }
     }
 
@@ -59,4 +75,12 @@ impl HeapPage {
 // pub struct HeapPageID {
 // table_id: i32,
 // page_index: i32,
+// }
+
+fn get_allocated(header: &Vec<u8>) -> usize {
+    0
+}
+
+// fn read_row(reader: BufReader<Vec<u8>>, row_scheme: &RowScheme) -> Row {
+
 // }

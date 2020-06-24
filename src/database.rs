@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuar
 // }
 static DB: OnceCell<Database> = OnceCell::new();
 
-pub static PAGE_SIZE: usize = 1024;
+pub static PAGE_SIZE: usize = 4096;
 
 pub struct Database {
     catalog: Arc<RwLock<Catalog>>,

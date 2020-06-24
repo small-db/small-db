@@ -4,6 +4,7 @@ use crate::page::*;
 use crate::page_id::*;
 use crate::permissions::Permissions;
 use crate::row::Row;
+use crate::row::*;
 use crate::transaction_id::TransactionID;
 use log::{debug, error, info};
 use std::rc::Rc;
@@ -26,7 +27,8 @@ impl SequentialScan {
         let table = catlog.get_table(table_id);
         let page = table.read_page(0);
         let rows = page.get_rows();
-        debug!("rows: {:?}", rows);
+        // debug!("rows: {:?}", rows);
+        display_rows(&Arc::clone(&rows));
 
         debug!("finish seq scan init");
 

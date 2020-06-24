@@ -1,45 +1,106 @@
-use crate::cell::{Cell, FieldItem, IntCell, Type};
-use std::{cell::RefCell, rc::Rc};
+use crate::cell::*;
+use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
+// use std::i32;
+use log::debug;
 
 #[derive(Debug)]
 pub struct Row {
-    scheme: Rc<RefCell<RowScheme>>,
-    cells: Vec<Box<dyn Cell>>,
+    scheme: Arc<RowScheme>,
+    cells: Vec<IntCell>,
 }
 
 impl Row {
-    pub fn new(scheme: RowScheme) -> Row {
-        let mut cells: Vec<Box<dyn Cell>> = Vec::new();
+    pub fn new(scheme: Arc<RowScheme>, bytes: &[u8]) -> Row {
+        let mut cells: Vec<IntCell> = Vec::new();
+        let mut start: usize = 0;
+        let mut end: usize = 0;
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(Box::new(IntCell::new(0)));
+                    end += get_type_length(field.field_type);
+                    let cell_bytes = &bytes[start..end];
+                    // debug!("cell bytes: {:x?}", cell_bytes);
+
+                    let mut bytes_array = [0; 4];
+                    for i in 0..4 {
+                        bytes_array[i] = cell_bytes[i];
+                    }
+                    let value = i32::from_be_bytes(bytes_array);
+                    // debug!("cell value : {}", value);
+
+                    cells.push(IntCell::new(value));
+
+                    start = end;
                 }
                 Type::STRING => {}
             }
         }
         Row {
-            scheme: Rc::new(RefCell::new(scheme)),
+            scheme: Arc::clone(&scheme),
             cells: cells,
         }
     }
 
-    pub fn set_cell(&mut self, i: i32, c: Box<dyn Cell>) {
+    pub fn set_cell(&mut self, i: i32, c: IntCell) {
         self.cells[i as usize] = c;
     }
 
-    pub fn get_cell(&mut self, i: i32) -> Box<dyn Cell> {
-        self.cells[i as usize].clone_box()
+    pub fn get_cell(&mut self, i: i32) -> IntCell {
+        self.cells[i as usize]
     }
 
     // FIXME: `impl Copy for Row` and get rid of this silly function.
     pub fn copy_row(&self) -> Row {
         Row {
-            scheme: Rc::clone(&self.scheme),
+            scheme: Arc::clone(&self.scheme),
             cells: self.cells.to_vec(),
         }
     }
 }
+
+impl fmt::Display for Row {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut content: String = "{".to_owned();
+        for cell in &self.cells {
+            let cell_str = format!("{}, ", cell.value);
+            content.push_str(&cell_str);
+        }
+        content = content[..content.len() - 2].to_string();
+        content.push_str(&"}");
+        write!(f, "{}", content,)
+    }
+}
+
+pub fn display_rows(rows: &Vec<Row>) {
+    let s = format!("rows[{} in total] : [", rows.len());
+    let mut content: String = s.to_owned();
+    let mut slice: &[Row] = &Vec::new();
+    if rows.len() > 5 {
+        slice = &rows[..5];
+    } else {
+        slice = &rows[..];
+    }
+
+    for r in slice {
+        let s = format!("{}, ", r);
+        content.push_str(&s);
+    }
+    content = content[..content.len() - 2].to_string();
+    content.push_str(" ... ]");
+    debug!("{}", content);
+}
+
+// impl fmt::Display for Vec<Row> {
+// fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+// let mut content: String = "{".to_owned();
+// for cell in &self.cells {
+// let cell_str = format!("{}, ", cell.value);
+// content.push_str(&cell_str);
+// }
+// content.push_str(&"}");
+// write!(f, "{}", content,)
+// }
+// }
 
 #[derive(Debug)]
 pub struct RowScheme {
