@@ -17,6 +17,8 @@ use std::io::SeekFrom;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard};
+// use std::error::Error;
+use std::io;
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;
@@ -103,10 +105,12 @@ impl HeapTable {
         }
     }
 
-    pub fn read_page(&self, page_id: i32) -> HeapPage {
-        self.get_file()
-            .seek(SeekFrom::Start(page_id as u64 * 4096))
-            .unwrap();
+    pub fn read_page(&self, page_id: usize) -> Result<HeapPage, io::Error> {
+        match self.get_file().seek(SeekFrom::Start(page_id as u64 * 4096)) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+
         let mut buf: [u8; 4096] = [0; 4096];
         self.get_file().read_exact(&mut buf);
         // use hex::encode;
@@ -130,13 +134,14 @@ impl HeapTable {
             bytes.push(*b);
         }
 
-        HeapPage::new(
+        let page = HeapPage::new(
             HeapPageID {
                 page_index: page_id,
                 table_id: self.table_id,
             },
             bytes,
-        )
+        );
+        Ok(page)
     }
 }
 

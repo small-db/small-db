@@ -2,7 +2,7 @@
 
 pub struct HeapPageID {
     pub table_id: i32,
-    pub page_index: i32,
+    pub page_index: usize,
 }
 
 impl HeapPageID {

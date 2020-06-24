@@ -5,10 +5,11 @@ use crate::page_id::*;
 use crate::permissions::Permissions;
 use crate::row::Row;
 use crate::row::*;
+use crate::table::*;
 use crate::transaction_id::TransactionID;
 use log::{debug, error, info};
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, RwLockReadGuard};
 
 pub struct SequentialScan {
     pub tid: Rc<TransactionID>,
@@ -17,6 +18,8 @@ pub struct SequentialScan {
     // pub page: Rc<Page>,
     pub rows: Arc<Vec<Row>>,
     index: usize,
+    // table: RwLockReadGuard<HeapTable>,
+    page_id: usize,
 }
 
 impl SequentialScan {
@@ -26,7 +29,7 @@ impl SequentialScan {
         // read table's first page
         let catlog = Database::global().get_catalog();
         let table = catlog.get_table(table_id);
-        let page = table.read_page(0);
+        let page = table.read_page(0).unwrap();
         let rows = page.get_rows();
         // debug!("rows: {:?}", rows);
         display_rows(&Arc::clone(&rows));
@@ -39,6 +42,8 @@ impl SequentialScan {
             table_alias: table_alias.to_string(),
             rows,
             index: 0,
+            // table,
+            page_id: 0,
         }
     }
 }
@@ -52,7 +57,22 @@ impl Iterator for SequentialScan {
             self.index += 1;
             Some(row)
         } else {
-            None
+            // read next page
+            self.page_id += 1;
+            self.index = 0;
+
+            let catlog = Database::global().get_catalog();
+            let table = catlog.get_table(self.table_id);
+            let result = table.read_page(self.page_id);
+            let page = match result {
+                Ok(p) => p,
+                Err(e) => return None,
+            };
+            self.rows = page.get_rows();
+            // debug!("rows: {:?}", rows);
+            display_rows(&Arc::clone(&self.rows));
+
+            self.next()
         }
     }
 }

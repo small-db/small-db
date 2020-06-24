@@ -1,7 +1,7 @@
 use crate::cell::*;
 use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 // use std::i32;
-use log::debug;
+use log::{debug, error};
 
 #[derive(Debug)]
 pub struct Row {
@@ -55,6 +55,23 @@ impl Row {
             scheme: Arc::clone(&self.scheme),
             cells: self.cells.to_vec(),
         }
+    }
+
+    pub fn equal_cells(&self, cells: &Vec<i32>) -> bool {
+        // for cell in &self.cells.into_iter().enumerate() {
+        // // let cell_str = format!("{}, ", cell.value);
+        // // content.push_str(&cell_str);
+        // }
+        for i in 0..self.cells.len() {
+            if self.cells[i].value != cells[i] {
+                error!(
+                    "cell not equal, expect: {:?}, self: {:?}",
+                    cells, self.cells
+                );
+                return false;
+            }
+        }
+        true
     }
 }
 

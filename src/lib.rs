@@ -208,12 +208,12 @@ mod tests {
             let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
             let mut cells: Vec<Vec<i32>> = Vec::new();
-            let table = create_random_heap_table(2, 5, 10000, HashMap::new(), &mut cells);
+            let table = create_random_heap_table(3, 5000, 10000, HashMap::new(), &mut cells);
 
             let table_wrapper = Arc::new(RwLock::new(table));
 
-            debug!("{:?}", cells);
-            debug!("{:?}", cells.len());
+            debug!("cells<{} in total>: {:?}", cells.len(), cells);
+            // debug!("{:?}", cells.len());
 
             {
                 let mut catlog = Database::global().get_write_catalog();
@@ -231,6 +231,21 @@ mod tests {
             let mut row_index = 0;
             for actual_row in scan {
                 debug!("{}", actual_row);
+
+                // compare cells and rows
+                assert!(actual_row.equal_cells(&cells[row_index]));
+                row_index += 1;
+
+                if row_index >= cells.len() {
+                    break;
+                }
+            }
+            if row_index < cells.len() {
+                info!(
+                    "scanned rows not enough, scanned: {}, origin: {}",
+                    row_index,
+                    cells.len()
+                );
             }
         }
     }
