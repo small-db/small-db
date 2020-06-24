@@ -1,13 +1,13 @@
 use crate::row::*;
-use crate::{page_id::HeapPageID, database::*};
+use crate::{database::*, page_id::HeapPageID};
+use log::debug;
 use std::alloc::handle_alloc_error;
 use std::rc::Rc;
 use std::sync::Arc;
-use log::debug;
 
 // pub trait Page {
-//     // pub fn iter(&self) -> Rc<Iterator<Row>> {}
-//     fn get_rows(&self) -> Arc<Vec<Row>>;
+// // pub fn iter(&self) -> Rc<Iterator<Row>> {}
+// fn get_rows(&self) -> Arc<Vec<Row>>;
 // }
 
 pub struct HeapPage {
@@ -22,10 +22,12 @@ impl HeapPage {
         let table_id = page_id.table_id;
         let row_scheme = Database::global().get_catalog().get_row_scheme(table_id);
         let mut header: Vec<u8> = Vec::new();
-        // for b in bytes[0..HeapPage::get_header_size(&row_scheme)].into_iter() {
-        //     header.push(*b);
-        // }
-        header.append(bytes[0..HeapPage::get_header_size(&row_scheme)]);
+        let header_size = HeapPage::get_header_size(&row_scheme);
+        debug!("header size: {} bytes", header_size);
+        for b in bytes[0..header_size].into_iter() {
+            header.push(*b);
+        }
+        // header.append(bytes[0..HeapPage::get_header_size(&row_scheme)]);
         debug!("header: {:?}", header);
         HeapPage {
             page_id,
@@ -49,12 +51,12 @@ impl HeapPage {
 }
 
 // impl Page for HeapPage {
-//     fn get_rows(&self) -> Arc<Vec<Row>> {
-//         Arc::clone(&self.rows)
-//     }
+// fn get_rows(&self) -> Arc<Vec<Row>> {
+// Arc::clone(&self.rows)
+// }
 // }
 
 // pub struct HeapPageID {
-//     table_id: i32,
-//     page_index: i32,
+// table_id: i32,
+// page_index: i32,
 // }

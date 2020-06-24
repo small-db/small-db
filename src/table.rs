@@ -5,7 +5,7 @@ use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
-use crate::{page_id::HeapPageID, page::*};
+use crate::{page::*, page_id::HeapPageID};
 use log::{debug, error, info};
 use rand::Rng;
 use std::borrow::BorrowMut;
@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 use std::path::Path;
 use std::rc::Rc;
-use std::sync::{Mutex, Arc, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;
@@ -104,7 +104,9 @@ impl HeapTable {
     }
 
     pub fn read_page(&self, page_id: i32) -> HeapPage {
-        self.get_file().seek(SeekFrom::Start(page_id as u64 * 4096)).unwrap();
+        self.get_file()
+            .seek(SeekFrom::Start(page_id as u64 * 4096))
+            .unwrap();
         let mut buf: [u8; 4096] = [0; 4096];
         self.get_file().read_exact(&mut buf);
         // use hex::encode;
@@ -119,11 +121,22 @@ impl HeapTable {
         debug!("buffer len: {}", buf.len());
 
         // while start < buf.len()  {
-        //     debug!("{:?}", buf[start..start+8]);
-        //     start += 8;
+        // debug!("{:?}", buf[start..start+8]);
+        // start += 8;
         // }
 
-        HeapPage::new(HeapPageID{page_index: page_id, table_id: self.table_id}, Vec::new())
+        let mut bytes: Vec<u8> = Vec::new();
+        for b in buf.into_iter() {
+            bytes.push(*b);
+        }
+
+        HeapPage::new(
+            HeapPageID {
+                page_index: page_id,
+                table_id: self.table_id,
+            },
+            bytes,
+        )
     }
 }
 
@@ -157,14 +170,14 @@ pub fn create_random_heap_table(
     }
 
     // write cells to a heap file
-    let bytes_per_page: usize = 1024;
+    // let bytes_per_page: usize = 1024;
     let mut bytes_per_row: usize = 0;
     let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
     for i in 0..columns {
         bytes_per_row += get_type_length(row_scheme.get_field_type(i));
     }
     debug!("bytes per row: {}", bytes_per_row);
-    let mut rows_per_page = (bytes_per_page * 8) / (bytes_per_row * 8 + 1);
+    let mut rows_per_page = (PAGE_SIZE * 8) / (bytes_per_row * 8 + 1);
     debug!("rows per page: {}", rows_per_page);
     let mut header_bytes = rows_per_page / 8;
     // ceiling
@@ -214,7 +227,7 @@ pub fn create_random_heap_table(
 
         // padding
         let padding_bytes: usize =
-            bytes_per_page - bv.to_bytes().len() - bytes_per_row * sub_cells.len();
+            PAGE_SIZE - bv.to_bytes().len() - bytes_per_row * sub_cells.len();
         debug!("padding size: {} bytes", padding_bytes);
         let bytes_array = [0 as u8; 4096];
         file.write(&bytes_array[0..padding_bytes]);

@@ -16,6 +16,8 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuar
 // }
 static DB: OnceCell<Database> = OnceCell::new();
 
+pub static PAGE_SIZE: usize = 1024;
+
 pub struct Database {
     catalog: Arc<RwLock<Catalog>>,
     buffer_pool: Arc<RwLock<BufferPool>>,
@@ -68,10 +70,10 @@ impl Database {
 
 // #[stable(feature = "rust1", since = "1.0.0")]
 // unsafe impl Drop for RwLockReadGuard<'_, BufferPool> {
-//     fn drop(&mut self) {
-//         // IMPORTANT: This code needs to be kept in sync with `RwLock::into_inner`.
-//         unsafe { self.inner.destroy() }
-//     }
+// fn drop(&mut self) {
+// // IMPORTANT: This code needs to be kept in sync with `RwLock::into_inner`.
+// unsafe { self.inner.destroy() }
+// }
 // }
 
 pub struct Catalog {

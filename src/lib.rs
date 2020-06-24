@@ -195,7 +195,7 @@ mod tests {
     mod scan_test {
         use super::*;
         use crate::sequential_scan::SequentialScan;
-        use std::sync::{RwLock, Mutex};
+        use std::sync::{Mutex, RwLock};
 
         #[test]
         fn test_small() {

@@ -1,5 +1,5 @@
 use crate::cell::{Cell, FieldItem, IntCell, Type};
-use std::{rc::Rc, cell::RefCell};
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug)]
 pub struct Row {
@@ -40,7 +40,6 @@ impl Row {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct RowScheme {
