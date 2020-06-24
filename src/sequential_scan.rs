@@ -16,6 +16,7 @@ pub struct SequentialScan {
     pub table_alias: String,
     // pub page: Rc<Page>,
     pub rows: Arc<Vec<Row>>,
+    index: usize,
 }
 
 impl SequentialScan {
@@ -37,6 +38,7 @@ impl SequentialScan {
             table_id,
             table_alias: table_alias.to_string(),
             rows,
+            index: 0,
         }
     }
 }
@@ -45,7 +47,12 @@ impl Iterator for SequentialScan {
     type Item = Row;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Some(self.rows[0].copy_row())
-        None
+        if self.index < self.rows.len() {
+            let row = self.rows[self.index].copy_row();
+            self.index += 1;
+            Some(row)
+        } else {
+            None
+        }
     }
 }

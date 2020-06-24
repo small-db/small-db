@@ -198,6 +198,7 @@ mod tests {
         use std::sync::{Mutex, RwLock};
 
         #[test]
+        // java: simpledb.systemtest.ScanTest#testSmall
         fn test_small() {
             init_log();
             // let db = Database::new();
@@ -228,8 +229,8 @@ mod tests {
             let mut scan = SequentialScan::new(tid, tabld_id, "");
 
             let mut row_index = 0;
-            for actual_row in scan.next() {
-                debug!("{:?}", actual_row);
+            for actual_row in scan {
+                debug!("{}", actual_row);
             }
         }
     }
