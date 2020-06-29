@@ -48,6 +48,8 @@ impl HeapPage {
             end += row_scheme.get_size();
         }
 
+        display_rows(&rows);
+
         HeapPage {
             page_id,
             row_scheme: row_scheme,
@@ -73,7 +75,7 @@ impl HeapPage {
         let byte_index = slot_id / 8;
         let byte = header[byte_index];
         let bit_index = slot_id % 8;
-        (byte & (1 << bit_index)) != 0
+        (byte & (1 << (7 - bit_index))) != 0
     }
 }
 

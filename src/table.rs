@@ -227,15 +227,6 @@ pub fn create_random_heap_table(
         }
         debug!("bit vec<len: {}>: {:?}", bv.len(), bv);
 
-        {
-            let mut bv = BitVec::from_elem(1, false);
-            // for i in 0..sub_cells.len() {
-            bv.set(0, true);
-            // }
-            debug!("bit vec<len: {}>: {:?}", bv.len(), bv);
-            panic!();
-        }
-
         // write header
         let header = bv.to_bytes();
         debug!("header: {:x?}", header[0]);
