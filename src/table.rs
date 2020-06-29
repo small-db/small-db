@@ -229,7 +229,6 @@ pub fn create_random_heap_table(
 
         // write header
         let header = bv.to_bytes();
-        debug!("header: {:x?}", header[0]);
         file.write(&header);
 
         // write data

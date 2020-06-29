@@ -260,9 +260,9 @@ mod tests {
         // java: simpledb.systemtest.ScanTest#testCache
         fn test_cache() {
             // create the table
-            // let mut cells: Vec<Vec<i32>> = Vec::new();
-            // let pages = 30;
-            // let table = create_random_heap_table(1, 992 * pages, 10000, HashMap::new(), &mut cells);
+            let mut cells: Vec<Vec<i32>> = Vec::new();
+            let pages = 30;
+            let table = create_random_heap_table(1, 992 * pages, 10000, HashMap::new(), &mut cells);
 
             // scan the table once
 
