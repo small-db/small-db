@@ -218,11 +218,12 @@ mod tests {
             info!("start validate scan, columns: {}, rows: {}", columns, rows);
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), &mut cells);
-
             let table_pointer = Arc::new(RwLock::new(table));
 
             debug!("cells<{} in total>: {:?}", cells.len(), cells);
 
+            // add table to catolog
+            // add a scope to release write lock
             {
                 let mut catlog = Database::global().get_write_catalog();
                 catlog.add_table(Arc::clone(&table_pointer), "table", "");
@@ -252,6 +253,23 @@ mod tests {
                     cells.len()
                 );
             }
+        }
+
+        #[test]
+        // Verifies that the buffer pool is actually caching data.
+        // java: simpledb.systemtest.ScanTest#testCache
+        fn test_cache() {
+            // create the table
+            // let mut cells: Vec<Vec<i32>> = Vec::new();
+            // let pages = 30;
+            // let table = create_random_heap_table(1, 992 * pages, 10000, HashMap::new(), &mut cells);
+
+            // scan the table once
+
+            // remove table file
+
+            // scan the table again
+
         }
     }
 }
