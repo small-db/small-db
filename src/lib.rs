@@ -219,23 +219,22 @@ mod tests {
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), &mut cells);
 
-            let table_wrapper = Arc::new(RwLock::new(table));
+            let table_pointer = Arc::new(RwLock::new(table));
 
             debug!("cells<{} in total>: {:?}", cells.len(), cells);
-            // debug!("{:?}", cells.len());
 
             {
                 let mut catlog = Database::global().get_write_catalog();
-                catlog.add_table(Arc::clone(&table_wrapper), "table", "");
+                catlog.add_table(Arc::clone(&table_pointer), "table", "");
             }
 
             // test if match
             let tid = TransactionID::new();
             debug!("tid: {}", tid.id);
 
-            let tabld_id = table_wrapper.try_read().unwrap().get_id();
+            let tabld_id = table_pointer.try_read().unwrap().get_id();
 
-            let mut scan = SequentialScan::new(tid, tabld_id, "");
+            let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
 
             let mut row_index = 0;
             for actual_row in scan {
