@@ -229,8 +229,8 @@ mod tests {
             }
 
             // test if match
-            let tid = TransactionID::new();
-            debug!("tid: {}", tid.id);
+            // let tid = TransactionID::new();
+            // debug!("tid: {}", tid.id);
 
             let tabld_id = table_pointer.try_read().unwrap().get_id();
 
