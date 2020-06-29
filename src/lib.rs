@@ -64,7 +64,7 @@ mod tests {
                     record.args()
                 )
             })
-            .filter(None, LevelFilter::Debug)
+            // .filter(None, LevelFilter::Debug)
             // .format_timestamp_secs()
             .init();
     }
