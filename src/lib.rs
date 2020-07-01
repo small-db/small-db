@@ -259,6 +259,8 @@ mod tests {
         // Verifies that the buffer pool is actually caching data.
         // java: simpledb.systemtest.ScanTest#testCache
         fn test_cache() {
+            init_log();
+
             // create the table
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let pages = 30;

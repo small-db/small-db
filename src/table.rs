@@ -203,7 +203,7 @@ pub fn create_random_heap_table(
 
     let mut start: usize = 0;
     let mut end: usize = start + rows_per_page as usize;
-    while start <= rows as usize {
+    while start < rows as usize {
         if end + 1 > rows as usize {
             end = rows as usize;
         }
