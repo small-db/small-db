@@ -40,6 +40,14 @@ mod tests {
     // assert!(result.is_ok())
     // }
 
+    use std::sync::Once;
+
+    static INIT: Once = Once::new();
+
+    fn setup() {
+        INIT.call_once(init_log);
+    }
+
     // #[test]
     fn init_log() {
         use env_logger::Builder;
@@ -200,16 +208,25 @@ mod tests {
         #[test]
         // java: simpledb.systemtest.ScanTest#testSmall
         fn test_small() {
-            init_log();
+            setup();
+            // init_log();
             // let db = Database::new();
 
             // run_test(|| {
             let column_sizes = [1, 2, 3, 4, 5];
             let row_sizes = [0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 1000];
 
+            let mut i = 0;
             for column_size in &column_sizes {
                 for row_size in &row_sizes {
+                    i += 1;
+
+                    use std::{thread, time};
+                    thread::sleep(time::Duration::from_secs(1));
+
+                    debug!("loop {} start", i);
                     validate_sacn(*column_size, *row_size);
+                    debug!("loop {} end", i);
                 }
             }
         }
@@ -239,27 +256,27 @@ mod tests {
 
             let mut row_index = 0;
             for actual_row in scan {
-                debug!("{}", actual_row);
+                // debug!("{}", actual_row);
 
                 // compare cells and rows
                 assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
             }
 
-            if row_index < cells.len() {
-                info!(
-                    "scanned rows not enough, scanned: {}, origin: {}",
-                    row_index,
-                    cells.len()
-                );
-            }
+            info!(
+                "scanned: {}, origin dataset length: {}",
+                row_index,
+                cells.len()
+            );
+            assert!(row_index == cells.len());
         }
 
         #[test]
         // Verifies that the buffer pool is actually caching data.
         // java: simpledb.systemtest.ScanTest#testCache
         fn test_cache() {
-            init_log();
+            setup();
+            // init_log();
 
             // create the table
             let mut cells: Vec<Vec<i32>> = Vec::new();
@@ -271,7 +288,6 @@ mod tests {
             // remove table file
 
             // scan the table again
-
         }
     }
 }

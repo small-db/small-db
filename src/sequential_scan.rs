@@ -66,7 +66,10 @@ impl Iterator for SequentialScan {
             let result = table.read_page(self.page_id);
             let page = match result {
                 Ok(p) => p,
-                Err(e) => return None,
+                Err(e) => {
+                    debug!("error: {}", e);
+                    return None;
+                } ,
             };
             self.rows = page.get_rows();
             // debug!("rows: {:?}", rows);

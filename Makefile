@@ -1,6 +1,6 @@
 test:
 	# run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-	RUST_LOG=info RUST_BACKTRACE=1 cargo test
+	RUST_LOG=debug RUST_TEST_TASKS=1 cargo test 2>&1 | tee out
 
 clean:
 	rm *.db

@@ -110,7 +110,13 @@ impl HeapTable {
         let file_size = self.get_file().metadata().unwrap().len();
         let seek_pos = page_id as u64 * 4096;
         if seek_pos >= file_size {
-            return Err(io::Error::new(ErrorKind::Other, "oh no!"));
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                format!(
+                    "seek failed, file size: {}, seek position: {}",
+                    file_size, seek_pos
+                ),
+            ));
         }
 
         match self.get_file().seek(SeekFrom::Start(seek_pos)) {
@@ -160,6 +166,8 @@ pub fn create_random_heap_table(
     new_cells: &mut Vec<Vec<i32>>,
     // ) -> Box<HeapTable> {
 ) -> HeapTable {
+    debug!("rows count: {}", rows);
+
     // generate cells
     // let mut new_cells: Vec<Vec<i32>> = Vec::new();
     for _ in 0..rows {
@@ -187,6 +195,7 @@ pub fn create_random_heap_table(
     let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
     for i in 0..columns {
         bytes_per_row += get_type_length(row_scheme.get_field_type(i));
+        debug!("bytes per row: {}", bytes_per_row);
     }
     debug!("bytes per row: {}", bytes_per_row);
     let mut rows_per_page = (4096 * 8) / (bytes_per_row * 8 + 1);
@@ -208,9 +217,9 @@ pub fn create_random_heap_table(
             end = rows as usize;
         }
 
-        debug!("sub cells from {} to {}", start, end);
+        debug!("sub cells (rows) from {} to {}", start, end);
         let sub_cells = &new_cells[start..end];
-        debug!("sub cells length: {}", sub_cells.len());
+        debug!("sub cells (rows) length: {}", sub_cells.len());
         paginated_cells.push(sub_cells.to_vec());
 
         start += rows_per_page as usize;
@@ -219,6 +228,7 @@ pub fn create_random_heap_table(
 
     let table_path = "./heap.db";
     let mut file = File::create(table_path).unwrap();
+    let mut pages: usize = 0;
     for sub_cells in &paginated_cells {
         // constract header
         let mut bv = BitVec::from_elem(header_bytes as usize * 8, false);
@@ -243,6 +253,19 @@ pub fn create_random_heap_table(
         debug!("padding size: {} bytes", padding_bytes);
         let bytes_array = [0 as u8; 4096];
         file.write(&bytes_array[0..padding_bytes]);
+        pages += 1;
+
+        let file_size = file.metadata().unwrap().len();
+        debug!("page size: {}, file size: {}", pages, file_size);
+        assert!(pages * 4096 == file_size as usize);
+    }
+
+    // write a page for empty table (prevent scan init from read failure)
+    if paginated_cells.len() == 0 {
+        let bytes_array = [0 as u8; 4096];
+        debug!("padding size: {} bytes", 4096);
+        file.write(&bytes_array);
+        pages += 1;
     }
 
     let row_scheme = simple_int_row_scheme(columns, "");
@@ -251,6 +274,11 @@ pub fn create_random_heap_table(
     // let poing = Arc::new(table)
     // add to catalog
     // db.get_catalog().add_table(Arc::new(table), "table", "");
+
+    // let actule_pages = file_size / 4096
+    let file_size = file.metadata().unwrap().len();
+    debug!("page size: {}, file size: {}", pages, file_size);
+    assert!(pages * 4096 == file_size as usize);
 
     table
     // Box::new(table)
