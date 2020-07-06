@@ -235,7 +235,7 @@ pub fn create_random_heap_table(
         for i in 0..sub_cells.len() {
             bv.set(i, true);
         }
-        debug!("bit vec<len: {}>: {:?}", bv.len(), bv);
+        // debug!("bit vec<len: {}>: {:?}", bv.len(), bv);
 
         // write header
         let header = bv.to_bytes();
