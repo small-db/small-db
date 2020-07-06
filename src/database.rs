@@ -66,15 +66,14 @@ impl Database {
         // debug!("write buffer pool");
         self.buffer_pool.try_write().unwrap()
     }
-}
 
-// #[stable(feature = "rust1", since = "1.0.0")]
-// unsafe impl Drop for RwLockReadGuard<'_, BufferPool> {
-// fn drop(&mut self) {
-// // IMPORTANT: This code needs to be kept in sync with `RwLock::into_inner`.
-// unsafe { self.inner.destroy() }
-// }
-// }
+    pub fn add_table(table: Arc<RwLock<HeapTable>>, table_name: &str, primary_key: &str) {
+        // add table to catolog
+        // add a scope to release write lock (release lock at function return)
+        let mut catlog = Database::global().get_write_catalog();
+        catlog.add_table(Arc::clone(&table), "table", "");
+    }
+}
 
 pub struct Catalog {
     table_id_table_map: HashMap<i32, Arc<RwLock<HeapTable>>>,

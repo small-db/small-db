@@ -231,16 +231,7 @@ mod tests {
 
             debug!("cells<{} in total>: {:?}", cells.len(), cells);
 
-            // add table to catolog
-            // add a scope to release write lock
-            {
-                let mut catlog = Database::global().get_write_catalog();
-                catlog.add_table(Arc::clone(&table_pointer), "table", "");
-            }
-
-            // test if match
-            // let tid = TransactionID::new();
-            // debug!("tid: {}", tid.id);
+            Database::add_table(Arc::clone(&table_pointer), "table", "");
 
             let tabld_id = table_pointer.try_read().unwrap().get_id();
 
@@ -248,8 +239,6 @@ mod tests {
 
             let mut row_index = 0;
             for actual_row in scan {
-                // debug!("{}", actual_row);
-
                 // compare cells and rows
                 assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
@@ -264,20 +253,80 @@ mod tests {
         }
 
         #[test]
+        // Test that rewinding a SeqScan iterator works.
+        // simpledb.systemtest.ScanTest#testRewind
+        fn test_rewind() {
+            setup();
+
+            // create the table
+            let mut cells: Vec<Vec<i32>> = Vec::new();
+            let rows = 1000;
+            let table = create_random_heap_table(2, rows, 10000, HashMap::new(), &mut cells);
+            let tabld_id = table.get_id();
+            let table_pointer = Arc::new(RwLock::new(table));
+            Database::add_table(Arc::clone(&table_pointer), "table", "");
+
+            let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
+
+            // scan the table
+            let mut row_index = 0;
+            for actual_row in scan.by_ref() {
+                assert!(actual_row.equal_cells(&cells[row_index]));
+                row_index += 1;
+                if row_index >= 100 {
+                    break;
+                }
+            }
+            info!("scanned: {}", row_index,);
+
+            // rewind
+
+            // scan the table
+            let mut row_index = 0;
+            for actual_row in scan.by_ref() {
+                assert!(actual_row.equal_cells(&cells[row_index]));
+                row_index += 1;
+                if row_index >= 100 {
+                    break;
+                }
+            }
+        }
+
+        #[test]
         // Verifies that the buffer pool is actually caching data.
         // java: simpledb.systemtest.ScanTest#testCache
         fn test_cache() {
             setup();
-            // init_log();
 
             // create the table
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let pages = 30;
-            let table = create_random_heap_table(1, 992 * pages, 10000, HashMap::new(), &mut cells);
+            let rows = 992 * pages;
+            let table = create_random_heap_table(1, rows, 10000, HashMap::new(), &mut cells);
+            let table_pointer = Arc::new(RwLock::new(table));
+            Database::add_table(Arc::clone(&table_pointer), "table", "");
+
+            let tabld_id = table_pointer.try_read().unwrap().get_id();
+            let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
 
             // scan the table once
+            let mut row_index = 0;
+            for actual_row in scan {
+                assert!(actual_row.equal_cells(&cells[row_index]));
+                row_index += 1;
+            }
+
+            info!(
+                "scanned: {}, origin dataset length: {}",
+                row_index,
+                cells.len()
+            );
+            assert!(row_index == cells.len());
 
             // remove table file
+            use std::fs;
+            let table_path = "./heap.db";
+            fs::remove_file(table_path);
 
             // scan the table again
         }

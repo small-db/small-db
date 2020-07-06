@@ -57,16 +57,16 @@ impl Row {
         }
     }
 
-    pub fn equal_cells(&self, cells: &Vec<i32>) -> bool {
+    pub fn equal_cells(&self, expect: &Vec<i32>) -> bool {
         // for cell in &self.cells.into_iter().enumerate() {
         // // let cell_str = format!("{}, ", cell.value);
         // // content.push_str(&cell_str);
         // }
         for i in 0..self.cells.len() {
-            if self.cells[i].value != cells[i] {
+            if self.cells[i].value != expect[i] {
                 error!(
                     "cell not equal, expect: {:?}, self: {:?}",
-                    cells, self.cells
+                    expect, self.cells
                 );
                 return false;
             }

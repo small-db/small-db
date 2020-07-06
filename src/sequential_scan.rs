@@ -11,14 +11,14 @@ use log::{debug, error, info};
 use std::rc::Rc;
 use std::sync::{Arc, RwLockReadGuard};
 
-pub struct SequentialScan {
+pub struct SequentialScan<'a> {
     pub tid: Rc<TransactionID>,
     pub table_id: i32,
     pub table_alias: String,
     // pub page: Rc<Page>,
     pub rows: Arc<Vec<Row>>,
     index: usize,
-    // table: RwLockReadGuard<HeapTable>,
+    table: RwLockReadGuard<&'a HeapTable>,
     page_id: usize,
 }
 
@@ -45,6 +45,12 @@ impl SequentialScan {
             // table,
             page_id: 0,
         }
+    }
+
+    pub fn rewind(&mut self) {
+
+        let page = table.read_page(0).unwrap();
+        let rows = page.get_rows();
     }
 }
 
