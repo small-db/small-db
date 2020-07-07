@@ -11,16 +11,16 @@ use std::{io::BufReader, sync::Arc};
 // }
 
 pub struct HeapPage {
-    page_id: HeapPageID,
+    // page_id: HeapPageID,
     row_scheme: Arc<RowScheme>,
     rows: Arc<Vec<Row>>,
     header: Vec<u8>,
 }
 
 impl HeapPage {
-    pub fn new(page_id: HeapPageID, bytes: Vec<u8>) -> HeapPage {
-        let table_id = page_id.table_id;
-        let row_scheme = Database::global().get_catalog().get_row_scheme(table_id);
+    pub fn new(row_scheme: Arc<RowScheme>, bytes: Vec<u8>) -> HeapPage {
+        // let table_id = page_id.table_id;
+        // let row_scheme = Database::global().get_catalog().get_row_scheme(table_id);
         let mut header: Vec<u8> = Vec::new();
         let header_size = HeapPage::get_header_size(&row_scheme);
         debug!("header size: {} bytes", header_size);
@@ -51,8 +51,8 @@ impl HeapPage {
         display_rows(&rows);
 
         HeapPage {
-            page_id,
-            row_scheme: row_scheme,
+            // page_id,
+            row_scheme,
             header,
             rows: Arc::new(rows),
         }

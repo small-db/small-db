@@ -19,7 +19,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard};
 // use std::error::Error;
 use io::ErrorKind;
-use std::io;
+use std::{cell::RefCell, io};
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;
@@ -66,6 +66,7 @@ pub struct HeapTable {
     pub table_id: i32,
     pub file: Arc<Mutex<File>>,
     pub row_scheme: Arc<RowScheme>,
+    pub read_count: i32,
 }
 
 impl HeapTable {
@@ -75,6 +76,7 @@ impl HeapTable {
             table_id: 0,
             file: Arc::new(Mutex::new(file)),
             row_scheme: Arc::new(row_scheme),
+            read_count: 0,
         }
     }
     // }
@@ -106,7 +108,9 @@ impl HeapTable {
         }
     }
 
-    pub fn read_page(&self, page_id: usize) -> Result<HeapPage, io::Error> {
+    pub fn read_page(&mut self, page_id: usize) -> Result<HeapPage, io::Error> {
+        self.read_count += 1;
+
         let file_size = self.get_file().metadata().unwrap().len();
         let seek_pos = page_id as u64 * 4096;
         if seek_pos >= file_size {
@@ -129,18 +133,6 @@ impl HeapTable {
         // use hex::encode;
         // debug!("read bytes: {}", hex::encode(buf));
         debug!("read page {} from file {:?}", page_id, self.get_file());
-        let mut start = 0;
-        use itertools::Itertools;
-        // debug!("{:02x} ", buf.iter().format(""));
-
-        // debug!("{:?}", buf[0]);
-        // debug!("{:x?}", buf[0]);
-        // debug!("buffer len: {}", buf.len());
-
-        // while start < buf.len()  {
-        // debug!("{:?}", buf[start..start+8]);
-        // start += 8;
-        // }
 
         let mut bytes: Vec<u8> = Vec::new();
         for b in buf.into_iter() {
@@ -148,10 +140,7 @@ impl HeapTable {
         }
 
         let page = HeapPage::new(
-            HeapPageID {
-                page_index: page_id,
-                table_id: self.table_id,
-            },
+            self.get_row_scheme(),
             bytes,
         );
         Ok(page)

@@ -47,6 +47,6 @@ impl BufferPool {
 
         // convert to page object
 
-        Rc::new(HeapPage::new(page_id, bytes))
+        Rc::new(HeapPage::new(table.get_row_scheme(), bytes))
     }
 }

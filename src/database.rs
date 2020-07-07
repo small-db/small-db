@@ -104,12 +104,12 @@ impl Catalog {
             .insert(table.try_read().unwrap().table_id, Arc::clone(&table));
     }
 
-    pub fn get_table(&self, table_id: i32) -> RwLockReadGuard<HeapTable> {
+    pub fn get_table(&self, table_id: i32) -> RwLockWriteGuard<HeapTable> {
         // debug!("{:?}", self.table_id_table_map);
         self.table_id_table_map
             .get(&table_id)
             .unwrap()
-            .try_read()
+            .try_write()
             .unwrap()
     }
 

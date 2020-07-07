@@ -312,25 +312,37 @@ mod tests {
             let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
 
             // scan the table once
+            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
             let mut row_index = 0;
-            for actual_row in scan {
+            for actual_row in scan.by_ref() {
                 assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
             }
-
             info!(
                 "scanned: {}, origin dataset length: {}",
                 row_index,
                 cells.len()
             );
             assert!(row_index == cells.len());
+            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
 
-            // remove table file
-            use std::fs;
-            let table_path = "./heap.db";
-            fs::remove_file(table_path);
+            // rewind
+            scan.rewind();
+            info!("scan rewind");
 
             // scan the table again
+            let mut row_index = 0;
+            for actual_row in scan.by_ref() {
+                // assert!(actual_row.equal_cells(&cells[row_index]));
+                row_index += 1;
+            }
+            info!(
+                "scanned: {}, origin dataset length: {}",
+                row_index,
+                cells.len()
+            );
+            assert!(row_index == cells.len());
+            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
         }
     }
 }

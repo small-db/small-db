@@ -29,7 +29,7 @@ impl SequentialScan {
 
         // read table's first page
         let catlog = Database::global().get_catalog();
-        let table = catlog.get_table(table_id);
+        let mut table = catlog.get_table(table_id);
         let page = table.read_page(0).unwrap();
         let rows = page.get_rows();
         display_rows(&Arc::clone(&rows));
@@ -50,13 +50,14 @@ impl SequentialScan {
     pub fn rewind(&mut self) {
         // read table's first page
         let catlog = Database::global().get_catalog();
-        let table = catlog.get_table(self.table_id);
+        let mut table = catlog.get_table(self.table_id);
         let page = table.read_page(0).unwrap();
         let rows = page.get_rows();
         display_rows(&Arc::clone(&rows));
 
         self.rows = rows;
         self.index = 0;
+        self.page_id = 0;
     }
 }
 
@@ -74,7 +75,7 @@ impl Iterator for SequentialScan {
             self.index = 0;
 
             let catlog = Database::global().get_catalog();
-            let table = catlog.get_table(self.table_id);
+            let mut table = catlog.get_table(self.table_id);
             let result = table.read_page(self.page_id);
             let page = match result {
                 Ok(p) => p,
