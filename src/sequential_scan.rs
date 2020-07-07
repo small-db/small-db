@@ -28,9 +28,18 @@ impl SequentialScan {
         debug!("start seq scan init");
 
         // read table's first page
-        let catlog = Database::global().get_catalog();
-        let mut table = catlog.get_table(table_id);
-        let page = table.read_page(0).unwrap();
+        // let catlog = Database::global().get_catalog();
+        // let mut table = catlog.get_table(table_id);
+        // let page = table.read_page(0).unwrap();
+        let buffer_pool = Database::global().get_buffer_pool();
+        let page = buffer_pool.get_page(
+            &TransactionID { id: 0 },
+            HeapPageID {
+                table_id,
+                page_index: 0,
+            },
+            Permissions {},
+        );
         let rows = page.get_rows();
         display_rows(&Arc::clone(&rows));
 
@@ -82,7 +91,7 @@ impl Iterator for SequentialScan {
                 Err(e) => {
                     debug!("error: {}", e);
                     return None;
-                } ,
+                }
             };
             self.rows = page.get_rows();
             // debug!("rows: {:?}", rows);

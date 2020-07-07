@@ -139,10 +139,7 @@ impl HeapTable {
             bytes.push(*b);
         }
 
-        let page = HeapPage::new(
-            self.get_row_scheme(),
-            bytes,
-        );
+        let page = HeapPage::new(self.get_row_scheme(), bytes);
         Ok(page)
     }
 }

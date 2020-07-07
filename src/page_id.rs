@@ -1,5 +1,5 @@
 // pub trait PageID {}
-
+#[derive(PartialEq, Eq, Hash)]
 pub struct HeapPageID {
     pub table_id: i32,
     pub page_index: usize,

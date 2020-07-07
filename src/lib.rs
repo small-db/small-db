@@ -312,7 +312,10 @@ mod tests {
             let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
 
             // scan the table once
-            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
+            debug!(
+                "table read count: {}",
+                table_pointer.try_read().unwrap().read_count
+            );
             let mut row_index = 0;
             for actual_row in scan.by_ref() {
                 assert!(actual_row.equal_cells(&cells[row_index]));
@@ -324,14 +327,17 @@ mod tests {
                 cells.len()
             );
             assert!(row_index == cells.len());
-            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
+            debug!(
+                "table read count: {}",
+                table_pointer.try_read().unwrap().read_count
+            );
 
             // rewind
             scan.rewind();
             info!("scan rewind");
 
             // scan the table again
-            let mut row_index = 0;
+            row_index = 0;
             for actual_row in scan.by_ref() {
                 assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
@@ -342,7 +348,10 @@ mod tests {
                 cells.len()
             );
             assert!(row_index == cells.len());
-            debug!("table read count: {}", table_pointer.try_read().unwrap().read_count);
+            debug!(
+                "table read count: {}",
+                table_pointer.try_read().unwrap().read_count
+            );
         }
     }
 }
