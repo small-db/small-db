@@ -333,7 +333,7 @@ mod tests {
             // scan the table again
             let mut row_index = 0;
             for actual_row in scan.by_ref() {
-                // assert!(actual_row.equal_cells(&cells[row_index]));
+                assert!(actual_row.equal_cells(&cells[row_index]));
                 row_index += 1;
             }
             info!(
