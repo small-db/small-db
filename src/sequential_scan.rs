@@ -7,18 +7,19 @@ use crate::row::Row;
 use crate::row::*;
 use crate::table::*;
 use crate::transaction_id::TransactionID;
+use crate::util::*;
 use log::{debug, error, info};
 use std::rc::Rc;
 use std::sync::{Arc, RwLockReadGuard};
 
-pub struct SequentialScan<'a> {
+pub struct SequentialScan {
     pub tid: Rc<TransactionID>,
     pub table_id: i32,
     pub table_alias: String,
     // pub page: Rc<Page>,
     pub rows: Arc<Vec<Row>>,
     index: usize,
-    table: RwLockReadGuard<&'a HeapTable>,
+    // table: RwLockReadGuard<HeapTable>,
     page_id: usize,
 }
 
@@ -31,7 +32,6 @@ impl SequentialScan {
         let table = catlog.get_table(table_id);
         let page = table.read_page(0).unwrap();
         let rows = page.get_rows();
-        // debug!("rows: {:?}", rows);
         display_rows(&Arc::clone(&rows));
 
         debug!("finish seq scan init");
@@ -48,9 +48,15 @@ impl SequentialScan {
     }
 
     pub fn rewind(&mut self) {
-
+        // read table's first page
+        let catlog = Database::global().get_catalog();
+        let table = catlog.get_table(self.table_id);
         let page = table.read_page(0).unwrap();
         let rows = page.get_rows();
+        display_rows(&Arc::clone(&rows));
+
+        self.rows = rows;
+        self.index = 0;
     }
 }
 

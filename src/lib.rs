@@ -12,6 +12,7 @@ mod row;
 mod sequential_scan;
 mod table;
 mod transaction_id;
+mod util;
 
 #[cfg(test)]
 mod tests {
@@ -280,6 +281,7 @@ mod tests {
             info!("scanned: {}", row_index,);
 
             // rewind
+            scan.rewind();
 
             // scan the table
             let mut row_index = 0;
