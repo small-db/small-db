@@ -11,6 +11,10 @@ matrix:
   allow_failures:
     - rust: nightly
 
+script:
+  - cargo build --verbose
+  - make test
+
 addons:
   apt:
     packages:
