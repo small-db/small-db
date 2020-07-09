@@ -109,6 +109,8 @@ impl HeapTable {
     }
 
     pub fn read_page(&mut self, page_id: usize) -> Result<HeapPage, io::Error> {
+        debug!("read page, table: {}, page: {}", self.table_id, page_id);
+
         self.read_count += 1;
 
         let file_size = self.get_file().metadata().unwrap().len();
@@ -130,9 +132,11 @@ impl HeapTable {
 
         let mut buf: [u8; 4096] = [0; 4096];
         self.get_file().read_exact(&mut buf);
-        // use hex::encode;
-        // debug!("read bytes: {}", hex::encode(buf));
         debug!("read page {} from file {:?}", page_id, self.get_file());
+        // debug!("read buf: {:x?}", buf[]);
+        // debug!("read buf: {:x?}", buf[1]);
+        // debug!("read buf: {:x?}", buf[2]);
+        // debug!("read buf: {:x?}", buf[3]);
 
         let mut bytes: Vec<u8> = Vec::new();
         for b in buf.into_iter() {

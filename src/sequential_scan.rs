@@ -28,11 +28,8 @@ impl SequentialScan {
         debug!("start seq scan init");
 
         // read table's first page
-        // let catlog = Database::global().get_catalog();
-        // let mut table = catlog.get_table(table_id);
-        // let page = table.read_page(0).unwrap();
-        let buffer_pool = Database::global().get_buffer_pool();
-        let page = buffer_pool.get_page(
+        let mut buffer_pool = Database::global().get_buffer_pool();
+        let option = buffer_pool.get_page(
             &TransactionID { id: 0 },
             HeapPageID {
                 table_id,
@@ -40,6 +37,11 @@ impl SequentialScan {
             },
             Permissions {},
         );
+        let page = match option {
+            Some(p) => p,
+            None => unreachable!(),
+        };
+
         let rows = page.get_rows();
         display_rows(&Arc::clone(&rows));
 
@@ -58,9 +60,19 @@ impl SequentialScan {
 
     pub fn rewind(&mut self) {
         // read table's first page
-        let catlog = Database::global().get_catalog();
-        let mut table = catlog.get_table(self.table_id);
-        let page = table.read_page(0).unwrap();
+        let mut buffer_pool = Database::global().get_buffer_pool();
+        let option = buffer_pool.get_page(
+            &TransactionID { id: 0 },
+            HeapPageID {
+                table_id: self.table_id,
+                page_index: 0,
+            },
+            Permissions {},
+        );
+        let page = match option {
+            Some(p) => p,
+            None => unreachable!(),
+        };
         let rows = page.get_rows();
         display_rows(&Arc::clone(&rows));
 
@@ -83,18 +95,22 @@ impl Iterator for SequentialScan {
             self.page_id += 1;
             self.index = 0;
 
-            let catlog = Database::global().get_catalog();
-            let mut table = catlog.get_table(self.table_id);
-            let result = table.read_page(self.page_id);
-            let page = match result {
-                Ok(p) => p,
-                Err(e) => {
-                    debug!("error: {}", e);
+            let mut buffer_pool = Database::global().get_buffer_pool();
+            let option = buffer_pool.get_page(
+                &TransactionID { id: 0 },
+                HeapPageID {
+                    table_id: self.table_id,
+                    page_index: self.page_id,
+                },
+                Permissions {},
+            );
+            let page = match option {
+                Some(p) => p,
+                None => {
                     return None;
                 }
             };
             self.rows = page.get_rows();
-            // debug!("rows: {:?}", rows);
             display_rows(&Arc::clone(&self.rows));
 
             self.next()

@@ -41,6 +41,7 @@ impl HeapPage {
             let row: Row = Row::new(Arc::clone(&row_scheme), &bytes[start..end]);
 
             if HeapPage::is_slot_used(&header, slot_id) {
+                // debug!("push rows: {:?}, start: {}, end: {}", row, start, end);
                 rows.push(row);
             }
 
@@ -64,10 +65,13 @@ impl HeapPage {
     }
 
     fn get_rows_count(row_scheme: &RowScheme) -> usize {
-        Database::global().get_buffer_pool().get_page_size() * 8 / (row_scheme.get_size() * 8 + 1)
+        // Database::global().get_buffer_pool().get_page_size() * 8 / (row_scheme.get_size() * 8 + 1)
+        PAGE_SIZE * 8 / (row_scheme.get_size() * 8 + 1)
     }
 
     fn get_header_size(row_scheme: &RowScheme) -> usize {
+        // debug!("rows count: {}", HeapPage::get_rows_count(&row_scheme));
+        // debug!("rows scheme size: {}", row_scheme.get_size());
         (HeapPage::get_rows_count(&row_scheme) + 7) / 8
     }
 

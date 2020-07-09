@@ -52,9 +52,9 @@ impl Database {
         self.catalog.try_read().unwrap()
     }
 
-    pub(crate) fn get_buffer_pool(&self) -> RwLockReadGuard<BufferPool> {
+    pub(crate) fn get_buffer_pool(&self) -> RwLockWriteGuard<BufferPool> {
         // debug!("read buffer pool");
-        self.buffer_pool.try_read().unwrap()
+        self.buffer_pool.try_write().unwrap()
     }
 
     pub(crate) fn get_write_catalog(&self) -> RwLockWriteGuard<Catalog> {

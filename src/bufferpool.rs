@@ -28,31 +28,51 @@ impl BufferPool {
     }
 
     pub fn get_page(
-        &self,
+        &mut self,
         tid: &TransactionID,
         // table_id: i32,
         // page_id: i32,
         page_id: HeapPageID,
         permission: Permissions,
-    ) -> RwLockWriteGuard<HeapPage> {
+    ) -> Option<RwLockWriteGuard<HeapPage>> {
         // require lock
 
         // get page form buffer
-        let result = self.buffer.get(&page_id);
-        match result {
-            Some(v) => {
-                // Rc::new(Arc::clone(v).into_inner().unwrap())
-                v.try_write().unwrap()
-            }
-            None => {
-                // if page not exist in buffer, get it from disk
-                let catlog = Database::global().get_catalog();
-                let mut table = catlog.get_table(page_id.table_id);
-                let page = table.read_page(0).unwrap();
-                return RwLock::new(page).try_write().unwrap()
-                // return Rc::new(page);
-            }
+        debug!("get page: {:?}", page_id);
+        debug!("buffer: {:?}", self.buffer.keys());
+        if self.buffer.contains_key(&page_id) {
+            return match self.buffer.get(&page_id) {
+                Some(v) => Some(v.try_write().unwrap()),
+                None => unreachable!(),
+            };
         }
+
+        // if page not exist in buffer, get it from disk
+        let catlog = Database::global().get_catalog();
+        let mut table = catlog.get_table(page_id.table_id);
+        let result = table.read_page(page_id.page_index);
+        let page = match result {
+            Ok(p) => p,
+            Err(e) => {
+                debug!("error: {}", e);
+                return None;
+            }
+        };
+
+        // add to buffer
+        self.buffer.insert(page_id, Arc::new(RwLock::new(page)));
+
+        return Some(self.buffer.get(&page_id).unwrap().try_write().unwrap());
+
+        // match self.buffer.get(&page_id) {
+        // Some(v) => {
+        // // Rc::new(Arc::clone(v).into_inner().unwrap())
+        // return v.try_write().unwrap();
+        // }
+        // None => {
+        // return Rc::new(page);
+        // }
+        // }
 
         // // if page not exist in buffer, get it from disk
         // // let table: Arc<HeapTable> = db.get_catalog().get_table(page_id.table_id);
@@ -65,12 +85,16 @@ impl BufferPool {
         // let mut bytes: Vec<u8> = Vec::new();
         // table.get_file().read_exact(&mut buffer);
         // for b in buffer.into_iter() {
-        //     bytes.push(*b);
+        // bytes.push(*b);
         // }
         // // debug!("buffer: {:x?}", buffer);
 
         // // convert to page object
 
         // Rc::new(HeapPage::new(table.get_row_scheme(), bytes))
+    }
+
+    pub fn clear(&mut self) {
+        self.buffer.clear();
     }
 }

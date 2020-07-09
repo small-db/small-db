@@ -47,6 +47,8 @@ mod tests {
 
     fn setup() {
         INIT.call_once(init_log);
+
+        Database::global().get_buffer_pool().clear();
     }
 
     // #[test]
@@ -226,6 +228,12 @@ mod tests {
 
         fn validate_sacn(columns: i32, rows: i32) {
             info!("start validate scan, columns: {}, rows: {}", columns, rows);
+
+            // clear buffer
+            {
+                Database::global().get_buffer_pool().clear();
+            }
+
             let mut cells: Vec<Vec<i32>> = Vec::new();
             let table = create_random_heap_table(columns, rows, 10000, HashMap::new(), &mut cells);
             let table_pointer = Arc::new(RwLock::new(table));
@@ -305,6 +313,7 @@ mod tests {
             let pages = 30;
             let rows = 992 * pages;
             let table = create_random_heap_table(1, rows, 10000, HashMap::new(), &mut cells);
+            debug!("cells: {:?}", cells);
             let table_pointer = Arc::new(RwLock::new(table));
             Database::add_table(Arc::clone(&table_pointer), "table", "");
 
@@ -318,7 +327,13 @@ mod tests {
             );
             let mut row_index = 0;
             for actual_row in scan.by_ref() {
-                assert!(actual_row.equal_cells(&cells[row_index]));
+                debug!(
+                    "row index: {}, expect: {:?}, actual: {}",
+                    row_index, cells[row_index], actual_row
+                );
+                if !actual_row.equal_cells(&cells[row_index]) {
+                    panic!("row index: {}", row_index);
+                }
                 row_index += 1;
             }
             info!(
