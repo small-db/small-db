@@ -3,8 +3,10 @@ test:
 	RUST_LOG=info cargo test -- --test-threads=1 2>&1 | tee out
 
 clean:
-	rm *.db
-	rm *.txt
+	rm *.db; \
+	rm *.txt; \
+	rm -rf target; \
+	rm out
 
 fmt:
 	cargo fmt
