@@ -1,15 +1,15 @@
 use crate::bufferpool::BufferPool;
 use crate::row::RowScheme;
 use crate::table::*;
-use log::{debug, error, info};
-use std::collections::HashMap;
-use std::rc::Rc;
 
-use lazy_static::lazy_static;
+use std::collections::HashMap;
+
+
+
 use once_cell::sync::OnceCell;
-use std::cell::RefCell;
-use std::fs::File;
-use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+
+
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 // lazy_static! {
 // pub static ref db: Database = Database::new();
@@ -67,7 +67,7 @@ impl Database {
         self.buffer_pool.try_write().unwrap()
     }
 
-    pub fn add_table(table: Arc<RwLock<HeapTable>>, table_name: &str, primary_key: &str) {
+    pub fn add_table(table: Arc<RwLock<HeapTable>>, _table_name: &str, _primary_key: &str) {
         // add table to catolog
         // add a scope to release write lock (release lock at function return)
         let mut catlog = Database::global().get_write_catalog();
@@ -97,8 +97,8 @@ impl Catalog {
     pub(crate) fn add_table(
         &mut self,
         table: Arc<RwLock<HeapTable>>,
-        table_name: &str,
-        primary_key: &str,
+        _table_name: &str,
+        _primary_key: &str,
     ) {
         self.table_id_table_map
             .insert(table.try_read().unwrap().table_id, Arc::clone(&table));

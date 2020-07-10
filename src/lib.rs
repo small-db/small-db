@@ -1,6 +1,6 @@
-use crate::database::Database;
-use env_logger;
-use std::collections::HashMap;
+
+
+
 
 mod bufferpool;
 mod cell;
@@ -16,17 +16,17 @@ mod util;
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::*;
+    
     use crate::database::*;
-    use crate::row::*;
+    
     use crate::table::*;
     use crate::transaction_id::*;
 
-    use log::{debug, error, info};
-    use std::borrow::Borrow;
+    use log::{debug, info};
+    
     use std::collections::HashMap;
     use std::panic;
-    use std::rc::Rc;
+    
     use std::sync::Arc;
 
     // fn run_test<T>(test: T) -> ()
@@ -54,8 +54,8 @@ mod tests {
     // #[test]
     fn init_log() {
         use env_logger::Builder;
-        use log::LevelFilter;
-        use std::env;
+        
+        
         use std::io::Write;
 
         let mut builder = Builder::from_default_env();
@@ -143,7 +143,7 @@ mod tests {
     // }
 
     mod heap_table_test {
-        use super::*;
+        
 
         // struct GlobalVars {
         // db: Database,
@@ -206,7 +206,7 @@ mod tests {
     mod scan_test {
         use super::*;
         use crate::sequential_scan::SequentialScan;
-        use std::sync::{Mutex, RwLock};
+        use std::sync::{RwLock};
 
         #[test]
         // java: simpledb.systemtest.ScanTest#testSmall
@@ -244,7 +244,7 @@ mod tests {
 
             let tabld_id = table_pointer.try_read().unwrap().get_id();
 
-            let mut scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
+            let scan = SequentialScan::new(TransactionID::new(), tabld_id, "");
 
             let mut row_index = 0;
             for actual_row in scan {

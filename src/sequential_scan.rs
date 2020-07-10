@@ -1,16 +1,16 @@
 // use crate::database::db;
 use crate::database::Database;
-use crate::page::*;
+
 use crate::page_id::*;
 use crate::permissions::Permissions;
 use crate::row::Row;
 use crate::row::*;
-use crate::table::*;
+
 use crate::transaction_id::TransactionID;
-use crate::util::*;
-use log::{debug, error, info};
+
+use log::{debug};
 use std::rc::Rc;
-use std::sync::{Arc, RwLockReadGuard};
+use std::sync::{Arc};
 
 pub struct SequentialScan {
     pub tid: Rc<TransactionID>,

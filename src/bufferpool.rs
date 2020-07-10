@@ -2,14 +2,14 @@ use crate::database::*;
 use crate::page::*;
 use crate::page_id::*;
 use crate::permissions::Permissions;
-use crate::table::*;
+
 use crate::transaction_id::TransactionID;
-use log::{debug, error, info};
-use std::io::Read;
-use std::rc::Rc;
+use log::{debug};
+
+
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockWriteGuard},
 };
 
 pub struct BufferPool {
@@ -29,11 +29,11 @@ impl BufferPool {
 
     pub fn get_page(
         &mut self,
-        tid: &TransactionID,
+        _tid: &TransactionID,
         // table_id: i32,
         // page_id: i32,
         page_id: HeapPageID,
-        permission: Permissions,
+        _permission: Permissions,
     ) -> Option<RwLockWriteGuard<HeapPage>> {
         // require lock
 

@@ -1,9 +1,9 @@
 use crate::row::*;
-use crate::{database::*, page_id::HeapPageID};
+use crate::{database::*};
 use log::debug;
-use std::alloc::handle_alloc_error;
-use std::rc::Rc;
-use std::{io::BufReader, sync::Arc};
+
+
+use std::{sync::Arc};
 
 // pub trait Page {
 // // pub fn iter(&self) -> Rc<Iterator<Row>> {}
@@ -29,7 +29,7 @@ impl HeapPage {
         }
         debug!("header: {:x?}", header);
 
-        let allocated_rows_count = get_allocated(&header);
+        let _allocated_rows_count = get_allocated(&header);
 
         // read rows
         let mut rows: Vec<Row> = Vec::new();
@@ -94,7 +94,7 @@ impl HeapPage {
 // page_index: i32,
 // }
 
-fn get_allocated(header: &Vec<u8>) -> usize {
+fn get_allocated(_header: &Vec<u8>) -> usize {
     0
 }
 

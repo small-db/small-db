@@ -1,25 +1,25 @@
-use crate::bufferpool::*;
+
 use crate::cell::*;
 use crate::database::*;
 use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
-use crate::{page::*, page_id::HeapPageID};
-use log::{debug, error, info};
+use crate::{page::*};
+use log::{debug};
 use rand::Rng;
-use std::borrow::BorrowMut;
+
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
-use std::path::Path;
-use std::rc::Rc;
+
+
 use std::sync::{Arc, Mutex, MutexGuard};
 // use std::error::Error;
 use io::ErrorKind;
-use std::{cell::RefCell, io};
+use std::{io};
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;
@@ -71,7 +71,7 @@ pub struct HeapTable {
 
 impl HeapTable {
     pub fn new(file_path: &str, row_scheme: RowScheme) -> HeapTable {
-        let mut file = File::open(file_path).unwrap();
+        let file = File::open(file_path).unwrap();
         HeapTable {
             table_id: 0,
             file: Arc::new(Mutex::new(file)),
@@ -139,7 +139,7 @@ impl HeapTable {
         // debug!("read buf: {:x?}", buf[3]);
 
         let mut bytes: Vec<u8> = Vec::new();
-        for b in buf.into_iter() {
+        for b in buf.iter() {
             bytes.push(*b);
         }
 
@@ -152,7 +152,7 @@ pub fn create_random_heap_table(
     columns: i32,
     rows: i32,
     max_value: i32,
-    column_specification: HashMap<i32, i32>,
+    _column_specification: HashMap<i32, i32>,
     new_cells: &mut Vec<Vec<i32>>,
     // ) -> Box<HeapTable> {
 ) -> HeapTable {
@@ -188,7 +188,7 @@ pub fn create_random_heap_table(
         debug!("bytes per row: {}", bytes_per_row);
     }
     debug!("bytes per row: {}", bytes_per_row);
-    let mut rows_per_page = (4096 * 8) / (bytes_per_row * 8 + 1);
+    let rows_per_page = (4096 * 8) / (bytes_per_row * 8 + 1);
     debug!("rows per page: {}", rows_per_page);
     let mut header_bytes = rows_per_page / 8;
     // ceiling
