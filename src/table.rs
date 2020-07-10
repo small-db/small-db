@@ -1,12 +1,11 @@
-
 use crate::cell::*;
 use crate::database::*;
 use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
 // use log::Level::Debug;
-use crate::{page::*};
-use log::{debug};
+use crate::page::*;
+use log::debug;
 use rand::Rng;
 
 use std::collections::HashMap;
@@ -15,11 +14,10 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
-
 use std::sync::{Arc, Mutex, MutexGuard};
 // use std::error::Error;
 use io::ErrorKind;
-use std::{io};
+use std::io;
 
 // pub trait Table: Debug + Send + Sync {
 // fn get_row_scheme(&self) -> Arc<RowScheme>;

@@ -1,9 +1,8 @@
+use crate::database::*;
 use crate::row::*;
-use crate::{database::*};
 use log::debug;
 
-
-use std::{sync::Arc};
+use std::sync::Arc;
 
 // pub trait Page {
 // // pub fn iter(&self) -> Rc<Iterator<Row>> {}

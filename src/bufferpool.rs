@@ -4,8 +4,7 @@ use crate::page_id::*;
 use crate::permissions::Permissions;
 
 use crate::transaction_id::TransactionID;
-use log::{debug};
-
+use log::debug;
 
 use std::{
     collections::HashMap,

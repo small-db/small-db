@@ -1,7 +1,3 @@
-
-
-
-
 mod bufferpool;
 mod cell;
 mod database;
@@ -16,17 +12,17 @@ mod util;
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::database::*;
-    
+
     use crate::table::*;
     use crate::transaction_id::*;
 
     use log::{debug, info};
-    
+
     use std::collections::HashMap;
     use std::panic;
-    
+
     use std::sync::Arc;
 
     // fn run_test<T>(test: T) -> ()
@@ -54,8 +50,7 @@ mod tests {
     // #[test]
     fn init_log() {
         use env_logger::Builder;
-        
-        
+
         use std::io::Write;
 
         let mut builder = Builder::from_default_env();
@@ -143,7 +138,6 @@ mod tests {
     // }
 
     mod heap_table_test {
-        
 
         // struct GlobalVars {
         // db: Database,
@@ -206,7 +200,7 @@ mod tests {
     mod scan_test {
         use super::*;
         use crate::sequential_scan::SequentialScan;
-        use std::sync::{RwLock};
+        use std::sync::RwLock;
 
         #[test]
         // java: simpledb.systemtest.ScanTest#testSmall

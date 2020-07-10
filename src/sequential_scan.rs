@@ -8,9 +8,9 @@ use crate::row::*;
 
 use crate::transaction_id::TransactionID;
 
-use log::{debug};
+use log::debug;
 use std::rc::Rc;
-use std::sync::{Arc};
+use std::sync::Arc;
 
 pub struct SequentialScan {
     pub tid: Rc<TransactionID>,
