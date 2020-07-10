@@ -5,12 +5,8 @@ use crate::table::*;
 use std::collections::HashMap;
 
 use once_cell::sync::OnceCell;
-
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-// lazy_static! {
-// pub static ref db: Database = Database::new();
-// }
 static DB: OnceCell<Database> = OnceCell::new();
 
 pub static PAGE_SIZE: usize = 4096;
@@ -30,37 +26,21 @@ impl Database {
 
     pub fn global() -> &'static Database {
         DB.get_or_init(|| Database::new())
-        // match DB.get() {
-        // Some(db) => db,
-        // None => {
-        // let db = Database::new();
-        // DB.set(db).unwrap_or_default();
-        // //                DB.get().unwrap()
-        // DB.get_or_init(|| {
-        //
-        // })
-        // }
-        // }
-        // expect("db is not initialized")
     }
 
     pub(crate) fn get_catalog(&self) -> RwLockReadGuard<Catalog> {
-        // debug!("read catalog");
         self.catalog.try_read().unwrap()
     }
 
     pub(crate) fn get_buffer_pool(&self) -> RwLockWriteGuard<BufferPool> {
-        // debug!("read buffer pool");
         self.buffer_pool.try_write().unwrap()
     }
 
     pub(crate) fn get_write_catalog(&self) -> RwLockWriteGuard<Catalog> {
-        // debug!("write catalog");
         self.catalog.try_write().unwrap()
     }
 
     pub(crate) fn get_write_buffer_pool(&self) -> RwLockWriteGuard<BufferPool> {
-        // debug!("write buffer pool");
         self.buffer_pool.try_write().unwrap()
     }
 
@@ -102,7 +82,6 @@ impl Catalog {
     }
 
     pub fn get_table(&self, table_id: i32) -> RwLockWriteGuard<HeapTable> {
-        // debug!("{:?}", self.table_id_table_map);
         self.table_id_table_map
             .get(&table_id)
             .unwrap()
@@ -111,7 +90,6 @@ impl Catalog {
     }
 
     pub fn get_write_table(&self, table_id: i32) -> RwLockWriteGuard<HeapTable> {
-        // debug!("{:?}", self.table_id_table_map);
         self.table_id_table_map
             .get(&table_id)
             .unwrap()

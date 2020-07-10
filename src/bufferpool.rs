@@ -29,8 +29,6 @@ impl BufferPool {
     pub fn get_page(
         &mut self,
         _tid: &TransactionID,
-        // table_id: i32,
-        // page_id: i32,
         page_id: HeapPageID,
         _permission: Permissions,
     ) -> Option<RwLockWriteGuard<HeapPage>> {
@@ -62,35 +60,6 @@ impl BufferPool {
         self.buffer.insert(page_id, Arc::new(RwLock::new(page)));
 
         return Some(self.buffer.get(&page_id).unwrap().try_write().unwrap());
-
-        // match self.buffer.get(&page_id) {
-        // Some(v) => {
-        // // Rc::new(Arc::clone(v).into_inner().unwrap())
-        // return v.try_write().unwrap();
-        // }
-        // None => {
-        // return Rc::new(page);
-        // }
-        // }
-
-        // // if page not exist in buffer, get it from disk
-        // // let table: Arc<HeapTable> = db.get_catalog().get_table(page_id.table_id);
-        // let catlog = Database::global().get_catalog();
-        // let mut table = catlog.get_table(page_id.table_id);
-        // debug!("table: {:?}, table file: {:?}", table, table.get_file());
-
-        // // read page content
-        // let mut buffer: [u8; 4096] = [0; 4096];
-        // let mut bytes: Vec<u8> = Vec::new();
-        // table.get_file().read_exact(&mut buffer);
-        // for b in buffer.into_iter() {
-        // bytes.push(*b);
-        // }
-        // // debug!("buffer: {:x?}", buffer);
-
-        // // convert to page object
-
-        // Rc::new(HeapPage::new(table.get_row_scheme(), bytes))
     }
 
     pub fn clear(&mut self) {

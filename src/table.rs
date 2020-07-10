@@ -3,7 +3,6 @@ use crate::database::*;
 use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
-// use log::Level::Debug;
 use crate::page::*;
 use log::debug;
 use rand::Rng;
@@ -15,49 +14,8 @@ use std::io::prelude::*;
 use std::io::SeekFrom;
 
 use std::sync::{Arc, Mutex, MutexGuard};
-// use std::error::Error;
 use io::ErrorKind;
 use std::io;
-
-// pub trait Table: Debug + Send + Sync {
-// fn get_row_scheme(&self) -> Arc<RowScheme>;
-// fn get_id(&self) -> i32;
-// fn get_num_pages(&self) -> usize;
-// fn get_file(&self) -> &File;
-// fn read_page(&self, page_id: i32) -> &Page;
-// }
-
-// #[derive(Debug)]
-// pub struct SkeletonTable {
-// pub table_id: i32,
-// pub file: File,
-// pub row_scheme: Arc<RowScheme>,
-// }
-//
-// // impl SkeletonTable {
-// // pub fn new() -> SkeletonTable {
-// //
-// // }
-// // }
-//
-// impl Table for SkeletonTable {
-// fn get_row_scheme(&self) -> Arc<RowScheme> {
-// // &self.row_scheme
-// Arc::clone(&self.row_scheme)
-// }
-//
-// fn get_id(&self) -> i32 {
-// self.table_id
-// }
-//
-// fn get_num_pages(&self) -> usize {
-// 0
-// }
-//
-// fn get_file(&self) -> &File {
-// &self.file
-// }
-// }
 
 #[derive(Debug)]
 pub struct HeapTable {
@@ -77,12 +35,6 @@ impl HeapTable {
             read_count: 0,
         }
     }
-    // }
-    //
-    // impl Table for HeapTable {
-    // fn get_row_scheme(&self) -> &RowScheme {
-    // &self.row_scheme
-    // }
 
     pub fn get_row_scheme(&self) -> Arc<RowScheme> {
         Arc::clone(&self.row_scheme)
@@ -131,10 +83,6 @@ impl HeapTable {
         let mut buf: [u8; 4096] = [0; 4096];
         self.get_file().read_exact(&mut buf);
         debug!("read page {} from file {:?}", page_id, self.get_file());
-        // debug!("read buf: {:x?}", buf[]);
-        // debug!("read buf: {:x?}", buf[1]);
-        // debug!("read buf: {:x?}", buf[2]);
-        // debug!("read buf: {:x?}", buf[3]);
 
         let mut bytes: Vec<u8> = Vec::new();
         for b in buf.iter() {
@@ -152,7 +100,6 @@ pub fn create_random_heap_table(
     max_value: i32,
     _column_specification: HashMap<i32, i32>,
     new_cells: &mut Vec<Vec<i32>>,
-    // ) -> Box<HeapTable> {
 ) -> HeapTable {
     debug!("rows count: {}", rows);
 
@@ -178,7 +125,6 @@ pub fn create_random_heap_table(
     }
 
     // write cells to a heap file
-    // let bytes_per_page: usize = 1024;
     let mut bytes_per_row: usize = 0;
     let row_scheme: RowScheme = simple_int_row_scheme(columns, "");
     for i in 0..columns {
@@ -223,7 +169,6 @@ pub fn create_random_heap_table(
         for i in 0..sub_cells.len() {
             bv.set(i, true);
         }
-        // debug!("bit vec<len: {}>: {:?}", bv.len(), bv);
 
         // write header
         let header = bv.to_bytes();
@@ -259,15 +204,9 @@ pub fn create_random_heap_table(
     let row_scheme = simple_int_row_scheme(columns, "");
     let table = HeapTable::new(table_path, row_scheme);
 
-    // let poing = Arc::new(table)
-    // add to catalog
-    // db.get_catalog().add_table(Arc::new(table), "table", "");
-
-    // let actule_pages = file_size / 4096
     let file_size = file.metadata().unwrap().len();
     debug!("page size: {}, file size: {}", pages, file_size);
     assert!(pages * 4096 == file_size as usize);
 
     table
-    // Box::new(table)
 }

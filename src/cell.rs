@@ -20,30 +20,6 @@ pub struct FieldItem {
     pub field_name: String,
 }
 
-// pub trait Cell: Debug + CellClone {
-// fn as_any(&self) -> &dyn Any;
-// }
-
-// pub trait CellClone {
-// fn clone_box(&self) -> Box<dyn Cell>;
-// }
-
-// impl<T> CellClone for T
-// where
-// T: 'static + Cell + Clone,
-// {
-// fn clone_box(&self) -> Box<dyn Cell> {
-// Box::new(self.clone())
-// }
-// }
-
-// // We can now implement Clone manually by forwarding to clone_box.
-// impl Clone for Box<dyn Cell> {
-// fn clone(&self) -> Box<dyn Cell> {
-// self.clone_box()
-// }
-// }
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct IntCell {
     pub value: i32,
@@ -54,9 +30,3 @@ impl IntCell {
         IntCell { value: v }
     }
 }
-
-// impl Cell for IntCell {
-// fn as_any(&self) -> &dyn Any {
-// self
-// }
-// }

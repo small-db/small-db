@@ -16,10 +16,8 @@ pub struct SequentialScan {
     pub tid: Rc<TransactionID>,
     pub table_id: i32,
     pub table_alias: String,
-    // pub page: Rc<Page>,
     pub rows: Arc<Vec<Row>>,
     index: usize,
-    // table: RwLockReadGuard<HeapTable>,
     page_id: usize,
 }
 
