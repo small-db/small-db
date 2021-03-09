@@ -10,6 +10,10 @@ mod table;
 mod transaction_id;
 mod util;
 
+mod btree;
+mod btree_unit_test;
+mod btree_system_test;
+
 #[cfg(test)]
 mod tests {
 
