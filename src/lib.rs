@@ -9,6 +9,7 @@ mod sequential_scan;
 mod table;
 mod transaction_id;
 mod util;
+mod tuple;
 
 mod btree;
 mod btree_unit_test;

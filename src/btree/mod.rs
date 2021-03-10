@@ -4,3 +4,7 @@ code related to b-tree. All data structures and
 codes should be properly commented, not just moved
 from the java version.
 */
+
+pub mod file;
+pub mod page_id;
+pub mod tuple;
