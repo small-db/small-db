@@ -1,7 +1,9 @@
-use std::{path::Path, rc::Rc};
+use crate::database::PAGE_SIZE;
+use log::{debug, info};
+use std::{fs::File, io::Write, path::Path, rc::Rc};
 
-use crate::tuple::{Tuple, TupleScheme};
 use super::page_id::PageCategory;
+use crate::tuple::{Tuple, TupleScheme};
 
 use super::{page_id::BTreePageID, tuple::BTreeTuple};
 
@@ -28,7 +30,6 @@ impl<'path> BTreeFile<'_> {
     // Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     // May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&self, mut tuple: Tuple) {
-
         // get a read lock on the root pointer page and
         // use it to locate the root page
         // self.read_root_page();
@@ -49,14 +50,29 @@ impl<'path> BTreeFile<'_> {
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
     pub fn find_leaf_page(&self, page_id: BTreePageID, field: i32) -> Rc<BTreeLeafPage> {
-        if page_id.category == PageCategory::LEAF {
-
-        }
+        if page_id.category == PageCategory::LEAF {}
 
         todo!()
     }
 
+    // Get the root page. Create the root page and root page
+    // if necessary.
     pub fn get_root_page(&self) -> Rc<BTreeRootPage> {
+        let mut f = File::open(self.file_path).unwrap();
+
+        // if db file is empty, create root ptr page at first
+        if f.metadata().unwrap().len() == 0 {
+            debug!("file empty");
+            let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
+            let empty_leaf_data = BTreeLeafPage::empty_page_data();
+            f.write(&empty_root_pointer_data);
+            f.write(&empty_leaf_data);
+        }
+
+        // get root ptr page
+
+        // get root page
+
         todo!()
     }
 
@@ -65,13 +81,29 @@ impl<'path> BTreeFile<'_> {
     }
 }
 
-pub struct BTreeLeafPage {
-
-}
+pub struct BTreeLeafPage {}
 
 impl BTreeLeafPage {
     pub fn insert_tuple(&self, tuple: Tuple) {
         todo!()
+    }
+
+    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
+        [0; PAGE_SIZE]
+    }
+}
+
+// Why we need boot BTreeRootPtrPage and BTreeRootPage?
+// Because as the tree rebalance (growth, shrinking), location
+// of the rootpage will change. So we need the BTreeRootPtrPage,
+// which is always placed at the beginning of the database file
+// and points to the rootpage. So we can find the location of
+// rootpage easily.
+pub struct BTreeRootPointerPage {}
+
+impl BTreeRootPointerPage {
+    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
+        [0; PAGE_SIZE]
     }
 }
 
@@ -79,4 +111,8 @@ pub struct BTreeRootPage {
     page_id: BTreePageID,
 }
 
-impl BTreeRootPage {}
+impl BTreeRootPage {
+    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
+        todo!()
+    }
+}

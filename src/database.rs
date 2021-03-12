@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 static DB: OnceCell<Database> = OnceCell::new();
 
-pub static PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 pub struct Database {
     catalog: Arc<RwLock<Catalog>>,
