@@ -5,3 +5,14 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
 
 A simple database writing in rust, inspired from mit 6.830
+
+## Roadmap
+
+### 0.0.0
+
+- B+ tree storage structure
+- No transaction
+- No multi-threading
+- No RAL (write ahead log)
+
+### 1.0.0
