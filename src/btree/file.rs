@@ -3,7 +3,7 @@ use log::{debug, info};
 use std::{
     convert::TryInto,
     fs::File,
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::Path,
     rc::Rc,
 };
@@ -29,18 +29,19 @@ impl<'path> BTreeFile<'_> {
     pub fn new(file_path: &Path, key: i32, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
-        // let mut f = File::open(self.file_path).unwrap();
+        let mut f = File::open(file_path).unwrap();
 
         BTreeFile {
             file_path,
             key,
             row_scheme,
+            file: f,
         }
     }
 
     // Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     // May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&self, mut tuple: Tuple) {
+    pub fn insert_tuple(&mut self, mut tuple: Tuple) {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -59,9 +60,23 @@ impl<'path> BTreeFile<'_> {
     // nodes along the path to the leaf node with READ_ONLY permission, and locks the
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
-    pub fn find_leaf_page(&self, page_id: BTreePageID, field: i32) -> Rc<BTreeLeafPage> {
+    pub fn find_leaf_page(&mut self, page_id: BTreePageID, field: i32) -> Rc<BTreeLeafPage> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
+            debug!("arrived leaf page");
+
+            // read page content
+            let page_start = (page_id.page_index - 1) * PAGE_SIZE as i32;
+            self.file.seek(SeekFrom::Start(page_start as u64));
+
+            let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
+            self.file.read(&mut data);
+
+            // instantiate page
+            let page = BTreeLeafPage::new(data.to_vec());
+
+            // return
+            return Rc::new(page);
         }
 
         todo!()
@@ -107,7 +122,27 @@ impl<'path> BTreeFile<'_> {
 pub struct BTreeLeafPage {}
 
 impl BTreeLeafPage {
+    pub fn new(bytes: Vec<u8>) -> Self {
+        Self {}
+    }
+
+    // Adds the specified tuple to the page such that all records remain in sorted order;
+    // the tuple should be updated to reflect
+    // that it is now stored on this page.
+    // tuple: The tuple to add.
     pub fn insert_tuple(&self, tuple: Tuple) {
+        // find the first empty slot
+        // find the last key less than or equal to the key being inserted
+
+        // shift records back or forward to fill empty slot and make room for new record
+        // while keeping records in sorted order
+        // insert new record into the correct spot in sorted order
+
+        todo!()
+    }
+
+    // Returns true if associated slot on this page is filled.
+    pub fn is_slot_used(&self, slot_index: i32) -> bool {
         todo!()
     }
 
@@ -164,12 +199,19 @@ pub enum PageCategory {
 // TODO: PageID must be hashable
 #[derive(Copy, Clone)]
 pub struct BTreePageID {
+    // category indicates the category of the page
     pub category: PageCategory,
-    pub id: i32,
+
+    // page_index represents the position of the page in
+    // the table, start from 0
+    pub page_index: i32,
 }
 
 impl BTreePageID {
-    pub fn new(category: PageCategory, id: i32) -> Self {
-        Self { category, id }
+    pub fn new(category: PageCategory, page_index: i32) -> Self {
+        Self {
+            category,
+            page_index,
+        }
     }
 }

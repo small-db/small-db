@@ -15,6 +15,8 @@ mod btree;
 mod btree_unit_test;
 mod btree_system_test;
 
+mod log;
+
 #[cfg(test)]
 mod tests {
 
