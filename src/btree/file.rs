@@ -74,7 +74,8 @@ impl<'path> BTreeFile<'_> {
             self.file.read(&mut data);
 
             // instantiate page
-            let page = BTreeLeafPage::new(data.to_vec());
+            let key_field = 1;
+            let page = BTreeLeafPage::new(data.to_vec(), key_field);
 
             // return
             return Rc::new(page);
@@ -123,31 +124,48 @@ impl<'path> BTreeFile<'_> {
 pub struct BTreeLeafPage {
     slot_count: i32,
     header: Vec<u8>,
+    key_field: i32,
 }
 
 impl BTreeLeafPage {
-    pub fn new(bytes: Vec<u8>) -> Self {
+    pub fn new(bytes: Vec<u8>, key_field: i32) -> Self {
+        let header_size = Self::get_header_size() as usize;
         Self {
             slot_count: 100,
-            header: Vec::new(),
+            header: bytes[..header_size].to_vec(),
+            key_field,
         }
+    }
+
+    // Retrieve the maximum number of tuples this page can hold.
+    pub fn get_max_tuples() -> i32 {
+        100
+    }
+
+    // Computes the number of bytes in the header of
+    // a page in a BTreeFile with each tuple occupying
+    // tupleSize bytes
+    pub fn get_header_size() -> i32 {
+        100 / 8 + 1
     }
 
     // Adds the specified tuple to the page such that all records remain in sorted order;
     // the tuple should be updated to reflect
     // that it is now stored on this page.
     // tuple: The tuple to add.
-    pub fn insert_tuple(&self, tuple: Tuple) {
+    pub fn insert_tuple(&self, mut tuple: Tuple) {
         // find the first empty slot
         let mut first_empty_slot = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 first_empty_slot = i;
+                debug!("file emply slot: {}", first_empty_slot);
                 break;
             }
         }
 
         // find the last key less than or equal to the key being inserted
+        let key = tuple.get_cell(self.key_field);
 
         // shift records back or forward to fill empty slot and make room for new record
         // while keeping records in sorted order
@@ -160,6 +178,7 @@ impl BTreeLeafPage {
     // Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: i32) -> bool {
         let mut bv = BitVec::from_bytes(&self.header);
+        debug!("bit count: {}", bv.len());
         bv[slot_index as usize]
     }
 
