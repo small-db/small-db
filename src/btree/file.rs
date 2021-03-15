@@ -1,4 +1,5 @@
 use crate::database::PAGE_SIZE;
+use bit_vec::BitVec;
 use log::{debug, info};
 use std::{
     convert::TryInto,
@@ -119,11 +120,17 @@ impl<'path> BTreeFile<'_> {
     }
 }
 
-pub struct BTreeLeafPage {}
+pub struct BTreeLeafPage {
+    slot_count: i32,
+    header: Vec<u8>,
+}
 
 impl BTreeLeafPage {
     pub fn new(bytes: Vec<u8>) -> Self {
-        Self {}
+        Self {
+            slot_count: 100,
+            header: Vec::new(),
+        }
     }
 
     // Adds the specified tuple to the page such that all records remain in sorted order;
@@ -132,10 +139,19 @@ impl BTreeLeafPage {
     // tuple: The tuple to add.
     pub fn insert_tuple(&self, tuple: Tuple) {
         // find the first empty slot
+        let mut first_empty_slot = 0;
+        for i in 0..self.slot_count {
+            if !self.is_slot_used(i) {
+                first_empty_slot = i;
+                break;
+            }
+        }
+
         // find the last key less than or equal to the key being inserted
 
         // shift records back or forward to fill empty slot and make room for new record
         // while keeping records in sorted order
+
         // insert new record into the correct spot in sorted order
 
         todo!()
@@ -143,7 +159,8 @@ impl BTreeLeafPage {
 
     // Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: i32) -> bool {
-        todo!()
+        let mut bv = BitVec::from_bytes(&self.header);
+        bv[slot_index as usize]
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
