@@ -1,7 +1,7 @@
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use log::{debug, info};
-use std::{borrow::BorrowMut, cell::Cell, convert::TryInto, fs::File, io::{Read, Seek, SeekFrom, Write}, path::Path, rc::Rc};
+use std::{borrow::BorrowMut, cell::Cell, convert::TryInto, fs::{File, OpenOptions}, io::{Read, Seek, SeekFrom, Write}, path::Path, rc::Rc};
 
 use crate::tuple::{Tuple, TupleScheme};
 
@@ -24,7 +24,7 @@ impl<'path> BTreeFile<'_> {
     pub fn new(file_path: &Path, key: i32, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
-        let mut f = File::open(file_path).unwrap();
+        let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
 
         BTreeFile {
             file_path,
@@ -80,21 +80,25 @@ impl<'path> BTreeFile<'_> {
 
     // Get the root pointer page. Create the root pointer page
     // and root page if necessary.
-    pub fn get_root_pid(&self) -> BTreePageID {
-        let mut f = File::open(self.file_path).unwrap();
-
+    pub fn get_root_pid(&mut self) -> BTreePageID {
         // if db file is empty, create root pointer page at first
-        if f.metadata().unwrap().len() == 0 {
+        if self.file.metadata().unwrap().len() == 0 {
             debug!("db file empty, start init");
             let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
             let empty_leaf_data = BTreeLeafPage::empty_page_data();
-            f.write(&empty_root_pointer_data);
-            f.write(&empty_leaf_data);
+            let mut n = self.file.write(&empty_root_pointer_data).unwrap();
+            debug!("write {} bytes", n);
+            n = self.file.write(&empty_leaf_data).unwrap();
+            debug!("write {} bytes", n);
+            // self.file.sync_data();
+
+            let file_length = self.file.metadata().unwrap().len();
+            debug!("write complete, file length: {}", file_length);
         }
 
         // get root pointer page
         let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
-        f.read(&mut data);
+        self.file.read(&mut data);
         let pid = BTreePageID::new(PageCategory::ROOT_POINTER, 1);
         let root_pointer_page = BTreeRootPointerPage::new(pid, data.to_vec());
 
