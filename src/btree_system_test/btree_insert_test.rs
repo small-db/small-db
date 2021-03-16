@@ -18,6 +18,6 @@ fn insert_rows() {
     for i in 0..502 {
         let tuple = Tuple::new_btree_tuple(i, 2);
         tree.insert_tuple(tuple);
-        assert_eq!(1, tree.num_pages());
+        assert_eq!(1, tree.pages_count());
     }
 }

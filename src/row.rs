@@ -1,4 +1,4 @@
-use crate::cell::*;
+use crate::field::*;
 use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 // use std::i32;
 use log::{debug, error};
@@ -6,12 +6,12 @@ use log::{debug, error};
 #[derive(Debug)]
 pub struct Row {
     scheme: Arc<RowScheme>,
-    cells: Vec<IntCell>,
+    cells: Vec<IntField>,
 }
 
 impl Row {
     pub fn new(scheme: Arc<RowScheme>, bytes: &[u8]) -> Row {
-        let mut cells: Vec<IntCell> = Vec::new();
+        let mut cells: Vec<IntField> = Vec::new();
         let mut start: usize = 0;
         let mut end: usize = 0;
         for field in &scheme.fields {
@@ -28,7 +28,7 @@ impl Row {
                     let value = i32::from_be_bytes(bytes_array);
                     // debug!("cell value : {}", value);
 
-                    cells.push(IntCell::new(value));
+                    cells.push(IntField::new(value));
 
                     start = end;
                 }
@@ -41,11 +41,11 @@ impl Row {
         }
     }
 
-    pub fn set_cell(&mut self, i: i32, c: IntCell) {
+    pub fn set_cell(&mut self, i: i32, c: IntField) {
         self.cells[i as usize] = c;
     }
 
-    pub fn get_cell(&mut self, i: i32) -> IntCell {
+    pub fn get_cell(&mut self, i: i32) -> IntField {
         self.cells[i as usize]
     }
 

@@ -1,17 +1,17 @@
-use crate::cell::*;
+use crate::field::*;
 use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
 // use std::i32;
 use log::{debug, error};
 
 #[derive(Debug)]
 pub struct Tuple {
-    scheme: Arc<TupleScheme>,
-    cells: Vec<IntCell>,
+    scheme: TupleScheme,
+    fields: Vec<IntField>,
 }
 
 impl Tuple {
-    pub fn new(scheme: Arc<TupleScheme>, bytes: &[u8]) -> Tuple {
-        let mut cells: Vec<IntCell> = Vec::new();
+    pub fn new(scheme: TupleScheme, bytes: &[u8]) -> Tuple {
+        let mut cells: Vec<IntField> = Vec::new();
         let mut start: usize = 0;
         let mut end: usize = 0;
         for field in &scheme.fields {
@@ -28,7 +28,7 @@ impl Tuple {
                     let value = i32::from_be_bytes(bytes_array);
                     // debug!("cell value : {}", value);
 
-                    cells.push(IntCell::new(value));
+                    cells.push(IntField::new(value));
 
                     start = end;
                 }
@@ -36,50 +36,50 @@ impl Tuple {
             }
         }
         Tuple {
-            scheme: Arc::clone(&scheme),
-            cells: cells,
+            scheme,
+            fields: cells,
         }
     }
 
-    pub fn new_default_tuple(scheme: Arc<TupleScheme>, width: i32) -> Tuple {
-        let mut cells: Vec<IntCell> = Vec::new();
+    pub fn new_default_tuple(scheme: TupleScheme, width: i32) -> Tuple {
+        let mut cells: Vec<IntField> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(IntCell::new(0));
+                    cells.push(IntField::new(0));
                 }
                 Type::STRING => {}
             }
         }
         Tuple {
-            scheme: Arc::clone(&scheme),
-            cells,
+            scheme,
+            fields: cells,
         }
     }
 
     pub fn new_btree_tuple(n: i32, width: i32) -> Tuple {
         let scheme = simple_int_tuple_scheme(width, "");
         let bytes = [0];
-        let mut tuple = Tuple::new_default_tuple(Arc::new(scheme), width);
-        for i in 0..tuple.cells.len() {
-            tuple.set_cell(i as i32, IntCell::new(n));
+        let mut tuple = Tuple::new_default_tuple(scheme, width);
+        for i in 0..tuple.fields.len() {
+            tuple.set_field(i as i32, IntField::new(n));
         }
         tuple
     }
 
-    pub fn set_cell(&mut self, i: i32, c: IntCell) {
-        self.cells[i as usize] = c;
+    pub fn set_field(&mut self, i: i32, c: IntField) {
+        self.fields[i as usize] = c;
     }
 
-    pub fn get_cell(&mut self, i: i32) -> IntCell {
-        self.cells[i as usize]
+    pub fn get_field(&mut self, i: i32) -> IntField {
+        self.fields[i as usize]
     }
 
     // FIXME: `impl Copy for Row` and get rid of this silly function.
     pub fn copy_row(&self) -> Tuple {
         Tuple {
-            scheme: Arc::clone(&self.scheme),
-            cells: self.cells.to_vec(),
+            scheme: self.scheme.copy(),
+            fields: self.fields.to_vec(),
         }
     }
 
@@ -88,11 +88,11 @@ impl Tuple {
         // // let cell_str = format!("{}, ", cell.value);
         // // content.push_str(&cell_str);
         // }
-        for i in 0..self.cells.len() {
-            if self.cells[i].value != expect[i] {
+        for i in 0..self.fields.len() {
+            if self.fields[i].value != expect[i] {
                 error!(
                     "cell not equal, expect: {:?}, self: {:?}",
-                    expect, self.cells
+                    expect, self.fields
                 );
                 return false;
             }
@@ -104,7 +104,7 @@ impl Tuple {
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
-        for cell in &self.cells {
+        for cell in &self.fields {
             let cell_str = format!("{}, ", cell.value);
             content.push_str(&cell_str);
         }
@@ -190,8 +190,16 @@ impl TupleScheme {
         self.fields[i as usize].field_type
     }
 
+    /// get tuple size in bytes
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
+    }
+
+    /// TODO: remove this method
+    pub fn copy(&self) -> Self {
+        Self {
+            fields: self.fields.to_vec(),
+        }
     }
 }
 

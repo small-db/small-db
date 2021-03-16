@@ -1,15 +1,15 @@
-use crate::{cell::IntCell, tuple::TupleScheme};
+use crate::{field::IntField, tuple::TupleScheme};
 
 pub struct BTreeTuple {
     scheme: TupleScheme,
-    cells: Vec<IntCell>,
+    cells: Vec<IntField>,
 }
 
 impl BTreeTuple {
     pub fn new(n: i32, width: i32) -> BTreeTuple {
-        let mut cells: Vec<IntCell> = Vec::new();
+        let mut cells: Vec<IntField> = Vec::new();
         for i in 0..width {
-            cells.push(IntCell::new(n));
+            cells.push(IntField::new(n));
         }
 
         todo!()

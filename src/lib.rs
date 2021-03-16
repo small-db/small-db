@@ -1,5 +1,5 @@
 mod bufferpool;
-mod cell;
+mod field;
 mod database;
 mod page;
 mod page_id;

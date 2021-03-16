@@ -1,13 +1,7 @@
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use log::{debug, info};
-use std::{
-    convert::TryInto,
-    fs::File,
-    io::{Read, Seek, SeekFrom, Write},
-    path::Path,
-    rc::Rc,
-};
+use std::{borrow::BorrowMut, cell::Cell, convert::TryInto, fs::File, io::{Read, Seek, SeekFrom, Write}, path::Path, rc::Rc};
 
 use crate::tuple::{Tuple, TupleScheme};
 
@@ -21,7 +15,7 @@ pub struct BTreeFile<'path> {
     // the field which index is keyed on
     key: i32,
     // the tuple descriptor of tuples in the file
-    row_scheme: TupleScheme,
+    tuple_scheme: TupleScheme,
 
     file: File,
 }
@@ -35,7 +29,7 @@ impl<'path> BTreeFile<'_> {
         BTreeFile {
             file_path,
             key,
-            row_scheme,
+            tuple_scheme: row_scheme,
             file: f,
         }
     }
@@ -50,7 +44,7 @@ impl<'path> BTreeFile<'_> {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let leaf_page = self.find_leaf_page(root_pid, tuple.get_cell(self.key).value);
+        let mut leaf_page = self.find_leaf_page(root_pid, tuple.get_field(self.key).value);
 
         // insert the tuple into the leaf page
         leaf_page.insert_tuple(tuple);
@@ -61,7 +55,7 @@ impl<'path> BTreeFile<'_> {
     // nodes along the path to the leaf node with READ_ONLY permission, and locks the
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
-    pub fn find_leaf_page(&mut self, page_id: BTreePageID, field: i32) -> Rc<BTreeLeafPage> {
+    pub fn find_leaf_page(&mut self, page_id: BTreePageID, field: i32) -> BTreeLeafPage {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
             debug!("arrived leaf page");
@@ -75,10 +69,10 @@ impl<'path> BTreeFile<'_> {
 
             // instantiate page
             let key_field = 1;
-            let page = BTreeLeafPage::new(data.to_vec(), key_field);
+            let page = BTreeLeafPage::new(data.to_vec(), key_field, self.tuple_scheme.copy());
 
             // return
-            return Rc::new(page);
+            return page;
         }
 
         todo!()
@@ -116,24 +110,48 @@ impl<'path> BTreeFile<'_> {
         f.write(&empty_leaf_data);
     }
 
-    pub fn num_pages(&self) -> i32 {
-        todo!()
+    pub fn pages_count(&self) -> i32 {
+        let file_len = self.file.metadata().unwrap().len();
+        debug!("file length: {}", file_len);
+        (file_len / PAGE_SIZE as u64) as i32
     }
 }
 
 pub struct BTreeLeafPage {
     slot_count: i32,
+
+    // header bytes
     header: Vec<u8>,
+
+    // which field/column the b+ tree is indexed on
     key_field: i32,
+
+    // all tuples (include empty tuples)
+    tuples: Vec<Tuple>,
+
+    tuple_scheme: TupleScheme,
 }
 
 impl BTreeLeafPage {
-    pub fn new(bytes: Vec<u8>, key_field: i32) -> Self {
+    pub fn new(bytes: Vec<u8>, key_field: i32, tuple_scheme: TupleScheme) -> Self {
         let header_size = Self::get_header_size() as usize;
+        let slot_count = 100;
+
+        // init tuples
+        let mut tuples = Vec::new();
+        for i in 0..slot_count {
+            let start = header_size + i * tuple_scheme.get_size();
+            let end = start + tuple_scheme.get_size();
+            let t = Tuple::new(tuple_scheme.copy(), &bytes[start..end]);
+            tuples.push(t);
+        }
+
         Self {
-            slot_count: 100,
+            slot_count: slot_count as i32,
             header: bytes[..header_size].to_vec(),
             key_field,
+            tuples,
+            tuple_scheme,
         }
     }
 
@@ -153,33 +171,48 @@ impl BTreeLeafPage {
     // the tuple should be updated to reflect
     // that it is now stored on this page.
     // tuple: The tuple to add.
-    pub fn insert_tuple(&self, mut tuple: Tuple) {
+    pub fn insert_tuple(&mut self, mut tuple: Tuple) {
         // find the first empty slot
         let mut first_empty_slot = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 first_empty_slot = i;
-                debug!("file emply slot: {}", first_empty_slot);
+                debug!("first emply slot: {}", first_empty_slot);
                 break;
             }
         }
 
         // find the last key less than or equal to the key being inserted
-        let key = tuple.get_cell(self.key_field);
+        let mut less_or_equal_key = -1;
+        let key = tuple.get_field(self.key_field);
+        for i in 0..self.slot_count {
+            if self.is_slot_used(i) {
+                if self.tuples[i as usize].get_field(self.key_field) <= key {
+                    less_or_equal_key = i;
+                } else {
+                    break;
+                }
+            }
+        }
+        debug!("less_or_equal_key: {}", less_or_equal_key);
 
         // shift records back or forward to fill empty slot and make room for new record
         // while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
-
-        todo!()
+        self.tuples[first_empty_slot as usize] = tuple;
+        self.mark_slot_used(first_empty_slot);
     }
 
     // Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: i32) -> bool {
         let mut bv = BitVec::from_bytes(&self.header);
-        debug!("bit count: {}", bv.len());
         bv[slot_index as usize]
+    }
+
+    pub fn mark_slot_used(&self, slot_index: i32) {
+        let mut bv = BitVec::from_bytes(&self.header);
+        bv.set(slot_index as usize, true);
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
