@@ -114,10 +114,10 @@ impl<'path> BTreeFile<'_> {
         f.write(&empty_leaf_data);
     }
 
-    pub fn pages_count(&self) -> i32 {
-        let file_len = self.file.metadata().unwrap().len();
+    pub fn pages_count(&self) -> usize {
+        let file_len = self.file.metadata().unwrap().len() as usize;
         debug!("file length: {}", file_len);
-        (file_len / PAGE_SIZE as u64) as i32
+        (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
     }
 }
 
@@ -238,6 +238,10 @@ impl BTreeRootPointerPage {
     pub fn new(id: BTreePageID, bytes: Vec<u8>) -> Self {
         let root_id = i32::from_be_bytes(bytes[0..4].try_into().unwrap());
         Self { root_id }
+    }
+
+    pub fn page_size() -> usize {
+        PAGE_SIZE
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
