@@ -12,8 +12,10 @@ pub struct BTreeFile<'path> {
     // the file that stores the on-disk backing store for this B+ tree
     // file.
     file_path: &'path Path,
+    
     // the field which index is keyed on
-    key: i32,
+    key_field: i32,
+
     // the tuple descriptor of tuples in the file
     tuple_scheme: TupleScheme,
 
@@ -21,14 +23,14 @@ pub struct BTreeFile<'path> {
 }
 
 impl<'path> BTreeFile<'_> {
-    pub fn new(file_path: &Path, key: i32, row_scheme: TupleScheme) -> BTreeFile {
+    pub fn new(file_path: &Path, key_field: i32, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
         let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
 
         BTreeFile {
             file_path,
-            key,
+            key_field,
             tuple_scheme: row_scheme,
             file: f,
         }
@@ -44,7 +46,10 @@ impl<'path> BTreeFile<'_> {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let mut leaf_page = self.find_leaf_page(root_pid, tuple.get_field(self.key).value);
+        let mut leaf_page = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
+        if leaf_page.empty_slots_count() == 0 {
+            leaf_page = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
+        }
 
         // insert the tuple into the leaf page
         leaf_page.insert_tuple(tuple);
@@ -162,6 +167,14 @@ impl BTreeLeafPage {
     // Retrieve the maximum number of tuples this page can hold.
     pub fn get_max_tuples() -> i32 {
         100
+    }
+
+    pub fn empty_slots_count(&self) -> usize {
+        todo!()
+    }
+    
+    pub fn split_leaf_page(leaf_page: Self, key_field: i32) -> Self {
+        todo!()
     }
 
     // Computes the number of bytes in the header of

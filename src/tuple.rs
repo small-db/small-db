@@ -57,12 +57,12 @@ impl Tuple {
         }
     }
 
-    pub fn new_btree_tuple(n: i32, width: i32) -> Tuple {
+    pub fn new_btree_tuple(value: i32, width: i32) -> Tuple {
         let scheme = simple_int_tuple_scheme(width, "");
         let bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
         for i in 0..tuple.fields.len() {
-            tuple.set_field(i as i32, IntField::new(n));
+            tuple.set_field(i as i32, IntField::new(value));
         }
         tuple
     }
