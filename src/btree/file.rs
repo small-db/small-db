@@ -1,7 +1,16 @@
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use log::{debug, info};
-use std::{borrow::BorrowMut, cell::Cell, convert::TryInto, fs::{File, OpenOptions}, io::{Read, Seek, SeekFrom, Write}, path::Path, rc::Rc};
+use std::{
+    borrow::BorrowMut,
+    cell::Cell,
+    convert::TryInto,
+    fs::{File, OpenOptions},
+    io::{Read, Seek, SeekFrom, Write},
+    path::Path,
+    rc::Rc,
+    usize,
+};
 
 use crate::tuple::{Tuple, TupleScheme};
 
@@ -12,7 +21,7 @@ pub struct BTreeFile<'path> {
     // the file that stores the on-disk backing store for this B+ tree
     // file.
     file_path: &'path Path,
-    
+
     // the field which index is keyed on
     key_field: i32,
 
@@ -127,7 +136,7 @@ impl<'path> BTreeFile<'_> {
 }
 
 pub struct BTreeLeafPage {
-    slot_count: i32,
+    slot_count: usize,
 
     // header bytes
     header: Vec<u8>,
@@ -139,6 +148,11 @@ pub struct BTreeLeafPage {
     tuples: Vec<Tuple>,
 
     tuple_scheme: TupleScheme,
+}
+
+pub struct BTreeLeafPageIterator<'a> {
+    page: &'a BTreeLeafPage,
+    cursor: usize,
 }
 
 impl BTreeLeafPage {
@@ -156,7 +170,7 @@ impl BTreeLeafPage {
         }
 
         Self {
-            slot_count: slot_count as i32,
+            slot_count,
             header: bytes[..header_size].to_vec(),
             key_field,
             tuples,
@@ -170,10 +184,48 @@ impl BTreeLeafPage {
     }
 
     pub fn empty_slots_count(&self) -> usize {
-        todo!()
+        let mut count = 0;
+        for i in 0..self.slot_count {
+            if !self.is_slot_used(i) {
+                count += 1;
+            }
+        }
+        count
     }
-    
-    pub fn split_leaf_page(leaf_page: Self, key_field: i32) -> Self {
+
+    /// Returns the number of tuples currently stored on this page
+    pub fn tuples_count(&self) -> usize {
+        self.slot_count - self.empty_slots_count()
+    }
+
+    /// Split a leaf page to make room for new tuples and
+    /// recursively split the parent node as needed to
+    /// accommodate a new entry. The new entry should have
+    /// a key matching the key field of the first tuple in
+    /// the right-hand page (the key is "copied up"), and
+    /// child pointers pointing to the two leaf pages
+    /// resulting from the split.  Update sibling pointers
+    /// and parent pointers as needed.
+    ///
+    /// Return the leaf page into which a new tuple with
+    /// key field "field" should be inserted.
+    pub fn split_leaf_page(page: Self, key_field: i32) -> Self {
+        let mut new_page = BTreeLeafPage::new(
+            BTreeLeafPage::empty_page_data().to_vec(),
+            key_field,
+            page.tuple_scheme.copy(),
+        );
+
+        let tuple_count = page.tuples_count();
+        let move_tuple_count = tuple_count / 2;
+
+        let it = BTreeLeafPageIterator::new(&page);
+        for _ in 0..move_tuple_count {
+            let tuple = it.next().unwrap();
+            page.delete_tuple(tuple);
+            new_page.insert_tuple(tuple);
+        }
+
         todo!()
     }
 
@@ -200,12 +252,12 @@ impl BTreeLeafPage {
         }
 
         // find the last key less than or equal to the key being inserted
-        let mut less_or_equal_key = -1;
+        let mut less_or_equal_key: i32 = -1;
         let key = tuple.get_field(self.key_field);
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
                 if self.tuples[i as usize].get_field(self.key_field) <= key {
-                    less_or_equal_key = i;
+                    less_or_equal_key = i as i32;
                 } else {
                     break;
                 }
@@ -217,23 +269,49 @@ impl BTreeLeafPage {
         // while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
-        self.tuples[first_empty_slot as usize] = tuple;
+        self.tuples[first_empty_slot] = tuple;
         self.mark_slot_used(first_empty_slot);
     }
 
-    // Returns true if associated slot on this page is filled.
-    pub fn is_slot_used(&self, slot_index: i32) -> bool {
-        let mut bv = BitVec::from_bytes(&self.header);
-        bv[slot_index as usize]
+    pub fn delete_tuple(&self, slot_index: usize) {
+        todo!()
     }
 
-    pub fn mark_slot_used(&self, slot_index: i32) {
+    // Returns true if associated slot on this page is filled.
+    pub fn is_slot_used(&self, slot_index: usize) -> bool {
         let mut bv = BitVec::from_bytes(&self.header);
-        bv.set(slot_index as usize, true);
+        bv[slot_index]
+    }
+
+    pub fn mark_slot_used(&self, slot_index: usize) {
+        let mut bv = BitVec::from_bytes(&self.header);
+        bv.set(slot_index, true);
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
         [0; PAGE_SIZE]
+    }
+}
+
+impl<'a> BTreeLeafPageIterator<'a> {
+    pub fn new(page: &'a BTreeLeafPage) -> Self {
+        Self { page, cursor: 0 }
+    }
+}
+
+impl<'a> Iterator for BTreeLeafPageIterator<'_> {
+    type Item = Tuple;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.cursor < self.page.slot_count {
+            if self.page.is_slot_used(self.cursor) {
+                return Some(self.page.tuples[self.cursor].copy());
+            } else {
+                self.cursor += 1;
+            }
+        }
+
+        None
     }
 }
 

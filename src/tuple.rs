@@ -75,8 +75,8 @@ impl Tuple {
         self.fields[i as usize]
     }
 
-    // FIXME: `impl Copy for Row` and get rid of this silly function.
-    pub fn copy_row(&self) -> Tuple {
+    // FIXME: `impl Copy for Tuple` and get rid of this silly function.
+    pub fn copy(&self) -> Tuple {
         Tuple {
             scheme: self.scheme.copy(),
             fields: self.fields.to_vec(),
