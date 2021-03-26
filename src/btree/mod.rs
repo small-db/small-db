@@ -8,3 +8,5 @@ from the java version.
 pub mod file;
 pub mod page_id;
 pub mod tuple;
+pub mod buffer_pool;
+pub mod database;

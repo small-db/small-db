@@ -1,9 +1,11 @@
+// use crate::btree::buffer_pool::BUFFER_POOL;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use log::{debug, info};
 use std::{
     borrow::BorrowMut,
-    cell::Cell,
+    cell::{Cell, RefCell},
+    collections::btree_set::Difference,
     convert::TryInto,
     fs::{File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
@@ -11,10 +13,14 @@ use std::{
     rc::Rc,
     usize,
 };
+use std::{
+    cell::{Ref, RefMut},
+    rc::Weak,
+};
 
 use crate::tuple::{Tuple, TupleScheme};
 
-use super::tuple::BTreeTuple;
+use super::{database::Database, tuple::BTreeTuple};
 
 // B+ Tree
 pub struct BTreeFile<'path> {
@@ -29,10 +35,17 @@ pub struct BTreeFile<'path> {
     tuple_scheme: TupleScheme,
 
     file: File,
+
+    db: Weak<Database>,
 }
 
 impl<'path> BTreeFile<'_> {
-    pub fn new(file_path: &Path, key_field: i32, row_scheme: TupleScheme) -> BTreeFile {
+    pub fn new(
+        file_path: &Path,
+        key_field: i32,
+        row_scheme: TupleScheme,
+        db: Weak<Database>,
+    ) -> BTreeFile {
         File::create(file_path);
 
         let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
@@ -42,11 +55,12 @@ impl<'path> BTreeFile<'_> {
             key_field,
             tuple_scheme: row_scheme,
             file: f,
+            db: Weak::clone(&db),
         }
     }
 
-    // Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
-    // May cause pages to split if the page where tuple belongs is full.
+    /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
+    /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&mut self, mut tuple: Tuple) {
         // a read lock on the root pointer page and
         // use it to locate the root page
@@ -55,13 +69,17 @@ impl<'path> BTreeFile<'_> {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let mut leaf_page = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
+        let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
+        let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
-            leaf_page = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
+            let mut new_container = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
+            let mut new_leaf_page = (*new_container).borrow_mut();
+            new_leaf_page.insert_tuple(tuple);
+        } else {
+            leaf_page.insert_tuple(tuple);
         }
 
         // insert the tuple into the leaf page
-        leaf_page.insert_tuple(tuple);
     }
 
     // Recursive function which finds and locks the leaf page in the B+ tree corresponding to
@@ -69,24 +87,34 @@ impl<'path> BTreeFile<'_> {
     // nodes along the path to the leaf node with READ_ONLY permission, and locks the
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
-    pub fn find_leaf_page(&mut self, page_id: BTreePageID, field: i32) -> BTreeLeafPage {
+    pub fn find_leaf_page(
+        &mut self,
+        page_id: BTreePageID,
+        field: i32,
+    ) -> Rc<RefCell<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
             debug!("arrived leaf page");
 
-            // read page content
-            let page_start = (page_id.page_index - 1) * PAGE_SIZE as i32;
-            self.file.seek(SeekFrom::Start(page_start as u64));
+            // // read page content
+            // let page_start = (page_id.page_index - 1) * PAGE_SIZE as i32;
+            // self.file.seek(SeekFrom::Start(page_start as u64));
 
-            let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
-            self.file.read(&mut data);
+            // let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
+            // self.file.read(&mut data);
 
-            // instantiate page
-            let key_field = 1;
-            let page = BTreeLeafPage::new(data.to_vec(), key_field, self.tuple_scheme.copy());
+            // // instantiate page
+            // let key_field = 1;
+            // let page = BTreeLeafPage::new(data.to_vec(), key_field, self.tuple_scheme.copy());
+
+            // get page from buffer pool
+            // let page = BUFFER_POOL.get(&page_id.page_index);
+            let container = self.db.upgrade().unwrap().get_buffer_pool();
+            let mut buffer_pool = (*container).borrow_mut();
+            let page = buffer_pool.get_page(&page_id).unwrap();
 
             // return
-            return page;
+            return (*page).clone();
         }
 
         todo!()
@@ -128,6 +156,9 @@ impl<'path> BTreeFile<'_> {
         f.write(&empty_leaf_data);
     }
 
+    /// The count of pages in this BTreeFile
+    ///
+    /// (BTreeRootPointerPage is not included)
     pub fn pages_count(&self) -> usize {
         let file_len = self.file.metadata().unwrap().len() as usize;
         debug!("file length: {}", file_len);
@@ -190,6 +221,7 @@ impl BTreeLeafPage {
                 count += 1;
             }
         }
+        debug!("empty slot on page: {}", count);
         count
     }
 
@@ -209,7 +241,7 @@ impl BTreeLeafPage {
     ///
     /// Return the leaf page into which a new tuple with
     /// key field "field" should be inserted.
-    pub fn split_leaf_page(page: Self, key_field: i32) -> Self {
+    pub fn split_leaf_page(mut page: RefMut<Self>, key_field: i32) -> Rc<RefCell<Self>> {
         let mut new_page = BTreeLeafPage::new(
             BTreeLeafPage::empty_page_data().to_vec(),
             key_field,
@@ -219,11 +251,15 @@ impl BTreeLeafPage {
         let tuple_count = page.tuples_count();
         let move_tuple_count = tuple_count / 2;
 
-        let it = BTreeLeafPageIterator::new(&page);
-        for _ in 0..move_tuple_count {
+        let mut it = BTreeLeafPageIterator::new(&page);
+        let mut delete_indexes: Vec<usize> = Vec::new();
+        for i in 0..move_tuple_count {
             let tuple = it.next().unwrap();
-            page.delete_tuple(tuple);
+            delete_indexes.push(i);
             new_page.insert_tuple(tuple);
+        }
+        for i in delete_indexes {
+            page.delete_tuple(i);
         }
 
         todo!()
@@ -269,12 +305,15 @@ impl BTreeLeafPage {
         // while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
-        self.tuples[first_empty_slot] = tuple;
+        self.tuples[first_empty_slot] = tuple.copy();
+        debug!("tuple on {} slot: {}", first_empty_slot, tuple);
         self.mark_slot_used(first_empty_slot);
+        debug!("header: {:b}", self.header[0]);
+        {}
     }
 
-    pub fn delete_tuple(&self, slot_index: usize) {
-        todo!()
+    pub fn delete_tuple(&mut self, slot_index: usize) {
+        self.mark_slot_used(slot_index);
     }
 
     // Returns true if associated slot on this page is filled.
@@ -283,9 +322,12 @@ impl BTreeLeafPage {
         bv[slot_index]
     }
 
-    pub fn mark_slot_used(&self, slot_index: usize) {
+    pub fn mark_slot_used(&mut self, slot_index: usize) {
         let mut bv = BitVec::from_bytes(&self.header);
         bv.set(slot_index, true);
+        self.header = bv.to_bytes();
+
+        // persistent changes
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
@@ -354,7 +396,7 @@ impl BTreeRootPage {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
     ROOT_POINTER,
     INTERNAL,
@@ -365,7 +407,7 @@ pub enum PageCategory {
 // PageID identifies a unique page, and contains the
 // necessary metadata
 // TODO: PageID must be hashable
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BTreePageID {
     // category indicates the category of the page
     pub category: PageCategory,
