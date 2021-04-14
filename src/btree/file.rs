@@ -2,6 +2,7 @@
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use log::{debug, info};
+use rand::Rng;
 use std::{
     borrow::BorrowMut,
     cell::{Cell, RefCell},
@@ -23,10 +24,10 @@ use crate::tuple::{Tuple, TupleScheme};
 use super::{database::Database, tuple::BTreeTuple};
 
 // B+ Tree
-pub struct BTreeFile<'path> {
+pub struct BTreeFile {
     // the file that stores the on-disk backing store for this B+ tree
     // file.
-    file_path: &'path Path,
+    file_path: String,
 
     // the field which index is keyed on
     key_field: i32,
@@ -36,12 +37,15 @@ pub struct BTreeFile<'path> {
 
     file: File,
 
+    // a random int
+    table_id: i32,
+
     db: Weak<Database>,
 }
 
-impl<'path> BTreeFile<'_> {
+impl<'path> BTreeFile {
     pub fn new(
-        file_path: &Path,
+        file_path: &str,
         key_field: i32,
         row_scheme: TupleScheme,
         db: Weak<Database>,
@@ -50,11 +54,15 @@ impl<'path> BTreeFile<'_> {
 
         let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
 
+        let table_id: i32 = rand::thread_rng().gen();
+
         BTreeFile {
-            file_path,
+            file_path: file_path.to_string(),
             key_field,
             tuple_scheme: row_scheme,
             file: f,
+            table_id,
+
             db: Weak::clone(&db),
         }
     }
@@ -141,7 +149,7 @@ impl<'path> BTreeFile<'_> {
         // get root pointer page
         let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
         self.file.read(&mut data);
-        let pid = BTreePageID::new(PageCategory::ROOT_POINTER, 1);
+        let pid = BTreePageID::new(PageCategory::ROOT_POINTER, self.table_id, 1);
         let root_pointer_page = BTreeRootPointerPage::new(pid, data.to_vec());
 
         root_pointer_page.get_root_pid()
@@ -364,13 +372,15 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
 // and points to the rootpage. So we can find the location of
 // rootpage easily.
 pub struct BTreeRootPointerPage {
+    pid: BTreePageID,
+
     root_id: i32,
 }
 
 impl BTreeRootPointerPage {
-    pub fn new(id: BTreePageID, bytes: Vec<u8>) -> Self {
+    pub fn new(pid: BTreePageID, bytes: Vec<u8>) -> Self {
         let root_id = i32::from_be_bytes(bytes[0..4].try_into().unwrap());
-        Self { root_id }
+        Self { pid, root_id }
     }
 
     pub fn page_size() -> usize {
@@ -382,7 +392,7 @@ impl BTreeRootPointerPage {
     }
 
     pub fn get_root_pid(&self) -> BTreePageID {
-        BTreePageID::new(PageCategory::LEAF, self.root_id)
+        BTreePageID::new(PageCategory::LEAF, self.pid.table_id, self.root_id)
     }
 }
 
@@ -415,13 +425,20 @@ pub struct BTreePageID {
     // page_index represents the position of the page in
     // the table, start from 0
     pub page_index: i32,
+
+    pub table_id: i32,
 }
 
 impl BTreePageID {
-    pub fn new(category: PageCategory, page_index: i32) -> Self {
+    pub fn new(category: PageCategory, table_id: i32, page_index: i32) -> Self {
         Self {
             category,
             page_index,
+            table_id,
         }
+    }
+
+    pub fn get_table_id(&self) -> i32 {
+        self.table_id
     }
 }

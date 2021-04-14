@@ -9,14 +9,13 @@ fn insert_rows() {
     init_log();
 
     let db = Database::new();
-    let strong = Rc::new(db);
-    let weak_db = Rc::downgrade(&strong);
+    let weak_db = Rc::downgrade(&db);
 
     // assert!(strong.is_some());
     assert!(weak_db.upgrade().is_some());
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let path = Path::new("btree.db");
+    let path = "btree.db";
     let row_scheme = simple_int_tuple_scheme(2, "");
     let mut tree = BTreeFile::new(path, 1, row_scheme, weak_db);
 

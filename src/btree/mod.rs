@@ -9,4 +9,6 @@ pub mod file;
 pub mod page_id;
 pub mod tuple;
 pub mod buffer_pool;
+pub mod catalog;
 pub mod database;
+pub mod database_singleton;
