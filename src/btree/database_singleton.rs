@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{rc::Rc, time::Duration};
 use std::{
     cell::RefCell,
     sync::{Arc, Mutex, Once},
@@ -41,5 +41,24 @@ pub fn singleton_db() -> SingletonDB {
 
         // Now we give out a copy of the data that is safe to use concurrently.
         (*SINGLETON).clone()
+    }
+}
+
+impl SingletonDB {
+    pub fn new() -> Self {
+        let bp  = Arc::new(RefCell::new(BufferPool::new()));
+        let ct = Arc::new(RefCell::new(Catalog::new()));
+        Self {
+            buffer_pool: bp,
+            catalog: ct,
+        }
+    }
+
+    pub fn get_buffer_pool(&self) -> BPPointer {
+        self.buffer_pool.clone()
+    }
+
+    pub fn get_catalog(&self) -> CTPointer {
+        self.catalog.clone()
     }
 }
