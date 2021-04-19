@@ -1,13 +1,19 @@
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::{
     cell::RefCell,
     collections::HashMap,
     rc::{Rc, Weak},
 };
 
+use crate::database::PAGE_SIZE;
+use log::debug;
+
+use super::file::BTreeRootPointerPage;
 use super::{
     database::Database,
-    file::{BTreeLeafPage, BTreePageID},
     database_singleton::singleton_db,
+    file::{BTreeLeafPage, BTreePageID},
 };
 
 // pub const BUFFER_POOL: HashMap<i32, BTreeLeafPage> = HashMap::new();
@@ -31,15 +37,31 @@ impl BufferPool {
         match result {
             Some(v) => Some(v),
             None => {
-                    // get file from disk
+                // get file from disk
 
-                    // 1. get db file
-                    let db = singleton_db() ;
-                    let ct = db.get_catalog();
-                    let table_id = key.get_table_id();
-                    let f = ct.borrow().get_db_file(&table_id).unwrap();
-                    todo!()
+                // 1. get db file
+                let db = singleton_db();
+                let pointer = db.get_catalog();
+                let ct = pointer.borrow();
+                let table_id = key.get_table_id();
+                let f = ct.get_db_file(&table_id).unwrap();
+                let btree_file = f.borrow();
+
+                debug!("find file: {}", btree_file);
+                debug!("page id: {}", key);
+
+                let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
+
+                match btree_file
+                    .get_file()
+                    .seek(SeekFrom::Start(start_pos as u64))
+                {
+                    Ok(_) => (),
+                    Err(_) => return None,
                 }
+
+                todo!()
+            }
         }
     }
 }

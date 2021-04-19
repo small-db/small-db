@@ -1,14 +1,18 @@
+
 // use crate::btree::buffer_pool::BUFFER_POOL;
+use super::database_singleton::singleton_db;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
+use core::fmt;
 use log::{debug, info};
 use rand::Rng;
 use std::{
     borrow::BorrowMut,
     cell::{Cell, RefCell},
-    collections::btree_set::Difference,
+    collections::{btree_set::Difference, hash_map::DefaultHasher},
     convert::TryInto,
     fs::{File, OpenOptions},
+    hash::{Hash, Hasher},
     io::{Read, Seek, SeekFrom, Write},
     path::Path,
     rc::Rc,
@@ -35,41 +39,46 @@ pub struct BTreeFile {
     // the tuple descriptor of tuples in the file
     tuple_scheme: TupleScheme,
 
-    file: File,
+    file: RefCell<File>,
 
-    // a random int
     table_id: i32,
+}
 
-    db: Weak<Database>,
+impl fmt::Display for BTreeFile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "<BTreeFile, file: {}, id: {}>",
+            self.file_path, self.table_id
+        )
+    }
 }
 
 impl<'path> BTreeFile {
-    pub fn new(
-        file_path: &str,
-        key_field: i32,
-        row_scheme: TupleScheme,
-        db: Weak<Database>,
-    ) -> BTreeFile {
+    pub fn new(file_path: &str, key_field: i32, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
         let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
 
-        let table_id: i32 = rand::thread_rng().gen();
+        let mut s = DefaultHasher::new();
+        file_path.hash(&mut s);
 
         BTreeFile {
             file_path: file_path.to_string(),
             key_field,
             tuple_scheme: row_scheme,
-            file: f,
-            table_id,
-
-            db: Weak::clone(&db),
+            file: RefCell::new(f),
+            table_id: s.finish() as i32,
         }
+    }
+
+    pub fn get_id(&self) -> i32 {
+        self.table_id
     }
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&mut self, mut tuple: Tuple) {
+    pub fn insert_tuple(&self, mut tuple: Tuple) {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -96,7 +105,7 @@ impl<'path> BTreeFile {
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
     pub fn find_leaf_page(
-        &mut self,
+        &self,
         page_id: BTreePageID,
         field: i32,
     ) -> Rc<RefCell<BTreeLeafPage>> {
@@ -117,7 +126,7 @@ impl<'path> BTreeFile {
 
             // get page from buffer pool
             // let page = BUFFER_POOL.get(&page_id.page_index);
-            let container = self.db.upgrade().unwrap().get_buffer_pool();
+            let container = singleton_db().get_buffer_pool();
             let mut buffer_pool = (*container).borrow_mut();
             let page = buffer_pool.get_page(&page_id).unwrap();
 
@@ -128,28 +137,32 @@ impl<'path> BTreeFile {
         todo!()
     }
 
+    pub fn get_file(&self) -> RefMut<File> {
+        self.file.borrow_mut()
+    }
+
     // Get the root pointer page. Create the root pointer page
     // and root page if necessary.
-    pub fn get_root_pid(&mut self) -> BTreePageID {
+    pub fn get_root_pid(&self) -> BTreePageID {
         // if db file is empty, create root pointer page at first
-        if self.file.metadata().unwrap().len() == 0 {
+        if self.get_file().metadata().unwrap().len() == 0 {
             debug!("db file empty, start init");
             let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
             let empty_leaf_data = BTreeLeafPage::empty_page_data();
-            let mut n = self.file.write(&empty_root_pointer_data).unwrap();
+            let mut n = self.get_file().write(&empty_root_pointer_data).unwrap();
             debug!("write {} bytes", n);
-            n = self.file.write(&empty_leaf_data).unwrap();
+            n = self.get_file().write(&empty_leaf_data).unwrap();
             debug!("write {} bytes", n);
             // self.file.sync_data();
 
-            let file_length = self.file.metadata().unwrap().len();
+            let file_length = self.get_file().metadata().unwrap().len();
             debug!("write complete, file length: {}", file_length);
         }
 
         // get root pointer page
         let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
-        self.file.read(&mut data);
-        let pid = BTreePageID::new(PageCategory::ROOT_POINTER, self.table_id, 1);
+        self.get_file().read(&mut data);
+        let pid = BTreePageID::new(PageCategory::ROOT_POINTER, self.get_id(), 1);
         let root_pointer_page = BTreeRootPointerPage::new(pid, data.to_vec());
 
         root_pointer_page.get_root_pid()
@@ -168,7 +181,7 @@ impl<'path> BTreeFile {
     ///
     /// (BTreeRootPointerPage is not included)
     pub fn pages_count(&self) -> usize {
-        let file_len = self.file.metadata().unwrap().len() as usize;
+        let file_len = self.get_file().metadata().unwrap().len() as usize;
         debug!("file length: {}", file_len);
         (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
     }
@@ -374,12 +387,12 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
 pub struct BTreeRootPointerPage {
     pid: BTreePageID,
 
-    root_id: i32,
+    root_id: usize,
 }
 
 impl BTreeRootPointerPage {
     pub fn new(pid: BTreePageID, bytes: Vec<u8>) -> Self {
-        let root_id = i32::from_be_bytes(bytes[0..4].try_into().unwrap());
+        let root_id = i32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
         Self { pid, root_id }
     }
 
@@ -414,6 +427,25 @@ pub enum PageCategory {
     HEADER,
 }
 
+impl fmt::Display for PageCategory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PageCategory::ROOT_POINTER => {
+                write!(f, "ROOT_POINTER")
+            }
+            PageCategory::INTERNAL => {
+                write!(f, "INTERNAL")
+            }
+            PageCategory::LEAF => {
+                write!(f, "LEAF")
+            }
+            PageCategory::HEADER => {
+                write!(f, "HEADER")
+            }
+        }
+    }
+}
+
 // PageID identifies a unique page, and contains the
 // necessary metadata
 // TODO: PageID must be hashable
@@ -424,13 +456,25 @@ pub struct BTreePageID {
 
     // page_index represents the position of the page in
     // the table, start from 0
-    pub page_index: i32,
+    pub page_index: usize,
 
     pub table_id: i32,
 }
 
+impl fmt::Display for BTreePageID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "<BTreePageID, catagory: {}, page_index: {}, table_id: {}>",
+            self.category,
+            self.page_index,
+            self.table_id,
+        )
+    }
+}
+
 impl BTreePageID {
-    pub fn new(category: PageCategory, table_id: i32, page_index: i32) -> Self {
+    pub fn new(category: PageCategory, table_id: i32, page_index: usize) -> Self {
         Self {
             category,
             page_index,

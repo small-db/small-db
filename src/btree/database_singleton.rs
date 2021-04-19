@@ -16,8 +16,8 @@ pub struct SingletonDB {
     catalog: CTPointer,
 }
 
-type BPPointer = Arc<RefCell<BufferPool>>;
-type CTPointer = Arc<RefCell<Catalog>>;
+type BPPointer = Rc<RefCell<BufferPool>>;
+type CTPointer = Rc<RefCell<Catalog>>;
 
 pub fn singleton_db() -> SingletonDB {
     // Initialize it to a null value
@@ -26,8 +26,8 @@ pub fn singleton_db() -> SingletonDB {
 
     unsafe {
         ONCE.call_once(|| {
-            let bp = Arc::new(RefCell::new(BufferPool::new()));
-            let ct = Arc::new(RefCell::new(Catalog::new()));
+            let bp = Rc::new(RefCell::new(BufferPool::new()));
+            let ct = Rc::new(RefCell::new(Catalog::new()));
 
             // Make it
             let singleton = SingletonDB {
@@ -46,8 +46,8 @@ pub fn singleton_db() -> SingletonDB {
 
 impl SingletonDB {
     pub fn new() -> Self {
-        let bp  = Arc::new(RefCell::new(BufferPool::new()));
-        let ct = Arc::new(RefCell::new(Catalog::new()));
+        let bp  = Rc::new(RefCell::new(BufferPool::new()));
+        let ct = Rc::new(RefCell::new(Catalog::new()));
         Self {
             buffer_pool: bp,
             catalog: ct,
