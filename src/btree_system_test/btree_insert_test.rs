@@ -1,9 +1,9 @@
 #[test]
 fn insert_rows() {
-    use std::{cell::RefCell, path::Path, rc::Rc};
+    use std::{cell::RefCell, rc::Rc};
 
     use crate::btree::database_singleton::singleton_db;
-    use crate::btree::{database::Database, tuple::BTreeTuple};
+    
     use crate::tuple::Tuple;
     use crate::{btree::file::BTreeFile, log::init_log, tuple::simple_int_tuple_scheme};
 

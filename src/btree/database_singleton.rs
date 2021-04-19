@@ -1,9 +1,9 @@
-use std::{rc::Rc, time::Duration};
+use std::{rc::Rc};
 use std::{
     cell::RefCell,
-    sync::{Arc, Mutex, Once},
+    sync::{Once},
 };
-use std::{mem, thread};
+use std::{mem};
 
 use super::{buffer_pool::BufferPool, catalog::Catalog};
 
