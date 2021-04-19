@@ -3,7 +3,7 @@ use std::io::SeekFrom;
 use std::{
     cell::RefCell,
     collections::HashMap,
-    rc::{Rc},
+    rc::{Rc, Weak},
 };
 
 use crate::database::PAGE_SIZE;
@@ -11,6 +11,7 @@ use log::debug;
 
 use super::file::BTreeRootPointerPage;
 use super::{
+    database::Database,
     database_singleton::singleton_db,
     file::{BTreeLeafPage, BTreePageID},
 };

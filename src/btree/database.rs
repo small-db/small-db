@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    rc::{Rc},
+    rc::{Rc, Weak},
 };
 
 use super::{buffer_pool::BufferPool, catalog::Catalog};

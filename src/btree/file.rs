@@ -4,8 +4,8 @@ use super::database_singleton::singleton_db;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
-use log::{debug};
-
+use log::{debug, info};
+use rand::Rng;
 use std::{
     borrow::BorrowMut,
     cell::{Cell, RefCell},
@@ -25,7 +25,7 @@ use std::{
 
 use crate::tuple::{Tuple, TupleScheme};
 
-
+use super::{database::Database, tuple::BTreeTuple};
 
 // B+ Tree
 pub struct BTreeFile {
@@ -58,7 +58,7 @@ impl<'path> BTreeFile {
     pub fn new(file_path: &str, key_field: i32, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
-        let f = OpenOptions::new().write(true).open(file_path).unwrap();
+        let mut f = OpenOptions::new().write(true).open(file_path).unwrap();
 
         let mut s = DefaultHasher::new();
         file_path.hash(&mut s);
@@ -89,7 +89,7 @@ impl<'path> BTreeFile {
         let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
-            let new_container = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
+            let mut new_container = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
             let mut new_leaf_page = (*new_container).borrow_mut();
             new_leaf_page.insert_tuple(tuple);
         } else {
@@ -107,7 +107,7 @@ impl<'path> BTreeFile {
     pub fn find_leaf_page(
         &self,
         page_id: BTreePageID,
-        _field: i32,
+        field: i32,
     ) -> Rc<RefCell<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
@@ -339,7 +339,7 @@ impl BTreeLeafPage {
 
     // Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
-        let bv = BitVec::from_bytes(&self.header);
+        let mut bv = BitVec::from_bytes(&self.header);
         bv[slot_index]
     }
 
