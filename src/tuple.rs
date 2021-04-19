@@ -41,7 +41,7 @@ impl Tuple {
         }
     }
 
-    pub fn new_default_tuple(scheme: TupleScheme, width: i32) -> Tuple {
+    pub fn new_default_tuple(scheme: TupleScheme, _width: i32) -> Tuple {
         let mut cells: Vec<IntField> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
@@ -59,7 +59,7 @@ impl Tuple {
 
     pub fn new_btree_tuple(value: i32, width: i32) -> Tuple {
         let scheme = simple_int_tuple_scheme(width, "");
-        let bytes = [0];
+        let _bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
         for i in 0..tuple.fields.len() {
             tuple.set_field(i as i32, IntField::new(value));
