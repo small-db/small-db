@@ -5,5 +5,4 @@ pub struct HeapPageID {
     pub page_index: usize,
 }
 
-impl HeapPageID {
-}
+impl HeapPageID {}

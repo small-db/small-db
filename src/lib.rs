@@ -1,6 +1,6 @@
 mod bufferpool;
-mod field;
 mod database;
+mod field;
 mod page;
 mod page_id;
 mod permissions;
@@ -8,12 +8,12 @@ mod row;
 mod sequential_scan;
 mod table;
 mod transaction_id;
-mod util;
 mod tuple;
+mod util;
 
 mod btree;
-mod btree_unit_test;
 mod btree_system_test;
+mod btree_unit_test;
 
 mod log;
 
@@ -66,8 +66,7 @@ mod tests {
             .init();
     }
 
-    mod heap_table_test {
-    }
+    mod heap_table_test {}
 
     mod scan_test {
         use super::*;

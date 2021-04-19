@@ -1,10 +1,9 @@
-
 // use crate::btree::buffer_pool::BUFFER_POOL;
 use super::database_singleton::singleton_db;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
-use log::{debug};
+use log::debug;
 
 use std::{
     borrow::BorrowMut,
@@ -24,8 +23,6 @@ use std::{
 };
 
 use crate::tuple::{Tuple, TupleScheme};
-
-
 
 // B+ Tree
 pub struct BTreeFile {
@@ -104,11 +101,7 @@ impl<'path> BTreeFile {
     // nodes along the path to the leaf node with READ_ONLY permission, and locks the
     // leaf node with permission perm.
     // If f is null, it finds the left-most leaf page -- used for the iterator
-    pub fn find_leaf_page(
-        &self,
-        page_id: BTreePageID,
-        _field: i32,
-    ) -> Rc<RefCell<BTreeLeafPage>> {
+    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<RefCell<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
             debug!("arrived leaf page");
@@ -466,9 +459,7 @@ impl fmt::Display for BTreePageID {
         write!(
             f,
             "<BTreePageID, catagory: {}, page_index: {}, table_id: {}>",
-            self.category,
-            self.page_index,
-            self.table_id,
+            self.category, self.page_index, self.table_id,
         )
     }
 }

@@ -1,9 +1,6 @@
-use std::{rc::Rc};
-use std::{
-    cell::RefCell,
-    sync::{Once},
-};
-use std::{mem};
+use std::mem;
+use std::rc::Rc;
+use std::{cell::RefCell, sync::Once};
 
 use super::{buffer_pool::BufferPool, catalog::Catalog};
 
@@ -46,7 +43,7 @@ pub fn singleton_db() -> SingletonDB {
 
 impl SingletonDB {
     pub fn new() -> Self {
-        let bp  = Rc::new(RefCell::new(BufferPool::new()));
+        let bp = Rc::new(RefCell::new(BufferPool::new()));
         let ct = Rc::new(RefCell::new(Catalog::new()));
         Self {
             buffer_pool: bp,

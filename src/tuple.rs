@@ -1,5 +1,10 @@
 use crate::field::*;
-use std::{cell::RefCell, fmt::{self, Debug, format}, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    fmt::{self, format, Debug},
+    rc::Rc,
+    sync::Arc,
+};
 // use std::i32;
 use log::{debug, error};
 
@@ -190,12 +195,12 @@ impl TupleScheme {
         self.fields[i as usize].field_type
     }
 
-    /// get tuple size in bytes
+    // / get tuple size in bytes
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
     }
 
-    /// TODO: remove this method
+    // / TODO: remove this method
     pub fn copy(&self) -> Self {
         Self {
             fields: self.fields.to_vec(),

@@ -1,9 +1,9 @@
-use crate::field::*;
 use crate::database::*;
+use crate::field::*;
+use crate::page::*;
 use crate::row::RowScheme;
 use crate::row::*;
 use bit_vec::BitVec;
-use crate::page::*;
 use log::debug;
 use rand::Rng;
 
@@ -13,9 +13,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 
-use std::sync::{Arc, Mutex, MutexGuard};
 use io::ErrorKind;
 use std::io;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug)]
 pub struct HeapTable {

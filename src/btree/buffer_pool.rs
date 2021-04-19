@@ -1,10 +1,6 @@
 use std::io::Seek;
 use std::io::SeekFrom;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    rc::{Rc},
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::database::PAGE_SIZE;
 use log::debug;
