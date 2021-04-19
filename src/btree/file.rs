@@ -31,10 +31,10 @@ pub struct BTreeFile {
     file_path: String,
 
     // the field which index is keyed on
-    key_field: i32,
+    pub key_field: i32,
 
     // the tuple descriptor of tuples in the file
-    tuple_scheme: TupleScheme,
+    pub tuple_scheme: TupleScheme,
 
     file: RefCell<File>,
 
@@ -106,21 +106,10 @@ impl<'path> BTreeFile {
             // get page and return directly
             debug!("arrived leaf page");
 
-            // // read page content
-            // let page_start = (page_id.page_index - 1) * PAGE_SIZE as i32;
-            // self.file.seek(SeekFrom::Start(page_start as u64));
-
-            // let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
-            // self.file.read(&mut data);
-
-            // // instantiate page
-            // let key_field = 1;
-            // let page = BTreeLeafPage::new(data.to_vec(), key_field, self.tuple_scheme.copy());
-
             // get page from buffer pool
-            // let page = BUFFER_POOL.get(&page_id.page_index);
-            let container = singleton_db().get_buffer_pool();
-            let mut buffer_pool = (*container).borrow_mut();
+            // let container = singleton_db().get_buffer_pool();
+            let db = singleton_db();
+            let mut buffer_pool = db.get_buffer_pool();
             let page = buffer_pool.get_page(&page_id).unwrap();
 
             // return
@@ -202,15 +191,15 @@ pub struct BTreeLeafPageIterator<'a> {
 
 impl BTreeLeafPage {
     pub fn new(bytes: Vec<u8>, key_field: i32, tuple_scheme: TupleScheme) -> Self {
-        let header_size = Self::get_header_size() as usize;
-        let slot_count = 100;
+        let slot_count = Self::get_max_tuples(&tuple_scheme);
+        let header_size = Self::get_header_size(slot_count) as usize;
 
         // init tuples
         let mut tuples = Vec::new();
         for i in 0..slot_count {
             let start = header_size + i * tuple_scheme.get_size();
             let end = start + tuple_scheme.get_size();
-            let t = Tuple::new(tuple_scheme.copy(), &bytes[start..end]);
+            let t = Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
             tuples.push(t);
         }
 
@@ -224,8 +213,22 @@ impl BTreeLeafPage {
     }
 
     // Retrieve the maximum number of tuples this page can hold.
-    pub fn get_max_tuples() -> i32 {
-        100
+    pub fn get_max_tuples(scheme: &TupleScheme) -> usize {
+        // 100
+        // int bitsPerTupleIncludingHeader = td.getSize() * 8 + 1;
+        // // extraBits are: left sibling pointer, right sibling pointer, parent pointer
+        // int extraBits = 3 * INDEX_SIZE * 8;
+        // int tuplesPerPage = (BufferPool.getPageSize() * 8 - extraBits) / bitsPerTupleIncludingHeader; //round down
+        // return tuplesPerPage;
+
+        let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
+        // extraBits are: left sibling pointer, right sibling pointer, parent pointer
+        let INDEX_SIZE: usize = 4;
+        let extra_bits = 3 * INDEX_SIZE * 8;
+        // (BufferPool.getPageSize() * 8 - extraBits) / bitsPerTupleIncludingHeader; //round down
+        // singleton_db().get_buffer_pool()
+        (PAGE_SIZE * 8 - extra_bits) / bits_per_tuple_including_header
+        // todo!()
     }
 
     pub fn empty_slots_count(&self) -> usize {
@@ -259,7 +262,7 @@ impl BTreeLeafPage {
         let mut new_page = BTreeLeafPage::new(
             BTreeLeafPage::empty_page_data().to_vec(),
             key_field,
-            page.tuple_scheme.copy(),
+            page.tuple_scheme.clone(),
         );
 
         let tuple_count = page.tuples_count();
@@ -282,8 +285,8 @@ impl BTreeLeafPage {
     // Computes the number of bytes in the header of
     // a page in a BTreeFile with each tuple occupying
     // tupleSize bytes
-    pub fn get_header_size() -> i32 {
-        100 / 8 + 1
+    pub fn get_header_size(slot_count: usize) -> usize {
+        slot_count / 8 + 1
     }
 
     // Adds the specified tuple to the page such that all records remain in sorted order;
@@ -313,16 +316,16 @@ impl BTreeLeafPage {
                 }
             }
         }
-        debug!("less_or_equal_key: {}", less_or_equal_key);
+        // debug!("less_or_equal_key: {}", less_or_equal_key);
 
         // shift records back or forward to fill empty slot and make room for new record
         // while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
         self.tuples[first_empty_slot] = tuple.copy();
-        debug!("tuple on {} slot: {}", first_empty_slot, tuple);
+        // debug!("tuple on {} slot: {}", first_empty_slot, tuple);
         self.mark_slot_used(first_empty_slot);
-        debug!("header: {:b}", self.header[0]);
+        // debug!("header: {:b}", self.header[0]);
         {}
     }
 

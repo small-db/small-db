@@ -83,7 +83,7 @@ impl Tuple {
     // FIXME: `impl Copy for Tuple` and get rid of this silly function.
     pub fn copy(&self) -> Tuple {
         Tuple {
-            scheme: self.scheme.copy(),
+            scheme: self.scheme.clone(),
             fields: self.fields.to_vec(),
         }
     }
@@ -199,9 +199,10 @@ impl TupleScheme {
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
     }
+}
 
-    // / TODO: remove this method
-    pub fn copy(&self) -> Self {
+impl Clone for TupleScheme {
+    fn clone(&self) -> Self {
         Self {
             fields: self.fields.to_vec(),
         }

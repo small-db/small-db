@@ -1,4 +1,4 @@
-use std::mem;
+use std::{cell::RefMut, mem};
 use std::rc::Rc;
 use std::{cell::RefCell, sync::Once};
 
@@ -16,7 +16,7 @@ pub struct SingletonDB {
 type BPPointer = Rc<RefCell<BufferPool>>;
 type CTPointer = Rc<RefCell<Catalog>>;
 
-pub fn singleton_db() -> SingletonDB {
+pub fn singleton_db() -> &'static SingletonDB {
     // Initialize it to a null value
     static mut SINGLETON: *const SingletonDB = 0 as *const SingletonDB;
     static ONCE: Once = Once::new();
@@ -37,7 +37,8 @@ pub fn singleton_db() -> SingletonDB {
         });
 
         // Now we give out a copy of the data that is safe to use concurrently.
-        (*SINGLETON).clone()
+        // (*SINGLETON).clone()
+        SINGLETON.as_ref().unwrap()
     }
 }
 
@@ -51,8 +52,13 @@ impl SingletonDB {
         }
     }
 
-    pub fn get_buffer_pool(&self) -> BPPointer {
-        self.buffer_pool.clone()
+    pub fn get_buffer_pool(&self) -> RefMut<BufferPool> {
+        // let container = Rc::clone(&self.buffer_pool);
+        // (*container).borrow_mut()
+
+        // Rc::clone(&self.buffer_pool).borrow_mut()
+
+        self.buffer_pool.borrow_mut()
     }
 
     pub fn get_catalog(&self) -> CTPointer {
