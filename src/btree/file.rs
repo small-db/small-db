@@ -1,4 +1,5 @@
 // use crate::btree::buffer_pool::BUFFER_POOL;
+use std::borrow::Borrow;
 use super::database_singleton::singleton_db;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
@@ -39,8 +40,6 @@ pub struct BTreeFile {
     file: RefCell<File>,
 
     table_id: i32,
-
-    empty_page_index: Cell<usize>,
 }
 
 impl fmt::Display for BTreeFile {
@@ -68,7 +67,6 @@ impl<'path> BTreeFile {
             tuple_scheme: row_scheme,
             file: RefCell::new(f),
             table_id: s.finish() as i32,
-            empty_page_index: Cell::new(0),
         }
     }
 
@@ -110,7 +108,11 @@ impl<'path> BTreeFile {
     ///
     /// Return the leaf page into which a new tuple with
     /// key field "field" should be inserted.
-    pub fn split_leaf_page(&self, mut page: RefMut<BTreeLeafPage>, key_field: i32) -> Rc<RefCell<Self>> {
+    pub fn split_leaf_page(
+        &self,
+        mut page: RefMut<BTreeLeafPage>,
+        key_field: i32,
+    ) -> Rc<RefCell<Self>> {
         // 1. adding a new page on the right of the existing
         // page and moving half of the tuples to the new page
         let new_page_id = RefCell::new(BTreePageID::new(
@@ -144,14 +146,13 @@ impl<'path> BTreeFile {
         // recursively split the parent as needed to accommodate
         // the new entry.
 
-        let parent = Self::get_parent_with_empty_slots(page.get_parent_id());
+        let parent = self.get_parent_with_empty_slots(page.get_parent_id());
 
         todo!()
     }
 
     fn get_empty_page_index(&self) -> usize {
-        self.empty_page_index.set(self.empty_page_index.get());
-        self.empty_page_index.get()
+        self.pages_count() + 1
     }
 
     /**
@@ -162,10 +163,28 @@ impl<'path> BTreeFile {
     no empty slots, or simply locking and returning the existing
     parent page.
     */
-    fn get_parent_with_empty_slots(parentId: BTreePageID) -> BTreeInternalPage {
+    fn get_parent_with_empty_slots(&self, parentId: BTreePageID) -> BTreeInternalPage {
+        // create a parent node if necessary
+        // this will be the new root of the tree
+        if parentId.category == PageCategory::ROOT_POINTER {
+            let new_page_id = BTreePageID::new(
+                PageCategory::INTERNAL,
+                self.table_id,
+                self.get_empty_page_index(),
+            );
+            let root_pointer_page = singleton_db().get_buffer_pool().get_page(&BTreePageID::new(
+                PageCategory::ROOT_POINTER,
+                self.table_id,
+                0,
+            )).unwrap();
+
+            // update the root pointer
+            // Rc::borrow(&root_pointer_page).
+            // let v = root_pointer_page.borrow_mut().as_ref
+        }
+
         todo!()
     }
-
 
     // Recursive function which finds and locks the leaf page in the B+ tree corresponding to
     // the left-most page possibly containing the key field f. It locks all internal
@@ -235,7 +254,6 @@ impl<'path> BTreeFile {
     /// (BTreeRootPointerPage is not included)
     pub fn pages_count(&self) -> usize {
         let file_len = self.get_file().metadata().unwrap().len() as usize;
-        debug!("file length: {}", file_len);
         (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
     }
 }
@@ -265,7 +283,12 @@ pub struct BTreeLeafPageIterator<'a> {
 }
 
 impl BTreeLeafPage {
-    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: i32, tuple_scheme: TupleScheme) -> Self {
+    pub fn new(
+        page_id: RefCell<BTreePageID>,
+        bytes: Vec<u8>,
+        key_field: i32,
+        tuple_scheme: TupleScheme,
+    ) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
         let header_size = Self::get_header_size(slot_count) as usize;
 
@@ -291,7 +314,11 @@ impl BTreeLeafPage {
 
     pub fn get_parent_id(&self) -> BTreePageID {
         if self.parent == 0 {
-            return BTreePageID::new(PageCategory::ROOT_POINTER, self.page_id.borrow().table_id, 0)
+            return BTreePageID::new(
+                PageCategory::ROOT_POINTER,
+                self.page_id.borrow().table_id,
+                0,
+            );
         }
         // self.parent
 
@@ -324,7 +351,6 @@ impl BTreeLeafPage {
                 count += 1;
             }
         }
-        debug!("empty slot on page: {}", count);
         count
     }
 
@@ -532,6 +558,4 @@ impl BTreePageID {
     }
 }
 
-pub struct BTreeInternalPage {
-
-}
+pub struct BTreeInternalPage {}
