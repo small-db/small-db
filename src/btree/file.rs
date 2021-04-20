@@ -39,6 +39,8 @@ pub struct BTreeFile {
     file: RefCell<File>,
 
     table_id: i32,
+
+    empty_page_index: Cell<usize>,
 }
 
 impl fmt::Display for BTreeFile {
@@ -66,6 +68,7 @@ impl<'path> BTreeFile {
             tuple_scheme: row_scheme,
             file: RefCell::new(f),
             table_id: s.finish() as i32,
+            empty_page_index: Cell::new(0),
         }
     }
 
@@ -86,8 +89,8 @@ impl<'path> BTreeFile {
         let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
-            let new_container = BTreeLeafPage::split_leaf_page(leaf_page, self.key_field);
-            let mut new_leaf_page = (*new_container).borrow_mut();
+            let new_container = self.split_leaf_page(leaf_page, self.key_field);
+            let new_leaf_page = (*new_container).borrow_mut();
             new_leaf_page.insert_tuple(tuple);
         } else {
             leaf_page.insert_tuple(tuple);
@@ -95,6 +98,74 @@ impl<'path> BTreeFile {
 
         // insert the tuple into the leaf page
     }
+
+    /// Split a leaf page to make room for new tuples and
+    /// recursively split the parent node as needed to
+    /// accommodate a new entry. The new entry should have
+    /// a key matching the key field of the first tuple in
+    /// the right-hand page (the key is "copied up"), and
+    /// child pointers pointing to the two leaf pages
+    /// resulting from the split.  Update sibling pointers
+    /// and parent pointers as needed.
+    ///
+    /// Return the leaf page into which a new tuple with
+    /// key field "field" should be inserted.
+    pub fn split_leaf_page(&self, mut page: RefMut<BTreeLeafPage>, key_field: i32) -> Rc<RefCell<Self>> {
+        // 1. adding a new page on the right of the existing
+        // page and moving half of the tuples to the new page
+        let new_page_id = RefCell::new(BTreePageID::new(
+            PageCategory::LEAF,
+            self.table_id,
+            self.get_empty_page_index(),
+        ));
+
+        let mut new_page = BTreeLeafPage::new(
+            new_page_id,
+            BTreeLeafPage::empty_page_data().to_vec(),
+            key_field,
+            page.tuple_scheme.clone(),
+        );
+
+        let tuple_count = page.tuples_count();
+        let move_tuple_count = tuple_count / 2;
+
+        let mut it = BTreeLeafPageIterator::new(&page);
+        let mut delete_indexes: Vec<usize> = Vec::new();
+        for i in 0..move_tuple_count {
+            let tuple = it.next().unwrap();
+            delete_indexes.push(i);
+            new_page.insert_tuple(tuple);
+        }
+        for i in delete_indexes {
+            page.delete_tuple(i);
+        }
+
+        // 2. Copy the middle key up into the parent page, and
+        // recursively split the parent as needed to accommodate
+        // the new entry.
+
+        let parent = Self::get_parent_with_empty_slots(page.get_parent_id());
+
+        todo!()
+    }
+
+    fn get_empty_page_index(&self) -> usize {
+        self.empty_page_index.set(self.empty_page_index.get());
+        self.empty_page_index.get()
+    }
+
+    /**
+    Method to encapsulate the process of getting a parent page
+    ready to accept new entries.
+    This may mean creating a page to become the new root of
+    the tree, splitting the existing parent page if there are
+    no empty slots, or simply locking and returning the existing
+    parent page.
+    */
+    fn get_parent_with_empty_slots(parentId: BTreePageID) -> BTreeInternalPage {
+        todo!()
+    }
+
 
     // Recursive function which finds and locks the leaf page in the B+ tree corresponding to
     // the left-most page possibly containing the key field f. It locks all internal
@@ -182,6 +253,10 @@ pub struct BTreeLeafPage {
     tuples: Vec<Tuple>,
 
     tuple_scheme: TupleScheme,
+
+    parent: i32,
+
+    page_id: RefCell<BTreePageID>,
 }
 
 pub struct BTreeLeafPageIterator<'a> {
@@ -190,7 +265,7 @@ pub struct BTreeLeafPageIterator<'a> {
 }
 
 impl BTreeLeafPage {
-    pub fn new(bytes: Vec<u8>, key_field: i32, tuple_scheme: TupleScheme) -> Self {
+    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: i32, tuple_scheme: TupleScheme) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
         let header_size = Self::get_header_size(slot_count) as usize;
 
@@ -209,7 +284,18 @@ impl BTreeLeafPage {
             key_field,
             tuples,
             tuple_scheme,
+            parent: 0,
+            page_id,
         }
+    }
+
+    pub fn get_parent_id(&self) -> BTreePageID {
+        if self.parent == 0 {
+            return BTreePageID::new(PageCategory::ROOT_POINTER, self.page_id.borrow().table_id, 0)
+        }
+        // self.parent
+
+        todo!()
     }
 
     // Retrieve the maximum number of tuples this page can hold.
@@ -245,41 +331,6 @@ impl BTreeLeafPage {
     /// Returns the number of tuples currently stored on this page
     pub fn tuples_count(&self) -> usize {
         self.slot_count - self.empty_slots_count()
-    }
-
-    /// Split a leaf page to make room for new tuples and
-    /// recursively split the parent node as needed to
-    /// accommodate a new entry. The new entry should have
-    /// a key matching the key field of the first tuple in
-    /// the right-hand page (the key is "copied up"), and
-    /// child pointers pointing to the two leaf pages
-    /// resulting from the split.  Update sibling pointers
-    /// and parent pointers as needed.
-    ///
-    /// Return the leaf page into which a new tuple with
-    /// key field "field" should be inserted.
-    pub fn split_leaf_page(mut page: RefMut<Self>, key_field: i32) -> Rc<RefCell<Self>> {
-        let mut new_page = BTreeLeafPage::new(
-            BTreeLeafPage::empty_page_data().to_vec(),
-            key_field,
-            page.tuple_scheme.clone(),
-        );
-
-        let tuple_count = page.tuples_count();
-        let move_tuple_count = tuple_count / 2;
-
-        let mut it = BTreeLeafPageIterator::new(&page);
-        let mut delete_indexes: Vec<usize> = Vec::new();
-        for i in 0..move_tuple_count {
-            let tuple = it.next().unwrap();
-            delete_indexes.push(i);
-            new_page.insert_tuple(tuple);
-        }
-        for i in delete_indexes {
-            page.delete_tuple(i);
-        }
-
-        todo!()
     }
 
     // Computes the number of bytes in the header of
@@ -479,4 +530,8 @@ impl BTreePageID {
     pub fn get_table_id(&self) -> i32 {
         self.table_id
     }
+}
+
+pub struct BTreeInternalPage {
+
 }

@@ -62,6 +62,7 @@ impl BufferPool {
 
                 // 3. instantiate page
                 let page = BTreeLeafPage::new(
+                    RefCell::new(*key),
                     buf.to_vec(),
                     btree_file.key_field,
                     btree_file.tuple_scheme.clone(),
