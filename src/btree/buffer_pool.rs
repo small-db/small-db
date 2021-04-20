@@ -6,20 +6,18 @@ use std::{collections::hash_map::Entry, io::prelude::*};
 use crate::database::PAGE_SIZE;
 use log::debug;
 
-use super::file::BTreeRootPointerPage;
+use super::file::{BTreePage, BTreeRootPointerPage, PageEnum};
 use super::{
     database_singleton::singleton_db,
     file::{BTreeLeafPage, BTreePageID},
 };
-
-// pub const BUFFER_POOL: HashMap<i32, BTreeLeafPage> = HashMap::new();
 
 pub struct BufferPool {
     buffer: HashMap<Key, Value>,
 }
 
 type Key = BTreePageID;
-type Value = Rc<RefCell<BTreeLeafPage>>;
+type Value = Rc<RefCell<PageEnum>>;
 
 impl BufferPool {
     pub fn new() -> BufferPool {
@@ -69,7 +67,10 @@ impl BufferPool {
                 );
 
                 // 4. put page into buffer pool
-                self.buffer.insert(*key, Rc::new(RefCell::new(page)));
+                self.buffer.insert(
+                    *key,
+                    Rc::new(RefCell::new(PageEnum::BTreeLeafPage { page })),
+                );
             }
         }
 

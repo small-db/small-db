@@ -1,10 +1,10 @@
 // use crate::btree::buffer_pool::BUFFER_POOL;
-use std::borrow::Borrow;
 use super::database_singleton::singleton_db;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
 use log::debug;
+use std::{any::Any, borrow::Borrow};
 
 use std::{
     borrow::BorrowMut,
@@ -172,14 +172,24 @@ impl<'path> BTreeFile {
                 self.table_id,
                 self.get_empty_page_index(),
             );
-            let root_pointer_page = singleton_db().get_buffer_pool().get_page(&BTreePageID::new(
-                PageCategory::ROOT_POINTER,
-                self.table_id,
-                0,
-            )).unwrap();
+            let root_pointer_page = singleton_db()
+                .get_buffer_pool()
+                .get_page(&BTreePageID::new(
+                    PageCategory::ROOT_POINTER,
+                    self.table_id,
+                    0,
+                ))
+                .unwrap();
 
             // update the root pointer
             let v = (*root_pointer_page).borrow_mut();
+            
+            match &*v {
+                PageEnum::BTreeRootPointerPage { page } => {}
+                PageEnum::BTreeInternalPage { page } => {}
+                PageEnum::BTreeLeafPage { page } => {}
+            }
+            
             // Rc::borrow(&root_pointer_page).
             // let v = root_pointer_page.borrow_mut().as_ref
         }
@@ -187,11 +197,16 @@ impl<'path> BTreeFile {
         todo!()
     }
 
-    // Recursive function which finds and locks the leaf page in the B+ tree corresponding to
-    // the left-most page possibly containing the key field f. It locks all internal
-    // nodes along the path to the leaf node with READ_ONLY permission, and locks the
-    // leaf node with permission perm.
-    // If f is null, it finds the left-most leaf page -- used for the iterator
+    /**
+    Recursive function which finds and locks the leaf page in
+    the B+ tree corresponding to the left-most page possibly
+    containing the key field f. It locks all internal nodes
+    along the path to the leaf node with READ_ONLY permission,
+    and locks the leaf node with permission perm.
+
+    If f is null, it finds the left-most leaf page -- used
+    for the iterator
+    */
     pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<RefCell<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
@@ -203,8 +218,16 @@ impl<'path> BTreeFile {
             let mut buffer_pool = db.get_buffer_pool();
             let page = buffer_pool.get_page(&page_id).unwrap();
 
-            // return
-            return Rc::clone(&page);
+            let v = (*page).borrow_mut();
+            // let p = (*page).take();
+
+            match &*v {
+                PageEnum::BTreeRootPointerPage { page } => {}
+                PageEnum::BTreeInternalPage { page } => {}
+                PageEnum::BTreeLeafPage { page } => {}
+            }
+            // let a = v.as_any().downcast_ref::<BTreeLeafPage>().unwrap();
+            // return Rc::new(RefCell::new(*a));
         }
 
         todo!()
@@ -259,6 +282,16 @@ impl<'path> BTreeFile {
     }
 }
 
+pub trait BTreePage {
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub enum PageEnum {
+    BTreeRootPointerPage{page: BTreeRootPointerPage},
+    BTreeInternalPage{page: BTreeInternalPage},
+    BTreeLeafPage{page: BTreeLeafPage},
+}
+
 pub struct BTreeLeafPage {
     slot_count: usize,
 
@@ -276,6 +309,12 @@ pub struct BTreeLeafPage {
     parent: i32,
 
     page_id: RefCell<BTreePageID>,
+}
+
+impl BTreePage for BTreeLeafPage {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub struct BTreeLeafPageIterator<'a> {
