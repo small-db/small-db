@@ -179,6 +179,7 @@ impl<'path> BTreeFile {
             )).unwrap();
 
             // update the root pointer
+            let v = (*root_pointer_page).borrow_mut();
             // Rc::borrow(&root_pointer_page).
             // let v = root_pointer_page.borrow_mut().as_ref
         }
@@ -203,7 +204,7 @@ impl<'path> BTreeFile {
             let page = buffer_pool.get_page(&page_id).unwrap();
 
             // return
-            return (*page).clone();
+            return Rc::clone(&page);
         }
 
         todo!()
@@ -479,6 +480,10 @@ impl BTreeRootPointerPage {
 
     pub fn get_root_pid(&self) -> BTreePageID {
         BTreePageID::new(PageCategory::LEAF, self.pid.table_id, self.root_id)
+    }
+
+    pub fn set_root_id(&self) -> usize {
+        self.root_id
     }
 }
 

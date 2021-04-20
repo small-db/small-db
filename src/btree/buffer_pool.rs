@@ -28,7 +28,7 @@ impl BufferPool {
         }
     }
 
-    pub fn get_page(&mut self, key: &Key) -> Option<&Value> {
+    pub fn get_page(&mut self, key: &Key) -> Option<Value> {
         match self.buffer.get(key) {
             // Entry::Occupied(_) => {}
             Some(_) => {}
@@ -73,6 +73,6 @@ impl BufferPool {
             }
         }
 
-        self.buffer.get(key)
+        Some(Rc::clone(self.buffer.get(key).unwrap()))
     }
 }
