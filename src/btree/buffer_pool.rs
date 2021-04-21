@@ -1,4 +1,4 @@
-use std::io::Seek;
+use std::{cell::RefMut, io::Seek};
 use std::io::SeekFrom;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use std::{collections::hash_map::Entry, io::prelude::*};
@@ -76,4 +76,20 @@ impl BufferPool {
 
         Some(Rc::clone(self.buffer.get(key).unwrap()))
     }
+
+    // pub fn get_btree_leaf_page(&self) -> &mut BTreeLeafPage {
+    //     todo!()
+    // }
+
+    // pub fn get_btree_root_pointer_page(&mut self, key: &Key) -> RefMut<BTreeRootPointerPage> {
+    //     let mut pointer = self.get_page(key).unwrap().borrow_mut();
+    //     // let mut v = (*pointer).borrow_mut();
+    //     match &mut *pointer {
+    //         PageEnum::BTreeRootPointerPage { page } => {
+    //             return RefCell::new(page);
+    //         }
+    //         _ => {}
+    //     }
+    //     todo!()
+    // }
 }

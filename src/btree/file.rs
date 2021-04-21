@@ -167,11 +167,20 @@ impl<'path> BTreeFile {
         // create a parent node if necessary
         // this will be the new root of the tree
         if parentId.category == PageCategory::ROOT_POINTER {
-            let new_page_id = BTreePageID::new(
-                PageCategory::INTERNAL,
-                self.table_id,
-                self.get_empty_page_index(),
-            );
+            let empty_page_index = self.get_empty_page_index();
+            let new_page_id =
+                BTreePageID::new(PageCategory::INTERNAL, self.table_id, empty_page_index);
+
+            // write empty page to disk
+            let start_pos = BTreeRootPointerPage::page_size() + empty_page_index * PAGE_SIZE;
+            match self.get_file().seek(SeekFrom::Start(start_pos as u64)) {
+                Ok(_) => (),
+                Err(_) => (),
+            }
+            self.get_file().write(&BTreeLeafPage::empty_page_data());
+            self.get_file().flush();
+
+            // update the root pointer
             let root_pointer_page = singleton_db()
                 .get_buffer_pool()
                 .get_page(&BTreePageID::new(
@@ -180,18 +189,18 @@ impl<'path> BTreeFile {
                     0,
                 ))
                 .unwrap();
+            let mut v = (*root_pointer_page).borrow_mut();
 
-            // update the root pointer
-            let v = (*root_pointer_page).borrow_mut();
-            
-            match &*v {
-                PageEnum::BTreeRootPointerPage { page } => {}
-                PageEnum::BTreeInternalPage { page } => {}
-                PageEnum::BTreeLeafPage { page } => {}
+            match &mut *v {
+                PageEnum::BTreeRootPointerPage { page } => {
+                    page.set_root_id(new_page_id.page_index);
+                }
+                _ => {}
             }
+
             
-            // Rc::borrow(&root_pointer_page).
-            // let v = root_pointer_page.borrow_mut().as_ref
+
+            // return new_page_id;
         }
 
         todo!()
@@ -287,9 +296,9 @@ pub trait BTreePage {
 }
 
 pub enum PageEnum {
-    BTreeRootPointerPage{page: BTreeRootPointerPage},
-    BTreeInternalPage{page: BTreeInternalPage},
-    BTreeLeafPage{page: BTreeLeafPage},
+    BTreeRootPointerPage { page: BTreeRootPointerPage },
+    BTreeInternalPage { page: BTreeInternalPage },
+    BTreeLeafPage { page: BTreeLeafPage },
 }
 
 pub struct BTreeLeafPage {
@@ -521,8 +530,8 @@ impl BTreeRootPointerPage {
         BTreePageID::new(PageCategory::LEAF, self.pid.table_id, self.root_id)
     }
 
-    pub fn set_root_id(&self) -> usize {
-        self.root_id
+    pub fn set_root_id(&mut self, id: usize) {
+        self.root_id = id;
     }
 }
 
