@@ -186,47 +186,10 @@ impl<'path> BTreeFile {
             let root_pointer_page = BufferPool::global()
                 .get_root_pointer_page(&page_id)
                 .unwrap();
-            // let root_pointer_page = singleton_db()
-            //     .get_buffer_pool()
-            //     .get_root_pointer_page(&BTreePageID::new(
-            //         PageCategory::ROOT_POINTER,
-            //         self.table_id,
-            //         0,
-            //     ))
-            //     .unwrap();
 
             (*root_pointer_page)
                 .borrow_mut()
                 .set_root_id(new_page_id.page_index);
-
-            // match &mut *v {
-            //     PageEnum::BTreeRootPointerPage { page } => {
-            //         page.set_root_id(new_page_id.page_index);
-            //     }
-            //     _ => {}
-            // }
-
-            // let root_pointer_page = singleton_db()
-            //     .get_buffer_pool()
-            //     .get_page(&BTreePageID::new(
-            //         PageCategory::ROOT_POINTER,
-            //         self.table_id,
-            //         0,
-            //     ))
-            //     .unwrap();
-
-            // match (&*root_pointer_page).borrow() {
-            //     RefCell<PageEnum::BTreeInternalPage{page}> => {}
-            //     _ => {}
-            // }
-
-            // let mut v = (*root_pointer_page).borrow_mut();
-            // match &mut *v {
-            //     PageEnum::BTreeInternalPage { page } => {
-            //         // return page;
-            //     }
-            //     _ => {}
-            // }
         }
 
         todo!()

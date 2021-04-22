@@ -1,4 +1,4 @@
-use std::io::SeekFrom;
+use std::{cell::Ref, io::SeekFrom};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use std::{cell::RefMut, io::Seek};
 use std::{collections::hash_map::Entry, io::prelude::*};
@@ -7,7 +7,9 @@ use log::debug;
 use std::mem;
 use std::sync::Once;
 
-use super::file::{BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageEnum};
+use crate::{row::simple_int_row_scheme, tuple::simple_int_tuple_scheme};
+
+use super::file::{BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum};
 use super::{
     // database_singleton::singleton_db,
     catalog::Catalog,
@@ -137,4 +139,26 @@ impl BufferPool {
 
         Some(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
     }
+}
+
+#[test]
+fn test_buffer_pool() {
+    let bp = BufferPool::global();
+
+    // add table to catalog
+    let table = BTreeFile::new("test_buffer_pool.db", 0, simple_int_tuple_scheme(3, ""));
+    let table_id = table.get_id();
+    Catalog::global().add_table(Rc::new(RefCell::new(table)));
+
+    // write page to disk
+
+    // get page
+    let page_id = BTreePageID::new(PageCategory::ROOT_POINTER, table_id, 0);
+    bp.get_root_pointer_page(&page_id);
+
+    let page_id = BTreePageID::new(PageCategory::LEAF, table_id, 1);
+    bp.get_root_pointer_page(&page_id);
+
+    let page_id = BTreePageID::new(PageCategory::LEAF, table_id, 1);
+    bp.get_root_pointer_page(&page_id);
 }

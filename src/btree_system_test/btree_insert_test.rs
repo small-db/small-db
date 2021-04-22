@@ -30,7 +30,7 @@ fn insert_rows() {
     // all existing tuples in the file
     for i in 502..753 {
         let tuple = Tuple::new_btree_tuple(i, 2);
-        btree_file.borrow_mut().insert_tuple(tuple);
+        btree_file.borrow().insert_tuple(tuple);
 
         // there are 3 pages: 1 root page + 2 leaf pages
         assert_eq!(3, btree_file.borrow().pages_count());

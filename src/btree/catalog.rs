@@ -38,11 +38,7 @@ impl Catalog {
 
         unsafe {
             // Now we give out a copy of the data that is safe to use concurrently.
-            // (*SINGLETON).clone()
             SINGLETON.as_mut().unwrap()
-            // SINGLETON.as_ref().unwrap()
-            // SINGLETON.
-            // SINGLETON.as
         }
     }
 
