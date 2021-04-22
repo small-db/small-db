@@ -5,23 +5,26 @@ use std::{collections::hash_map::Entry, io::prelude::*};
 
 use crate::database::PAGE_SIZE;
 use log::debug;
+use std::mem;
+use std::sync::Once;
 
 use super::file::{BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageEnum};
 use super::{
-    database_singleton::singleton_db,
+    // database_singleton::singleton_db,
+    catalog::Catalog,
     file::{BTreeLeafPage, BTreePageID},
 };
 
 pub struct BufferPool {
-    roop_pointer_buffer: HashMap<BTreePageID, Rc<Box<BTreeRootPointerPage>>>,
-    internal_buffer: HashMap<BTreePageID, Rc<Box<BTreeInternalPage>>>,
-    leaf_buffer: HashMap<BTreePageID, Rc<Box<BTreeLeafPage>>>,
+    roop_pointer_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
+    internal_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeInternalPage>>>,
+    leaf_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeLeafPage>>>,
 }
 
 type Key = BTreePageID;
 
 impl BufferPool {
-    pub fn new() -> BufferPool {
+    fn new() -> BufferPool {
         BufferPool {
             roop_pointer_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
@@ -29,19 +32,38 @@ impl BufferPool {
         }
     }
 
-    pub fn get_leaf_page(&mut self, key: &Key) -> Option<Rc<Box<BTreeLeafPage>>> {
+    pub fn global() -> &'static mut Self {
+        // Initialize it to a null value
+        static mut SINGLETON: *mut BufferPool = 0 as *mut BufferPool;
+        static ONCE: Once = Once::new();
+
+        ONCE.call_once(|| {
+            // Make it
+            let singleton = Self::new();
+
+            unsafe {
+                // Put it in the heap so it can outlive this call
+                SINGLETON = mem::transmute(Box::new(singleton));
+            }
+        });
+
+        unsafe {
+            // Now we give out a copy of the data that is safe to use concurrently.
+            // (*SINGLETON).clone()
+            // SINGLETON.as_ref().unwrap()
+            SINGLETON.as_mut().unwrap()
+        }
+    }
+
+    pub fn get_leaf_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeLeafPage>>> {
         match self.leaf_buffer.get(key) {
             Some(_) => {}
             None => {
                 // get page from disk
 
                 // 1. get db file
-                let db = singleton_db();
-                let pointer = db.get_catalog();
-                let ct = pointer.borrow();
-                let table_id = key.get_table_id();
-                let f = ct.get_db_file(&table_id).unwrap();
-                let btree_file = f.borrow();
+                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
+                let btree_file = v.borrow();
 
                 debug!("find file: {}", btree_file);
                 debug!("page id: {}", key);
@@ -69,52 +91,46 @@ impl BufferPool {
                 );
 
                 // 4. put page into buffer pool
-                self.leaf_buffer.insert(*key, Rc::new(Box::new(page)));
+                self.leaf_buffer.insert(*key, Rc::new(RefCell::new(page)));
             }
         }
 
         Some(Rc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
-    pub fn get_root_pointer_page(&mut self, key: &Key) -> Option<Rc<Box<BTreeRootPointerPage>>> {
+    pub fn get_root_pointer_page(
+        &mut self,
+        key: &Key,
+    ) -> Option<Rc<RefCell<BTreeRootPointerPage>>> {
         match self.roop_pointer_buffer.get(key) {
             Some(_) => {}
             None => {
                 // get page from disk
 
                 // 1. get db file
-                let db = singleton_db();
-                let pointer = db.get_catalog();
-                let ct = pointer.borrow();
-                let table_id = key.get_table_id();
-                let f = ct.get_db_file(&table_id).unwrap();
-                let btree_file = f.borrow();
+                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
+                let db_file = v.borrow();
 
-                debug!("find file: {}", btree_file);
+                debug!("find file: {}", db_file);
                 debug!("page id: {}", key);
 
                 // 2. read page content
                 let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
 
-                match btree_file
-                    .get_file()
-                    .seek(SeekFrom::Start(start_pos as u64))
-                {
+                match db_file.get_file().seek(SeekFrom::Start(start_pos as u64)) {
                     Ok(_) => (),
                     Err(_) => return None,
                 }
 
                 let mut buf: [u8; 4096] = [0; 4096];
-                btree_file.get_file().read_exact(&mut buf);
+                db_file.get_file().read_exact(&mut buf);
 
                 // 3. instantiate page
-                let page = BTreeRootPointerPage::new(
-                    (*key),
-                    buf.to_vec(),
-                );
+                let page = BTreeRootPointerPage::new((*key), buf.to_vec());
 
                 // 4. put page into buffer pool
-                self.roop_pointer_buffer.insert(*key, Rc::new(Box::new(page)));
+                self.roop_pointer_buffer
+                    .insert(*key, Rc::new(RefCell::new(page)));
             }
         }
 

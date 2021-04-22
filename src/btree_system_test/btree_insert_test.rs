@@ -1,8 +1,10 @@
+use crate::btree::catalog::Catalog;
+
 #[test]
 fn insert_rows() {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::btree::database_singleton::singleton_db;
+    // use crate::btree::database_singleton::singleton_db;
 
     use crate::tuple::Tuple;
     use crate::{btree::file::BTreeFile, log::init_log, tuple::simple_int_tuple_scheme};
@@ -13,8 +15,9 @@ fn insert_rows() {
     let path = "btree.db";
     let row_scheme = simple_int_tuple_scheme(2, "");
     let btree_file = Rc::new(RefCell::new(BTreeFile::new(path, 1, row_scheme)));
-    let catalog = singleton_db().get_catalog();
-    catalog.borrow_mut().add_table(Rc::clone(&btree_file));
+    // let catalog = singleton_db().get_catalog();
+    let catalog = Catalog::global();
+    catalog.add_table(Rc::clone(&btree_file));
 
     // we should be able to add 502 tuples on one page
     for i in 0..502 {

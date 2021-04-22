@@ -1,5 +1,6 @@
 // use crate::btree::buffer_pool::BUFFER_POOL;
-use super::database_singleton::singleton_db;
+// use super::database_singleton::singleton_db;
+use super::buffer_pool::BufferPool;
 use crate::database::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
@@ -85,6 +86,7 @@ impl<'path> BTreeFile {
         // the key field, and split the leaf page if there are no
         // more slots available
         let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
+        let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
             let new_leaf_page = (*new_container).borrow_mut();
@@ -109,7 +111,7 @@ impl<'path> BTreeFile {
     /// key field "field" should be inserted.
     pub fn split_leaf_page(
         &self,
-        mut page: Box<BTreeLeafPage>,
+        mut page: RefMut<BTreeLeafPage>,
         key_field: i32,
     ) -> Rc<RefCell<Self>> {
         // 1. adding a new page on the right of the existing
@@ -180,16 +182,22 @@ impl<'path> BTreeFile {
             self.get_file().flush();
 
             // update the root pointer
-            let root_pointer_page = singleton_db()
-                .get_buffer_pool()
-                .get_root_pointer_page(&BTreePageID::new(
-                    PageCategory::ROOT_POINTER,
-                    self.table_id,
-                    0,
-                ))
+            let page_id = BTreePageID::new(PageCategory::ROOT_POINTER, self.table_id, 0);
+            let root_pointer_page = BufferPool::global()
+                .get_root_pointer_page(&page_id)
                 .unwrap();
+            // let root_pointer_page = singleton_db()
+            //     .get_buffer_pool()
+            //     .get_root_pointer_page(&BTreePageID::new(
+            //         PageCategory::ROOT_POINTER,
+            //         self.table_id,
+            //         0,
+            //     ))
+            //     .unwrap();
 
-            (*root_pointer_page).set_root_id(new_page_id.page_index);
+            (*root_pointer_page)
+                .borrow_mut()
+                .set_root_id(new_page_id.page_index);
 
             // match &mut *v {
             //     PageEnum::BTreeRootPointerPage { page } => {
@@ -206,12 +214,11 @@ impl<'path> BTreeFile {
             //         0,
             //     ))
             //     .unwrap();
-            
+
             // match (&*root_pointer_page).borrow() {
             //     RefCell<PageEnum::BTreeInternalPage{page}> => {}
             //     _ => {}
             // }
-
 
             // let mut v = (*root_pointer_page).borrow_mut();
             // match &mut *v {
@@ -235,32 +242,10 @@ impl<'path> BTreeFile {
     If f is null, it finds the left-most leaf page -- used
     for the iterator
     */
-    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<Box<BTreeLeafPage>> {
+    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<RefCell<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
-            debug!("arrived leaf page");
-
-            // get page from buffer pool
-            // let container = singleton_db().get_buffer_pool();
-            let db = singleton_db();
-            let mut buffer_pool = db.get_buffer_pool();
-            let page = buffer_pool.get_leaf_page(&page_id).unwrap();
-
-            return page
-
-            // return page.downcast
-
-
-            // let v = (*page).borrow_mut();
-            // let p = (*page).take();
-
-            // match &*v {
-            //     PageEnum::BTreeRootPointerPage { page } => {}
-            //     PageEnum::BTreeInternalPage { page } => {}
-            //     PageEnum::BTreeLeafPage { page } => {}
-            // }
-            // let a = v.as_any().downcast_ref::<BTreeLeafPage>().unwrap();
-            // return Rc::new(RefCell::new(*a));
+            return BufferPool::global().get_leaf_page(&page_id).unwrap();
         }
 
         todo!()
@@ -282,7 +267,6 @@ impl<'path> BTreeFile {
             debug!("write {} bytes", n);
             n = self.get_file().write(&empty_leaf_data).unwrap();
             debug!("write {} bytes", n);
-            // self.file.sync_data();
 
             let file_length = self.get_file().metadata().unwrap().len();
             debug!("write complete, file length: {}", file_length);
@@ -630,8 +614,8 @@ impl BTreePageID {
         }
     }
 
-    pub fn get_table_id(&self) -> i32 {
-        self.table_id
+    pub fn get_table_id(&self) -> &i32 {
+        &self.table_id
     }
 }
 
