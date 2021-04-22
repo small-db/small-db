@@ -50,10 +50,6 @@ impl Catalog {
         self.map.get(key)
     }
 
-    pub fn get_btree_file(&self, key: &Key) -> Option<Ref<BTreeFile>> {
-        todo!()
-    }
-
     pub fn add_table(&mut self, file: Value) {
         self.map.insert(file.borrow().get_id(), Rc::clone(&file));
     }

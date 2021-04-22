@@ -1,7 +1,7 @@
 // use crate::btree::buffer_pool::BUFFER_POOL;
 // use super::database_singleton::singleton_db;
 use super::buffer_pool::BufferPool;
-use crate::database::PAGE_SIZE;
+use super::buffer_pool::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
 use log::debug;

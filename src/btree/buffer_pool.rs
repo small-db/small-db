@@ -3,7 +3,6 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use std::{cell::RefMut, io::Seek};
 use std::{collections::hash_map::Entry, io::prelude::*};
 
-use crate::database::PAGE_SIZE;
 use log::debug;
 use std::mem;
 use std::sync::Once;
@@ -14,6 +13,8 @@ use super::{
     catalog::Catalog,
     file::{BTreeLeafPage, BTreePageID},
 };
+
+pub const PAGE_SIZE: usize = 4096;
 
 pub struct BufferPool {
     roop_pointer_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
