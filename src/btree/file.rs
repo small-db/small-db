@@ -85,7 +85,6 @@ impl<'path> BTreeFile {
         // the key field, and split the leaf page if there are no
         // more slots available
         let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
-        let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
             let new_leaf_page = (*new_container).borrow_mut();
@@ -110,7 +109,7 @@ impl<'path> BTreeFile {
     /// key field "field" should be inserted.
     pub fn split_leaf_page(
         &self,
-        mut page: RefMut<BTreeLeafPage>,
+        mut page: Box<BTreeLeafPage>,
         key_field: i32,
     ) -> Rc<RefCell<Self>> {
         // 1. adding a new page on the right of the existing
@@ -163,7 +162,7 @@ impl<'path> BTreeFile {
     no empty slots, or simply locking and returning the existing
     parent page.
     */
-    fn get_parent_with_empty_slots(&self, parentId: BTreePageID) -> BTreeInternalPage {
+    fn get_parent_with_empty_slots(&self, parentId: BTreePageID) -> &mut BTreeInternalPage {
         // create a parent node if necessary
         // this will be the new root of the tree
         if parentId.category == PageCategory::ROOT_POINTER {
@@ -183,24 +182,44 @@ impl<'path> BTreeFile {
             // update the root pointer
             let root_pointer_page = singleton_db()
                 .get_buffer_pool()
-                .get_page(&BTreePageID::new(
+                .get_root_pointer_page(&BTreePageID::new(
                     PageCategory::ROOT_POINTER,
                     self.table_id,
                     0,
                 ))
                 .unwrap();
-            let mut v = (*root_pointer_page).borrow_mut();
 
-            match &mut *v {
-                PageEnum::BTreeRootPointerPage { page } => {
-                    page.set_root_id(new_page_id.page_index);
-                }
-                _ => {}
-            }
+            (*root_pointer_page).set_root_id(new_page_id.page_index);
 
+            // match &mut *v {
+            //     PageEnum::BTreeRootPointerPage { page } => {
+            //         page.set_root_id(new_page_id.page_index);
+            //     }
+            //     _ => {}
+            // }
+
+            // let root_pointer_page = singleton_db()
+            //     .get_buffer_pool()
+            //     .get_page(&BTreePageID::new(
+            //         PageCategory::ROOT_POINTER,
+            //         self.table_id,
+            //         0,
+            //     ))
+            //     .unwrap();
             
+            // match (&*root_pointer_page).borrow() {
+            //     RefCell<PageEnum::BTreeInternalPage{page}> => {}
+            //     _ => {}
+            // }
 
-            // return new_page_id;
+
+            // let mut v = (*root_pointer_page).borrow_mut();
+            // match &mut *v {
+            //     PageEnum::BTreeInternalPage { page } => {
+            //         // return page;
+            //     }
+            //     _ => {}
+            // }
         }
 
         todo!()
@@ -216,7 +235,7 @@ impl<'path> BTreeFile {
     If f is null, it finds the left-most leaf page -- used
     for the iterator
     */
-    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<RefCell<BTreeLeafPage>> {
+    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<Box<BTreeLeafPage>> {
         if page_id.category == PageCategory::LEAF {
             // get page and return directly
             debug!("arrived leaf page");
@@ -225,16 +244,21 @@ impl<'path> BTreeFile {
             // let container = singleton_db().get_buffer_pool();
             let db = singleton_db();
             let mut buffer_pool = db.get_buffer_pool();
-            let page = buffer_pool.get_page(&page_id).unwrap();
+            let page = buffer_pool.get_leaf_page(&page_id).unwrap();
 
-            let v = (*page).borrow_mut();
+            return page
+
+            // return page.downcast
+
+
+            // let v = (*page).borrow_mut();
             // let p = (*page).take();
 
-            match &*v {
-                PageEnum::BTreeRootPointerPage { page } => {}
-                PageEnum::BTreeInternalPage { page } => {}
-                PageEnum::BTreeLeafPage { page } => {}
-            }
+            // match &*v {
+            //     PageEnum::BTreeRootPointerPage { page } => {}
+            //     PageEnum::BTreeInternalPage { page } => {}
+            //     PageEnum::BTreeLeafPage { page } => {}
+            // }
             // let a = v.as_any().downcast_ref::<BTreeLeafPage>().unwrap();
             // return Rc::new(RefCell::new(*a));
         }
