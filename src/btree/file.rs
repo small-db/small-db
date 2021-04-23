@@ -1,5 +1,5 @@
 use crate::btree::page::PageCategory;
-use super::{buffer_pool::BufferPool, page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, Entry}};
+use super::{buffer_pool::BufferPool, page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry}};
 use super::buffer_pool::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
@@ -23,6 +23,8 @@ use std::{
     rc::Weak,
 };
 
+
+use super::page::BTreeInternalPage;
 use crate::tuple::{Tuple, TupleScheme};
 
 // B+ Tree

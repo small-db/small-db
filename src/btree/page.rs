@@ -1,6 +1,10 @@
-use std::fmt;
+use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
-use crate::{Tuple, tuple::TupleScheme};
+use bit_vec::BitVec;
+
+use crate::{tuple::TupleScheme, Tuple};
+
+use super::buffer_pool::PAGE_SIZE;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
@@ -57,7 +61,6 @@ fn test_page_category() {
     assert_eq!(format!("{}", c), "HEADER");
 }
 
-
 pub struct BTreeLeafPage {
     slot_count: usize,
 
@@ -76,7 +79,6 @@ pub struct BTreeLeafPage {
 
     pub page_id: BTreePageID,
 }
-
 
 pub struct BTreeLeafPageIterator<'a> {
     page: &'a BTreeLeafPage,
@@ -119,11 +121,7 @@ impl BTreeLeafPage {
 
     pub fn get_parent_id(&self) -> BTreePageID {
         if self.parent == 0 {
-            return BTreePageID::new(
-                PageCategory::RootPointer,
-                self.page_id.borrow().table_id,
-                0,
-            );
+            return BTreePageID::new(PageCategory::RootPointer, self.page_id.borrow().table_id, 0);
         }
 
         return BTreePageID::new(
@@ -363,10 +361,10 @@ impl BTreeInternalPage {
         self.page_id
     }
 
+    /**
+    TODO: insert in sorted order
+    */
     pub fn insert_entry(&mut self, e: &Entry) {
-        // TODO: insert in sorted order
-
-        // self.entries.insert(0, element)
         self.entries.push(*e)
     }
 
@@ -408,7 +406,7 @@ impl<'a> Iterator for BTreeInternalPageIterator<'_> {
 
 #[derive(Clone, Copy)]
 pub struct Entry {
-    key: i32,
+    pub key: i32,
     left: BTreePageID,
     right: BTreePageID,
 }
