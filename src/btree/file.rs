@@ -38,10 +38,7 @@ use std::{
     usize,
 };
 
-use std::{
-    cell::RefMut,
-    rc::Weak,
-};
+use std::cell::RefMut;
 
 use super::page::BTreeInternalPage;
 use crate::tuple::{
