@@ -1,5 +1,5 @@
 use crate::field::*;
-use log::{error};
+use log::error;
 use std::{
     fmt::{self},
     usize,
