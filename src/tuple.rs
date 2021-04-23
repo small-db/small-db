@@ -1,19 +1,8 @@
 use crate::field::*;
+use log::{error};
 use std::{
-    cell::RefCell,
-    fmt::{
-        self,
-        format,
-        Debug,
-    },
-    rc::Rc,
-    sync::Arc,
+    fmt::{self},
     usize,
-};
-// use std::i32;
-use log::{
-    debug,
-    error,
 };
 
 #[derive(Debug)]
@@ -127,37 +116,6 @@ impl fmt::Display for Tuple {
     }
 }
 
-pub fn display_rows(rows: &Vec<Tuple>) {
-    let s = format!("rows[{} in total] : [", rows.len());
-    let mut content: String = s.to_owned();
-    let mut slice: &[Tuple] = &Vec::new();
-    if rows.len() > 5 {
-        slice = &rows[..5];
-    } else {
-        slice = &rows[..];
-    }
-
-    for r in slice {
-        let s = format!("{}, ", r);
-        content.push_str(&s);
-    }
-    content = content[..content.len() - 2].to_string();
-    content.push_str(" ... ]");
-    debug!("{}", content);
-}
-
-// impl fmt::Display for Vec<Row> {
-// fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-// let mut content: String = "{".to_owned();
-// for cell in &self.cells {
-// let cell_str = format!("{}, ", cell.value);
-// content.push_str(&cell_str);
-// }
-// content.push_str(&"}");
-// write!(f, "{}", content,)
-// }
-// }
-
 #[derive(Debug)]
 pub struct TupleScheme {
     fields: Vec<FieldItem>,
@@ -176,10 +134,6 @@ impl PartialEq for TupleScheme {
 }
 
 impl TupleScheme {
-    fn new(fields: Vec<FieldItem>) -> TupleScheme {
-        TupleScheme { fields: fields }
-    }
-
     pub fn merge(scheme1: TupleScheme, scheme2: TupleScheme) -> TupleScheme {
         let mut new_scheme = TupleScheme {
             ..Default::default()
@@ -195,15 +149,7 @@ impl TupleScheme {
         new_scheme
     }
 
-    pub(crate) fn filedsCount(&self) -> i32 {
-        self.fields.len() as i32
-    }
-
-    pub(crate) fn get_field_type(&self, i: i32) -> Type {
-        self.fields[i as usize].field_type
-    }
-
-    // / get tuple size in bytes
+    /// get tuple size in bytes
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
     }
