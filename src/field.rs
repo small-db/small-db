@@ -3,19 +3,17 @@ use std::fmt::Debug;
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     INT,
-    STRING,
 }
 
 pub fn get_type_length(t: Type) -> usize {
     match t {
         Type::INT => 4,
-        _ => 0,
     }
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FieldItem {
-    pub(crate) field_type: Type,
+    pub field_type: Type,
     pub field_name: String,
 }
 

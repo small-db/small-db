@@ -21,7 +21,7 @@ use std::{
 use std::cell::RefMut;
 
 use super::page::BTreeInternalPage;
-use crate::tuple::{Tuple, TupleScheme};
+use super::tuple::{Tuple, TupleScheme};
 
 // B+ Tree
 pub struct BTreeTable {
