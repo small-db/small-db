@@ -119,12 +119,7 @@ impl BufferPool {
                 let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
-                let page = BTreeLeafPage::new(
-                    key,
-                    buf.to_vec(),
-                    table.key_field,
-                    table.tuple_scheme.clone(),
-                );
+                let page = BTreeLeafPage::new(key, buf.to_vec(), table.tuple_scheme.clone());
 
                 // 4. put page into buffer pool
                 self.leaf_buffer.insert(*key, Rc::new(RefCell::new(page)));
@@ -149,7 +144,7 @@ impl BufferPool {
                 let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
-                let page = BTreeRootPointerPage::new(*key, buf.to_vec());
+                let page = BTreeRootPointerPage::new(buf.to_vec());
 
                 // 4. put page into buffer pool
                 self.roop_pointer_buffer

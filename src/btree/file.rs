@@ -73,9 +73,9 @@ impl fmt::Display for BTreeTable {
     }
 }
 
-impl<'path> BTreeTable {
+impl BTreeTable {
     pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> BTreeTable {
-        File::create(file_path);
+        File::create(file_path).expect("io error");
 
         let f = RefCell::new(OpenOptions::new().write(true).open(file_path).unwrap());
 
@@ -156,7 +156,6 @@ impl<'path> BTreeTable {
         let mut new_page = BTreeLeafPage::new(
             &new_page_id.borrow(),
             BTreeLeafPage::empty_page_data().to_vec(),
-            key_field,
             page.tuple_scheme.clone(),
         );
 
@@ -228,12 +227,13 @@ impl<'path> BTreeTable {
 
                 // write empty page to disk
                 let start_pos = BTreeRootPointerPage::page_size() + empty_page_index * PAGE_SIZE;
-                match self.get_file().seek(SeekFrom::Start(start_pos as u64)) {
-                    Ok(_) => (),
-                    Err(_) => (),
-                }
-                self.get_file().write(&BTreeLeafPage::empty_page_data());
-                self.get_file().flush();
+                self.get_file()
+                    .seek(SeekFrom::Start(start_pos as u64))
+                    .expect("io error");
+                self.get_file()
+                    .write(&BTreeLeafPage::empty_page_data())
+                    .expect("io error");
+                self.get_file().flush().expect("io error");
 
                 // update the root pointer
                 let page_id = BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);

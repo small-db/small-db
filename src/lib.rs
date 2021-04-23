@@ -1,6 +1,5 @@
 mod field;
 mod page_id;
-mod row;
 mod tuple;
 pub mod util;
 

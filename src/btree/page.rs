@@ -75,9 +75,6 @@ pub struct BTreeLeafPage {
     // header bytes
     header: Vec<u8>,
 
-    // which field/column the b+ tree is indexed on
-    key_field: usize,
-
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
 
@@ -94,12 +91,7 @@ pub struct BTreeLeafPageIterator<'a> {
 }
 
 impl BTreeLeafPage {
-    pub fn new(
-        page_id: &BTreePageID,
-        bytes: Vec<u8>,
-        key_field: usize,
-        tuple_scheme: TupleScheme,
-    ) -> Self {
+    pub fn new(page_id: &BTreePageID, bytes: Vec<u8>, tuple_scheme: TupleScheme) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
         let header_size = Self::get_header_size(slot_count) as usize;
 
@@ -115,7 +107,6 @@ impl BTreeLeafPage {
         Self {
             slot_count,
             header: bytes[..header_size].to_vec(),
-            key_field,
             tuples,
             tuple_scheme,
             parent: 0,
@@ -139,19 +130,14 @@ impl BTreeLeafPage {
         );
     }
 
-    // Retrieve the maximum number of tuples this page can hold.
+    /**
+    Retrieve the maximum number of tuples this page can hold.
+    */
     pub fn get_max_tuples(scheme: &TupleScheme) -> usize {
-        // 100
-        // int bitsPerTupleIncludingHeader = td.getSize() * 8 + 1;
-        // // extraBits are: left sibling pointer, right sibling pointer, parent pointer
-        // int extraBits = 3 * INDEX_SIZE * 8;
-        // int tuplesPerPage = (BufferPool.getPageSize() * 8 - extraBits) / bitsPerTupleIncludingHeader; //round down
-        // return tuplesPerPage;
-
         let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
         // extraBits are: left sibling pointer, right sibling pointer, parent pointer
-        let INDEX_SIZE: usize = 4;
-        let extra_bits = 3 * INDEX_SIZE * 8;
+        let index_size: usize = 4;
+        let extra_bits = 3 * index_size * 8;
         // (BufferPool.getPageSize() * 8 - extraBits) / bitsPerTupleIncludingHeader; //round down
         // singleton_db().get_buffer_pool()
         (PAGE_SIZE * 8 - extra_bits) / bits_per_tuple_including_header
@@ -255,13 +241,11 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
 // and points to the rootpage. So we can find the location of
 // rootpage easily.
 pub struct BTreeRootPointerPage {
-    pid: BTreePageID,
-
     root_pid: BTreePageID,
 }
 
 impl BTreeRootPointerPage {
-    pub fn new(pid: BTreePageID, bytes: Vec<u8>) -> Self {
+    pub fn new(bytes: Vec<u8>) -> Self {
         let root_page_index = i32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
         let root_pid = BTreePageID {
             category: PageCategory::Leaf,
@@ -270,7 +254,7 @@ impl BTreeRootPointerPage {
             // TODO: set table id
             table_id: 0,
         };
-        Self { pid, root_pid }
+        Self { root_pid }
     }
 
     pub fn page_size() -> usize {
@@ -287,16 +271,6 @@ impl BTreeRootPointerPage {
 
     pub fn set_root_pid(&mut self, pid: &BTreePageID) {
         self.root_pid = *pid;
-    }
-}
-
-pub struct BTreeRootPage {
-    page_id: BTreePageID,
-}
-
-impl BTreeRootPage {
-    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        todo!()
     }
 }
 
