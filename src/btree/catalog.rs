@@ -6,7 +6,7 @@ use log::debug;
 
 use super::{
     // database::Database,
-    file::{BTreeFile},
+    file::{BTreeTable},
 };
 
 pub struct Catalog {
@@ -14,7 +14,7 @@ pub struct Catalog {
 }
 
 type Key = i32;
-type Value = Rc<RefCell<BTreeFile>>;
+type Value = Rc<RefCell<BTreeTable>>;
 
 impl Catalog {
     fn new() -> Self {

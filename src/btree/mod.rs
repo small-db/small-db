@@ -10,4 +10,6 @@ pub mod catalog;
 pub mod file;
 pub mod page_id;
 pub mod tuple;
+pub mod page;
+pub mod entry;
 

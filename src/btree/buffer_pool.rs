@@ -1,23 +1,22 @@
-use std::{io::SeekFrom};
+use std::io::prelude::*;
+use std::io::Seek;
+use std::io::SeekFrom;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use std::{io::Seek};
-use std::{io::prelude::*};
 
 use log::debug;
 use std::mem;
 use std::sync::Once;
 
-
-
 use crate::util::simple_int_tuple_scheme;
 
-use super::file::{
-    BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum,
+use super::page::{
+    BTreeInternalPage, BTreeRootPointerPage, 
 };
+use super::page::PageCategory;
 use super::{
     // database_singleton::singleton_db,
     catalog::Catalog,
-    file::{BTreeLeafPage, BTreePageID},
+    page::{BTreeLeafPage, BTreePageID},
 };
 
 pub const PAGE_SIZE: usize = 4096;
@@ -179,24 +178,31 @@ impl BufferPool {
     }
 }
 
-#[test]
-fn test_buffer_pool() {
-    let bp = BufferPool::global();
+#[cfg(test)]
+mod tests {
+    use crate::BTreeTable;
 
-    // add table to catalog
-    let table = BTreeFile::new("test_buffer_pool.db", 0, simple_int_tuple_scheme(3, ""));
-    let table_id = table.get_id();
-    Catalog::global().add_table(Rc::new(RefCell::new(table)));
+    use super::*;
 
-    // write page to disk
+    #[test]
+    fn test_buffer_pool() {
+        let bp = BufferPool::global();
 
-    // get page
-    let page_id = BTreePageID::new(PageCategory::ROOT_POINTER, table_id, 0);
-    bp.get_root_pointer_page(&page_id);
+        // add table to catalog
+        let table = BTreeTable::new("test_buffer_pool.db", 0, simple_int_tuple_scheme(3, ""));
+        let table_id = table.get_id();
+        Catalog::global().add_table(Rc::new(RefCell::new(table)));
 
-    let page_id = BTreePageID::new(PageCategory::LEAF, table_id, 1);
-    bp.get_root_pointer_page(&page_id);
+        // write page to disk
 
-    let page_id = BTreePageID::new(PageCategory::LEAF, table_id, 1);
-    bp.get_root_pointer_page(&page_id);
+        // get page
+        let page_id = BTreePageID::new(PageCategory::RootPointer, table_id, 0);
+        bp.get_root_pointer_page(&page_id);
+
+        let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
+        bp.get_root_pointer_page(&page_id);
+
+        let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
+        bp.get_root_pointer_page(&page_id);
+    }
 }
