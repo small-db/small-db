@@ -8,6 +8,7 @@ license = "BSD-3-Clause"
 readme = "README.md"
 homepage = "https://crates.io/crates/simple-db-rust"
 repository = "https://github.com/XiaochenCui/simple-db-rust/"
+documentation = "https://docs.rs/simple-db-rust"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
