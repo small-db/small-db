@@ -1,18 +1,34 @@
 use std::io::SeekFrom;
-use std::io::{prelude::*, Result};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use std::{fs::File, io::Seek};
+use std::io::{
+    prelude::*,
+    Result,
+};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    rc::Rc,
+};
+use std::{
+    fs::File,
+    io::Seek,
+};
 
 use log::debug;
 use std::mem;
 use std::sync::Once;
 
-use super::page::{BTreeInternalPage, BTreeRootPointerPage};
+use super::page::{
+    BTreeInternalPage,
+    BTreeRootPointerPage,
+};
 
 use super::{
     // database_singleton::singleton_db,
     catalog::Catalog,
-    page::{BTreeLeafPage, BTreePageID},
+    page::{
+        BTreeLeafPage,
+        BTreePageID,
+    },
 };
 
 pub const PAGE_SIZE: usize = 4096;
@@ -147,7 +163,11 @@ impl BufferPool {
 
 #[cfg(test)]
 mod tests {
-    use crate::{btree::page::PageCategory, util::simple_int_tuple_scheme, BTreeTable};
+    use crate::{
+        btree::page::PageCategory,
+        util::simple_int_tuple_scheme,
+        BTreeTable,
+    };
 
     use super::*;
 

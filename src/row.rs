@@ -1,7 +1,15 @@
 use crate::field::*;
-use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    fmt,
+    rc::Rc,
+    sync::Arc,
+};
 // use std::i32;
-use log::{debug, error};
+use log::{
+    debug,
+    error,
+};
 
 #[derive(Debug)]
 pub struct Row {
