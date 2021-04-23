@@ -1,10 +1,5 @@
 use crate::field::*;
-use std::{
-    cell::RefCell,
-    fmt::{self, format, Debug},
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, fmt::{self, format, Debug}, rc::Rc, sync::Arc, usize};
 // use std::i32;
 use log::{debug, error};
 
@@ -67,17 +62,17 @@ impl Tuple {
         let _bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
         for i in 0..tuple.fields.len() {
-            tuple.set_field(i as i32, IntField::new(value));
+            tuple.set_field(i, IntField::new(value));
         }
         tuple
     }
 
-    pub fn set_field(&mut self, i: i32, c: IntField) {
-        self.fields[i as usize] = c;
+    pub fn set_field(&mut self, i: usize, c: IntField) {
+        self.fields[i] = c;
     }
 
-    pub fn get_field(&mut self, i: i32) -> IntField {
-        self.fields[i as usize]
+    pub fn get_field(&self, i: usize) -> IntField {
+        self.fields[i]
     }
 
     // FIXME: `impl Copy for Tuple` and get rid of this silly function.

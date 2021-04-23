@@ -4,7 +4,7 @@ use super::buffer_pool::BufferPool;
 use super::buffer_pool::PAGE_SIZE;
 use bit_vec::BitVec;
 use core::fmt;
-use log::debug;
+use log::{debug, info};
 use std::{any::Any, borrow::Borrow};
 
 use std::{
@@ -33,7 +33,7 @@ pub struct BTreeFile {
     file_path: String,
 
     // the field which index is keyed on
-    pub key_field: i32,
+    pub key_field: usize,
 
     // the tuple descriptor of tuples in the file
     pub tuple_scheme: TupleScheme,
@@ -54,20 +54,23 @@ impl fmt::Display for BTreeFile {
 }
 
 impl<'path> BTreeFile {
-    pub fn new(file_path: &str, key_field: i32, row_scheme: TupleScheme) -> BTreeFile {
+    pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> BTreeFile {
         File::create(file_path);
 
-        let f = OpenOptions::new().write(true).open(file_path).unwrap();
+        let f = RefCell::new(OpenOptions::new().write(true).open(file_path).unwrap());
 
         let mut s = DefaultHasher::new();
         file_path.hash(&mut s);
+        let table_id = s.finish() as i32;
+
+        Self::file_init(f.borrow_mut(), table_id);
 
         BTreeFile {
             file_path: file_path.to_string(),
             key_field,
             tuple_scheme: row_scheme,
-            file: RefCell::new(f),
-            table_id: s.finish() as i32,
+            file: f,
+            table_id,
         }
     }
 
@@ -88,32 +91,40 @@ impl<'path> BTreeFile {
         let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
+            info!(
+                "page full: {}, empty slots: {}",
+                leaf_page.page_id.borrow(),
+                leaf_page.empty_slots_count()
+            );
+            info!("page split");
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
-            let new_leaf_page = (*new_container).borrow_mut();
-            new_leaf_page.insert_tuple(tuple);
+            let mut new_leaf_page = (*new_container).borrow_mut();
+            new_leaf_page.insert_tuple(&tuple);
         } else {
-            leaf_page.insert_tuple(tuple);
+            leaf_page.insert_tuple(&tuple);
         }
 
         // insert the tuple into the leaf page
     }
 
-    /// Split a leaf page to make room for new tuples and
-    /// recursively split the parent node as needed to
-    /// accommodate a new entry. The new entry should have
-    /// a key matching the key field of the first tuple in
-    /// the right-hand page (the key is "copied up"), and
-    /// child pointers pointing to the two leaf pages
-    /// resulting from the split.  Update sibling pointers
-    /// and parent pointers as needed.
-    ///
-    /// Return the leaf page into which a new tuple with
-    /// key field "field" should be inserted.
+    /**
+    Split a leaf page to make room for new tuples and
+    recursively split the parent node as needed to
+    accommodate a new entry. The new entry should have
+    a key matching the key field of the first tuple in
+    the right-hand page (the key is "copied up"), and
+    child pointers pointing to the two leaf pages
+    resulting from the split.  Update sibling pointers
+    and parent pointers as needed.
+
+    Return the leaf page into which a new tuple with
+    key field "field" should be inserted.
+    */
     pub fn split_leaf_page(
         &self,
         mut page: RefMut<BTreeLeafPage>,
-        key_field: i32,
-    ) -> Rc<RefCell<Self>> {
+        key_field: usize,
+    ) -> Rc<RefCell<BTreeLeafPage>> {
         // 1. adding a new page on the right of the existing
         // page and moving half of the tuples to the new page
         let new_page_id = RefCell::new(BTreePageID::new(
@@ -123,7 +134,7 @@ impl<'path> BTreeFile {
         ));
 
         let mut new_page = BTreeLeafPage::new(
-            new_page_id,
+            &new_page_id.borrow(),
             BTreeLeafPage::empty_page_data().to_vec(),
             key_field,
             page.tuple_scheme.clone(),
@@ -134,22 +145,41 @@ impl<'path> BTreeFile {
 
         let mut it = BTreeLeafPageIterator::new(&page);
         let mut delete_indexes: Vec<usize> = Vec::new();
+        let mut key = 0;
         for i in 0..move_tuple_count {
             let tuple = it.next().unwrap();
             delete_indexes.push(i);
-            new_page.insert_tuple(tuple);
+            new_page.insert_tuple(&tuple);
+
+            // get key
+            if i == move_tuple_count - 1 {
+                key = tuple.get_field(key_field).value;
+            }
         }
-        for i in delete_indexes {
+        for i in &delete_indexes {
             page.delete_tuple(i);
+        }
+
+        if page.empty_slots_count() != delete_indexes.len() {
+            panic!("{}", page.empty_slots_count());
         }
 
         // 2. Copy the middle key up into the parent page, and
         // recursively split the parent as needed to accommodate
         // the new entry.
+        let parent_ref = self.get_parent_with_empty_slots(page.get_parent_id());
+        let mut parent = (*parent_ref).borrow_mut();
 
-        let parent = self.get_parent_with_empty_slots(page.get_parent_id());
+        let entry = Entry::new(key, &new_page_id.borrow().clone(), &page.page_id.borrow());
+        parent.insert_entry(&entry);
 
-        todo!()
+        // set parent id
+        page.set_parent_id(&parent.get_id());
+        new_page.set_parent_id(&parent.get_id());
+
+        let v = BufferPool::global().get_leaf_page(&*page.page_id.borrow());
+
+        v.unwrap()
     }
 
     fn get_empty_page_index(&self) -> usize {
@@ -164,35 +194,44 @@ impl<'path> BTreeFile {
     no empty slots, or simply locking and returning the existing
     parent page.
     */
-    fn get_parent_with_empty_slots(&self, parentId: BTreePageID) -> &mut BTreeInternalPage {
+    fn get_parent_with_empty_slots(
+        &self,
+        parent_id: BTreePageID,
+    ) -> Rc<RefCell<BTreeInternalPage>> {
         // create a parent node if necessary
         // this will be the new root of the tree
-        if parentId.category == PageCategory::ROOT_POINTER {
-            let empty_page_index = self.get_empty_page_index();
-            let new_page_id =
-                BTreePageID::new(PageCategory::INTERNAL, self.table_id, empty_page_index);
+        match parent_id.category {
+            PageCategory::ROOT_POINTER => {
+                let empty_page_index = self.get_empty_page_index();
+                let new_parent_id =
+                    BTreePageID::new(PageCategory::INTERNAL, self.table_id, empty_page_index);
 
-            // write empty page to disk
-            let start_pos = BTreeRootPointerPage::page_size() + empty_page_index * PAGE_SIZE;
-            match self.get_file().seek(SeekFrom::Start(start_pos as u64)) {
-                Ok(_) => (),
-                Err(_) => (),
+                // write empty page to disk
+                let start_pos = BTreeRootPointerPage::page_size() + empty_page_index * PAGE_SIZE;
+                match self.get_file().seek(SeekFrom::Start(start_pos as u64)) {
+                    Ok(_) => (),
+                    Err(_) => (),
+                }
+                self.get_file().write(&BTreeLeafPage::empty_page_data());
+                self.get_file().flush();
+
+                // update the root pointer
+                let page_id = BTreePageID::new(PageCategory::ROOT_POINTER, self.table_id, 0);
+                let root_pointer_page = BufferPool::global()
+                    .get_root_pointer_page(&page_id)
+                    .unwrap();
+
+                (*root_pointer_page)
+                    .borrow_mut()
+                    .set_root_pid(&new_parent_id);
+
+                let v = BufferPool::global().get_internal_page(&new_parent_id);
+                return v.unwrap();
             }
-            self.get_file().write(&BTreeLeafPage::empty_page_data());
-            self.get_file().flush();
-
-            // update the root pointer
-            let page_id = BTreePageID::new(PageCategory::ROOT_POINTER, self.table_id, 0);
-            let root_pointer_page = BufferPool::global()
-                .get_root_pointer_page(&page_id)
-                .unwrap();
-
-            (*root_pointer_page)
-                .borrow_mut()
-                .set_root_id(new_page_id.page_index);
+            _ => {
+                todo!()
+            }
         }
-
-        todo!()
     }
 
     /**
@@ -205,52 +244,83 @@ impl<'path> BTreeFile {
     If f is null, it finds the left-most leaf page -- used
     for the iterator
     */
-    pub fn find_leaf_page(&self, page_id: BTreePageID, _field: i32) -> Rc<RefCell<BTreeLeafPage>> {
-        if page_id.category == PageCategory::LEAF {
-            // get page and return directly
-            return BufferPool::global().get_leaf_page(&page_id).unwrap();
-        }
+    pub fn find_leaf_page(&self, page_id: BTreePageID, field: i32) -> Rc<RefCell<BTreeLeafPage>> {
+        match page_id.category {
+            PageCategory::LEAF => {
+                // get page and return directly
+                return BufferPool::global().get_leaf_page(&page_id).unwrap();
+            }
+            PageCategory::INTERNAL => {
+                let page_ref = BufferPool::global().get_internal_page(&page_id).unwrap();
+                let page = (*page_ref).borrow();
 
-        todo!()
+                for entry in page.get_entries() {
+                    if entry.key >= field {
+                        let left = entry.get_left_child();
+                        return BufferPool::global().get_leaf_page(&left).unwrap();
+                    }
+                }
+
+                // return right of last entry
+                let last_entry = page.get_last_entry();
+                let right = last_entry.get_right_child();
+                return BufferPool::global().get_leaf_page(&right).unwrap();
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 
     pub fn get_file(&self) -> RefMut<File> {
         self.file.borrow_mut()
     }
 
-    // Get the root pointer page. Create the root pointer page
-    // and root page if necessary.
-    pub fn get_root_pid(&self) -> BTreePageID {
-        // if db file is empty, create root pointer page at first
-        if self.get_file().metadata().unwrap().len() == 0 {
+    /**
+    init file in necessary
+    */
+    fn file_init(mut file: RefMut<File>, table_id: i32) {
+        if file.metadata().unwrap().len() == 0 {
+            // if db file is empty, create root pointer page at first
             debug!("db file empty, start init");
             let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
             let empty_leaf_data = BTreeLeafPage::empty_page_data();
-            let mut n = self.get_file().write(&empty_root_pointer_data).unwrap();
-            debug!("write {} bytes", n);
-            n = self.get_file().write(&empty_leaf_data).unwrap();
-            debug!("write {} bytes", n);
+            let mut n = file.write(&empty_root_pointer_data).unwrap();
+            debug!(
+                "write page to disk, pid: {}, len: {}",
+                BTreePageID::new(PageCategory::ROOT_POINTER, table_id, 0),
+                n
+            );
+            n = file.write(&empty_leaf_data).unwrap();
+            debug!(
+                "write page to disk, pid: {}, len: {}",
+                BTreePageID::new(PageCategory::LEAF, table_id, 1),
+                n
+            );
 
-            let file_length = self.get_file().metadata().unwrap().len();
+            let file_length = file.metadata().unwrap().len();
             debug!("write complete, file length: {}", file_length);
         }
-
-        // get root pointer page
-        let mut data: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
-        self.get_file().read(&mut data);
-        let pid = BTreePageID::new(PageCategory::ROOT_POINTER, self.get_id(), 1);
-        let root_pointer_page = BTreeRootPointerPage::new(pid, data.to_vec());
-
-        root_pointer_page.get_root_pid()
     }
 
-    // Create the root pointer page and root page.
-    pub fn db_file_init(&self, mut f: File) {
-        debug!("db file empty, start init");
-        let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
-        let empty_leaf_data = BTreeLeafPage::empty_page_data();
-        f.write(&empty_root_pointer_data);
-        f.write(&empty_leaf_data);
+    /**
+    Get the root page pid. Create the root pointer page
+    and root page if necessary.
+    */
+    pub fn get_root_pid(&self) -> BTreePageID {
+        // get root pointer page
+        let root_pointer_pid = BTreePageID {
+            category: PageCategory::ROOT_POINTER,
+            page_index: 0,
+            table_id: self.table_id,
+        };
+        let page_ref = BufferPool::global()
+            .get_root_pointer_page(&root_pointer_pid)
+            .unwrap();
+        let page = (*page_ref).borrow();
+        let mut root_pid = page.get_root_pid();
+        root_pid.table_id = self.get_id();
+        root_pid
     }
 
     /// The count of pages in this BTreeFile
@@ -279,16 +349,16 @@ pub struct BTreeLeafPage {
     header: Vec<u8>,
 
     // which field/column the b+ tree is indexed on
-    key_field: i32,
+    key_field: usize,
 
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
 
     tuple_scheme: TupleScheme,
 
-    parent: i32,
+    parent: usize,
 
-    page_id: RefCell<BTreePageID>,
+    pub page_id: BTreePageID,
 }
 
 impl BTreePage for BTreeLeafPage {
@@ -304,9 +374,9 @@ pub struct BTreeLeafPageIterator<'a> {
 
 impl BTreeLeafPage {
     pub fn new(
-        page_id: RefCell<BTreePageID>,
+        page_id: &BTreePageID,
         bytes: Vec<u8>,
-        key_field: i32,
+        key_field: usize,
         tuple_scheme: TupleScheme,
     ) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
@@ -328,8 +398,12 @@ impl BTreeLeafPage {
             tuples,
             tuple_scheme,
             parent: 0,
-            page_id,
+            page_id: *page_id,
         }
+    }
+
+    pub fn set_parent_id(&mut self, id: &BTreePageID) {
+        self.parent = id.page_index;
     }
 
     pub fn get_parent_id(&self) -> BTreePageID {
@@ -340,9 +414,12 @@ impl BTreeLeafPage {
                 0,
             );
         }
-        // self.parent
 
-        todo!()
+        return BTreePageID::new(
+            PageCategory::INTERNAL,
+            self.page_id.borrow().table_id,
+            self.parent,
+        );
     }
 
     // Retrieve the maximum number of tuples this page can hold.
@@ -390,13 +467,13 @@ impl BTreeLeafPage {
     // the tuple should be updated to reflect
     // that it is now stored on this page.
     // tuple: The tuple to add.
-    pub fn insert_tuple(&mut self, mut tuple: Tuple) {
+    pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
         let mut first_empty_slot = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 first_empty_slot = i;
-                debug!("first emply slot: {}", first_empty_slot);
+                // debug!("first emply slot: {}", first_empty_slot);
                 break;
             }
         }
@@ -420,14 +497,11 @@ impl BTreeLeafPage {
 
         // insert new record into the correct spot in sorted order
         self.tuples[first_empty_slot] = tuple.copy();
-        // debug!("tuple on {} slot: {}", first_empty_slot, tuple);
-        self.mark_slot_used(first_empty_slot);
-        // debug!("header: {:b}", self.header[0]);
-        {}
+        self.mark_slot_status(first_empty_slot, true);
     }
 
-    pub fn delete_tuple(&mut self, slot_index: usize) {
-        self.mark_slot_used(slot_index);
+    pub fn delete_tuple(&mut self, slot_index: &usize) {
+        self.mark_slot_status(*slot_index, false);
     }
 
     // Returns true if associated slot on this page is filled.
@@ -436,12 +510,10 @@ impl BTreeLeafPage {
         bv[slot_index]
     }
 
-    pub fn mark_slot_used(&mut self, slot_index: usize) {
+    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         let mut bv = BitVec::from_bytes(&self.header);
-        bv.set(slot_index, true);
+        bv.set(slot_index, used);
         self.header = bv.to_bytes();
-
-        // persistent changes
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
@@ -480,13 +552,20 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
 pub struct BTreeRootPointerPage {
     pid: BTreePageID,
 
-    root_id: usize,
+    root_pid: BTreePageID,
 }
 
 impl BTreeRootPointerPage {
     pub fn new(pid: BTreePageID, bytes: Vec<u8>) -> Self {
-        let root_id = i32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
-        Self { pid, root_id }
+        let root_page_index = i32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
+        let root_pid = BTreePageID {
+            category: PageCategory::LEAF,
+            page_index: root_page_index,
+
+            // TODO: set table id
+            table_id: 0,
+        };
+        Self { pid, root_pid }
     }
 
     pub fn page_size() -> usize {
@@ -498,11 +577,11 @@ impl BTreeRootPointerPage {
     }
 
     pub fn get_root_pid(&self) -> BTreePageID {
-        BTreePageID::new(PageCategory::LEAF, self.pid.table_id, self.root_id)
+        self.root_pid
     }
 
-    pub fn set_root_id(&mut self, id: usize) {
-        self.root_id = id;
+    pub fn set_root_pid(&mut self, pid: &BTreePageID) {
+        self.root_pid = *pid;
     }
 }
 
@@ -517,6 +596,7 @@ impl BTreeRootPage {
 }
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
+// #[derive(Copy, Clone, , Hash)]
 pub enum PageCategory {
     ROOT_POINTER,
     INTERNAL,
@@ -541,6 +621,34 @@ impl fmt::Display for PageCategory {
             }
         }
     }
+}
+
+impl fmt::Debug for PageCategory {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+#[test]
+fn test_page_category() {
+    assert_ne!(PageCategory::HEADER, PageCategory::LEAF);
+    if PageCategory::LEAF == PageCategory::ROOT_POINTER {
+        println!("error")
+    } else {
+        println!("ok")
+    }
+    let c = PageCategory::HEADER;
+    match c {
+        PageCategory::LEAF => {
+            println!("error")
+        }
+        PageCategory::HEADER => {
+            println!("ok")
+        }
+        _ => {}
+    }
+    println!("{}", c);
+    assert_eq!(format!("{}", c), "HEADER");
 }
 
 // PageID identifies a unique page, and contains the
@@ -582,4 +690,88 @@ impl BTreePageID {
     }
 }
 
-pub struct BTreeInternalPage {}
+pub struct BTreeInternalPage {
+    page_id: BTreePageID,
+
+    entries: Vec<Entry>,
+}
+
+impl BTreeInternalPage {
+    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: usize) -> Self {
+        Self {
+            page_id: page_id.borrow().clone(),
+            entries: Vec::new(),
+        }
+    }
+
+    pub fn get_id(&self) -> BTreePageID {
+        self.page_id
+    }
+
+    pub fn insert_entry(&mut self, e: &Entry) {
+        // TODO: insert in sorted order
+
+        // self.entries.insert(0, element)
+        self.entries.push(*e)
+    }
+
+    pub fn get_entries(&self) -> Vec<Entry> {
+        self.entries.to_vec()
+    }
+
+    pub fn get_last_entry(&self) -> Entry {
+        *self.entries.last().unwrap()
+    }
+}
+
+pub struct BTreeInternalPageIterator<'a> {
+    page: &'a BTreeInternalPage,
+    cursor: usize,
+}
+
+impl<'a> BTreeInternalPageIterator<'a> {
+    pub fn new(page: &'a BTreeInternalPage) -> Self {
+        Self { page, cursor: 0 }
+    }
+}
+
+impl<'a> Iterator for BTreeInternalPageIterator<'_> {
+    type Item = Entry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // while self.cursor < self.page.entry_count {
+        //     if self.page.is_slot_used(self.cursor) {
+        //         return Some(self.page.tuples[self.cursor].copy());
+        //     } else {
+        //         self.cursor += 1;
+        //     }
+        // }
+
+        None
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct Entry {
+    key: i32,
+    left: BTreePageID,
+    right: BTreePageID,
+}
+
+impl Entry {
+    pub fn new(key: i32, left: &BTreePageID, right: &BTreePageID) -> Self {
+        Self {
+            key,
+            left: *left,
+            right: *right,
+        }
+    }
+
+    pub fn get_left_child(&self) -> BTreePageID {
+        self.left
+    }
+
+    pub fn get_right_child(&self) -> BTreePageID {
+        self.right
+    }
+}

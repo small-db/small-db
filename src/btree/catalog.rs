@@ -2,6 +2,8 @@ use std::{cell::{Ref, RefCell}, collections::HashMap, rc::Rc};
 
 use std::sync::Once;
 use std::mem;
+use log::debug;
+
 use super::{
     // database::Database,
     file::{BTreeFile, BTreeLeafPage, BTreePageID},
@@ -47,6 +49,7 @@ impl Catalog {
     }
 
     pub fn add_table(&mut self, file: Value) {
+        debug!("add table to catalog, id: {}", file.borrow().get_id());
         self.map.insert(file.borrow().get_id(), Rc::clone(&file));
     }
 }

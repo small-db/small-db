@@ -11,9 +11,14 @@ A simple database writing in rust, inspired from mit 6.830
 ### 0.0.0
 
 - B+ tree storage structure
-- Support insert, delete, query, update
+- Buffer pool
+- Support insert
 - No transaction
 - No multi-threading
 - No RAL (write ahead log)
+
+### 0.0.1
+
+- Support delete, query, update
 
 ### 1.0.0

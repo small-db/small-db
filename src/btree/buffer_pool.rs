@@ -9,7 +9,9 @@ use std::sync::Once;
 
 use crate::{row::simple_int_row_scheme, tuple::simple_int_tuple_scheme};
 
-use super::file::{BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum};
+use super::file::{
+    BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum,
+};
 use super::{
     // database_singleton::singleton_db,
     catalog::Catalog,
@@ -58,18 +60,54 @@ impl BufferPool {
         }
     }
 
-    pub fn get_leaf_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeLeafPage>>> {
-        match self.leaf_buffer.get(key) {
+    pub fn get_internal_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeInternalPage>>> {
+        match self.internal_buffer.get(key) {
             Some(_) => {}
             None => {
                 // get page from disk
+                debug!("get page from disk, pid: {}", key);
 
                 // 1. get db file
                 let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
                 let btree_file = v.borrow();
 
-                debug!("find file: {}", btree_file);
-                debug!("page id: {}", key);
+                // 2. read page content
+                let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
+
+                match btree_file
+                    .get_file()
+                    .seek(SeekFrom::Start(start_pos as u64))
+                {
+                    Ok(_) => (),
+                    Err(_) => return None,
+                }
+
+                let mut buf: [u8; 4096] = [0; 4096];
+                btree_file.get_file().read_exact(&mut buf);
+
+                // 3. instantiate page
+                let page =
+                    BTreeInternalPage::new(RefCell::new(*key), buf.to_vec(), btree_file.key_field);
+
+                // 4. put page into buffer pool
+                self.internal_buffer
+                    .insert(*key, Rc::new(RefCell::new(page)));
+            }
+        }
+
+        Some(Rc::clone(self.internal_buffer.get(key).unwrap()))
+    }
+
+    pub fn get_leaf_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeLeafPage>>> {
+        match self.leaf_buffer.get(key) {
+            Some(_) => {}
+            None => {
+                // get page from disk
+                debug!("get page from disk, pid: {}", key);
+
+                // 1. get db file
+                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
+                let btree_file = v.borrow();
 
                 // 2. read page content
                 let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
@@ -87,7 +125,7 @@ impl BufferPool {
 
                 // 3. instantiate page
                 let page = BTreeLeafPage::new(
-                    RefCell::new(*key),
+                    key,
                     buf.to_vec(),
                     btree_file.key_field,
                     btree_file.tuple_scheme.clone(),
@@ -109,13 +147,11 @@ impl BufferPool {
             Some(_) => {}
             None => {
                 // get page from disk
+                debug!("get page from disk, pid: {}", key);
 
                 // 1. get db file
                 let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
                 let db_file = v.borrow();
-
-                debug!("find file: {}", db_file);
-                debug!("page id: {}", key);
 
                 // 2. read page content
                 let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
