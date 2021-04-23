@@ -80,7 +80,7 @@ impl<'path> BTreeFile {
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&self, mut tuple: Tuple) {
+    pub fn insert_tuple(&self, tuple: Tuple) {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -697,7 +697,7 @@ pub struct BTreeInternalPage {
 }
 
 impl BTreeInternalPage {
-    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: usize) -> Self {
+    pub fn new(page_id: RefCell<BTreePageID>, _bytes: Vec<u8>, _key_field: usize) -> Self {
         Self {
             page_id: page_id.borrow().clone(),
             entries: Vec::new(),

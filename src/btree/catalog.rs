@@ -1,4 +1,4 @@
-use std::{cell::{Ref, RefCell}, collections::HashMap, rc::Rc};
+use std::{cell::{RefCell}, collections::HashMap, rc::Rc};
 
 use std::sync::Once;
 use std::mem;
@@ -6,7 +6,7 @@ use log::debug;
 
 use super::{
     // database::Database,
-    file::{BTreeFile, BTreeLeafPage, BTreePageID},
+    file::{BTreeFile},
 };
 
 pub struct Catalog {

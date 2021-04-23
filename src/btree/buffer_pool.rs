@@ -1,13 +1,13 @@
-use std::{cell::Ref, io::SeekFrom};
+use std::{io::SeekFrom};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use std::{cell::RefMut, io::Seek};
-use std::{collections::hash_map::Entry, io::prelude::*};
+use std::{io::Seek};
+use std::{io::prelude::*};
 
 use log::debug;
 use std::mem;
 use std::sync::Once;
 
-use crate::{row::simple_int_row_scheme, tuple::simple_int_tuple_scheme};
+
 
 use super::file::{
     BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum,
@@ -165,7 +165,7 @@ impl BufferPool {
                 db_file.get_file().read_exact(&mut buf);
 
                 // 3. instantiate page
-                let page = BTreeRootPointerPage::new((*key), buf.to_vec());
+                let page = BTreeRootPointerPage::new(*key, buf.to_vec());
 
                 // 4. put page into buffer pool
                 self.roop_pointer_buffer
