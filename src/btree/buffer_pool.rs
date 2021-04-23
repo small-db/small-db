@@ -143,8 +143,7 @@ impl BufferPool {
 
 #[cfg(test)]
 mod tests {
-    use crate::{btree::page::PageCategory, BTreeTable};
-    use crate::util::simple_int_tuple_scheme;
+    use crate::{btree::page::PageCategory, util::simple_int_tuple_scheme, BTreeTable};
 
     use super::*;
 

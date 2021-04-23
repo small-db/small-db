@@ -1,4 +1,3 @@
-
 use crate::field::*;
 use std::{
     fmt::{self},

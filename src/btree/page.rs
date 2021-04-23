@@ -2,7 +2,7 @@ use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
 use bit_vec::BitVec;
 
-use super::{tuple::TupleScheme, tuple::Tuple};
+use super::tuple::{Tuple, TupleScheme};
 
 use super::buffer_pool::PAGE_SIZE;
 
