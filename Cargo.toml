@@ -1,6 +1,6 @@
 [package]
 name = "simple-db-rust"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["XiaochenCui <jcnlcxc.new@gmail.com>"]
 edition = "2018"
 description = "A simple database writing in rust, inspired from mit 6.830"
