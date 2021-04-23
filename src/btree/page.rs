@@ -1,16 +1,8 @@
-use std::{
-    borrow::Borrow,
-    cell::RefCell,
-    convert::TryInto,
-    fmt,
-};
+use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
 use bit_vec::BitVec;
 
-use crate::{
-    tuple::TupleScheme,
-    Tuple,
-};
+use crate::{tuple::TupleScheme, Tuple};
 
 use super::buffer_pool::PAGE_SIZE;
 

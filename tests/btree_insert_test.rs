@@ -4,10 +4,7 @@ fn insert_rows() {
     use simple_db_rust::BTreeTable;
     use simple_db_rust::Catalog;
     use simple_db_rust::Tuple;
-    use std::{
-        cell::RefCell,
-        rc::Rc,
-    };
+    use std::{cell::RefCell, rc::Rc};
 
     test_utils::init_log();
 
