@@ -7,12 +7,8 @@ use log::debug;
 use std::mem;
 use std::sync::Once;
 
-use crate::util::simple_int_tuple_scheme;
+use super::page::{BTreeInternalPage, BTreeRootPointerPage};
 
-use super::page::{
-    BTreeInternalPage, BTreeRootPointerPage, 
-};
-use super::page::PageCategory;
 use super::{
     // database_singleton::singleton_db,
     catalog::Catalog,

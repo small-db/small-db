@@ -1,5 +1,11 @@
 use crate::field::*;
-use std::{cell::RefCell, fmt::{self, format, Debug}, rc::Rc, sync::Arc, usize};
+use std::{
+    cell::RefCell,
+    fmt::{self, format, Debug},
+    rc::Rc,
+    sync::Arc,
+    usize,
+};
 // use std::i32;
 use log::{debug, error};
 

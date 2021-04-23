@@ -1,10 +1,13 @@
-use crate::btree::page::PageCategory;
-use super::{buffer_pool::BufferPool, page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry}};
 use super::buffer_pool::PAGE_SIZE;
-use bit_vec::BitVec;
+use super::{
+    buffer_pool::BufferPool,
+    page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry},
+};
+use crate::btree::page::PageCategory;
+
 use core::fmt;
 use log::{debug, info};
-use std::{any::Any, borrow::Borrow};
+use std::borrow::Borrow;
 
 use std::{
     borrow::BorrowMut,
@@ -22,7 +25,6 @@ use std::{
     cell::{Ref, RefMut},
     rc::Weak,
 };
-
 
 use super::page::BTreeInternalPage;
 use crate::tuple::{Tuple, TupleScheme};

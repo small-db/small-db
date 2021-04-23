@@ -8,7 +8,7 @@ mod btree;
 
 mod log;
 
-pub use btree::file::BTreeTable as BTreeTable;
 pub use btree::catalog::Catalog;
+pub use btree::file::BTreeTable;
 pub use tuple::Tuple;
 pub use util as test_utils;

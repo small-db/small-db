@@ -1,13 +1,10 @@
-use std::{cell::{RefCell}, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use std::sync::Once;
-use std::mem;
 use log::debug;
+use std::mem;
+use std::sync::Once;
 
-use super::{
-    // database::Database,
-    file::{BTreeTable},
-};
+use super::file::BTreeTable;
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
