@@ -1,20 +1,39 @@
 use super::buffer_pool::PAGE_SIZE;
 use super::{
     buffer_pool::BufferPool,
-    page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry},
+    page::{
+        BTreeLeafPage,
+        BTreeLeafPageIterator,
+        BTreePageID,
+        BTreeRootPointerPage,
+        Entry,
+    },
 };
 use crate::btree::page::PageCategory;
 
 use core::fmt;
-use log::{debug, info};
+use log::{
+    debug,
+    info,
+};
 use std::borrow::Borrow;
 
 use std::{
     cell::RefCell,
     collections::hash_map::DefaultHasher,
-    fs::{File, OpenOptions},
-    hash::{Hash, Hasher},
-    io::{Seek, SeekFrom, Write},
+    fs::{
+        File,
+        OpenOptions,
+    },
+    hash::{
+        Hash,
+        Hasher,
+    },
+    io::{
+        Seek,
+        SeekFrom,
+        Write,
+    },
     rc::Rc,
     usize,
 };
@@ -22,7 +41,10 @@ use std::{
 use std::cell::RefMut;
 
 use super::page::BTreeInternalPage;
-use crate::tuple::{Tuple, TupleScheme};
+use crate::tuple::{
+    Tuple,
+    TupleScheme,
+};
 
 // B+ Tree
 pub struct BTreeTable {

@@ -1,13 +1,20 @@
 use crate::field::*;
 use std::{
     cell::RefCell,
-    fmt::{self, format, Debug},
+    fmt::{
+        self,
+        format,
+        Debug,
+    },
     rc::Rc,
     sync::Arc,
     usize,
 };
 // use std::i32;
-use log::{debug, error};
+use log::{
+    debug,
+    error,
+};
 
 #[derive(Debug)]
 pub struct Tuple {

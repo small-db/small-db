@@ -1,4 +1,7 @@
-use crate::{field::IntField, tuple::TupleScheme};
+use crate::{
+    field::IntField,
+    tuple::TupleScheme,
+};
 
 pub struct BTreeTuple {
     scheme: TupleScheme,
