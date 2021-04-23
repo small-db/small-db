@@ -10,9 +10,8 @@ use log::{debug, info};
 use std::borrow::Borrow;
 
 use std::{
-    borrow::BorrowMut,
-    cell::{Cell, RefCell},
-    collections::{btree_set::Difference, hash_map::DefaultHasher},
+    cell::RefCell,
+    collections::hash_map::DefaultHasher,
     convert::TryInto,
     fs::{File, OpenOptions},
     hash::{Hash, Hasher},
@@ -21,6 +20,9 @@ use std::{
     rc::Rc,
     usize,
 };
+use std::collections::btree_set::Difference;
+use std::cell::Cell;
+use std::borrow::BorrowMut;
 use std::{
     cell::{Ref, RefMut},
     rc::Weak,
