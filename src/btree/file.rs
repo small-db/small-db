@@ -56,7 +56,7 @@ impl BTreeTable {
     pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> BTreeTable {
         File::create(file_path).expect("io error");
 
-        let f = RefCell::new(OpenOptions::new().write(true).open(file_path).unwrap());
+        let f = RefCell::new(OpenOptions::new().write(true).read(true).open(file_path).unwrap());
 
         let mut s = DefaultHasher::new();
         file_path.hash(&mut s);
@@ -315,7 +315,7 @@ impl BTreeTable {
         };
         let page_ref = BufferPool::global()
             .get_root_pointer_page(&root_pointer_pid)
-            .unwrap();
+            .expect("io error");
         let page = (*page_ref).borrow();
         let mut root_pid = page.get_root_pid();
         root_pid.table_id = self.get_id();

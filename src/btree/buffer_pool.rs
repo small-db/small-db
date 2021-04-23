@@ -60,11 +60,11 @@ impl BufferPool {
 
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
         debug!("get page from disk, pid: {}", key);
-        let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
-        file.seek(SeekFrom::Start(start_pos as u64))?;
+        let start_pos = key.page_index * PAGE_SIZE;
+        file.seek(SeekFrom::Start(start_pos as u64)).expect("io error");
 
         let mut buf: [u8; 4096] = [0; 4096];
-        file.read_exact(&mut buf)?;
+        file.read_exact(&mut buf).expect("io error");
         Ok(buf.to_vec())
     }
 
@@ -162,24 +162,24 @@ mod tests {
         let page_id = BTreePageID::new(PageCategory::RootPointer, table_id, 0);
         match bp.get_root_pointer_page(&page_id) {
             Ok(_) => {}
-            Err(_) => {
-                panic!()
+            Err(e) => {
+                panic!("err: {}", e)
             }
         }
 
         let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
         match bp.get_root_pointer_page(&page_id) {
             Ok(_) => {}
-            Err(_) => {
-                panic!()
+            Err(e) => {
+                panic!("err: {}", e)
             }
         }
 
         let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
         match bp.get_root_pointer_page(&page_id) {
             Ok(_) => {}
-            Err(_) => {
-                panic!()
+            Err(e) => {
+                panic!("err: {}", e)
             }
         }
     }
