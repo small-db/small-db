@@ -17,3 +17,5 @@ impl<T> HandyRwLock<T> for RwLock<T> {
         self.read().unwrap()
     }
 }
+
+pub use crate::tuple::simple_int_tuple_scheme;
