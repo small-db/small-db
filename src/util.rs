@@ -19,3 +19,4 @@ impl<T> HandyRwLock<T> for RwLock<T> {
 }
 
 pub use crate::tuple::simple_int_tuple_scheme;
+pub use crate::log::init_log;
