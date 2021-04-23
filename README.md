@@ -1,6 +1,6 @@
 # simple-db-rust
 
-[![docs](https://docs.rs/mio/badge.svg)](https://docs.rs/simple-db-rust)
+[![docs](https://docs.rs/simple-db-rust/badge.svg)](https://docs.rs/simple-db-rust)
 
 [![Build Status](https://travis-ci.org/XiaochenCui/simple-db-rust.svg?branch=master)](https://travis-ci.org/XiaochenCui/simple-db-rust)
 [![codecov](https://codecov.io/gh/XiaochenCui/simple-db-rust/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/simple-db-rust)
