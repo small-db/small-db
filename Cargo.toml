@@ -3,6 +3,12 @@ name = "simple-db-rust"
 version = "0.1.0"
 authors = ["XiaochenCui <jcnlcxc.new@gmail.com>"]
 edition = "2018"
+description = "A simple database writing in rust, inspired from mit 6.830"
+license = "BSD-3-Clause.txt"
+license-file = "LICENSE"
+readme = "README.md"
+homepage = "https://github.com/XiaochenCui/simple-db-rust/"
+repository = "https://github.com/XiaochenCui/simple-db-rust/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
