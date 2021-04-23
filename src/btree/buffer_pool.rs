@@ -1,7 +1,7 @@
-use std::io::prelude::*;
-use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::{prelude::*, Result};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{fs::File, io::Seek};
 
 use log::debug;
 use std::mem;
@@ -57,34 +57,30 @@ impl BufferPool {
         }
     }
 
-    pub fn get_internal_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeInternalPage>>> {
+    fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
+        debug!("get page from disk, pid: {}", key);
+        let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
+        file.seek(SeekFrom::Start(start_pos as u64))?;
+
+        let mut buf: [u8; 4096] = [0; 4096];
+        file.read_exact(&mut buf)?;
+        Ok(buf.to_vec())
+    }
+
+    pub fn get_internal_page(&mut self, key: &Key) -> Result<Rc<RefCell<BTreeInternalPage>>> {
         match self.internal_buffer.get(key) {
             Some(_) => {}
             None => {
-                // get page from disk
-                debug!("get page from disk, pid: {}", key);
-
-                // 1. get db file
-                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
-                let btree_file = v.borrow();
+                // 1. get table
+                let v = Catalog::global().get_table(key.get_table_id()).unwrap();
+                let table = v.borrow();
 
                 // 2. read page content
-                let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
-
-                match btree_file
-                    .get_file()
-                    .seek(SeekFrom::Start(start_pos as u64))
-                {
-                    Ok(_) => (),
-                    Err(_) => return None,
-                }
-
-                let mut buf: [u8; 4096] = [0; 4096];
-                btree_file.get_file().read_exact(&mut buf);
+                let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
                 let page =
-                    BTreeInternalPage::new(RefCell::new(*key), buf.to_vec(), btree_file.key_field);
+                    BTreeInternalPage::new(RefCell::new(*key), buf.to_vec(), table.key_field);
 
                 // 4. put page into buffer pool
                 self.internal_buffer
@@ -92,40 +88,26 @@ impl BufferPool {
             }
         }
 
-        Some(Rc::clone(self.internal_buffer.get(key).unwrap()))
+        Ok(Rc::clone(self.internal_buffer.get(key).unwrap()))
     }
 
-    pub fn get_leaf_page(&mut self, key: &Key) -> Option<Rc<RefCell<BTreeLeafPage>>> {
+    pub fn get_leaf_page(&mut self, key: &Key) -> Result<Rc<RefCell<BTreeLeafPage>>> {
         match self.leaf_buffer.get(key) {
             Some(_) => {}
             None => {
-                // get page from disk
-                debug!("get page from disk, pid: {}", key);
-
-                // 1. get db file
-                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
-                let btree_file = v.borrow();
+                // 1. get table
+                let v = Catalog::global().get_table(key.get_table_id()).unwrap();
+                let table = v.borrow();
 
                 // 2. read page content
-                let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
-
-                match btree_file
-                    .get_file()
-                    .seek(SeekFrom::Start(start_pos as u64))
-                {
-                    Ok(_) => (),
-                    Err(_) => return None,
-                }
-
-                let mut buf: [u8; 4096] = [0; 4096];
-                btree_file.get_file().read_exact(&mut buf);
+                let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
                 let page = BTreeLeafPage::new(
                     key,
                     buf.to_vec(),
-                    btree_file.key_field,
-                    btree_file.tuple_scheme.clone(),
+                    table.key_field,
+                    table.tuple_scheme.clone(),
                 );
 
                 // 4. put page into buffer pool
@@ -133,33 +115,22 @@ impl BufferPool {
             }
         }
 
-        Some(Rc::clone(self.leaf_buffer.get(key).unwrap()))
+        Ok(Rc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
     pub fn get_root_pointer_page(
         &mut self,
         key: &Key,
-    ) -> Option<Rc<RefCell<BTreeRootPointerPage>>> {
+    ) -> Result<Rc<RefCell<BTreeRootPointerPage>>> {
         match self.roop_pointer_buffer.get(key) {
             Some(_) => {}
             None => {
-                // get page from disk
-                debug!("get page from disk, pid: {}", key);
-
-                // 1. get db file
-                let v = Catalog::global().get_db_file(key.get_table_id()).unwrap();
-                let db_file = v.borrow();
+                // 1. get table
+                let v = Catalog::global().get_table(key.get_table_id()).unwrap();
+                let table = v.borrow();
 
                 // 2. read page content
-                let start_pos = BTreeRootPointerPage::page_size() + key.page_index * PAGE_SIZE;
-
-                match db_file.get_file().seek(SeekFrom::Start(start_pos as u64)) {
-                    Ok(_) => (),
-                    Err(_) => return None,
-                }
-
-                let mut buf: [u8; 4096] = [0; 4096];
-                db_file.get_file().read_exact(&mut buf);
+                let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
                 let page = BTreeRootPointerPage::new(*key, buf.to_vec());
@@ -170,13 +141,13 @@ impl BufferPool {
             }
         }
 
-        Some(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
+        Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::BTreeTable;
+    use crate::{btree::page::PageCategory, util::simple_int_tuple_scheme, BTreeTable};
 
     use super::*;
 
@@ -193,12 +164,27 @@ mod tests {
 
         // get page
         let page_id = BTreePageID::new(PageCategory::RootPointer, table_id, 0);
-        bp.get_root_pointer_page(&page_id);
+        match bp.get_root_pointer_page(&page_id) {
+            Ok(_) => {}
+            Err(_) => {
+                panic!()
+            }
+        }
 
         let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
-        bp.get_root_pointer_page(&page_id);
+        match bp.get_root_pointer_page(&page_id) {
+            Ok(_) => {}
+            Err(_) => {
+                panic!()
+            }
+        }
 
         let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
-        bp.get_root_pointer_page(&page_id);
+        match bp.get_root_pointer_page(&page_id) {
+            Ok(_) => {}
+            Err(_) => {
+                panic!()
+            }
+        }
     }
 }

@@ -41,7 +41,7 @@ impl Catalog {
         }
     }
 
-    pub fn get_db_file(&self, key: &Key) -> Option<&Value> {
+    pub fn get_table(&self, key: &Key) -> Option<&Value> {
         self.map.get(key)
     }
 
