@@ -1,6 +1,5 @@
 mod field;
 mod page_id;
-mod permissions;
 mod row;
 mod tuple;
 pub mod util;
@@ -14,4 +13,3 @@ pub use btree::file::BTreeFile as BTreeTable;
 pub use btree::catalog::Catalog;
 pub use tuple::Tuple;
 pub use util as test_utils;
-// pub use BTreeFile as

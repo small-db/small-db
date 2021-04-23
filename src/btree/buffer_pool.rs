@@ -9,6 +9,8 @@ use std::sync::Once;
 
 
 
+use crate::util::simple_int_tuple_scheme;
+
 use super::file::{
     BTreeFile, BTreeInternalPage, BTreePage, BTreeRootPointerPage, PageCategory, PageEnum,
 };
