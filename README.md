@@ -17,7 +17,7 @@ A simple database writing in rust, inspired from mit 6.830
 - No multi-threading
 - No RAL (write ahead log)
 
-### 0.0.1
+### 0.1.0
 
 - Support delete, query, update
 

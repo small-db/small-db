@@ -188,18 +188,6 @@ impl BTreeLeafPage {
         }
 
         // find the last key less than or equal to the key being inserted
-        let mut less_or_equal_key: i32 = -1;
-        let key = tuple.get_field(self.key_field);
-        for i in 0..self.slot_count {
-            if self.is_slot_used(i) {
-                if self.tuples[i as usize].get_field(self.key_field) <= key {
-                    less_or_equal_key = i as i32;
-                } else {
-                    break;
-                }
-            }
-        }
-        // debug!("less_or_equal_key: {}", less_or_equal_key);
 
         // shift records back or forward to fill empty slot and make room for new record
         // while keeping records in sorted order
