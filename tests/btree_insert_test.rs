@@ -1,9 +1,6 @@
 #[test]
 fn insert_rows() {
-    use simple_db_rust::test_utils;
-    use simple_db_rust::BTreeTable;
-    use simple_db_rust::Catalog;
-    use simple_db_rust::Tuple;
+    use simple_db_rust::{test_utils, BTreeTable, Catalog, Tuple};
     use std::{cell::RefCell, rc::Rc};
 
     test_utils::init_log();

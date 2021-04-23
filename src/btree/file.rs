@@ -1,6 +1,5 @@
-use super::buffer_pool::PAGE_SIZE;
 use super::{
-    buffer_pool::BufferPool,
+    buffer_pool::{BufferPool, PAGE_SIZE},
     page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry},
 };
 use crate::btree::page::PageCategory;

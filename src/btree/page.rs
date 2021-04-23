@@ -179,7 +179,7 @@ impl BTreeLeafPage {
         // while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
-        self.tuples[first_empty_slot] = tuple.copy();
+        self.tuples[first_empty_slot] = tuple.clone();
         self.mark_slot_status(first_empty_slot, true);
     }
 
@@ -216,7 +216,7 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         while self.cursor < self.page.slot_count {
             if self.page.is_slot_used(self.cursor) {
-                return Some(self.page.tuples[self.cursor].copy());
+                return Some(self.page.tuples[self.cursor].clone());
             } else {
                 self.cursor += 1;
             }
@@ -336,33 +336,6 @@ impl BTreeInternalPage {
 
     pub fn get_last_entry(&self) -> Entry {
         *self.entries.last().unwrap()
-    }
-}
-
-pub struct BTreeInternalPageIterator<'a> {
-    page: &'a BTreeInternalPage,
-    cursor: usize,
-}
-
-impl<'a> BTreeInternalPageIterator<'a> {
-    pub fn new(page: &'a BTreeInternalPage) -> Self {
-        Self { page, cursor: 0 }
-    }
-}
-
-impl<'a> Iterator for BTreeInternalPageIterator<'_> {
-    type Item = Entry;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // while self.cursor < self.page.entry_count {
-        //     if self.page.is_slot_used(self.cursor) {
-        //         return Some(self.page.tuples[self.cursor].copy());
-        //     } else {
-        //         self.cursor += 1;
-        //     }
-        // }
-
-        None
     }
 }
 

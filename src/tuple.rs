@@ -1,5 +1,4 @@
 use crate::field::*;
-use log::error;
 use std::{
     fmt::{self},
     usize,
@@ -77,29 +76,11 @@ impl Tuple {
         self.fields[i]
     }
 
-    // FIXME: `impl Copy for Tuple` and get rid of this silly function.
-    pub fn copy(&self) -> Tuple {
+    pub fn clone(&self) -> Tuple {
         Tuple {
             scheme: self.scheme.clone(),
             fields: self.fields.to_vec(),
         }
-    }
-
-    pub fn equal_cells(&self, expect: &Vec<i32>) -> bool {
-        // for cell in &self.cells.into_iter().enumerate() {
-        // // let cell_str = format!("{}, ", cell.value);
-        // // content.push_str(&cell_str);
-        // }
-        for i in 0..self.fields.len() {
-            if self.fields[i].value != expect[i] {
-                error!(
-                    "cell not equal, expect: {:?}, self: {:?}",
-                    expect, self.fields
-                );
-                return false;
-            }
-        }
-        true
     }
 }
 

@@ -1,8 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use log::debug;
-use std::mem;
-use std::sync::Once;
+use std::{mem, sync::Once};
 
 use super::file::BTreeTable;
 

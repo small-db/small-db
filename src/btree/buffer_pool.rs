@@ -1,16 +1,17 @@
-use std::io::SeekFrom;
-use std::io::{prelude::*, Result};
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use std::{fs::File, io::Seek};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs::File,
+    io::{prelude::*, Result, Seek, SeekFrom},
+    rc::Rc,
+};
 
 use log::debug;
-use std::mem;
-use std::sync::Once;
+use std::{mem, sync::Once};
 
 use super::page::{BTreeInternalPage, BTreeRootPointerPage};
 
 use super::{
-    // database_singleton::singleton_db,
     catalog::Catalog,
     page::{BTreeLeafPage, BTreePageID},
 };
