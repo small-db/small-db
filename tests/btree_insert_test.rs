@@ -28,4 +28,9 @@ fn insert_rows() {
         // there are 3 pages: 1 root page + 2 leaf pages
         assert_eq!(3, btree_file.borrow().pages_count());
     }
+
+    // one more insert greater than 502 should cause page 2 to split
+    let tuple = simple_db_rust::Tuple::new_btree_tuple(753, 2);
+    btree_file.borrow().insert_tuple(tuple);
+    assert_eq!(4, btree_file.borrow().pages_count());
 }

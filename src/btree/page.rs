@@ -2,9 +2,12 @@ use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
 use bit_vec::BitVec;
 
+use crate::field::{FieldItem, get_type_length};
+
 use super::tuple::{Tuple, TupleScheme};
 
-use super::buffer_pool::PAGE_SIZE;
+use super::consts::PAGE_SIZE;
+use super::consts::INDEX_SIZE;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
@@ -62,7 +65,7 @@ fn test_page_category() {
 }
 
 pub struct BTreeLeafPage {
-    slot_count: usize,
+    pub slot_count: usize,
 
     // header bytes
     header: Vec<u8>,
@@ -75,11 +78,6 @@ pub struct BTreeLeafPage {
     parent: usize,
 
     pub page_id: BTreePageID,
-}
-
-pub struct BTreeLeafPageIterator<'a> {
-    page: &'a BTreeLeafPage,
-    cursor: usize,
 }
 
 impl BTreeLeafPage {
@@ -187,7 +185,9 @@ impl BTreeLeafPage {
         self.mark_slot_status(*slot_index, false);
     }
 
-    // Returns true if associated slot on this page is filled.
+    /**
+    Returns true if associated slot on this page is filled.
+    */
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
         let bv = BitVec::from_bytes(&self.header);
         bv[slot_index]
@@ -202,6 +202,11 @@ impl BTreeLeafPage {
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
         [0; PAGE_SIZE]
     }
+}
+
+pub struct BTreeLeafPageIterator<'a> {
+    page: &'a BTreeLeafPage,
+    cursor: usize,
 }
 
 impl<'a> BTreeLeafPageIterator<'a> {
@@ -226,6 +231,36 @@ impl<'a> Iterator for BTreeLeafPageIterator<'_> {
     }
 }
 
+pub struct BTreeLeafPageReverseIterator<'page> {
+    page: &'page BTreeLeafPage,
+    cursor: usize,
+}
+
+impl<'page> BTreeLeafPageReverseIterator<'page> {
+    pub fn new(page: &'page BTreeLeafPage) -> Self {
+        Self {
+            page,
+            cursor: page.slot_count - 1,
+        }
+    }
+}
+
+impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
+    type Item = Tuple;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.page.is_slot_used(self.cursor) {
+                return Some(self.page.tuples[self.cursor].clone());
+            } else if self.cursor == 0 {
+                return None;
+            } else {
+                self.cursor -= 1;
+            }
+        }
+    }
+}
+
 // Why we need boot BTreeRootPointerPage and BTreeRootPage?
 // Because as the tree rebalance (growth, shrinking), location
 // of the rootpage will change. So we need the BTreeRootPointerPage,
@@ -238,7 +273,7 @@ pub struct BTreeRootPointerPage {
 
 impl BTreeRootPointerPage {
     pub fn new(bytes: Vec<u8>) -> Self {
-        let root_page_index = i32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
+        let root_page_index = i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
         let root_pid = BTreePageID {
             category: PageCategory::Leaf,
             page_index: root_page_index,
@@ -253,8 +288,16 @@ impl BTreeRootPointerPage {
         PAGE_SIZE
     }
 
+    /**
+    get empty data, init root pid to 1
+    */
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        [0; PAGE_SIZE]
+        let mut data = [0; PAGE_SIZE];
+        let bytes = 1_i32.to_le_bytes();
+        for i in 0..4 {
+            data[i] = bytes[i];
+        }
+        data
     }
 
     pub fn get_root_pid(&self) -> BTreePageID {
@@ -309,18 +352,66 @@ pub struct BTreeInternalPage {
     page_id: BTreePageID,
 
     entries: Vec<Entry>,
+
+    slot_count: usize,
+
+    // header bytes
+    header: Vec<u8>,
 }
 
 impl BTreeInternalPage {
-    pub fn new(page_id: RefCell<BTreePageID>, _bytes: Vec<u8>, _key_field: usize) -> Self {
+    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: &FieldItem) -> Self {
+        let slot_count = Self::get_max_entries(get_type_length(key_field.field_type));
+        let header_size = Self::get_header_size(slot_count) as usize;
+
         Self {
             page_id: page_id.borrow().clone(),
             entries: Vec::new(),
+            slot_count: slot_count,
+            header: bytes[..header_size].to_vec(),
         }
+    }
+
+    fn get_header_size(entries_count: usize) -> usize {
+        todo!()
+    }
+    
+    /**
+    Retrieve the maximum number of entries this page can hold. (The number of keys)
+    */
+    fn get_max_entries(key_size: usize) -> usize {
+        let bitsPerEntryIncludingHeader = key_size * 8 + INDEX_SIZE * 8 + 1;
+        // // extraBits are: one parent pointer, 1 byte for child page category,
+        // // one extra child pointer (node with m entries has m+1 pointers to children), 1 bit for extra header
+        // int extraBits = 2 * INDEX_SIZE * 8 + 8 + 1;
+        // int entriesPerPage = (BufferPool.getPageSize() * 8 - extraBits) / bitsPerEntryIncludingHeader; //round down
+        // return entriesPerPage;
+
+        todo!()
     }
 
     pub fn get_id(&self) -> BTreePageID {
         self.page_id
+    }
+
+    pub fn empty_slots_count(&self) -> usize {
+        let mut count = 0;
+        // start from 1 because the first key slot is not used
+        // since a node with m keys has m+1 pointers
+        for i in 1..self.slot_count {
+            if !self.is_slot_used(i) {
+                count += 1
+            }
+        }
+        count
+    }
+
+    /**
+    Returns true if associated slot on this page is filled.
+    */
+    pub fn is_slot_used(&self, slot_index: usize) -> bool {
+        let bv = BitVec::from_bytes(&self.header);
+        bv[slot_index]
     }
 
     /**

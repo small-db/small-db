@@ -97,7 +97,7 @@ impl fmt::Display for Tuple {
 
 #[derive(Debug)]
 pub struct TupleScheme {
-    fields: Vec<FieldItem>,
+    pub fields: Vec<FieldItem>,
 }
 
 impl PartialEq for TupleScheme {

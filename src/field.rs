@@ -26,4 +26,8 @@ impl IntField {
     pub fn new(v: i32) -> IntField {
         IntField { value: v }
     }
+
+    pub fn len(&self) -> usize {
+        4
+    }
 }

@@ -1,12 +1,10 @@
-use super::{
-    buffer_pool::{BufferPool, PAGE_SIZE},
-    page::{BTreeLeafPage, BTreeLeafPageIterator, BTreePageID, BTreeRootPointerPage, Entry},
-};
+use super::{buffer_pool::{BufferPool}, page::{BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry}};
 use crate::btree::page::PageCategory;
 
 use core::fmt;
 use log::{debug, info};
 use std::borrow::Borrow;
+use super::consts::PAGE_SIZE;
 
 use std::{
     cell::RefCell,
@@ -58,9 +56,9 @@ impl BTreeTable {
 
         let f = RefCell::new(OpenOptions::new().write(true).read(true).open(file_path).unwrap());
 
-        let mut s = DefaultHasher::new();
-        file_path.hash(&mut s);
-        let table_id = s.finish() as i32;
+        let mut hasher = DefaultHasher::new();
+        file_path.hash(&mut hasher);
+        let table_id = hasher.finish() as i32;
 
         Self::file_init(f.borrow_mut(), table_id);
 
@@ -141,10 +139,10 @@ impl BTreeTable {
         let tuple_count = page.tuples_count();
         let move_tuple_count = tuple_count / 2;
 
-        let mut it = BTreeLeafPageIterator::new(&page);
+        let mut it = BTreeLeafPageReverseIterator::new(&page);
         let mut delete_indexes: Vec<usize> = Vec::new();
         let mut key = 0;
-        for i in 0..move_tuple_count {
+        for i in move_tuple_count..page.tuples_count() {
             let tuple = it.next().unwrap();
             delete_indexes.push(i);
             new_page.insert_tuple(&tuple);
@@ -227,6 +225,19 @@ impl BTreeTable {
                 let v = BufferPool::global().get_internal_page(&new_parent_id);
                 return v.unwrap();
             }
+            PageCategory::Internal => {
+                let page_ref = BufferPool::global().get_internal_page(&parent_id).unwrap();
+                let page = (*page_ref).borrow();
+                if page.empty_slots_count() > 0 {
+
+                } else {
+                    todo!()
+                }
+
+                // return page_ref
+
+                todo!()
+            }
             _ => {
                 todo!()
             }
@@ -303,8 +314,7 @@ impl BTreeTable {
     }
 
     /**
-    Get the root page pid. Create the root pointer page
-    and root page if necessary.
+    Get the root page pid.
     */
     pub fn get_root_pid(&self) -> BTreePageID {
         // get root pointer page

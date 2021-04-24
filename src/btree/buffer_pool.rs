@@ -5,6 +5,7 @@ use std::{
     io::{prelude::*, Result, Seek, SeekFrom},
     rc::Rc,
 };
+use super::consts::PAGE_SIZE;
 
 use log::debug;
 use std::{mem, sync::Once};
@@ -16,7 +17,6 @@ use super::{
     page::{BTreeLeafPage, BTreePageID},
 };
 
-pub const PAGE_SIZE: usize = 4096;
 
 pub struct BufferPool {
     roop_pointer_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
@@ -61,7 +61,8 @@ impl BufferPool {
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
         debug!("get page from disk, pid: {}", key);
         let start_pos = key.page_index * PAGE_SIZE;
-        file.seek(SeekFrom::Start(start_pos as u64)).expect("io error");
+        file.seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
 
         let mut buf: [u8; 4096] = [0; 4096];
         file.read_exact(&mut buf).expect("io error");
@@ -80,8 +81,11 @@ impl BufferPool {
                 let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
-                let page =
-                    BTreeInternalPage::new(RefCell::new(*key), buf.to_vec(), table.key_field);
+                let page = BTreeInternalPage::new(
+                    RefCell::new(*key),
+                    buf.to_vec(),
+                    &table.tuple_scheme.fields[table.key_field],
+                );
 
                 // 4. put page into buffer pool
                 self.internal_buffer
