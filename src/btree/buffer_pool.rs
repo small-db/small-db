@@ -1,3 +1,4 @@
+use super::consts::PAGE_SIZE;
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -5,7 +6,6 @@ use std::{
     io::{prelude::*, Result, Seek, SeekFrom},
     rc::Rc,
 };
-use super::consts::PAGE_SIZE;
 
 use log::debug;
 use std::{mem, sync::Once};
@@ -16,7 +16,6 @@ use super::{
     catalog::Catalog,
     page::{BTreeLeafPage, BTreePageID},
 };
-
 
 pub struct BufferPool {
     roop_pointer_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,

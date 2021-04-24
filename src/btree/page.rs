@@ -6,8 +6,7 @@ use crate::field::{get_type_length, FieldItem};
 
 use super::tuple::{Tuple, TupleScheme};
 
-use super::consts::INDEX_SIZE;
-use super::consts::PAGE_SIZE;
+use super::consts::{INDEX_SIZE, PAGE_SIZE};
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {

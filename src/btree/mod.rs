@@ -7,9 +7,9 @@ from the java version.
 
 pub mod buffer_pool;
 pub mod catalog;
+pub mod consts;
 pub mod entry;
 pub mod file;
-pub mod consts;
 pub mod page;
 pub mod page_id;
 pub mod tuple;
