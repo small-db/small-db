@@ -2,6 +2,7 @@
 fn insert_rows() {
     use simple_db_rust::{test_utils, BTreeTable, Catalog, Tuple};
     use std::{cell::RefCell, rc::Rc};
+    use log::{debug, info};
 
     test_utils::init_log();
 
@@ -13,6 +14,7 @@ fn insert_rows() {
     catalog.add_table(Rc::clone(&btree_file));
 
     // we should be able to add 502 tuples on one page
+    info!("start insert, count: {}", 502);
     for i in 0..502 {
         let tuple = Tuple::new_btree_tuple(i, 2);
         btree_file.borrow().insert_tuple(tuple);
@@ -21,6 +23,7 @@ fn insert_rows() {
 
     // the next 251 tuples should live on page 2 since they are greater than
     // all existing tuples in the file
+    info!("start insert, count: {}", 251);
     for i in 502..(502 + 251) {
         let tuple = simple_db_rust::Tuple::new_btree_tuple(i, 2);
         btree_file.borrow().insert_tuple(tuple);
@@ -30,6 +33,7 @@ fn insert_rows() {
     }
 
     // one more insert greater than 502 should cause page 2 to split
+    info!("start insert, count: {}", 1);
     let tuple = simple_db_rust::Tuple::new_btree_tuple(753, 2);
     btree_file.borrow().insert_tuple(tuple);
     assert_eq!(4, btree_file.borrow().pages_count());

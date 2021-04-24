@@ -1,10 +1,16 @@
-use super::{buffer_pool::{BufferPool}, page::{BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry}};
+use super::{
+    buffer_pool::BufferPool,
+    page::{
+        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID,
+        BTreeRootPointerPage, Entry,
+    },
+};
 use crate::btree::page::PageCategory;
 
+use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
 use std::borrow::Borrow;
-use super::consts::PAGE_SIZE;
 
 use std::{
     cell::RefCell,
@@ -54,7 +60,13 @@ impl BTreeTable {
     pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> BTreeTable {
         File::create(file_path).expect("io error");
 
-        let f = RefCell::new(OpenOptions::new().write(true).read(true).open(file_path).unwrap());
+        let f = RefCell::new(
+            OpenOptions::new()
+                .write(true)
+                .read(true)
+                .open(file_path)
+                .unwrap(),
+        );
 
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
@@ -229,14 +241,11 @@ impl BTreeTable {
                 let page_ref = BufferPool::global().get_internal_page(&parent_id).unwrap();
                 let page = (*page_ref).borrow();
                 if page.empty_slots_count() > 0 {
-
+                    return Rc::clone(&page_ref);
                 } else {
+                    // split upper parent
                     todo!()
                 }
-
-                // return page_ref
-
-                todo!()
             }
             _ => {
                 todo!()

@@ -2,12 +2,12 @@ use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
 use bit_vec::BitVec;
 
-use crate::field::{FieldItem, get_type_length};
+use crate::field::{get_type_length, FieldItem};
 
 use super::tuple::{Tuple, TupleScheme};
 
-use super::consts::PAGE_SIZE;
 use super::consts::INDEX_SIZE;
+use super::consts::PAGE_SIZE;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
@@ -367,27 +367,31 @@ impl BTreeInternalPage {
         Self {
             page_id: page_id.borrow().clone(),
             entries: Vec::new(),
-            slot_count: slot_count,
+            slot_count,
             header: bytes[..header_size].to_vec(),
         }
     }
 
-    fn get_header_size(entries_count: usize) -> usize {
-        todo!()
+    fn get_header_size(max_entries_count: usize) -> usize {
+        let slots_per_page = max_entries_count + 1;
+        let header_bytes = slots_per_page / 8;
+        header_bytes
     }
-    
+
     /**
     Retrieve the maximum number of entries this page can hold. (The number of keys)
     */
     fn get_max_entries(key_size: usize) -> usize {
-        let bitsPerEntryIncludingHeader = key_size * 8 + INDEX_SIZE * 8 + 1;
-        // // extraBits are: one parent pointer, 1 byte for child page category,
-        // // one extra child pointer (node with m entries has m+1 pointers to children), 1 bit for extra header
-        // int extraBits = 2 * INDEX_SIZE * 8 + 8 + 1;
-        // int entriesPerPage = (BufferPool.getPageSize() * 8 - extraBits) / bitsPerEntryIncludingHeader; //round down
-        // return entriesPerPage;
-
-        todo!()
+        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
+        /*
+        extraBits are: one parent pointer, 1 byte for child page category,
+        one extra child pointer (node with m entries has m+1 pointers to
+        children),
+        1 bit for extra header (why?)
+        */
+        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
+        let entries_per_page = (PAGE_SIZE * 8 - extra_bits) / bits_per_entry_including_header; //round down
+        entries_per_page
     }
 
     pub fn get_id(&self) -> BTreePageID {
