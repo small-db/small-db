@@ -120,6 +120,12 @@ impl BufferPool {
         Ok(Rc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
+    pub fn put_leaf_page(&mut self, page: BTreeLeafPage) {
+        self.leaf_buffer.insert(page.page_id, Rc::new(RefCell::new(page)));
+
+        // write to disk
+    }
+
     pub fn get_root_pointer_page(
         &mut self,
         key: &Key,

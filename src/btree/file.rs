@@ -112,8 +112,8 @@ impl BTreeTable {
             );
             info!("page split");
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
-            let mut new_leaf_page = (*new_container).borrow_mut();
-            new_leaf_page.insert_tuple(&tuple);
+            let mut leaf_page = (*new_container).borrow_mut();
+            leaf_page.insert_tuple(&tuple);
         } else {
             leaf_page.insert_tuple(&tuple);
         }
@@ -146,7 +146,10 @@ impl BTreeTable {
             self.table_id,
             self.get_empty_page_index(),
         ));
+
+        // TODO: maybe we should put it to buffer pool directly
         self.write_page(&new_page_id.borrow());
+        BufferPool::global().get_leaf_page(&new_page_id.borrow()).unwrap();
 
         let mut new_page = BTreeLeafPage::new(
             &new_page_id.borrow(),
@@ -156,17 +159,18 @@ impl BTreeTable {
 
         let tuple_count = page.tuples_count();
         let move_tuple_count = tuple_count / 2;
+        let move_start = tuple_count - move_tuple_count;
 
         let mut it = BTreeLeafPageReverseIterator::new(&page);
         let mut delete_indexes: Vec<usize> = Vec::new();
         let mut key = 0;
-        for i in move_tuple_count..page.tuples_count() {
+        for i in move_start..tuple_count {
             let tuple = it.next().unwrap();
             delete_indexes.push(i);
             new_page.insert_tuple(&tuple);
 
             // get key
-            if i == move_tuple_count - 1 {
+            if i == tuple_count - 1 {
                 key = tuple.get_field(key_field).value;
             }
         }
