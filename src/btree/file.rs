@@ -10,7 +10,7 @@ use crate::btree::page::PageCategory;
 use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
-use std::borrow::Borrow;
+use std::{borrow::Borrow, cell::Cell};
 
 use std::{
     cell::RefCell,
@@ -44,6 +44,8 @@ pub struct BTreeTable {
     file: RefCell<File>,
 
     table_id: i32,
+
+    page_index: Cell<usize>,
 }
 
 impl fmt::Display for BTreeTable {
@@ -80,6 +82,9 @@ impl BTreeTable {
             tuple_scheme: row_scheme,
             file: f,
             table_id,
+
+            // TODO: init it according to actual condition
+            page_index: Cell::new(1),
         }
     }
 
@@ -141,6 +146,7 @@ impl BTreeTable {
             self.table_id,
             self.get_empty_page_index(),
         ));
+        self.write_page(&new_page_id.borrow());
 
         let mut new_page = BTreeLeafPage::new(
             &new_page_id.borrow(),
@@ -167,6 +173,12 @@ impl BTreeTable {
         for i in &delete_indexes {
             page.delete_tuple(i);
         }
+        info!(
+            "move {} tuples to new page, expect: {}, new page has {} empty slots now",
+            delete_indexes.len(),
+            move_tuple_count,
+            new_page.empty_slots_count()
+        );
 
         if page.empty_slots_count() != delete_indexes.len() {
             panic!("{}", page.empty_slots_count());
@@ -178,20 +190,22 @@ impl BTreeTable {
         let parent_ref = self.get_parent_with_empty_slots(page.get_parent_id());
         let mut parent = (*parent_ref).borrow_mut();
 
-        let entry = Entry::new(key, &new_page_id.borrow().clone(), &page.page_id.borrow());
+        let entry = Entry::new(key, &page.page_id.borrow(), &new_page_id.borrow().clone());
         parent.insert_entry(&entry);
 
         // set parent id
         page.set_parent_id(&parent.get_id());
         new_page.set_parent_id(&parent.get_id());
 
-        let v = BufferPool::global().get_leaf_page(&*page.page_id.borrow());
+        let v = BufferPool::global().get_leaf_page(&new_page_id.borrow());
 
         v.unwrap()
     }
 
     fn get_empty_page_index(&self) -> usize {
-        self.pages_count() + 1
+        let index = self.page_index.get() + 1;
+        self.page_index.set(index);
+        index
     }
 
     /**
@@ -213,16 +227,7 @@ impl BTreeTable {
                 let empty_page_index = self.get_empty_page_index();
                 let new_parent_id =
                     BTreePageID::new(PageCategory::Internal, self.table_id, empty_page_index);
-
-                // write empty page to disk
-                let start_pos = BTreeRootPointerPage::page_size() + empty_page_index * PAGE_SIZE;
-                self.get_file()
-                    .seek(SeekFrom::Start(start_pos as u64))
-                    .expect("io error");
-                self.get_file()
-                    .write(&BTreeLeafPage::empty_page_data())
-                    .expect("io error");
-                self.get_file().flush().expect("io error");
+                self.write_page(&new_parent_id);
 
                 // update the root pointer
                 let page_id = BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);
@@ -320,6 +325,24 @@ impl BTreeTable {
             let file_length = file.metadata().unwrap().len();
             debug!("write complete, file length: {}", file_length);
         }
+    }
+
+    /**
+    write page to disk
+    */
+    fn write_page(&self, page_id: &BTreePageID) {
+        // write empty page to disk
+        info!("write page to disk, pid: {}", page_id);
+        let start_pos = BTreeRootPointerPage::page_size() + (page_id.page_index - 1) * PAGE_SIZE;
+        self.get_file()
+            .seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
+        self.get_file()
+            .write(&BTreeInternalPage::empty_page_data())
+            .expect("io error");
+        self.get_file().flush().expect("io error");
+        let file_length = self.get_file().metadata().unwrap().len();
+        debug!("write complete, file length: {}", file_length);
     }
 
     /**

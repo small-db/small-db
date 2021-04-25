@@ -14,13 +14,22 @@ A simple database writing in rust, inspired from mit 6.830
 
 - B+ tree storage structure
 - Buffer pool
-- Support insert
+- Insert
 - No transaction
 - No multi-threading
 - No RAL (write ahead log)
 
 ### 0.1.0
 
-- Support delete, query, update
+### 0.2.0
+
+- Page topology
+- Iterrator
+
+### 0.3.0
+
+- Delete, query, update
 
 ### 1.0.0
+
+- SQL (used for TPC test)

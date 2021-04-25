@@ -10,7 +10,7 @@ use std::{
 use log::debug;
 use std::{mem, sync::Once};
 
-use super::page::{BTreeInternalPage, BTreeRootPointerPage};
+use super::page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory};
 
 use super::{
     catalog::Catalog,
@@ -59,7 +59,10 @@ impl BufferPool {
 
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
         debug!("get page from disk, pid: {}", key);
-        let start_pos = key.page_index * PAGE_SIZE;
+        let start_pos: usize = match key.category {
+            PageCategory::RootPointer => 0,
+            _ => BTreeRootPointerPage::page_size() + (key.page_index - 1) * PAGE_SIZE,
+        };
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 

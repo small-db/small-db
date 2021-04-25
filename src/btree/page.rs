@@ -1,6 +1,7 @@
 use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
 
 use bit_vec::BitVec;
+use log::debug;
 
 use crate::field::{get_type_length, FieldItem};
 
@@ -61,6 +62,11 @@ fn test_page_category() {
     }
     println!("{}", c);
     assert_eq!(format!("{}", c), "HEADER");
+
+    let c = PageCategory::Internal;
+    println!("{}", c);
+    assert_eq!(format!("{}", c), "INTERNAL");
+    assert_eq!(format!("{:?}", c), "INTERNAL");
 }
 
 pub struct BTreeLeafPage {
@@ -304,6 +310,7 @@ impl BTreeRootPointerPage {
     }
 
     pub fn set_root_pid(&mut self, pid: &BTreePageID) {
+        debug!("set root pid: {}", pid);
         self.root_pid = *pid;
     }
 }
@@ -430,6 +437,10 @@ impl BTreeInternalPage {
 
     pub fn get_last_entry(&self) -> Entry {
         *self.entries.last().unwrap()
+    }
+
+    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
+        [0; PAGE_SIZE]
     }
 }
 
