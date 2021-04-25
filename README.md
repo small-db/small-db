@@ -21,10 +21,12 @@ A simple database writing in rust, inspired from mit 6.830
 
 ### 0.1.0
 
+- Publish to crates.io
+
 ### 0.2.0
 
 - Page topology
-- Iterrator
+- Iterator
 
 ### 0.3.0
 
