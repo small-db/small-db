@@ -1,7 +1,7 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID,
+        BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID,
         BTreeRootPointerPage, Entry,
     },
 };
