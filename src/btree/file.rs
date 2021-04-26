@@ -141,21 +141,23 @@ impl BTreeTable {
     ) -> Rc<RefCell<BTreeLeafPage>> {
         // 1. adding a new page on the right of the existing
         // page and moving half of the tuples to the new page
-        let new_page_id = RefCell::new(BTreePageID::new(
+        let new_page_id = BTreePageID::new(
             PageCategory::Leaf,
             self.table_id,
             self.get_empty_page_index(),
-        ));
+        );
 
-        // TODO: maybe we should put it to buffer pool directly
-        self.write_page(&new_page_id.borrow());
-        BufferPool::global().get_leaf_page(&new_page_id.borrow()).unwrap();
-
-        let mut new_page = BTreeLeafPage::new(
-            &new_page_id.borrow(),
+        let new_page = BTreeLeafPage::new(
+            &new_page_id,
             BTreeLeafPage::empty_page_data().to_vec(),
             page.tuple_scheme.clone(),
         );
+
+        // TODO: maybe we should put it to buffer pool directly
+        self.write_page(&new_page_id.borrow());
+        BufferPool::global().put_leaf_page(&mut self.get_file(), new_page_id, Rc::new(RefCell::new(new_page)));
+        let new_page_ref = BufferPool::global().get_leaf_page(&new_page_id).unwrap();
+        let mut new_page = (*new_page_ref).borrow_mut();
 
         let tuple_count = page.tuples_count();
         let move_tuple_count = tuple_count / 2;
@@ -194,7 +196,7 @@ impl BTreeTable {
         let parent_ref = self.get_parent_with_empty_slots(page.get_parent_id());
         let mut parent = (*parent_ref).borrow_mut();
 
-        let entry = Entry::new(key, &page.page_id.borrow(), &new_page_id.borrow().clone());
+        let entry = Entry::new(key, &page.page_id.borrow(), &new_page_id);
         parent.insert_entry(&entry);
 
         // set parent id

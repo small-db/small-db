@@ -109,6 +109,11 @@ impl BTreeLeafPage {
         }
     }
 
+    // TODO
+    pub fn serialize(&self) -> Vec<u8> {
+        Self::empty_page_data().to_vec()
+    }
+
     pub fn set_parent_id(&mut self, id: &BTreePageID) {
         self.parent = id.page_index;
     }

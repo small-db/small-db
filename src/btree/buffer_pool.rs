@@ -1,4 +1,5 @@
 use super::consts::PAGE_SIZE;
+use log::info;
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -120,10 +121,26 @@ impl BufferPool {
         Ok(Rc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
-    pub fn put_leaf_page(&mut self, page: BTreeLeafPage) {
-        self.leaf_buffer.insert(page.page_id, Rc::new(RefCell::new(page)));
+    /**
+    put a leaf page to buffer pool, add also write it to disk
+    */
+    pub fn put_leaf_page(
+        &mut self,
+        file: &mut File,
+        page_id: Key,
+        page: Rc<RefCell<BTreeLeafPage>>,
+    ) {
+        self.leaf_buffer.insert(page_id, Rc::clone(&page));
 
         // write to disk
+        info!("write page to disk, pid: {}", page_id);
+        let start_pos = BTreeRootPointerPage::page_size() + (page_id.page_index - 1) * PAGE_SIZE;
+        file.seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
+        file.write(&(*page).borrow().serialize()).expect("io error");
+        file.flush().expect("io error");
+        let file_length = file.metadata().unwrap().len();
+        debug!("write complete, file length: {}", file_length);
     }
 
     pub fn get_root_pointer_page(
