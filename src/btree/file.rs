@@ -155,7 +155,11 @@ impl BTreeTable {
 
         // TODO: maybe we should put it to buffer pool directly
         self.write_page(&new_page_id.borrow());
-        BufferPool::global().put_leaf_page(&mut self.get_file(), new_page_id, Rc::new(RefCell::new(new_page)));
+        BufferPool::global().put_leaf_page(
+            &mut self.get_file(),
+            new_page_id,
+            Rc::new(RefCell::new(new_page)),
+        );
         let new_page_ref = BufferPool::global().get_leaf_page(&new_page_id).unwrap();
         let mut new_page = (*new_page_ref).borrow_mut();
 
