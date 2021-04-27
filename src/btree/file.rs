@@ -122,8 +122,6 @@ impl BTreeTable {
         } else {
             leaf_page.insert_tuple(&tuple);
         }
-
-        // insert the tuple into the leaf page
     }
 
     /**
