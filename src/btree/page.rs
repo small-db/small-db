@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt};
+use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
 use log::debug;
@@ -214,24 +214,27 @@ impl BTreeLeafPage {
     }
 }
 
-pub struct BTreeLeafPageIterator<'a> {
-    page: &'a BTreeLeafPage,
+pub struct BTreeLeafPageIterator {
+    page: Rc<RefCell<BTreeLeafPage>>,
     cursor: usize,
 }
 
-impl<'a> BTreeLeafPageIterator<'a> {
-    pub fn new(page: &'a BTreeLeafPage) -> Self {
+impl BTreeLeafPageIterator {
+    pub fn new(page: Rc<RefCell<BTreeLeafPage>>) -> Self {
         Self { page, cursor: 0 }
     }
 }
 
-impl<'a> Iterator for BTreeLeafPageIterator<'_> {
+impl Iterator for BTreeLeafPageIterator {
     type Item = Tuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.cursor < self.page.slot_count {
-            if self.page.is_slot_used(self.cursor) {
-                return Some(self.page.tuples[self.cursor].clone());
+        let page = (*self.page).borrow();
+        while self.cursor < page.slot_count {
+            if page.is_slot_used(self.cursor) {
+                let tuple = page.tuples[self.cursor].clone();
+                self.cursor += 1;
+                return Some(tuple);
             } else {
                 self.cursor += 1;
             }

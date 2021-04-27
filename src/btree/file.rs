@@ -1,6 +1,9 @@
 use super::{
     buffer_pool::BufferPool,
-    page::{BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry},
+    page::{
+        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID,
+        BTreeRootPointerPage, Entry,
+    },
 };
 use crate::btree::page::PageCategory;
 
@@ -206,7 +209,7 @@ impl BTreeTable {
     }
 
     pub fn iterator(&self) -> BTreeTableIterator {
-        todo!()
+        BTreeTableIterator::new(self)
     }
 
     fn get_empty_page_index(&self) -> usize {
@@ -352,6 +355,27 @@ impl BTreeTable {
         debug!("write complete, file length: {}", file_length);
     }
 
+    fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
+        let page_id = self.get_root_pid();
+        match page_id.category {
+            PageCategory::Leaf => {
+                // get page and return directly
+                BufferPool::global().get_leaf_page(&page_id).unwrap()
+            }
+            PageCategory::Internal => {
+                let page_ref = BufferPool::global().get_internal_page(&page_id).unwrap();
+                let page = (*page_ref).borrow();
+                let entry = page.get_entries()[0];
+                BufferPool::global()
+                    .get_leaf_page(&entry.get_left_child())
+                    .unwrap()
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
+
     /**
     Get the root page pid.
     */
@@ -371,30 +395,46 @@ impl BTreeTable {
         root_pid
     }
 
-    /// The count of pages in this BTreeFile
-    ///
-    /// (BTreeRootPointerPage is not included)
+    /**
+    The count of pages in this BTreeFile
+
+    (BTreeRootPointerPage is not included)
+    */
     pub fn pages_count(&self) -> usize {
         let file_len = self.get_file().metadata().unwrap().len() as usize;
         (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
     }
 }
 
-pub struct BTreeTableIterator<'a> {
-    table: &'a BTreeTable,
+pub struct BTreeTableIterator<'table> {
+    table: &'table BTreeTable,
+    page: Rc<RefCell<BTreeLeafPage>>,
+    page_it: BTreeLeafPageIterator,
     cursor: usize,
 }
 
-impl<'a> BTreeTableIterator<'a> {
-    pub fn new(table: &'a BTreeTable) -> Self {
-        Self { table, cursor: 0 }
+impl<'table> BTreeTableIterator<'table> {
+    pub fn new(table: &'table BTreeTable) -> Self {
+        let page = table.get_first_page();
+
+        Self {
+            table,
+            page: Rc::clone(&page),
+            page_it: BTreeLeafPageIterator::new(Rc::clone(&page)),
+            cursor: 0,
+        }
     }
 }
 
-impl<'a> Iterator for BTreeTableIterator<'_> {
+impl<'table> Iterator for BTreeTableIterator<'table> {
     type Item = Tuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        None
+        let v = self.page_it.next();
+        if !v.is_none() {
+            return v;
+        }
+
+        todo!()
     }
 }

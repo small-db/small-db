@@ -128,7 +128,9 @@ impl TupleScheme {
         new_scheme
     }
 
-    /// get tuple size in bytes
+    /**
+    get tuple size in bytes
+    */
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
     }
@@ -159,4 +161,23 @@ pub fn simple_int_tuple_scheme(width: i32, name_prefix: &str) -> TupleScheme {
     }
 
     TupleScheme { fields: fields }
+}
+
+#[cfg(test)]
+mod tests {
+    use log::{debug, info};
+
+    use crate::util::init_log;
+
+    use super::*;
+
+    #[test]
+    fn test_tuple_clone() {
+        init_log();
+
+        let tuple = Tuple::new_btree_tuple(35, 2);
+        info!("tuple: {}", tuple);
+        let new_tuple = tuple.clone();
+        info!("new tuple: {}", new_tuple);
+    }
 }
