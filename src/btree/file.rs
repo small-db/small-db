@@ -437,7 +437,7 @@ impl<'table> Iterator for BTreeTableIterator<'table> {
 
         // 
         let v = (*self.page).borrow();
-        let right = v.get_right_sibling_pid();
+        let _right = v.get_right_sibling_pid();
 
         todo!()
     }
