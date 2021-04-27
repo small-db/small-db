@@ -2,12 +2,12 @@ use super::{
     buffer_pool::BufferPool,
     page::{BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry},
 };
-use crate::{btree::page::PageCategory};
+use crate::btree::page::PageCategory;
 
 use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
-use std::{borrow::Borrow, cell::{Cell}};
+use std::{borrow::Borrow, cell::Cell};
 
 use std::{
     cell::RefCell,
@@ -84,8 +84,6 @@ impl BTreeTable {
             page_index: Cell::new(1),
         }
     }
-
-    pub fn draw_page_topology(&self) {}
 
     pub fn get_id(&self) -> i32 {
         self.table_id
@@ -168,17 +166,13 @@ impl BTreeTable {
 
         let mut it = BTreeLeafPageReverseIterator::new(&page);
         let mut delete_indexes: Vec<usize> = Vec::new();
-        let mut key = 0;
-        for i in move_start..tuple_count {
-            let tuple = it.next().unwrap();
-            delete_indexes.push(i);
+        for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate() {
+            delete_indexes.push(i + move_start);
             new_page.insert_tuple(&tuple);
-
-            // get key
-            if i == tuple_count - 1 {
-                key = tuple.get_field(key_field).value;
-            }
         }
+        let tuple = it.next().unwrap();
+        let key = tuple.get_field(key_field).value;
+
         for i in &delete_indexes {
             page.delete_tuple(i);
         }
@@ -209,6 +203,10 @@ impl BTreeTable {
         let v = BufferPool::global().get_leaf_page(&new_page_id.borrow());
 
         v.unwrap()
+    }
+
+    pub fn iterator(&self) -> BTreeTableIterator {
+        todo!()
     }
 
     fn get_empty_page_index(&self) -> usize {
@@ -379,5 +377,24 @@ impl BTreeTable {
     pub fn pages_count(&self) -> usize {
         let file_len = self.get_file().metadata().unwrap().len() as usize;
         (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
+    }
+}
+
+pub struct BTreeTableIterator<'a> {
+    table: &'a BTreeTable,
+    cursor: usize,
+}
+
+impl<'a> BTreeTableIterator<'a> {
+    pub fn new(table: &'a BTreeTable) -> Self {
+        Self { table, cursor: 0 }
+    }
+}
+
+impl<'a> Iterator for BTreeTableIterator<'_> {
+    type Item = Tuple;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
     }
 }

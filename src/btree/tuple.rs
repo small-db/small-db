@@ -4,7 +4,7 @@ use std::{
     usize,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Tuple {
     scheme: TupleScheme,
     fields: Vec<IntField>,

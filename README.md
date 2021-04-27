@@ -25,7 +25,6 @@ A simple database writing in rust, inspired from mit 6.830
 
 ### 0.2.0
 
-- Page topology
 - Iterator
 
 ### 0.3.0
@@ -35,3 +34,4 @@ A simple database writing in rust, inspired from mit 6.830
 ### 1.0.0
 
 - SQL (used for TPC test)
+- Page topology

@@ -38,5 +38,19 @@ fn insert_rows() {
     table.insert_tuple(tuple);
     assert_eq!(4, table.pages_count());
 
-    table.draw_page_topology();
+    // table.draw_page_topology();
+    // // now make sure the records are sorted on the key field
+    // DbFileIterator it = empty.iterator(tid);
+    // it.open();
+    // int prev = -1;
+    // while (it.hasNext()) {
+    //     Tuple t = it.next();
+    //     int value = ((IntField) t.getField(0)).getValue();
+    //     assertTrue(value >= prev);
+    //     prev = value;
+    // }
+
+    // let it = table.iterator();
+    // for i in 
+    // let tuple = it.next().unwrap();
 }
