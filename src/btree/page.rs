@@ -88,7 +88,11 @@ pub struct BTreeLeafPage {
 }
 
 impl BTreeLeafPage {
-    pub fn new(page_id: &BTreePageID, bytes: Vec<u8>, tuple_scheme: TupleScheme) -> Self {
+    pub fn new(
+        page_id: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: TupleScheme,
+    ) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
         let header_size = Self::get_header_size(slot_count) as usize;
 
@@ -131,10 +135,18 @@ impl BTreeLeafPage {
 
     pub fn get_parent_id(&self) -> BTreePageID {
         if self.parent == 0 {
-            return BTreePageID::new(PageCategory::RootPointer, self.page_id.table_id, 0);
+            return BTreePageID::new(
+                PageCategory::RootPointer,
+                self.page_id.table_id,
+                0,
+            );
         }
 
-        return BTreePageID::new(PageCategory::Internal, self.page_id.table_id, self.parent);
+        return BTreePageID::new(
+            PageCategory::Internal,
+            self.page_id.table_id,
+            self.parent,
+        );
     }
 
     /**
@@ -142,11 +154,13 @@ impl BTreeLeafPage {
     */
     pub fn get_max_tuples(scheme: &TupleScheme) -> usize {
         let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
-        // extraBits are: left sibling pointer, right sibling pointer, parent pointer
+        // extraBits are: left sibling pointer, right sibling pointer, parent
+        // pointer
         let index_size: usize = 4;
         let extra_bits = 3 * index_size * 8;
-        // (BufferPool.getPageSize() * 8 - extraBits) / bitsPerTupleIncludingHeader; //round down
-        // singleton_db().get_buffer_pool()
+        // (BufferPool.getPageSize() * 8 - extraBits) /
+        // bitsPerTupleIncludingHeader; //round down singleton_db().
+        // get_buffer_pool()
         (PAGE_SIZE * 8 - extra_bits) / bits_per_tuple_including_header
         // todo!()
     }
@@ -173,8 +187,8 @@ impl BTreeLeafPage {
         slot_count / 8 + 1
     }
 
-    // Adds the specified tuple to the page such that all records remain in sorted order;
-    // the tuple should be updated to reflect
+    // Adds the specified tuple to the page such that all records remain in
+    // sorted order; the tuple should be updated to reflect
     // that it is now stored on this page.
     // tuple: The tuple to add.
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
@@ -190,8 +204,8 @@ impl BTreeLeafPage {
 
         // find the last key less than or equal to the key being inserted
 
-        // shift records back or forward to fill empty slot and make room for new record
-        // while keeping records in sorted order
+        // shift records back or forward to fill empty slot and make room for
+        // new record while keeping records in sorted order
 
         // insert new record into the correct spot in sorted order
         self.tuples[first_empty_slot] = tuple.clone();
@@ -293,7 +307,8 @@ pub struct BTreeRootPointerPage {
 
 impl BTreeRootPointerPage {
     pub fn new(bytes: Vec<u8>) -> Self {
-        let root_page_index = i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
+        let root_page_index =
+            i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
         let root_pid = BTreePageID {
             category: PageCategory::Leaf,
             page_index: root_page_index,
@@ -356,7 +371,11 @@ impl fmt::Display for BTreePageID {
 }
 
 impl BTreePageID {
-    pub fn new(category: PageCategory, table_id: i32, page_index: usize) -> Self {
+    pub fn new(
+        category: PageCategory,
+        table_id: i32,
+        page_index: usize,
+    ) -> Self {
         Self {
             category,
             page_index,
@@ -381,8 +400,13 @@ pub struct BTreeInternalPage {
 }
 
 impl BTreeInternalPage {
-    pub fn new(page_id: RefCell<BTreePageID>, bytes: Vec<u8>, key_field: &FieldItem) -> Self {
-        let slot_count = Self::get_max_entries(get_type_length(key_field.field_type));
+    pub fn new(
+        page_id: RefCell<BTreePageID>,
+        bytes: Vec<u8>,
+        key_field: &FieldItem,
+    ) -> Self {
+        let slot_count =
+            Self::get_max_entries(get_type_length(key_field.field_type));
         let header_size = Self::get_header_size(slot_count) as usize;
 
         Self {
@@ -411,7 +435,8 @@ impl BTreeInternalPage {
         1 bit for extra header (why?)
         */
         let extra_bits = 2 * INDEX_SIZE * 8 + 8;
-        let entries_per_page = (PAGE_SIZE * 8 - extra_bits) / bits_per_entry_including_header; //round down
+        let entries_per_page =
+            (PAGE_SIZE * 8 - extra_bits) / bits_per_entry_including_header; //round down
         entries_per_page
     }
 

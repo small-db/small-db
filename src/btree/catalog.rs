@@ -35,7 +35,8 @@ impl Catalog {
         });
 
         unsafe {
-            // Now we give out a copy of the data that is safe to use concurrently.
+            // Now we give out a copy of the data that is safe to use
+            // concurrently.
             SINGLETON.as_mut().unwrap()
         }
     }

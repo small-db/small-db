@@ -1,8 +1,8 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator, BTreePageID,
-        BTreeRootPointerPage, Entry,
+        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator,
+        BTreePageID, BTreeRootPointerPage, Entry,
     },
 };
 use crate::btree::page::PageCategory;
@@ -59,7 +59,11 @@ impl fmt::Display for BTreeTable {
 }
 
 impl BTreeTable {
-    pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> Self {
+    pub fn new(
+        file_path: &str,
+        key_field: usize,
+        row_scheme: TupleScheme,
+    ) -> Self {
         File::create(file_path).expect("io error");
 
         let f = RefCell::new(
@@ -102,7 +106,8 @@ impl BTreeTable {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let container = self.find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
+        let container = self
+            .find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
             info!(
@@ -160,7 +165,8 @@ impl BTreeTable {
             new_page_id,
             Rc::new(RefCell::new(new_page)),
         );
-        let new_page_ref = BufferPool::global().get_leaf_page(&new_page_id).unwrap();
+        let new_page_ref =
+            BufferPool::global().get_leaf_page(&new_page_id).unwrap();
         let mut new_page = (*new_page_ref).borrow_mut();
 
         let tuple_count = page.tuples_count();
@@ -235,12 +241,19 @@ impl BTreeTable {
         match parent_id.category {
             PageCategory::RootPointer => {
                 let empty_page_index = self.get_empty_page_index();
-                let new_parent_id =
-                    BTreePageID::new(PageCategory::Internal, self.table_id, empty_page_index);
+                let new_parent_id = BTreePageID::new(
+                    PageCategory::Internal,
+                    self.table_id,
+                    empty_page_index,
+                );
                 self.write_page(&new_parent_id);
 
                 // update the root pointer
-                let page_id = BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);
+                let page_id = BTreePageID::new(
+                    PageCategory::RootPointer,
+                    self.table_id,
+                    0,
+                );
                 let root_pointer_page = BufferPool::global()
                     .get_root_pointer_page(&page_id)
                     .unwrap();
@@ -253,7 +266,8 @@ impl BTreeTable {
                 return v.unwrap();
             }
             PageCategory::Internal => {
-                let page_ref = BufferPool::global().get_internal_page(&parent_id).unwrap();
+                let page_ref =
+                    BufferPool::global().get_internal_page(&parent_id).unwrap();
                 let page = (*page_ref).borrow();
                 if page.empty_slots_count() > 0 {
                     return Rc::clone(&page_ref);
@@ -278,20 +292,27 @@ impl BTreeTable {
     If f is null, it finds the left-most leaf page -- used
     for the iterator
     */
-    pub fn find_leaf_page(&self, page_id: BTreePageID, field: i32) -> Rc<RefCell<BTreeLeafPage>> {
+    pub fn find_leaf_page(
+        &self,
+        page_id: BTreePageID,
+        field: i32,
+    ) -> Rc<RefCell<BTreeLeafPage>> {
         match page_id.category {
             PageCategory::Leaf => {
                 // get page and return directly
                 return BufferPool::global().get_leaf_page(&page_id).unwrap();
             }
             PageCategory::Internal => {
-                let page_ref = BufferPool::global().get_internal_page(&page_id).unwrap();
+                let page_ref =
+                    BufferPool::global().get_internal_page(&page_id).unwrap();
                 let page = (*page_ref).borrow();
 
                 for entry in page.get_entries() {
                     if entry.key >= field {
                         let left = entry.get_left_child();
-                        return BufferPool::global().get_leaf_page(&left).unwrap();
+                        return BufferPool::global()
+                            .get_leaf_page(&left)
+                            .unwrap();
                     }
                 }
 
@@ -317,7 +338,8 @@ impl BTreeTable {
         if file.metadata().unwrap().len() == 0 {
             // if db file is empty, create root pointer page at first
             debug!("db file empty, start init");
-            let empty_root_pointer_data = BTreeRootPointerPage::empty_page_data();
+            let empty_root_pointer_data =
+                BTreeRootPointerPage::empty_page_data();
             let empty_leaf_data = BTreeLeafPage::empty_page_data();
             let mut n = file.write(&empty_root_pointer_data).unwrap();
             debug!(
@@ -343,7 +365,8 @@ impl BTreeTable {
     fn write_page(&self, page_id: &BTreePageID) {
         // write empty page to disk
         info!("write page to disk, pid: {}", page_id);
-        let start_pos = BTreeRootPointerPage::page_size() + (page_id.page_index - 1) * PAGE_SIZE;
+        let start_pos = BTreeRootPointerPage::page_size()
+            + (page_id.page_index - 1) * PAGE_SIZE;
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
@@ -363,7 +386,8 @@ impl BTreeTable {
                 BufferPool::global().get_leaf_page(&page_id).unwrap()
             }
             PageCategory::Internal => {
-                let page_ref = BufferPool::global().get_internal_page(&page_id).unwrap();
+                let page_ref =
+                    BufferPool::global().get_internal_page(&page_id).unwrap();
                 let page = (*page_ref).borrow();
                 let entry = page.get_entries()[0];
                 BufferPool::global()
@@ -435,7 +459,7 @@ impl<'table> Iterator for BTreeTableIterator<'table> {
             return v;
         }
 
-        // 
+        //
         let v = (*self.page).borrow();
         let _right = v.get_right_sibling_pid();
 
