@@ -106,24 +106,24 @@ impl BTreeTable {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let container = self
+        let page_ref = self
             .find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
-        let mut leaf_page = (*container).borrow_mut();
-        if leaf_page.empty_slots_count() == 0 {
-            info!(
-                "page full: {}, empty slots: {}",
-                leaf_page.page_id.borrow(),
-                leaf_page.empty_slots_count()
-            );
-            info!("page split");
-            let new_container = self.split_leaf_page(leaf_page, self.key_field);
-            let mut leaf_page = (*new_container).borrow_mut();
-            leaf_page.insert_tuple(&tuple);
-        } else {
-            leaf_page.insert_tuple(&tuple);
+        if (*page_ref).borrow().empty_slots_count() == 0 {
+            // info!("page split on {}", leaf_page.page_id);
+            let new_leaf_ref =
+                self.split_leaf_page(Rc::clone(&page_ref), self.key_field);
+            let mut new_leaf = (*new_leaf_ref).borrow_mut();
+            new_leaf.insert_tuple(&tuple);
         }
-
-        // insert the tuple into the leaf page
+        let mut leaf_page = (*page_ref).borrow_mut();
+        // if leaf_page.empty_slots_count() == 0 {
+        //     info!("page split on {}", leaf_page.page_id);
+        //     let new_leaf_ref =
+        //         self.split_leaf_page(Rc::clone(&page_ref), self.key_field);
+        //     let mut new_leaf = (*new_leaf_ref).borrow_mut();
+        //     new_leaf.insert_tuple(&tuple);
+        // }
+        leaf_page.insert_tuple(&tuple);
     }
 
     /**
@@ -141,9 +141,10 @@ impl BTreeTable {
     */
     pub fn split_leaf_page(
         &self,
-        mut page: RefMut<BTreeLeafPage>,
+        page_ref: Rc<RefCell<BTreeLeafPage>>,
         key_field: usize,
     ) -> Rc<RefCell<BTreeLeafPage>> {
+        let page = (*page_ref).borrow();
         // 1. adding a new page on the right of the existing
         // page and moving half of the tuples to the new page
         let new_page_id = BTreePageID::new(
@@ -173,15 +174,16 @@ impl BTreeTable {
         let move_tuple_count = tuple_count / 2;
         let move_start = tuple_count - move_tuple_count;
 
-        let mut it = BTreeLeafPageReverseIterator::new(&page);
+        let mut it = BTreeLeafPageIterator::new(Rc::clone(&page_ref));
         let mut delete_indexes: Vec<usize> = Vec::new();
-        for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate() {
+        for (i, tuple) in it.by_ref().skip(move_start).enumerate() {
             delete_indexes.push(i + move_start);
             new_page.insert_tuple(&tuple);
         }
-        let tuple = it.next().unwrap();
+        let tuple = page.get_tuple(move_start - 1).unwrap();
         let key = tuple.get_field(key_field).value;
 
+        let mut page = (*page_ref).borrow_mut();
         for i in &delete_indexes {
             page.delete_tuple(i);
         }
@@ -208,6 +210,9 @@ impl BTreeTable {
         // set parent id
         page.set_parent_id(&parent.get_id());
         new_page.set_parent_id(&parent.get_id());
+
+        // set sibling id
+        page.set_right_sibling_pid(&new_page_id.page_index);
 
         let v = BufferPool::global().get_leaf_page(&new_page_id.borrow());
 
@@ -448,6 +453,10 @@ impl<'table> BTreeTableIterator<'table> {
             cursor: 0,
         }
     }
+
+    fn set_page(&mut self, page: Rc<RefCell<BTreeLeafPage>>) {
+        self.page = Rc::clone(&page)
+    }
 }
 
 impl<'table> Iterator for BTreeTableIterator<'table> {
@@ -459,10 +468,14 @@ impl<'table> Iterator for BTreeTableIterator<'table> {
             return v;
         }
 
-        //
-        let v = (*self.page).borrow();
-        let _right = v.get_right_sibling_pid();
-
-        todo!()
+        let right_option = (*self.page).borrow().get_right_sibling_pid();
+        if let Some(right) = right_option {
+            let page_ref = BufferPool::global().get_leaf_page(&right).unwrap();
+            self.page = Rc::clone(&page_ref);
+            self.page_it = BTreeLeafPageIterator::new(Rc::clone(&page_ref));
+            return self.page_it.next();
+        } else {
+            return None;
+        }
     }
 }

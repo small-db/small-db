@@ -76,7 +76,7 @@ pub struct BTreeLeafPage {
     header: Vec<u8>,
 
     // all tuples (include empty tuples)
-    tuples: Vec<Tuple>,
+    pub tuples: Vec<Tuple>,
 
     pub tuple_scheme: TupleScheme,
 
@@ -125,12 +125,20 @@ impl BTreeLeafPage {
         self.parent = id.page_index;
     }
 
-    pub fn get_right_sibling_pid(&self) -> BTreePageID {
-        BTreePageID::new(
-            PageCategory::Leaf,
-            self.page_id.table_id,
-            self.right_sibling_id,
-        )
+    pub fn set_right_sibling_pid(&mut self, page_index: &usize) {
+        self.right_sibling_id = *page_index;
+    }
+
+    pub fn get_right_sibling_pid(&self) -> Option<BTreePageID> {
+        if self.right_sibling_id == 0 {
+            return None;
+        } else {
+            return Some(BTreePageID::new(
+                PageCategory::Leaf,
+                self.page_id.table_id,
+                self.right_sibling_id,
+            ));
+        }
     }
 
     pub fn get_parent_id(&self) -> BTreePageID {
@@ -212,6 +220,13 @@ impl BTreeLeafPage {
         self.mark_slot_status(first_empty_slot, true);
     }
 
+    pub fn get_tuple(&self, slot_index: usize) -> Option<Tuple> {
+        if self.is_slot_used(slot_index) {
+            return Some(self.tuples[slot_index].clone());
+        }
+        None
+    }
+
     pub fn delete_tuple(&mut self, slot_index: &usize) {
         self.mark_slot_status(*slot_index, false);
     }
@@ -274,7 +289,7 @@ impl<'page> BTreeLeafPageReverseIterator<'page> {
     pub fn new(page: &'page BTreeLeafPage) -> Self {
         Self {
             page,
-            cursor: page.slot_count - 1,
+            cursor: page.slot_count,
         }
     }
 }
@@ -285,6 +300,7 @@ impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.page.is_slot_used(self.cursor) {
+                self.cursor -= 1;
                 return Some(self.page.tuples[self.cursor].clone());
             } else if self.cursor == 0 {
                 return None;
