@@ -76,7 +76,7 @@ pub struct BTreeLeafPage {
     header: Vec<u8>,
 
     // all tuples (include empty tuples)
-    pub tuples: Vec<Tuple>,
+    tuples: Vec<Tuple>,
 
     pub tuple_scheme: TupleScheme,
 
