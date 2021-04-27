@@ -83,6 +83,8 @@ pub struct BTreeLeafPage {
     parent: usize,
 
     pub page_id: BTreePageID,
+
+    right_sibling_id: usize,
 }
 
 impl BTreeLeafPage {
@@ -106,6 +108,7 @@ impl BTreeLeafPage {
             tuple_scheme,
             parent: 0,
             page_id: *page_id,
+            right_sibling_id: 0,
         }
     }
 
@@ -118,16 +121,20 @@ impl BTreeLeafPage {
         self.parent = id.page_index;
     }
 
+    pub fn get_right_sibling_pid(&self) -> BTreePageID {
+        BTreePageID::new(
+            PageCategory::Leaf,
+            self.page_id.table_id,
+            self.right_sibling_id,
+        )
+    }
+
     pub fn get_parent_id(&self) -> BTreePageID {
         if self.parent == 0 {
-            return BTreePageID::new(PageCategory::RootPointer, self.page_id.borrow().table_id, 0);
+            return BTreePageID::new(PageCategory::RootPointer, self.page_id.table_id, 0);
         }
 
-        return BTreePageID::new(
-            PageCategory::Internal,
-            self.page_id.borrow().table_id,
-            self.parent,
-        );
+        return BTreePageID::new(PageCategory::Internal, self.page_id.table_id, self.parent);
     }
 
     /**

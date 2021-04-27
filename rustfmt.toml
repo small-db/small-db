@@ -4,3 +4,4 @@ imports_layout = "Mixed"
 imports_granularity = "Crate"
 
 blank_lines_lower_bound = 0
+wrap_comments = true
