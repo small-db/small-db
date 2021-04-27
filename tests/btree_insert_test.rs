@@ -41,8 +41,5 @@ fn insert_rows() {
     let it = table.iterator();
     for (i, tuple) in it.enumerate() {
         info!("i: {}, tuple: {}", i, tuple);
-        if i > 1 {
-            break;
-        }
     }
 }
