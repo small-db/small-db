@@ -2,12 +2,12 @@ use super::{
     buffer_pool::BufferPool,
     page::{BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry},
 };
-use crate::{Catalog, btree::page::PageCategory};
+use crate::{btree::page::PageCategory};
 
 use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
-use std::{borrow::Borrow, cell::{Cell, Ref}};
+use std::{borrow::Borrow, cell::{Cell}};
 
 use std::{
     cell::RefCell,
