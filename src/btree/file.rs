@@ -1,16 +1,13 @@
 use super::{
     buffer_pool::BufferPool,
-    page::{
-        BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID,
-        BTreeRootPointerPage, Entry,
-    },
+    page::{BTreeLeafPage, BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry},
 };
-use crate::btree::page::PageCategory;
+use crate::{Catalog, btree::page::PageCategory};
 
 use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
-use std::{borrow::Borrow, cell::Cell};
+use std::{borrow::Borrow, cell::{Cell, Ref}};
 
 use std::{
     cell::RefCell,
@@ -59,7 +56,7 @@ impl fmt::Display for BTreeTable {
 }
 
 impl BTreeTable {
-    pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> BTreeTable {
+    pub fn new(file_path: &str, key_field: usize, row_scheme: TupleScheme) -> Self {
         File::create(file_path).expect("io error");
 
         let f = RefCell::new(
@@ -76,7 +73,7 @@ impl BTreeTable {
 
         Self::file_init(f.borrow_mut(), table_id);
 
-        BTreeTable {
+        Self {
             file_path: file_path.to_string(),
             key_field,
             tuple_scheme: row_scheme,
@@ -87,6 +84,8 @@ impl BTreeTable {
             page_index: Cell::new(1),
         }
     }
+
+    pub fn draw_page_topology(&self) {}
 
     pub fn get_id(&self) -> i32 {
         self.table_id
