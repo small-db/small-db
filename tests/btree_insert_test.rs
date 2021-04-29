@@ -21,6 +21,12 @@ fn insert_rows() {
         assert_eq!(1, table.pages_count());
     }
 
+    let it = table.iterator();
+    for (i, tuple) in it.enumerate() {
+        info!("i: {}, tuple: {}", i, tuple);
+        assert_eq!(i, tuple.get_field(0).value as usize);
+    }
+
     // the next 251 tuples should live on page 2 since they are greater than
     // all existing tuples in the file
     info!("start insert, count: {}", 251);
@@ -41,5 +47,6 @@ fn insert_rows() {
     let it = table.iterator();
     for (i, tuple) in it.enumerate() {
         info!("i: {}, tuple: {}", i, tuple);
+        assert_eq!(i, tuple.get_field(0).value as usize);
     }
 }

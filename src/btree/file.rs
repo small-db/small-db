@@ -154,6 +154,7 @@ impl BTreeTable {
             &new_page_id,
             BTreeLeafPage::empty_page_data().to_vec(),
             page.tuple_scheme.clone(),
+            self.key_field,
         );
 
         // TODO: maybe we should put it to buffer pool directly

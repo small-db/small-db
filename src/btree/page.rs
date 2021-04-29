@@ -85,6 +85,8 @@ pub struct BTreeLeafPage {
     pub page_id: BTreePageID,
 
     right_sibling_id: usize,
+
+    key_field: usize,
 }
 
 impl BTreeLeafPage {
@@ -92,6 +94,7 @@ impl BTreeLeafPage {
         page_id: &BTreePageID,
         bytes: Vec<u8>,
         tuple_scheme: TupleScheme,
+        key_field: usize,
     ) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
         let header_size = Self::get_header_size(slot_count) as usize;
@@ -113,6 +116,7 @@ impl BTreeLeafPage {
             parent: 0,
             page_id: *page_id,
             right_sibling_id: 0,
+            key_field,
         }
     }
 
@@ -195,10 +199,12 @@ impl BTreeLeafPage {
         slot_count / 8 + 1
     }
 
-    // Adds the specified tuple to the page such that all records remain in
-    // sorted order; the tuple should be updated to reflect
-    // that it is now stored on this page.
-    // tuple: The tuple to add.
+    /**
+    Adds the specified tuple to the page such that all records remain in
+    sorted order; the tuple should be updated to reflect
+    that it is now stored on this page.
+    tuple: The tuple to add.
+    */
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
         let mut first_empty_slot = 0;
@@ -211,13 +217,49 @@ impl BTreeLeafPage {
         }
 
         // find the last key less than or equal to the key being inserted
+        let mut last_less_slot = 0;
+        for i in 0..self.slot_count {
+            if self.is_slot_used(i) {
+                if self.tuples[i].get_field(self.key_field)
+                    < tuple.get_field(self.key_field)
+                {
+                    last_less_slot = i;
+                } else {
+                    break;
+                }
+            }
+        }
 
         // shift records back or forward to fill empty slot and make room for
         // new record while keeping records in sorted order
+        let good_slot: usize;
+        if first_empty_slot < last_less_slot {
+            for i in first_empty_slot..last_less_slot {
+                self.move_tuple(i + 1, i);
+            }
+            good_slot = last_less_slot;
+        } else {
+            for i in (last_less_slot + 1..first_empty_slot).rev() {
+                self.move_tuple(i, i + 1);
+            }
+            good_slot = last_less_slot + 1;
+        }
 
         // insert new record into the correct spot in sorted order
-        self.tuples[first_empty_slot] = tuple.clone();
-        self.mark_slot_status(first_empty_slot, true);
+        self.tuples[good_slot] = tuple.clone();
+        self.mark_slot_status(good_slot, true);
+
+        debug!(
+            "good slot: {}, first: {}, last: {}",
+            good_slot, first_empty_slot, last_less_slot
+        );
+    }
+
+    // Move a tuple from one slot to another slot, destination must be empty
+    fn move_tuple(&mut self, from: usize, to: usize) {
+        self.tuples[to] = self.tuples[from].clone();
+        self.mark_slot_status(to, true);
+        self.mark_slot_status(from, false);
     }
 
     pub fn get_tuple(&self, slot_index: usize) -> Option<Tuple> {

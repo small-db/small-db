@@ -127,6 +127,7 @@ impl BufferPool {
                     key,
                     buf.to_vec(),
                     table.tuple_scheme.clone(),
+                    table.key_field,
                 );
 
                 // 4. put page into buffer pool
