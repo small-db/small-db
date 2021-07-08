@@ -1,6 +1,7 @@
 # simple-db-rust
 
 [![docs](https://docs.rs/simple-db-rust/badge.svg)](https://docs.rs/simple-db-rust)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust?ref=badge_shield)
 
 [![Build Status](https://travis-ci.org/XiaochenCui/simple-db-rust.svg?branch=master)](https://travis-ci.org/XiaochenCui/simple-db-rust)
 [![codecov](https://codecov.io/gh/XiaochenCui/simple-db-rust/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/simple-db-rust)
@@ -35,3 +36,6 @@ A simple database writing in rust, inspired from mit 6.830
 
 - SQL (used for TPC test)
 - Page topology
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust?ref=badge_large)
