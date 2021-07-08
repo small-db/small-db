@@ -35,3 +35,7 @@ A simple database writing in rust, inspired from mit 6.830
 
 - SQL (used for TPC test)
 - Page topology
+
+## License
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust?ref=badge_large)
