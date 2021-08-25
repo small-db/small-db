@@ -13,26 +13,26 @@ fn insert_rows() {
     Catalog::global().add_table(Rc::clone(&table_ref));
     let table = table_ref.borrow();
 
-    // we should be able to add 502 tuples on one page
-    info!("start insert, count: {}", 502);
-    for i in 0..502 {
-        let tuple = Tuple::new_btree_tuple(i, 2);
-        table.insert_tuple(tuple);
-        assert_eq!(1, table.pages_count());
-    }
+    let mut insert_value = 0;
 
-    let it = table.iterator();
-    for (i, tuple) in it.enumerate() {
-        info!("i: {}, tuple: {}", i, tuple);
-        assert_eq!(i, tuple.get_field(0).value as usize);
+    // we should be able to add 502 tuples on one page
+    let mut insert_count = 502;
+    info!("start insert, count: {}", insert_count);
+    for _ in 0..insert_count {
+        let tuple = Tuple::new_btree_tuple(insert_value, 2);
+        table.insert_tuple(tuple);
+        insert_value += 1;
+        assert_eq!(1, table.pages_count());
     }
 
     // the next 251 tuples should live on page 2 since they are greater than
     // all existing tuples in the file
-    info!("start insert, count: {}", 251);
-    for i in 502..(502 + 251) {
-        let tuple = simple_db_rust::Tuple::new_btree_tuple(i, 2);
+    insert_count = 251;
+    info!("start insert, count: {}", insert_count);
+    for _ in 0..insert_count {
+        let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(tuple);
+        insert_value += 1;
 
         // there are 3 pages: 1 root page + 2 leaf pages
         assert_eq!(3, table.pages_count());
@@ -40,13 +40,14 @@ fn insert_rows() {
 
     // one more insert greater than 502 should cause page 2 to split
     info!("start insert, count: {}", 1);
-    let tuple = simple_db_rust::Tuple::new_btree_tuple(753, 2);
+    let tuple = Tuple::new_btree_tuple(insert_value, 2);
     table.insert_tuple(tuple);
+
+    // there are 4 pages: 1 root page + 3 leaf pages
     assert_eq!(4, table.pages_count());
 
     let it = table.iterator();
     for (i, tuple) in it.enumerate() {
-        info!("i: {}, tuple: {}", i, tuple);
         assert_eq!(i, tuple.get_field(0).value as usize);
     }
 }

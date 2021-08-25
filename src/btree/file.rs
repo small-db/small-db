@@ -184,11 +184,20 @@ impl BTreeTable {
         for i in &delete_indexes {
             page.delete_tuple(i);
         }
-        info!(
-            "move {} tuples to new page, expect: {}, new page has {} empty slots now",
+        debug!(
+            "move tuples to new page, expect move: {}, actual move: {}",
             delete_indexes.len(),
             move_tuple_count,
-            new_page.empty_slots_count()
+        );
+        debug!(
+            "page slot count: {} filled, {} empty",
+            page.tuples_count(),
+            page.empty_slots_count(),
+        );
+        debug!(
+            "new_page slot count: {} filled, {} empty",
+            new_page.tuples_count(),
+            new_page.empty_slots_count(),
         );
 
         if page.empty_slots_count() != delete_indexes.len() {

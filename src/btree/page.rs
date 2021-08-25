@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
-use log::debug;
+use log::{debug, info};
 
 use crate::field::{get_type_length, FieldItem};
 
@@ -207,23 +207,26 @@ impl BTreeLeafPage {
     */
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
-        let mut first_empty_slot = 0;
+        let mut first_empty_slot: i32 = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
-                first_empty_slot = i;
+                first_empty_slot = i as i32;
                 // debug!("first emply slot: {}", first_empty_slot);
                 break;
             }
         }
 
-        // find the last key less than or equal to the key being inserted
-        let mut last_less_slot = 0;
+        // Find the last key less than or equal to the key being inserted.
+        //
+        // -1 indicate there is no such key less than tuple.key, so the tuple
+        // should be inserted in slot 0 (-1 + 1).
+        let mut last_less_slot: i32 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
                 if self.tuples[i].get_field(self.key_field)
                     < tuple.get_field(self.key_field)
                 {
-                    last_less_slot = i;
+                    last_less_slot = i as i32;
                 } else {
                     break;
                 }
@@ -235,14 +238,14 @@ impl BTreeLeafPage {
         let good_slot: usize;
         if first_empty_slot < last_less_slot {
             for i in first_empty_slot..last_less_slot {
-                self.move_tuple(i + 1, i);
+                self.move_tuple((i + 1) as usize, i as usize);
             }
-            good_slot = last_less_slot;
+            good_slot = last_less_slot as usize;
         } else {
             for i in (last_less_slot + 1..first_empty_slot).rev() {
-                self.move_tuple(i, i + 1);
+                self.move_tuple(i as usize, (i + 1) as usize);
             }
-            good_slot = last_less_slot + 1;
+            good_slot = (last_less_slot + 1) as usize;
         }
 
         // insert new record into the correct spot in sorted order
@@ -342,8 +345,9 @@ impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if self.page.is_slot_used(self.cursor) {
+                let tuple = self.page.tuples[self.cursor].clone();
                 self.cursor -= 1;
-                return Some(self.page.tuples[self.cursor].clone());
+                return Some(tuple);
             } else if self.cursor == 0 {
                 return None;
             } else {
