@@ -2,7 +2,7 @@
 
 [![docs](https://docs.rs/simple-db-rust/badge.svg)](https://docs.rs/simple-db-rust)
 
-[![Build Status](https://travis-ci.org/XiaochenCui/simple-db-rust.svg?branch=master)](https://travis-ci.org/XiaochenCui/simple-db-rust)
+[![Rust](https://github.com/XiaochenCui/simple-db-rust/actions/workflows/rust.yml/badge.svg)](https://github.com/XiaochenCui/simple-db-rust/actions/workflows/rust.yml)
 [![codecov](https://codecov.io/gh/XiaochenCui/simple-db-rust/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/simple-db-rust)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
 
