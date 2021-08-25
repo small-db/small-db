@@ -28,3 +28,6 @@ pub:
 	git push
 	cargo login
 	cargo publish
+
+setup:
+	
