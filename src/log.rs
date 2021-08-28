@@ -3,7 +3,7 @@ use std::io::Write;
 
 pub fn init_log() {
     let mut builder = Builder::from_default_env();
-    builder
+    match builder
         .format_timestamp_secs()
         .format(|buf, record| {
             writeln!(
@@ -15,5 +15,9 @@ pub fn init_log() {
                 record.args()
             )
         })
-        .init();
+        .try_init()
+    {
+        Ok(_) => (),
+        Err(_) => (),
+    }
 }

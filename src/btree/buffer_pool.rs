@@ -59,6 +59,12 @@ impl BufferPool {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.roop_pointer_buffer.clear();
+        self.internal_buffer.clear();
+        self.leaf_buffer.clear();
+    }
+
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
         debug!("get page from disk, pid: {}", key);
         let start_pos: usize = match key.category {

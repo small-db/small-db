@@ -72,8 +72,8 @@ fn test_page_category() {
 pub struct BTreeLeafPage {
     pub slot_count: usize,
 
-    // header bytes
-    header: Vec<u8>,
+    // indicate slots' status: true means occupied, false means empty
+    header: BitVec<u32>,
 
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
@@ -110,7 +110,7 @@ impl BTreeLeafPage {
 
         Self {
             slot_count,
-            header: bytes[..header_size].to_vec(),
+            header: BitVec::from_bytes(&bytes[..header_size]),
             tuples,
             tuple_scheme,
             parent: 0,
@@ -280,14 +280,14 @@ impl BTreeLeafPage {
     Returns true if associated slot on this page is filled.
     */
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
-        let bv = BitVec::from_bytes(&self.header);
-        bv[slot_index]
+        self.header[slot_index]
     }
 
+    /*
+    mark the slot as empty/filled.
+    */
     pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
-        let mut bv = BitVec::from_bytes(&self.header);
-        bv.set(slot_index, used);
-        self.header = bv.to_bytes();
+        self.header.set(slot_index, used);
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {

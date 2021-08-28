@@ -1,10 +1,11 @@
 use log::info;
 use simple_db_rust::*;
 use std::{cell::RefCell, rc::Rc};
+mod common;
 
 #[test]
 fn insert_tuple() {
-    test_utils::init_log();
+    common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let path = "btree.db";
@@ -53,17 +54,9 @@ fn insert_tuple() {
     }
 }
 
-// run test:
-// cargo test --package simple-db-rust --test btree_insert_test --all-features -- insert_duplicate_tuples --exact --nocapture
-// 
-// binary name example:
-// target/debug/deps/btree_insert_test-633392dbbebdad3c
-// 
-// run binary:
-// target/debug/deps/btree_insert_test-633392dbbebdad3c -- insert_duplicate_tuples --exact --nocapture
 #[test]
 fn insert_duplicate_tuples() {
-    test_utils::init_log();
+    common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let path = "btree.db";
@@ -81,16 +74,8 @@ fn insert_duplicate_tuples() {
         }
     }
 
-    let it = table.iterator();
-    for (i, tuple) in it.enumerate() {
-        info!("{} tuple: {}", i, tuple);
-    }
-
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(Op::Equals, field::IntField::new(0));
     let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
     assert_eq!(it.count(), repetition_count);
-    // for (i, tuple) in it.enumerate() {
-    //     info!("--- search ---- {} tuple: {}", i, tuple);
-    // }
 }
