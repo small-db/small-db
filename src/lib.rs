@@ -1,10 +1,13 @@
-mod field;
+pub mod field;
 mod page_id;
 pub mod util;
 
-mod btree;
+pub mod btree;
 
 mod log;
 
-pub use btree::{catalog::Catalog, file::BTreeTable, tuple::Tuple};
+pub use btree::{
+    catalog::Catalog, file::BTreeTable, file::Predicate, file::Op,
+    tuple::Tuple,
+};
 pub use util as test_utils;

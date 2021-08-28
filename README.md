@@ -15,9 +15,6 @@ A simple database writing in rust, inspired from mit 6.830
 - B+ tree storage structure
 - Buffer pool
 - Insert
-- No transaction
-- No multi-threading
-- No RAL (write ahead log)
 
 ### 0.1.0
 
@@ -26,6 +23,7 @@ A simple database writing in rust, inspired from mit 6.830
 ### 0.2.0
 
 - Iterator
+- Search by condition
 
 ### 0.3.0
 

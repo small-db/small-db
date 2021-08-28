@@ -1,9 +1,9 @@
-#[test]
-fn insert_rows() {
-    use log::info;
-    use simple_db_rust::{test_utils, BTreeTable, Catalog, Tuple};
-    use std::{cell::RefCell, rc::Rc};
+use log::info;
+use simple_db_rust::*;
+use std::{cell::RefCell, rc::Rc};
 
+#[test]
+fn insert_tuple() {
     test_utils::init_log();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
@@ -46,8 +46,51 @@ fn insert_rows() {
     // there are 4 pages: 1 root page + 3 leaf pages
     assert_eq!(4, table.pages_count());
 
+    // now make sure the records are sorted on the key field
     let it = table.iterator();
     for (i, tuple) in it.enumerate() {
         assert_eq!(i, tuple.get_field(0).value as usize);
+    }
+}
+
+// run test:
+// cargo test --package simple-db-rust --test btree_insert_test --all-features -- insert_duplicate_tuples --exact --nocapture
+// 
+// binary name example:
+// target/debug/deps/btree_insert_test-633392dbbebdad3c
+// 
+// run binary:
+// target/debug/deps/btree_insert_test-633392dbbebdad3c -- insert_duplicate_tuples --exact --nocapture
+#[test]
+fn insert_duplicate_tuples() {
+    test_utils::init_log();
+
+    // create an empty B+ tree file keyed on the second field of a 2-field tuple
+    let path = "btree.db";
+    let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
+    let table_ref = Rc::new(RefCell::new(BTreeTable::new(path, 1, row_scheme)));
+    Catalog::global().add_table(Rc::clone(&table_ref));
+    let table = table_ref.borrow();
+
+    // add a bunch of identical tuples
+    let repetition_count = 60;
+    for i in 0..5 {
+        for _ in 0..repetition_count {
+            let tuple = Tuple::new_btree_tuple(i, 2);
+            table.insert_tuple(tuple);
+        }
+    }
+
+    let it = table.iterator();
+    for (i, tuple) in it.enumerate() {
+        info!("{} tuple: {}", i, tuple);
+    }
+
+    // now search for some ranges and make sure we find all the tuples
+    let predicate = Predicate::new(Op::Equals, field::IntField::new(0));
+    let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
+    // assert_eq!(it.count(), repetition_count);
+    for (i, tuple) in it.enumerate() {
+        info!("--- search ---- {} tuple: {}", i, tuple);
     }
 }

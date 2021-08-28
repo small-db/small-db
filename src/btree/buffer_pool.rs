@@ -71,7 +71,7 @@ impl BufferPool {
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 
-        let mut buf: [u8; 4096] = [0; 4096];
+        let mut buf: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
         file.read_exact(&mut buf).expect("io error");
         Ok(buf.to_vec())
     }

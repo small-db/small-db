@@ -8,9 +8,8 @@ pub fn init_log() {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "[{} - {}] [{}:{}] {}",
+                "[{}] [{}:{}] {}",
                 record.level(),
-                record.target(),
                 record.file().unwrap(),
                 record.line().unwrap(),
                 record.args()

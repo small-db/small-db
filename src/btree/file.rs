@@ -5,7 +5,10 @@ use super::{
         BTreePageID, BTreeRootPointerPage, Entry,
     },
 };
-use crate::btree::page::PageCategory;
+use crate::{
+    btree::page::PageCategory,
+    field::{FieldItem, IntField},
+};
 
 use super::consts::PAGE_SIZE;
 use core::fmt;
@@ -445,7 +448,6 @@ pub struct BTreeTableIterator<'table> {
     table: &'table BTreeTable,
     page: Rc<RefCell<BTreeLeafPage>>,
     page_it: BTreeLeafPageIterator,
-    cursor: usize,
 }
 
 impl<'table> BTreeTableIterator<'table> {
@@ -456,7 +458,6 @@ impl<'table> BTreeTableIterator<'table> {
             table,
             page: Rc::clone(&page),
             page_it: BTreeLeafPageIterator::new(Rc::clone(&page)),
-            cursor: 0,
         }
     }
 }
@@ -476,6 +477,84 @@ impl<'table> Iterator for BTreeTableIterator<'table> {
             self.page = Rc::clone(&page_ref);
             self.page_it = BTreeLeafPageIterator::new(Rc::clone(&page_ref));
             return self.page_it.next();
+        } else {
+            return None;
+        }
+    }
+}
+
+pub enum Op {
+    Equals,
+    GreaterThan,
+    LessThan,
+    LessThanOrEq,
+    GreaterThanOrEq,
+    Like,
+    NotEquals,
+}
+
+pub struct Predicate {
+    pub op: Op,
+    pub field: IntField,
+}
+
+impl Predicate {
+    pub fn new(op: Op, field: IntField) -> Self {
+        Self { op, field }
+    }
+}
+
+pub struct BTreeTableSearchIterator<'table> {
+    table: &'table BTreeTable,
+    page: Rc<RefCell<BTreeLeafPage>>,
+    page_it: BTreeLeafPageIterator,
+    predicate: Predicate,
+}
+
+impl<'table> BTreeTableSearchIterator<'table> {
+    pub fn new(table: &'table BTreeTable, index_predicate: Predicate) -> Self {
+        let page = table.get_first_page();
+
+        Self {
+            table,
+            page: Rc::clone(&page),
+            page_it: BTreeLeafPageIterator::new(Rc::clone(&page)),
+            predicate: index_predicate,
+        }
+    }
+}
+
+impl<'table> Iterator for BTreeTableSearchIterator<'table> {
+    type Item = Tuple;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let v = self.page_it.next();
+            if let Some(tuple) = v {
+                let result = tuple
+                    .get_field(self.table.key_field)
+                    .satisfy(&self.predicate);
+                // info!("tuple: {}, result: {}", tuple, result);
+                if result {
+                    return Some(tuple);
+                }
+            } else {
+                match self.get_leaf_page_iterator() {
+                    Some(it) => self.page_it = it,
+                    None => return None,
+                }
+            }
+        }
+    }
+}
+
+impl BTreeTableSearchIterator<'_> {
+    fn get_leaf_page_iterator(&mut self) -> Option<BTreeLeafPageIterator> {
+        let right_option = (*self.page).borrow().get_right_sibling_pid();
+        if let Some(right) = right_option {
+            let page_ref = BufferPool::global().get_leaf_page(&right).unwrap();
+            self.page = Rc::clone(&page_ref);
+            return Some(BTreeLeafPageIterator::new(Rc::clone(&page_ref)));
         } else {
             return None;
         }

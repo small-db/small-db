@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use crate::Predicate;
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     INT,
@@ -29,5 +31,17 @@ impl IntField {
 
     pub fn len(&self) -> usize {
         4
+    }
+
+    pub fn satisfy(&self, predicate: &Predicate) -> bool {
+        match predicate.op {
+            crate::Op::Equals => self.value == predicate.field.value,
+            crate::Op::GreaterThan => todo!(),
+            crate::Op::LessThan => todo!(),
+            crate::Op::LessThanOrEq => todo!(),
+            crate::Op::GreaterThanOrEq => todo!(),
+            crate::Op::Like => todo!(),
+            crate::Op::NotEquals => todo!(),
+        }
     }
 }
