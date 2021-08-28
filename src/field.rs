@@ -36,12 +36,12 @@ impl IntField {
     pub fn satisfy(&self, predicate: &Predicate) -> bool {
         match predicate.op {
             crate::Op::Equals => self.value == predicate.field.value,
-            crate::Op::GreaterThan => todo!(),
-            crate::Op::LessThan => todo!(),
-            crate::Op::LessThanOrEq => todo!(),
-            crate::Op::GreaterThanOrEq => todo!(),
+            crate::Op::GreaterThan => self.value > predicate.field.value,
+            crate::Op::LessThan => self.value < predicate.field.value,
+            crate::Op::LessThanOrEq => self.value <= predicate.field.value,
+            crate::Op::GreaterThanOrEq => self.value >= predicate.field.value,
             crate::Op::Like => todo!(),
-            crate::Op::NotEquals => todo!(),
+            crate::Op::NotEquals => self.value != predicate.field.value,
         }
     }
 }

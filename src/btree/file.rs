@@ -527,15 +527,15 @@ impl<'table> BTreeTableSearchIterator<'table> {
 impl<'table> Iterator for BTreeTableSearchIterator<'table> {
     type Item = Tuple;
 
+    // TODO: Short circuit on some conditions.
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let v = self.page_it.next();
             if let Some(tuple) = v {
-                let result = tuple
+                if tuple
                     .get_field(self.table.key_field)
-                    .satisfy(&self.predicate);
-                // info!("tuple: {}, result: {}", tuple, result);
-                if result {
+                    .satisfy(&self.predicate)
+                {
                     return Some(tuple);
                 }
             } else {
