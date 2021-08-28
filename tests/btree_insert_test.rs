@@ -73,7 +73,7 @@ fn insert_duplicate_tuples() {
     let table = table_ref.borrow();
 
     // add a bunch of identical tuples
-    let repetition_count = 60;
+    let repetition_count = 600;
     for i in 0..5 {
         for _ in 0..repetition_count {
             let tuple = Tuple::new_btree_tuple(i, 2);
@@ -89,8 +89,8 @@ fn insert_duplicate_tuples() {
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(Op::Equals, field::IntField::new(0));
     let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
-    // assert_eq!(it.count(), repetition_count);
-    for (i, tuple) in it.enumerate() {
-        info!("--- search ---- {} tuple: {}", i, tuple);
-    }
+    assert_eq!(it.count(), repetition_count);
+    // for (i, tuple) in it.enumerate() {
+    //     info!("--- search ---- {} tuple: {}", i, tuple);
+    // }
 }
