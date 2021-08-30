@@ -12,5 +12,5 @@ pub mod entry;
 pub mod file;
 pub mod page;
 pub mod page_id;
-pub mod tuple;
 pub mod toolkit;
+pub mod tuple;

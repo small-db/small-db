@@ -2,7 +2,10 @@ use std::{cell::RefCell, rc::Rc};
 
 use rand::Rng;
 
-use crate::{BTreeTable, Catalog, Tuple, util::{self, simple_int_tuple_scheme}};
+use crate::{
+    util::{self, simple_int_tuple_scheme},
+    BTreeTable, Catalog, Tuple,
+};
 
 // A toolkit used for tests.
 
@@ -11,6 +14,9 @@ Create a table with a given number of rows and columns.
 
 The rows are filled with random data and are sorted by the
 key field/column before being inserted into the table.
+
+The rows are inserted to pages in a compact manner. Result
+in all leaf pages being full.
 */
 pub fn create_random_btree_table(
     columns: i32,
