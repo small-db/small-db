@@ -1,3 +1,6 @@
+use std::slice::Iter;
+use std::str::EncodeUtf16;
+use std::vec::IntoIter;
 use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
@@ -568,5 +571,24 @@ impl Entry {
 
     pub fn get_right_child(&self) -> BTreePageID {
         self.right
+    }
+}
+
+pub struct BTreeInternalPageIterator {
+    it: IntoIter<Entry>,
+}
+
+impl BTreeInternalPageIterator {
+    pub fn new(page: &'_ BTreeInternalPage) -> Self {
+        let v = page.get_entries().into_iter();
+        Self { it: v }
+    }
+}
+
+impl Iterator for BTreeInternalPageIterator {
+    type Item = Entry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.it.next()
     }
 }

@@ -1,4 +1,5 @@
 use log::info;
+use simple_db_rust::btree::buffer_pool::BufferPool;
 use simple_db_rust::*;
 use std::{cell::RefCell, rc::Rc};
 mod common;
@@ -88,3 +89,113 @@ fn insert_duplicate_tuples() {
     let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
     assert_eq!(it.count(), repetition_count * 2);
 }
+
+#[test]
+fn split_leaf_page() {
+    common::setup();
+
+    // This should create a B+ tree with one full page
+    let table_ref = common::create_random_btree_table(2, 502);
+    let table = table_ref.borrow();
+
+    // there should be 1 leaf page
+    assert_eq!(1, table.pages_count());
+
+    // now insert a tuple
+    BufferPool::global()
+        .insert_tuple(table.get_id(), Tuple::new_btree_tuple(5000, 2));
+
+    // there should now be 2 leaf pages + 1 internal node
+    assert_eq!(3, table.pages_count());
+
+    let root_pid = table.get_root_pid();
+    let root_ref = BufferPool::global().get_internal_page(&root_pid).unwrap();
+    let root = root_ref.borrow();
+    assert_eq!(502, root.empty_slots_count());
+
+    // each child should have half of the records
+    let mut it = btree::page::BTreeInternalPageIterator::new(&root);
+    let entry = it.next().unwrap();
+    let left_ref = BufferPool::global()
+        .get_leaf_page(&entry.get_left_child())
+        .unwrap();
+    assert!(left_ref.borrow().empty_slots_count() <= 251);
+
+    let right_ref = BufferPool::global()
+        .get_leaf_page(&entry.get_right_child())
+        .unwrap();
+    assert!(right_ref.borrow().empty_slots_count() <= 251);
+}
+
+#[test]
+fn split_root_page() {
+    common::setup();
+
+    // This should create a packed B+ tree with no empty slots
+    // There are 503 keys per internal page (504 children) and 502 tuples per leaf page
+    // 504 * 502 = 253008
+    let table_ref = common::create_random_btree_table(2, 502*2);
+    let table = table_ref.borrow();
+
+    // there should be 504 leaf pages + 1 internal node
+    // assert_eq!(505, table.pages_count());
+    info!("pages count: {}", table.pages_count());
+}
+
+// public void testSplitRootPage() throws Exception {
+//     // This should create a packed B+ tree with no empty slots
+//     // There are 503 keys per internal page (504 children) and 502 tuples per leaf page
+//     // 504 * 502 = 253008
+//     BTreeFile bigFile = BTreeUtility.createRandomBTreeFile(2, 253008,
+//             null, null, 0);
+
+//     // we will need more room in the buffer pool for this test
+//     Database.resetBufferPool(500);
+
+//     // there should be 504 leaf pages + 1 internal node
+//     assertEquals(505, bigFile.numPages());
+
+//     // now insert a tuple
+//     Database.getBufferPool().insertTuple(tid, bigFile.getId(), BTreeUtility.getBTreeTuple(10, 2));
+
+//     // there should now be 505 leaf pages + 3 internal nodes
+//     assertEquals(508, bigFile.numPages());
+
+//     // the root node should be an internal node and have 2 children (1 entry)
+//     BTreePageId rootPtrPid = new BTreePageId(bigFile.getId(), 0, BTreePageId.ROOT_PTR);
+//     BTreeRootPtrPage rootPtr = (BTreeRootPtrPage) Database.getBufferPool().getPage(tid, rootPtrPid, Permissions.READ_ONLY);
+//     BTreePageId rootId = rootPtr.getRootId();
+//     assertEquals(rootId.pgcateg(), BTreePageId.INTERNAL);
+//     BTreeInternalPage root = (BTreeInternalPage) Database.getBufferPool().getPage(tid, rootId, Permissions.READ_ONLY);
+//     assertEquals(502, root.getNumEmptySlots());
+
+//     // each child should have half of the entries
+//     Iterator<BTreeEntry> it = root.iterator();
+//     assertTrue(it.hasNext());
+//     BTreeEntry e = it.next();
+//     BTreeInternalPage leftChild = (BTreeInternalPage) Database.getBufferPool().getPage(tid, e.getLeftChild(), Permissions.READ_ONLY);
+//     BTreeInternalPage rightChild = (BTreeInternalPage) Database.getBufferPool().getPage(tid, e.getRightChild(), Permissions.READ_ONLY);
+//     assertTrue(leftChild.getNumEmptySlots() <= 252);
+//     assertTrue(rightChild.getNumEmptySlots() <= 252);
+
+//     // now insert some random tuples and make sure we can find them
+//     Random rand = new Random();
+//     for (int i = 0; i < 100; i++) {
+//         int item = rand.nextInt(BTreeUtility.MAX_RAND_VALUE);
+//         Tuple t = BTreeUtility.getBTreeTuple(item, 2);
+//         Database.getBufferPool().insertTuple(tid, bigFile.getId(), t);
+
+//         IndexPredicate ipred = new IndexPredicate(Op.EQUALS, t.getField(0));
+//         DbFileIterator fit = bigFile.indexIterator(tid, ipred);
+//         fit.open();
+//         boolean found = false;
+//         while (fit.hasNext()) {
+//             if (fit.next().equals(t)) {
+//                 found = true;
+//                 break;
+//             }
+//         }
+//         fit.close();
+//         assertTrue(found);
+//     }
+// }
