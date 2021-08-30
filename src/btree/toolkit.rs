@@ -7,6 +7,8 @@ use crate::{
     BTreeTable, Catalog, Tuple,
 };
 
+use super::file::SplitStrategy;
+
 // A toolkit used for tests.
 
 /*
@@ -42,6 +44,7 @@ pub fn create_random_btree_table(
     {
         // The borrow lasts until the returned Ref exits scope.
         let table = table_ref.borrow();
+        table.set_split_strategy(SplitStrategy::AddRightWithoutMove);
         for t in tuples {
             table.insert_tuple(t);
         }

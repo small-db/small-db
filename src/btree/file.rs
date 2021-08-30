@@ -49,6 +49,16 @@ pub struct BTreeTable {
     table_id: i32,
 
     page_index: Cell<usize>,
+
+    split_strategy: Cell<SplitStrategy>,
+}
+
+#[derive(Copy, Clone)]
+pub enum SplitStrategy {
+    MoveHalfToLeft,
+    MoveHalfToRight,
+    AddLeftWithoutMove,
+    AddRightWithoutMove,
 }
 
 impl fmt::Display for BTreeTable {
@@ -92,11 +102,17 @@ impl BTreeTable {
 
             // TODO: init it according to actual condition
             page_index: Cell::new(1),
+
+            split_strategy: Cell::new(SplitStrategy::MoveHalfToRight),
         }
     }
 
     pub fn get_id(&self) -> i32 {
         self.table_id
+    }
+
+    pub fn set_split_strategy(&self, strategy: SplitStrategy) {
+        self.split_strategy.set(strategy);
     }
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
@@ -138,53 +154,54 @@ impl BTreeTable {
 
     Return the leaf page into which a new tuple with
     key field "field" should be inserted.
+
+    UPDATE:
+    split leaf page based on the split strategy.
     */
     pub fn split_leaf_page(
         &self,
         mut page: RefMut<BTreeLeafPage>,
         key_field: usize,
     ) -> Rc<RefCell<BTreeLeafPage>> {
-        // 1. adding a new page on the right of the existing
-        // page and moving half of the tuples to the new page
         let new_page_id = self.get_empty_page(&PageCategory::Leaf);
         let new_page_ref =
             BufferPool::global().get_leaf_page(&new_page_id).unwrap();
         let mut new_page = (*new_page_ref).borrow_mut();
+        let key: i32;
 
-        let tuple_count = page.tuples_count();
-        let move_tuple_count = tuple_count / 2;
-        let move_start = tuple_count - move_tuple_count;
+        match self.split_strategy.get() {
+            SplitStrategy::MoveHalfToLeft => todo!(),
+            SplitStrategy::MoveHalfToRight => {
+                // 1. adding a new page on the right of the existing
+                // page and moving half of the tuples to the new page
+                let tuple_count = page.tuples_count();
+                let move_tuple_count = tuple_count / 2;
+                let move_start = tuple_count - move_tuple_count;
 
-        let mut it = BTreeLeafPageReverseIterator::new(&page);
-        let mut delete_indexes: Vec<usize> = Vec::new();
-        for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate() {
-            delete_indexes.push(i + move_start);
-            new_page.insert_tuple(&tuple);
-        }
-        let tuple = it.next().unwrap();
-        let key = tuple.get_field(key_field).value;
+                let mut it = BTreeLeafPageReverseIterator::new(&page);
+                let mut delete_indexes: Vec<usize> = Vec::new();
+                for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate()
+                {
+                    delete_indexes.push(i + move_start);
+                    new_page.insert_tuple(&tuple);
+                }
+                let tuple = it.next().unwrap();
+                key = tuple.get_field(key_field).value;
 
-        for i in &delete_indexes {
-            page.delete_tuple(i);
-        }
-        debug!(
-            "move tuples to new page, expect move: {}, actual move: {}",
-            delete_indexes.len(),
-            move_tuple_count,
-        );
-        debug!(
-            "page slot count: {} filled, {} empty",
-            page.tuples_count(),
-            page.empty_slots_count(),
-        );
-        debug!(
-            "new_page slot count: {} filled, {} empty",
-            new_page.tuples_count(),
-            new_page.empty_slots_count(),
-        );
+                for i in &delete_indexes {
+                    page.delete_tuple(i);
+                }
 
-        if page.empty_slots_count() != delete_indexes.len() {
-            panic!("{}", page.empty_slots_count());
+                // do a check
+                if page.empty_slots_count() != delete_indexes.len() {
+                    panic!("{}", page.empty_slots_count());
+                }
+            }
+            SplitStrategy::AddLeftWithoutMove => todo!(),
+            SplitStrategy::AddRightWithoutMove => {
+                let mut it = BTreeLeafPageReverseIterator::new(&page);
+                key = it.next().unwrap().get_field(key_field).value;
+            }
         }
 
         // 2. Copy the middle key up into the parent page, and

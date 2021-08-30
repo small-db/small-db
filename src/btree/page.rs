@@ -549,6 +549,11 @@ impl BTreeInternalPage {
     }
 }
 
+/*
+All of the entries or tuples in the left child page should be less than or equal to
+the key, and all of the entries or tuples in the right child page should be greater
+than or equal to the key.
+*/
 #[derive(Clone, Copy)]
 pub struct Entry {
     pub key: i32,
