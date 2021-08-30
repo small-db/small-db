@@ -114,11 +114,10 @@ impl BTreeTable {
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
             info!(
-                "page full: {}, empty slots: {}",
+                "leaf page full, going to split: {}, empty slots: {}",
                 leaf_page.page_id.borrow(),
                 leaf_page.empty_slots_count()
             );
-            info!("page split");
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
             let mut leaf_page = (*new_container).borrow_mut();
             leaf_page.insert_tuple(&tuple);

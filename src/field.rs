@@ -19,7 +19,7 @@ pub struct FieldItem {
     pub field_name: String,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]
 pub struct IntField {
     pub value: i32,
 }

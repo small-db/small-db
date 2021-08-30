@@ -94,7 +94,7 @@ fn split_leaf_page() {
     common::setup();
 
     // This should create a B+ tree with one full page
-    let table_ref = common::create_random_btree_table(2, 502);
+    let table_ref = btree::toolkit::create_random_btree_table(2, 502);
     let table = table_ref.borrow();
 
     // there should be 1 leaf page
@@ -133,7 +133,7 @@ fn split_root_page() {
     // This should create a packed B+ tree with no empty slots
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
-    let table_ref = common::create_random_btree_table(2, 502 * 2);
+    let table_ref = btree::toolkit::create_random_btree_table(2, 502 * 2);
     let table = table_ref.borrow();
 
     // there should be 504 leaf pages + 1 internal node
