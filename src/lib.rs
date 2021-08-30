@@ -7,7 +7,8 @@ pub mod btree;
 mod log;
 
 pub use btree::{
-    catalog::Catalog, file::BTreeTable, file::Predicate, file::Op,
+    catalog::Catalog,
+    file::{BTreeTable, Op, Predicate},
     tuple::Tuple,
 };
 pub use util as test_utils;

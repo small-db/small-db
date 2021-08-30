@@ -1,7 +1,7 @@
-use std::slice::Iter;
-use std::str::EncodeUtf16;
-use std::vec::IntoIter;
-use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
+use std::{
+    borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc, slice::Iter,
+    str::EncodeUtf16, vec::IntoIter,
+};
 
 use bit_vec::BitVec;
 use log::{debug, info};

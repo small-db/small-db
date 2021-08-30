@@ -372,7 +372,8 @@ impl BTreeTable {
             .expect("io error");
         self.get_file().flush().expect("io error");
 
-        // TODO: make sure the page is not in the buffer pool	or in the local cache
+        // TODO: make sure the page is not in the buffer pool	or in the local
+        // cache
 
         return page_id;
     }
