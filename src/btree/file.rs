@@ -1,8 +1,8 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator,
-        BTreePageID, BTreeRootPointerPage, Entry,
+        BTreeInternalPageIterator, BTreeLeafPage, BTreeLeafPageIterator,
+        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
     },
 };
 use crate::{
@@ -129,11 +129,6 @@ impl BTreeTable {
             .find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
         let mut leaf_page = (*container).borrow_mut();
         if leaf_page.empty_slots_count() == 0 {
-            info!(
-                "leaf page full, going to split: {}, empty slots: {}",
-                leaf_page.page_id.borrow(),
-                leaf_page.empty_slots_count()
-            );
             let new_container = self.split_leaf_page(leaf_page, self.key_field);
             let mut leaf_page = (*new_container).borrow_mut();
             leaf_page.insert_tuple(&tuple);
@@ -313,19 +308,28 @@ impl BTreeTable {
                     BufferPool::global().get_internal_page(&page_id).unwrap();
                 let page = (*page_ref).borrow();
 
-                for entry in page.get_entries() {
-                    if entry.key >= field {
-                        let left = entry.get_left_child();
+                let it = BTreeInternalPageIterator::new(&page);
+                let mut entry: Option<Entry> = None;
+                for e in it {
+                    if e.key >= field {
+                        let left = e.get_left_child();
                         return BufferPool::global()
                             .get_leaf_page(&left)
                             .unwrap();
                     }
+                    entry = Some(e);
                 }
 
                 // return right of last entry
-                let last_entry = page.get_last_entry();
-                let right = last_entry.get_right_child();
-                return BufferPool::global().get_leaf_page(&right).unwrap();
+                match entry {
+                    Some(e) => {
+                        let right = e.get_right_child();
+                        return BufferPool::global()
+                            .get_leaf_page(&right)
+                            .unwrap();
+                    }
+                    None => todo!(),
+                }
             }
             _ => {
                 todo!()
@@ -405,7 +409,8 @@ impl BTreeTable {
                 let page_ref =
                     BufferPool::global().get_internal_page(&page_id).unwrap();
                 let page = (*page_ref).borrow();
-                let entry = page.get_entries()[0];
+                let mut it = BTreeInternalPageIterator::new(&page);
+                let entry = it.next().unwrap();
                 BufferPool::global()
                     .get_leaf_page(&entry.get_left_child())
                     .unwrap()

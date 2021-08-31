@@ -103,7 +103,8 @@ impl BufferPool {
                 let page = BTreeInternalPage::new(
                     RefCell::new(*key),
                     buf.to_vec(),
-                    &table.tuple_scheme.fields[table.key_field],
+                    &table.tuple_scheme,
+                    table.key_field,
                 );
 
                 // 4. put page into buffer pool

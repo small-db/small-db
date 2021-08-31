@@ -173,11 +173,7 @@ impl BTreeLeafPage {
         // pointer
         let index_size: usize = 4;
         let extra_bits = 3 * index_size * 8;
-        // (BufferPool.getPageSize() * 8 - extraBits) /
-        // bitsPerTupleIncludingHeader; //round down singleton_db().
-        // get_buffer_pool()
         (PAGE_SIZE * 8 - extra_bits) / bits_per_tuple_including_header
-        // todo!()
     }
 
     pub fn empty_slots_count(&self) -> usize {
@@ -456,29 +452,47 @@ impl BTreePageID {
 pub struct BTreeInternalPage {
     page_id: BTreePageID,
 
-    entries: Vec<Entry>,
+    keys: Vec<i32>,
+    children: Vec<BTreePageID>,
 
     slot_count: usize,
 
     // header bytes
-    header: Vec<u8>,
+    header: BitVec<u32>,
+
+    tuple_scheme: TupleScheme,
+
+    parent: usize,
+
+    key_field: usize,
 }
 
 impl BTreeInternalPage {
     pub fn new(
         page_id: RefCell<BTreePageID>,
         bytes: Vec<u8>,
-        key_field: &FieldItem,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
     ) -> Self {
-        let slot_count =
-            Self::get_max_entries(get_type_length(key_field.field_type));
+        let key_size =
+            get_type_length(tuple_scheme.fields[key_field].field_type);
+        let slot_count = Self::get_max_entries(key_size) + 1;
         let header_size = Self::get_header_size(slot_count) as usize;
+
+        let mut keys: Vec<i32> = Vec::new();
+        let mut children: Vec<BTreePageID> = Vec::new();
+        keys.resize(slot_count, 0);
+        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
 
         Self {
             page_id: page_id.borrow().clone(),
-            entries: Vec::new(),
+            keys,
+            children,
             slot_count,
-            header: bytes[..header_size].to_vec(),
+            header: BitVec::from_bytes(&bytes[..header_size]),
+            parent: 0,
+            tuple_scheme: tuple_scheme.clone(),
+            key_field,
         }
     }
 
@@ -525,23 +539,86 @@ impl BTreeInternalPage {
     Returns true if associated slot on this page is filled.
     */
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
-        let bv = BitVec::from_bytes(&self.header);
-        bv[slot_index]
+        self.header[slot_index]
     }
 
-    /**
-    TODO: insert in sorted order
-    */
     pub fn insert_entry(&mut self, e: &Entry) {
-        self.entries.push(*e)
+        // if this is the first entry, add it and return
+        info!("empty slots count: {}", self.empty_slots_count());
+        info!("max slot count: {}", Self::get_max_entries(4));
+        if self.empty_slots_count() == Self::get_max_entries(4) {
+            self.children[0] = e.get_left_child();
+            self.children[1] = e.get_right_child();
+            self.keys[1] = e.key;
+            self.mark_slot_status(0, true);
+            self.mark_slot_status(1, true);
+            return;
+        }
+
+        // find the first empty slot, start from 1
+        let mut empty_slot: i32 = -1;
+        for i in 1..self.slot_count {
+            if !self.is_slot_used(i) {
+                empty_slot = i as i32;
+                break;
+            }
+        }
+
+        // find the child pointer matching the left or right child in this entry
+        let mut less_or_eq_slot = -1;
+        for i in 1..self.slot_count {
+            if !self.is_slot_used(i) {
+                continue;
+            }
+
+            if self.children[i] == e.get_left_child()
+                || self.children[i] == e.get_right_child()
+            {
+                less_or_eq_slot = i as i32;
+            } else if less_or_eq_slot != -1 {
+                if self.keys[i] < e.key {
+                    panic!("key is not in order");
+                }
+                break;
+            }
+        }
+
+        info!(
+            "empty slot: {} less or eq slot: {}",
+            empty_slot, less_or_eq_slot
+        );
+
+        // shift entries back or forward to fill empty slot and make room for new entry
+        // while keeping entries in sorted order
+        let good_slot: i32;
+        if empty_slot < less_or_eq_slot {
+            for i in empty_slot..less_or_eq_slot {
+                self.move_entry((i + 1) as usize, i as usize);
+            }
+            good_slot = less_or_eq_slot
+        } else {
+            for i in less_or_eq_slot + 1..empty_slot {
+                self.move_entry(i as usize, i as usize + 1);
+            }
+            good_slot = less_or_eq_slot + 1
+        }
+
+        self.keys[good_slot as usize] = e.key;
+        self.children[good_slot as usize] = e.get_right_child();
+        self.mark_slot_status(good_slot as usize, true);
     }
 
-    pub fn get_entries(&self) -> Vec<Entry> {
-        self.entries.to_vec()
+    fn move_entry(&mut self, from: usize, to: usize) {
+        if self.is_slot_used(from) && !self.is_slot_used(to) {
+            self.keys[to] = self.keys[from];
+            self.children[to] = self.children[from];
+            self.mark_slot_status(from, false);
+            self.mark_slot_status(to, true);
+        }
     }
 
-    pub fn get_last_entry(&self) -> Entry {
-        *self.entries.last().unwrap()
+    fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
+        self.header.set(slot_index, used);
     }
 
     pub fn empty_page_data() -> [u8; PAGE_SIZE] {
@@ -579,21 +656,35 @@ impl Entry {
     }
 }
 
-pub struct BTreeInternalPageIterator {
-    it: IntoIter<Entry>,
+pub struct BTreeInternalPageIterator<'page> {
+    page: &'page BTreeInternalPage,
+    cursor: usize,
 }
 
-impl BTreeInternalPageIterator {
-    pub fn new(page: &'_ BTreeInternalPage) -> Self {
-        let v = page.get_entries().into_iter();
-        Self { it: v }
+impl<'page> BTreeInternalPageIterator<'page> {
+    pub fn new(page: &'page BTreeInternalPage) -> Self {
+        Self { page, cursor: 0 }
     }
 }
 
-impl Iterator for BTreeInternalPageIterator {
+impl Iterator for BTreeInternalPageIterator<'_> {
     type Item = Entry;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.it.next()
+        loop {
+            self.cursor += 1;
+            if self.cursor >= self.page.slot_count {
+                return None;
+            }
+
+            if !self.page.is_slot_used(self.cursor) {
+                continue;
+            }
+            return Some(Entry::new(
+                self.page.keys[self.cursor],
+                &self.page.children[self.cursor - 1],
+                &self.page.children[self.cursor],
+            ));
+        }
     }
 }

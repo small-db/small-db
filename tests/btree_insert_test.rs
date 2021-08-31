@@ -134,7 +134,7 @@ fn split_root_page() {
     // This should create a packed B+ tree with no empty slots
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
-    let rows = 502 * 2;
+    let rows = 504 * 502;
     let table_ref = btree::toolkit::create_random_btree_table(2, rows);
     let table = table_ref.borrow();
 
@@ -142,8 +142,22 @@ fn split_root_page() {
     // assert_eq!(505, table.pages_count());
     info!("pages count: {}", table.pages_count());
 
-    let it = table.iterator();
-    assert_eq!(it.count(), rows as usize);
+    // TODO: remove this check block.
+    {
+        let it = table.iterator();
+        assert_eq!(it.count(), rows as usize);
+
+        let root_pid = table.get_root_pid();
+        let root_ref =
+            BufferPool::global().get_internal_page(&root_pid).unwrap();
+        let root = root_ref.borrow();
+        info!("root empty slot count: {}", root.empty_slots_count());
+        let it = btree::page::BTreeInternalPageIterator::new(&root);
+        info!("root entries count: {}", it.count());
+    }
+
+    // now insert a tuple
+    // BufferPool::global().insert_tuple(table_id, t)
 }
 
 // public void testSplitRootPage() throws Exception {
