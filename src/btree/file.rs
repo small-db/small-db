@@ -205,12 +205,12 @@ impl BTreeTable {
         let parent_ref = self.get_parent_with_empty_slots(page.get_parent_id());
         let mut parent = (*parent_ref).borrow_mut();
 
-        let entry = Entry::new(key, &page.page_id.borrow(), &new_page_id);
+        let entry = Entry::new(key, &page.get_page_id(), &new_page_id);
         parent.insert_entry(&entry);
 
         // set parent id
-        page.set_parent_id(&parent.get_id());
-        new_page.set_parent_id(&parent.get_id());
+        page.set_parent_id(&parent.get_page_id());
+        new_page.set_parent_id(&parent.get_page_id());
 
         // set sibling id
         page.set_right_sibling_pid(&new_page_id.page_index);
@@ -294,7 +294,9 @@ impl BTreeTable {
 
     Return the internal page into which an entry with key field "field" should be inserted
     */
-    fn split_internal_page() {
+    fn split_internal_page(&self) -> Rc<RefCell<BTreeInternalPage>> {
+        let new_page_id = self.get_empty_page(&PageCategory::Internal);
+
         unimplemented!()
     }
 

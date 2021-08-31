@@ -72,7 +72,29 @@ fn test_page_category() {
     assert_eq!(format!("{:?}", c), "INTERNAL");
 }
 
+pub struct BTreePage {
+    pid: BTreePageID,
+
+    parent_pid: BTreePageID,
+}
+
+impl BTreePage {
+    pub fn get_page_id(&self) -> BTreePageID {
+        self.pid
+    }
+
+    pub fn get_parent_id(&self) -> BTreePageID {
+        self.parent_pid
+    }
+
+    pub fn set_parent_id(&mut self, id: &BTreePageID) {
+        self.parent_pid = id.clone();
+    }
+}
+
 pub struct BTreeLeafPage {
+    page: BTreePage,
+
     pub slot_count: usize,
 
     // indicate slots' status: true means occupied, false means empty
@@ -83,13 +105,22 @@ pub struct BTreeLeafPage {
 
     pub tuple_scheme: TupleScheme,
 
-    parent: usize,
-
-    pub page_id: BTreePageID,
-
     right_sibling_id: usize,
 
     key_field: usize,
+}
+
+impl std::ops::Deref for BTreeLeafPage {
+    type Target = BTreePage;
+    fn deref(&self) -> &Self::Target {
+        &self.page
+    }
+}
+
+impl std::ops::DerefMut for BTreeLeafPage {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.page
+    }
 }
 
 impl BTreeLeafPage {
@@ -112,12 +143,14 @@ impl BTreeLeafPage {
         }
 
         Self {
+            page: BTreePage {
+                pid: page_id.clone(),
+                parent_pid: BTreePageID::empty(),
+            },
             slot_count,
             header: BitVec::from_bytes(&bytes[..header_size]),
             tuples,
             tuple_scheme,
-            parent: 0,
-            page_id: *page_id,
             right_sibling_id: 0,
             key_field,
         }
@@ -126,10 +159,6 @@ impl BTreeLeafPage {
     // TODO
     pub fn serialize(&self) -> Vec<u8> {
         Self::empty_page_data().to_vec()
-    }
-
-    pub fn set_parent_id(&mut self, id: &BTreePageID) {
-        self.parent = id.page_index;
     }
 
     pub fn set_right_sibling_pid(&mut self, page_index: &usize) {
@@ -142,26 +171,10 @@ impl BTreeLeafPage {
         } else {
             return Some(BTreePageID::new(
                 PageCategory::Leaf,
-                self.page_id.table_id,
+                self.pid.table_id,
                 self.right_sibling_id,
             ));
         }
-    }
-
-    pub fn get_parent_id(&self) -> BTreePageID {
-        if self.parent == 0 {
-            return BTreePageID::new(
-                PageCategory::RootPointer,
-                self.page_id.table_id,
-                0,
-            );
-        }
-
-        return BTreePageID::new(
-            PageCategory::Internal,
-            self.page_id.table_id,
-            self.parent,
-        );
     }
 
     /**
@@ -444,13 +457,21 @@ impl BTreePageID {
         }
     }
 
+    pub fn empty() -> Self {
+        Self {
+            category: PageCategory::RootPointer,
+            page_index: 0,
+            table_id: 0,
+        }
+    }
+
     pub fn get_table_id(&self) -> &i32 {
         &self.table_id
     }
 }
 
 pub struct BTreeInternalPage {
-    page_id: BTreePageID,
+    page: BTreePage,
 
     keys: Vec<i32>,
     children: Vec<BTreePageID>,
@@ -462,9 +483,20 @@ pub struct BTreeInternalPage {
 
     tuple_scheme: TupleScheme,
 
-    parent: usize,
-
     key_field: usize,
+}
+
+impl std::ops::Deref for BTreeInternalPage {
+    type Target = BTreePage;
+    fn deref(&self) -> &Self::Target {
+        &self.page
+    }
+}
+
+impl std::ops::DerefMut for BTreeInternalPage {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.page
+    }
 }
 
 impl BTreeInternalPage {
@@ -485,12 +517,14 @@ impl BTreeInternalPage {
         children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
 
         Self {
-            page_id: page_id.borrow().clone(),
+            page: BTreePage {
+                pid: page_id.borrow().clone(),
+                parent_pid: BTreePageID::empty(),
+            },
             keys,
             children,
             slot_count,
             header: BitVec::from_bytes(&bytes[..header_size]),
-            parent: 0,
             tuple_scheme: tuple_scheme.clone(),
             key_field,
         }
@@ -519,8 +553,8 @@ impl BTreeInternalPage {
         entries_per_page
     }
 
-    pub fn get_id(&self) -> BTreePageID {
-        self.page_id
+    pub fn get_page_id(&self) -> BTreePageID {
+        self.pid
     }
 
     pub fn empty_slots_count(&self) -> usize {
