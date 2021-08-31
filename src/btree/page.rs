@@ -90,6 +90,10 @@ impl BTreePage {
     pub fn set_parent_id(&mut self, id: &BTreePageID) {
         self.parent_pid = id.clone();
     }
+
+    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
+        [0; PAGE_SIZE]
+    }
 }
 
 pub struct BTreeLeafPage {
@@ -127,7 +131,7 @@ impl BTreeLeafPage {
     pub fn new(
         page_id: &BTreePageID,
         bytes: Vec<u8>,
-        tuple_scheme: TupleScheme,
+        tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
         let slot_count = Self::get_max_tuples(&tuple_scheme);
@@ -150,15 +154,10 @@ impl BTreeLeafPage {
             slot_count,
             header: BitVec::from_bytes(&bytes[..header_size]),
             tuples,
-            tuple_scheme,
+            tuple_scheme: tuple_scheme.clone(),
             right_sibling_id: 0,
             key_field,
         }
-    }
-
-    // TODO
-    pub fn serialize(&self) -> Vec<u8> {
-        Self::empty_page_data().to_vec()
     }
 
     pub fn set_right_sibling_pid(&mut self, page_index: &usize) {
@@ -300,10 +299,6 @@ impl BTreeLeafPage {
     */
     pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
-    }
-
-    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        [0; PAGE_SIZE]
     }
 }
 
@@ -501,7 +496,7 @@ impl std::ops::DerefMut for BTreeInternalPage {
 
 impl BTreeInternalPage {
     pub fn new(
-        page_id: RefCell<BTreePageID>,
+        page_id: &BTreePageID,
         bytes: Vec<u8>,
         tuple_scheme: &TupleScheme,
         key_field: usize,
@@ -567,6 +562,14 @@ impl BTreeInternalPage {
             }
         }
         count
+    }
+
+    pub fn enties_count(&self) -> usize {
+        self.slot_count - self.empty_slots_count() - 1
+    }
+
+    pub fn delete_entry(&mut self, index: usize) {
+        self.mark_slot_status(index, false);
     }
 
     /**

@@ -6,7 +6,7 @@ use super::{
     },
 };
 use crate::{
-    btree::page::PageCategory,
+    btree::page::{BTreePage, PageCategory},
     field::{FieldItem, IntField},
 };
 
@@ -158,7 +158,7 @@ impl BTreeTable {
         mut page: RefMut<BTreeLeafPage>,
         key_field: usize,
     ) -> Rc<RefCell<BTreeLeafPage>> {
-        let new_page_id = self.get_empty_page(&PageCategory::Leaf);
+        let new_page_id = self.get_empty_pid(&PageCategory::Leaf);
         let new_page_ref =
             BufferPool::global().get_leaf_page(&new_page_id).unwrap();
         let mut new_page = (*new_page_ref).borrow_mut();
@@ -216,7 +216,6 @@ impl BTreeTable {
         page.set_right_sibling_pid(&new_page_id.page_index);
 
         let v = BufferPool::global().get_leaf_page(&new_page_id.borrow());
-
         v.unwrap()
     }
 
@@ -247,8 +246,7 @@ impl BTreeTable {
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {
-                let new_parent_id =
-                    self.get_empty_page(&PageCategory::Internal);
+                let new_parent_id = self.get_empty_pid(&PageCategory::Internal);
 
                 // update the root pointer
                 let page_id = BTreePageID::new(
@@ -270,12 +268,12 @@ impl BTreeTable {
             PageCategory::Internal => {
                 let page_ref =
                     BufferPool::global().get_internal_page(&parent_id).unwrap();
-                let page = (*page_ref).borrow();
+                let page = (*page_ref).borrow_mut();
                 if page.empty_slots_count() > 0 {
                     return Rc::clone(&page_ref);
                 } else {
                     // split upper parent
-                    todo!()
+                    return self.split_internal_page(page, self.key_field);
                 }
             }
             _ => {
@@ -294,10 +292,55 @@ impl BTreeTable {
 
     Return the internal page into which an entry with key field "field" should be inserted
     */
-    fn split_internal_page(&self) -> Rc<RefCell<BTreeInternalPage>> {
-        let new_page_id = self.get_empty_page(&PageCategory::Internal);
+    fn split_internal_page(
+        &self,
+        mut page: RefMut<BTreeInternalPage>,
+        key_field: usize,
+    ) -> Rc<RefCell<BTreeInternalPage>> {
+        let mut new_page = self.get_empty_interanl_page();
+        let mut parent_pid = page.get_parent_id();
 
-        unimplemented!()
+        if parent_pid.category == PageCategory::RootPointer {
+            // create new parent page if the parent page is root pointer page.
+            parent_pid = self.get_empty_pid(&PageCategory::Internal);
+
+            // update root pointer page
+            // update the root pointer
+            let page_id =
+                BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);
+            let root_pointer_page = BufferPool::global()
+                .get_root_pointer_page(&page_id)
+                .unwrap();
+            (*root_pointer_page).borrow_mut().set_root_pid(&parent_pid);
+        }
+        let parent_page_ref =
+            BufferPool::global().get_internal_page(&parent_pid).unwrap();
+        let mut parent_page = (*parent_page_ref).borrow_mut();
+
+        let enties_count = page.enties_count();
+        let move_entries_count = enties_count / 2;
+
+        let mut delete_indexes: Vec<usize> = Vec::new();
+        let mut it = BTreeInternalPageIterator::new(&page);
+        let mut entry: Option<Entry> = None;
+        for (i, e) in it.by_ref().take(move_entries_count).enumerate() {
+            delete_indexes.push(i);
+            new_page.insert_entry(&e);
+            entry = Some(e);
+        }
+
+        for i in delete_indexes {
+            page.delete_entry(i);
+        }
+
+        let key = entry.unwrap().key;
+
+        let new_entry =
+            Entry::new(key, &page.get_page_id(), &new_page.get_page_id());
+        parent_page.insert_entry(&new_entry);
+
+        let v = BufferPool::global().get_internal_page(&new_page.get_page_id());
+        v.unwrap()
     }
 
     /**
@@ -367,7 +410,7 @@ impl BTreeTable {
             debug!("db file empty, start init");
             let empty_root_pointer_data =
                 BTreeRootPointerPage::empty_page_data();
-            let empty_leaf_data = BTreeLeafPage::empty_page_data();
+            let empty_leaf_data = BTreePage::empty_page_data();
             let mut n = file.write(&empty_root_pointer_data).unwrap();
             debug!(
                 "write page to disk, pid: {}, len: {}",
@@ -386,12 +429,59 @@ impl BTreeTable {
         }
     }
 
+    fn get_empty_leaf_page(&self) -> BTreeLeafPage {
+        // create the new page
+        let page_index = self.get_empty_page_index();
+        let page_id =
+            BTreePageID::new(PageCategory::Leaf, self.table_id, page_index);
+        let page = BTreeLeafPage::new(
+            &page_id,
+            BTreePage::empty_page_data().to_vec(),
+            &self.tuple_scheme,
+            self.key_field,
+        );
+
+        self.write_page_to_disk(&page_id);
+
+        page
+    }
+
+    fn get_empty_interanl_page(&self) -> BTreeInternalPage {
+        // create the new page
+        let page_index = self.get_empty_page_index();
+        let page_id =
+            BTreePageID::new(PageCategory::Leaf, self.table_id, page_index);
+        let page = BTreeInternalPage::new(
+            &page_id,
+            BTreePage::empty_page_data().to_vec(),
+            &self.tuple_scheme,
+            self.key_field,
+        );
+
+        self.write_page_to_disk(&page_id);
+
+        page
+    }
+
+    fn write_page_to_disk(&self, page_id: &BTreePageID) {
+        info!("crate new page and write it to disk, pid: {}", page_id);
+        let start_pos = BTreeRootPointerPage::page_size()
+            + (page_id.page_index - 1) * PAGE_SIZE;
+        self.get_file()
+            .seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
+        self.get_file()
+            .write(&BTreePage::empty_page_data())
+            .expect("io error");
+        self.get_file().flush().expect("io error");
+    }
+
     /**
     Method to encapsulate the process of creating a new page.
     It reuses old pages if possible, and creates a new page
     if none are available.
     */
-    fn get_empty_page(&self, page_category: &PageCategory) -> BTreePageID {
+    fn get_empty_pid(&self, page_category: &PageCategory) -> BTreePageID {
         // create the new page
         let empty_page_index = self.get_empty_page_index();
         let page_id =

@@ -101,7 +101,7 @@ impl BufferPool {
 
                 // 3. instantiate page
                 let page = BTreeInternalPage::new(
-                    RefCell::new(*key),
+                    key,
                     buf.to_vec(),
                     &table.tuple_scheme,
                     table.key_field,
@@ -135,7 +135,7 @@ impl BufferPool {
                 let page = BTreeLeafPage::new(
                     key,
                     buf.to_vec(),
-                    table.tuple_scheme.clone(),
+                    &table.tuple_scheme,
                     table.key_field,
                 );
 
