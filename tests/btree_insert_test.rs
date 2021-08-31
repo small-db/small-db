@@ -96,6 +96,7 @@ fn split_leaf_page() {
     // This should create a B+ tree with one full page
     let table_ref = btree::toolkit::create_random_btree_table(2, 502);
     let table = table_ref.borrow();
+    table.set_split_strategy(btree::file::SplitStrategy::MoveHalfToRight);
 
     // there should be 1 leaf page
     assert_eq!(1, table.pages_count());
