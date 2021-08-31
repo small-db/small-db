@@ -233,6 +233,7 @@ impl BTreeTable {
     /**
     Method to encapsulate the process of getting a parent page
     ready to accept new entries.
+
     This may mean creating a page to become the new root of
     the tree, splitting the existing parent page if there are
     no empty slots, or simply locking and returning the existing
@@ -281,6 +282,20 @@ impl BTreeTable {
                 todo!()
             }
         }
+    }
+
+    /**
+    Split an internal page to make room for new entries and recursively split its parent page
+    as needed to accommodate a new entry. The new entry for the parent should have a key matching
+    the middle key in the original internal page being split (this key is "pushed up" to the parent).
+
+    The child pointers of the new parent entry should point to the two internal pages resulting
+    from the split. Update parent pointers as needed.
+
+    Return the internal page into which an entry with key field "field" should be inserted
+    */
+    fn split_internal_page() {
+        unimplemented!()
     }
 
     /**

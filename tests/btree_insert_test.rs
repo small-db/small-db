@@ -94,9 +94,8 @@ fn split_leaf_page() {
     common::setup();
 
     // This should create a B+ tree with one full page
-    let table_ref = btree::toolkit::create_random_btree_table(2, 502);
+    let table_ref = common::create_random_btree_table(2, 502);
     let table = table_ref.borrow();
-    table.set_split_strategy(btree::file::SplitStrategy::MoveHalfToRight);
 
     // there should be 1 leaf page
     assert_eq!(1, table.pages_count());
@@ -135,12 +134,12 @@ fn split_root_page() {
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
     let rows = 504 * 502;
-    let table_ref = btree::toolkit::create_random_btree_table(2, rows);
+    let table_ref = common::create_random_btree_table(2, rows);
     let table = table_ref.borrow();
 
     // there should be 504 leaf pages + 1 internal node
-    // assert_eq!(505, table.pages_count());
-    info!("pages count: {}", table.pages_count());
+    assert_eq!(505, table.pages_count());
+    // info!("pages count: {}", table.pages_count());
 
     // TODO: remove this check block.
     {
@@ -157,7 +156,11 @@ fn split_root_page() {
     }
 
     // now insert a tuple
-    // BufferPool::global().insert_tuple(table_id, t)
+    // BufferPool::global()
+    //     .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
+
+    // // there should now be 505 leaf pages + 3 internal nodes
+    // assert_eq!(508, table.pages_count());
 }
 
 // public void testSplitRootPage() throws Exception {
