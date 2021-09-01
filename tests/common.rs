@@ -1,13 +1,8 @@
-
 use rand::prelude::*;
-use std::{
-    cell::{RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
-use simple_db_rust::*;
 use simple_db_rust::{
-    btree::file::SplitStrategy, util::simple_int_tuple_scheme,
+    btree::file::SplitStrategy, util::simple_int_tuple_scheme, *,
 };
 
 pub fn setup() {

@@ -1,15 +1,9 @@
 use log::info;
 use simple_db_rust::{
-    btree::{
-        buffer_pool::BufferPool,
-        page::{PageCategory},
-    },
+    btree::{buffer_pool::BufferPool, page::PageCategory},
     *,
 };
-use std::{
-    cell::{RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 mod common;
 
 #[test]

@@ -1,11 +1,9 @@
-use std::{
-    borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc,
-};
+use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
 use log::{debug, info};
 
-use crate::field::{get_type_length};
+use crate::field::get_type_length;
 
 use super::tuple::{Tuple, TupleScheme};
 
@@ -634,8 +632,8 @@ impl BTreeInternalPage {
             }
         }
 
-        // shift entries back or forward to fill empty slot and make room for new entry
-        // while keeping entries in sorted order
+        // shift entries back or forward to fill empty slot and make room for
+        // new entry while keeping entries in sorted order
         let good_slot: i32;
         if empty_slot < less_or_eq_slot {
             for i in empty_slot..less_or_eq_slot {

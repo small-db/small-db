@@ -10,7 +10,7 @@ use crate::{
         consts::WRITE_DISK,
         page::{BTreePage, PageCategory},
     },
-    field::{IntField},
+    field::IntField,
 };
 
 use super::consts::PAGE_SIZE;
