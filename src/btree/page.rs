@@ -439,6 +439,12 @@ impl fmt::Display for BTreePageID {
     }
 }
 
+impl fmt::Debug for BTreePageID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 impl BTreePageID {
     pub fn new(
         category: PageCategory,
@@ -522,6 +528,17 @@ impl BTreeInternalPage {
             header: BitVec::from_bytes(&bytes[..header_size]),
             tuple_scheme: tuple_scheme.clone(),
             key_field,
+        }
+    }
+
+    pub fn dig(&self) {
+        info!("page id: {}, parent pid: {}", self.pid, self.parent_pid);
+        info!("empty slot count: {}", self.empty_slots_count());
+        info!("keys: {:?}", self.keys);
+        info!("children: {:?}", self.children);
+        let it = BTreeInternalPageIterator::new(self);
+        for (i, e) in it.enumerate() {
+            info!("{}: {}", i, e);
         }
     }
 
@@ -683,6 +700,12 @@ impl Entry {
 
     pub fn get_right_child(&self) -> BTreePageID {
         self.right
+    }
+}
+
+impl fmt::Display for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {}, {})", self.key, self.left, self.right)
     }
 }
 

@@ -6,7 +6,10 @@ use super::{
     },
 };
 use crate::{
-    btree::page::{BTreePage, PageCategory},
+    btree::{
+        consts::WRITE_DISK,
+        page::{BTreePage, PageCategory},
+    },
     field::{FieldItem, IntField},
 };
 
@@ -125,15 +128,15 @@ impl BTreeTable {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let container = self
+        let leaf_rc = self
             .find_leaf_page(root_pid, tuple.get_field(self.key_field).value);
-        let mut leaf_page = (*container).borrow_mut();
-        if leaf_page.empty_slots_count() == 0 {
-            let new_container = self.split_leaf_page(leaf_page, self.key_field);
+        let mut leaf = (*leaf_rc).borrow_mut();
+        if leaf.empty_slots_count() == 0 {
+            let new_container = self.split_leaf_page(leaf, self.key_field);
             let mut leaf_page = (*new_container).borrow_mut();
             leaf_page.insert_tuple(&tuple);
         } else {
-            leaf_page.insert_tuple(&tuple);
+            leaf.insert_tuple(&tuple);
         }
     }
 
@@ -158,10 +161,8 @@ impl BTreeTable {
         mut page: RefMut<BTreeLeafPage>,
         key_field: usize,
     ) -> Rc<RefCell<BTreeLeafPage>> {
-        let new_page_id = self.get_empty_pid(&PageCategory::Leaf);
-        let new_page_ref =
-            BufferPool::global().get_leaf_page(&new_page_id).unwrap();
-        let mut new_page = (*new_page_ref).borrow_mut();
+        let new_sibling_rc = self.get_empty_leaf_page();
+        let mut new_sibling = (*new_sibling_rc).borrow_mut();
         let key: i32;
 
         match self.split_strategy.get() {
@@ -178,7 +179,7 @@ impl BTreeTable {
                 for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate()
                 {
                     delete_indexes.push(i + move_start);
-                    new_page.insert_tuple(&tuple);
+                    new_sibling.insert_tuple(&tuple);
                 }
                 let tuple = it.next().unwrap();
                 key = tuple.get_field(key_field).value;
@@ -205,17 +206,18 @@ impl BTreeTable {
         let parent_ref = self.get_parent_with_empty_slots(page.get_parent_id());
         let mut parent = (*parent_ref).borrow_mut();
 
-        let entry = Entry::new(key, &page.get_page_id(), &new_page_id);
+        let entry =
+            Entry::new(key, &page.get_page_id(), &new_sibling.get_page_id());
         parent.insert_entry(&entry);
 
         // set parent id
         page.set_parent_id(&parent.get_page_id());
-        new_page.set_parent_id(&parent.get_page_id());
+        new_sibling.set_parent_id(&parent.get_page_id());
 
         // set sibling id
-        page.set_right_sibling_pid(&new_page_id.page_index);
+        page.set_right_sibling_pid(&new_sibling.get_page_id().page_index);
 
-        let v = BufferPool::global().get_leaf_page(&new_page_id.borrow());
+        let v = BufferPool::global().get_leaf_page(&new_sibling.get_page_id());
         v.unwrap()
     }
 
@@ -246,24 +248,26 @@ impl BTreeTable {
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {
-                let new_parent_id = self.get_empty_pid(&PageCategory::Internal);
+                let new_parent_rc = self.get_empty_interanl_page();
+                {
+                    let new_parent_page = (*new_parent_rc).borrow_mut();
 
-                // update the root pointer
-                let page_id = BTreePageID::new(
-                    PageCategory::RootPointer,
-                    self.table_id,
-                    0,
-                );
-                let root_pointer_page = BufferPool::global()
-                    .get_root_pointer_page(&page_id)
-                    .unwrap();
+                    // update the root pointer
+                    let page_id = BTreePageID::new(
+                        PageCategory::RootPointer,
+                        self.table_id,
+                        0,
+                    );
+                    let root_pointer_page = BufferPool::global()
+                        .get_root_pointer_page(&page_id)
+                        .unwrap();
 
-                (*root_pointer_page)
-                    .borrow_mut()
-                    .set_root_pid(&new_parent_id);
+                    (*root_pointer_page)
+                        .borrow_mut()
+                        .set_root_pid(&new_parent_page.get_page_id());
+                }
 
-                let v = BufferPool::global().get_internal_page(&new_parent_id);
-                return v.unwrap();
+                new_parent_rc
             }
             PageCategory::Internal => {
                 let page_ref =
@@ -297,12 +301,16 @@ impl BTreeTable {
         mut page: RefMut<BTreeInternalPage>,
         key_field: usize,
     ) -> Rc<RefCell<BTreeInternalPage>> {
-        let mut new_page = self.get_empty_interanl_page();
+        let new_page_rc = self.get_empty_interanl_page();
+        let mut new_page = (*new_page_rc).borrow_mut();
+
         let mut parent_pid = page.get_parent_id();
 
         if parent_pid.category == PageCategory::RootPointer {
             // create new parent page if the parent page is root pointer page.
-            parent_pid = self.get_empty_pid(&PageCategory::Internal);
+            let parent_rc = self.get_empty_interanl_page();
+            let parent_page = (*parent_rc).borrow_mut();
+            parent_pid = parent_page.get_page_id();
 
             // update root pointer page
             // update the root pointer
@@ -429,7 +437,7 @@ impl BTreeTable {
         }
     }
 
-    fn get_empty_leaf_page(&self) -> BTreeLeafPage {
+    fn get_empty_leaf_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
         // create the new page
         let page_index = self.get_empty_page_index();
         let page_id =
@@ -443,14 +451,20 @@ impl BTreeTable {
 
         self.write_page_to_disk(&page_id);
 
-        page
+        let page_rc = Rc::new(RefCell::new(page));
+
+        BufferPool::global()
+            .leaf_buffer
+            .insert(page_id, page_rc.clone());
+
+        page_rc
     }
 
-    fn get_empty_interanl_page(&self) -> BTreeInternalPage {
+    fn get_empty_interanl_page(&self) -> Rc<RefCell<BTreeInternalPage>> {
         // create the new page
         let page_index = self.get_empty_page_index();
         let page_id =
-            BTreePageID::new(PageCategory::Leaf, self.table_id, page_index);
+            BTreePageID::new(PageCategory::Internal, self.table_id, page_index);
         let page = BTreeInternalPage::new(
             &page_id,
             BTreePage::empty_page_data().to_vec(),
@@ -460,47 +474,28 @@ impl BTreeTable {
 
         self.write_page_to_disk(&page_id);
 
-        page
+        let page_rc = Rc::new(RefCell::new(page));
+
+        BufferPool::global()
+            .internal_buffer
+            .insert(page_id, page_rc.clone());
+
+        page_rc
     }
 
     fn write_page_to_disk(&self, page_id: &BTreePageID) {
-        let start_pos = BTreeRootPointerPage::page_size()
-            + (page_id.page_index - 1) * PAGE_SIZE;
-        self.get_file()
-            .seek(SeekFrom::Start(start_pos as u64))
-            .expect("io error");
-        self.get_file()
-            .write(&BTreePage::empty_page_data())
-            .expect("io error");
-        self.get_file().flush().expect("io error");
-    }
-
-    /**
-    Method to encapsulate the process of creating a new page.
-    It reuses old pages if possible, and creates a new page
-    if none are available.
-    */
-    fn get_empty_pid(&self, page_category: &PageCategory) -> BTreePageID {
-        // create the new page
-        let empty_page_index = self.get_empty_page_index();
-        let page_id =
-            BTreePageID::new(*page_category, self.table_id, empty_page_index);
-
-        // write empty page to disk
-        let start_pos = BTreeRootPointerPage::page_size()
-            + (page_id.page_index - 1) * PAGE_SIZE;
-        self.get_file()
-            .seek(SeekFrom::Start(start_pos as u64))
-            .expect("io error");
-        self.get_file()
-            .write(&BTreeInternalPage::empty_page_data())
-            .expect("io error");
-        self.get_file().flush().expect("io error");
-
-        // TODO: make sure the page is not in the buffer pool	or in the local
-        // cache
-
-        return page_id;
+        if WRITE_DISK {
+            info!("crate new page and write it to disk, pid: {}", page_id);
+            let start_pos = BTreeRootPointerPage::page_size()
+                + (page_id.page_index - 1) * PAGE_SIZE;
+            self.get_file()
+                .seek(SeekFrom::Start(start_pos as u64))
+                .expect("io error");
+            self.get_file()
+                .write(&BTreePage::empty_page_data())
+                .expect("io error");
+            self.get_file().flush().expect("io error");
+        }
     }
 
     fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
@@ -551,8 +546,13 @@ impl BTreeTable {
     (BTreeRootPointerPage is not included)
     */
     pub fn pages_count(&self) -> usize {
-        let file_len = self.get_file().metadata().unwrap().len() as usize;
-        (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
+        if WRITE_DISK {
+            let file_len = self.get_file().metadata().unwrap().len() as usize;
+            (file_len - BTreeRootPointerPage::page_size()) / PAGE_SIZE
+        } else {
+            BufferPool::global().leaf_buffer.len()
+                + BufferPool::global().internal_buffer.len()
+        }
     }
 }
 

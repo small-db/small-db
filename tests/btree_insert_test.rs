@@ -1,6 +1,15 @@
 use log::info;
-use simple_db_rust::{btree::buffer_pool::BufferPool, *};
-use std::{cell::RefCell, rc::Rc};
+use simple_db_rust::{
+    btree::{
+        buffer_pool::BufferPool,
+        page::{BTreeInternalPage, PageCategory},
+    },
+    *,
+};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 mod common;
 
 #[test]
@@ -161,6 +170,28 @@ fn split_root_page() {
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
+
+    // the root node should be an internal node and have 2 children (1 entry)
+    let root_pid = table.get_root_pid();
+    assert_eq!(root_pid.category, PageCategory::Internal);
+
+    let root_page_rc =
+        BufferPool::global().get_internal_page(&root_pid).unwrap();
+    let root_page = root_page_rc.borrow();
+    assert_eq!(root_page.empty_slots_count(), 502);
+
+    // each child should have half of the entries
+    let mut it = btree::page::BTreeInternalPageIterator::new(&root_page);
+    let entry = it.next().unwrap();
+    let left_pid = entry.get_left_child();
+    let left_rc = BufferPool::global().get_internal_page(&left_pid).unwrap();
+    let left = left_rc.borrow();
+    assert!(left.empty_slots_count() <= 252);
+
+    let right_pid = entry.get_right_child();
+    let right_rc = BufferPool::global().get_internal_page(&right_pid).unwrap();
+    let right = right_rc.borrow();
+    assert!(right.empty_slots_count() <= 252);
 }
 
 // public void testSplitRootPage() throws Exception {

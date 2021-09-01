@@ -23,8 +23,8 @@ use super::{
 pub struct BufferPool {
     roop_pointer_buffer:
         HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
-    internal_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeInternalPage>>>,
-    leaf_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeLeafPage>>>,
+    pub internal_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeInternalPage>>>,
+    pub leaf_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeLeafPage>>>,
 }
 
 type Key = BTreePageID;
