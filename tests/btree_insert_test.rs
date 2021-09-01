@@ -156,11 +156,11 @@ fn split_root_page() {
     }
 
     // now insert a tuple
-    // BufferPool::global()
-    //     .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
+    BufferPool::global()
+        .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
 
-    // // there should now be 505 leaf pages + 3 internal nodes
-    // assert_eq!(508, table.pages_count());
+    // there should now be 505 leaf pages + 3 internal nodes
+    assert_eq!(508, table.pages_count());
 }
 
 // public void testSplitRootPage() throws Exception {

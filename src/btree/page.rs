@@ -581,8 +581,6 @@ impl BTreeInternalPage {
 
     pub fn insert_entry(&mut self, e: &Entry) {
         // if this is the first entry, add it and return
-        info!("empty slots count: {}", self.empty_slots_count());
-        info!("max slot count: {}", Self::get_max_entries(4));
         if self.empty_slots_count() == Self::get_max_entries(4) {
             self.children[0] = e.get_left_child();
             self.children[1] = e.get_right_child();
@@ -619,11 +617,6 @@ impl BTreeInternalPage {
                 break;
             }
         }
-
-        info!(
-            "empty slot: {} less or eq slot: {}",
-            empty_slot, less_or_eq_slot
-        );
 
         // shift entries back or forward to fill empty slot and make room for new entry
         // while keeping entries in sorted order

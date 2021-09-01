@@ -464,7 +464,6 @@ impl BTreeTable {
     }
 
     fn write_page_to_disk(&self, page_id: &BTreePageID) {
-        info!("crate new page and write it to disk, pid: {}", page_id);
         let start_pos = BTreeRootPointerPage::page_size()
             + (page_id.page_index - 1) * PAGE_SIZE;
         self.get_file()
@@ -488,7 +487,6 @@ impl BTreeTable {
             BTreePageID::new(*page_category, self.table_id, empty_page_index);
 
         // write empty page to disk
-        info!("crate new page and write it to disk, pid: {}", page_id);
         let start_pos = BTreeRootPointerPage::page_size()
             + (page_id.page_index - 1) * PAGE_SIZE;
         self.get_file()
