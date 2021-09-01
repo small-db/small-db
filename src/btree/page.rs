@@ -1,12 +1,11 @@
 use std::{
-    borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc, slice::Iter,
-    str::EncodeUtf16, vec::IntoIter,
+    borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc,
 };
 
 use bit_vec::BitVec;
 use log::{debug, info};
 
-use crate::field::{get_type_length, FieldItem};
+use crate::field::{get_type_length};
 
 use super::tuple::{Tuple, TupleScheme};
 

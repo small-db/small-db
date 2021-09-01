@@ -1,7 +1,7 @@
-use log::info;
+
 use rand::prelude::*;
 use std::{
-    cell::{Ref, RefCell},
+    cell::{RefCell},
     rc::Rc,
 };
 

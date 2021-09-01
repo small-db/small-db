@@ -10,7 +10,7 @@ use crate::{
         consts::WRITE_DISK,
         page::{BTreePage, PageCategory},
     },
-    field::{FieldItem, IntField},
+    field::{IntField},
 };
 
 use super::consts::PAGE_SIZE;
@@ -299,7 +299,7 @@ impl BTreeTable {
     fn split_internal_page(
         &self,
         mut page: RefMut<BTreeInternalPage>,
-        key_field: usize,
+        _key_field: usize,
     ) -> Rc<RefCell<BTreeInternalPage>> {
         let new_page_rc = self.get_empty_interanl_page();
         let mut new_page = (*new_page_rc).borrow_mut();

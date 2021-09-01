@@ -1,7 +1,7 @@
 use crate::Tuple;
 
 use super::consts::PAGE_SIZE;
-use log::info;
+
 use std::{
     cell::RefCell,
     collections::HashMap,
