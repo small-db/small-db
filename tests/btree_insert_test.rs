@@ -135,7 +135,6 @@ fn split_leaf_page() {
 }
 
 #[test]
-#[ignore]
 fn split_root_page() {
     common::setup();
 
@@ -204,7 +203,6 @@ fn split_root_page() {
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
-        table.draw_tree();
 
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
@@ -221,6 +219,7 @@ fn split_root_page() {
             }
         }
 
+        table.draw_tree();
         assert!(found);
     }
 }

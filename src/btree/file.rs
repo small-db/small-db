@@ -1,9 +1,8 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        BTreeInternalPageIterator,
-        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator,
-        BTreePageID, BTreeRootPointerPage, Entry,
+        BTreeInternalPageIterator, BTreeLeafPage, BTreeLeafPageIterator,
+        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
     },
 };
 use crate::{
@@ -183,14 +182,17 @@ impl BTreeTable {
 
                     let mut it = BTreeLeafPageReverseIterator::new(&page);
                     let mut delete_indexes: Vec<usize> = Vec::new();
+                    let mut middle_tuple: Option<Tuple> = None;
                     for (i, tuple) in
                         it.by_ref().take(move_tuple_count).enumerate()
                     {
                         delete_indexes.push(tuple_count - i - 1);
                         new_sibling.insert_tuple(&tuple);
+
+                        middle_tuple = Some(tuple);
                     }
-                    let tuple = it.next().unwrap();
-                    key = tuple.get_field(self.key_field).value;
+
+                    key = middle_tuple.unwrap().get_field(self.key_field).value;
 
                     for i in &delete_indexes {
                         page.delete_tuple(i);
@@ -755,7 +757,11 @@ impl BTreeTable {
                     );
                 }
                 let right = self.get_leaf_recap(&entry.get_right_child());
-                println!("{}├── key: {}, right: {}", prefix, entry.key, right);
+                let left = self.get_leaf_recap(&entry.get_left_child());
+                println!(
+                    "{}├── key: {}, left: {}, right: {}",
+                    prefix, entry.key, left, right
+                );
             }
             PageCategory::Header => todo!(),
         }
