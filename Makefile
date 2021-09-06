@@ -1,6 +1,10 @@
 test:
 	RUST_LOG=error cargo test -- --test-threads=1
 
+	# run ignored tests
+	# https://doc.rust-lang.org/book/ch11-02-running-tests.html#ignoring-some-tests-unless-specifically-requested
+	RUST_LOG=error cargo test -- --ignored --test-threads=1
+
 test-verbose:
 	# Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 	# 
