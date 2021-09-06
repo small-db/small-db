@@ -200,8 +200,6 @@ fn split_root_page() {
         assert!(right.empty_slots_count() <= 252);
     }
 
-    table.draw_tree();
-
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
     for _ in 0..100 {
@@ -219,8 +217,6 @@ fn split_root_page() {
                 break;
             }
         }
-
-        table.draw_tree();
 
         assert!(found);
     }
