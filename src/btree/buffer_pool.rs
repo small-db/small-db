@@ -10,7 +10,7 @@ use std::{
     rc::Rc,
 };
 
-use log::{debug, info};
+use log::{debug};
 use std::{mem, sync::Once};
 
 use super::page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory};

@@ -1,7 +1,7 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        BTreeInternalPageIterator, BTreeInternalPageReverseIterator,
+        BTreeInternalPageIterator,
         BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageReverseIterator,
         BTreePageID, BTreeRootPointerPage, Entry,
     },
@@ -17,7 +17,7 @@ use crate::{
 use super::consts::PAGE_SIZE;
 use core::fmt;
 use log::{debug, info};
-use std::{borrow::Borrow, cell::Cell, iter::empty, str};
+use std::{borrow::Borrow, cell::Cell, str};
 
 use std::{
     cell::RefCell,
