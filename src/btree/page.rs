@@ -638,7 +638,8 @@ impl BTreeInternalPage {
                 continue;
             }
 
-            // validate that the next key is greater than or equal to the one we are inserting
+            // validate that the next key is greater than or equal to the one we
+            // are inserting
             if less_or_eq_slot != -1 {
                 if self.keys[i] < e.key {
                     panic!("key is not in order");

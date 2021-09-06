@@ -172,7 +172,8 @@ fn split_root_page() {
     // put borrow of pages in a scope so the external process will not
     // be disturbed by the borrow
     {
-        // the root node should be an internal node and have 2 children (1 entry)
+        // the root node should be an internal node and have 2 children (1
+        // entry)
         let root_pid = table.get_root_pid();
         assert_eq!(root_pid.category, PageCategory::Internal);
 

@@ -364,7 +364,8 @@ impl BTreeTable {
             let mut parent_pid = page.get_parent_pid();
 
             if parent_pid.category == PageCategory::RootPointer {
-                // create new parent page if the parent page is root pointer page.
+                // create new parent page if the parent page is root pointer
+                // page.
                 let parent_rc = self.get_empty_interanl_page();
                 parent_pid = (*parent_rc).borrow().get_page_id();
 
