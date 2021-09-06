@@ -6,8 +6,8 @@ use std::{
 
 #[derive(Debug, Default)]
 pub struct Tuple {
-    scheme: TupleScheme,
-    fields: Vec<IntField>,
+    pub scheme: TupleScheme,
+    pub fields: Vec<IntField>,
 }
 
 impl Tuple {
@@ -20,14 +20,12 @@ impl Tuple {
                 Type::INT => {
                     end += get_type_length(field.field_type);
                     let cell_bytes = &bytes[start..end];
-                    // debug!("cell bytes: {:x?}", cell_bytes);
 
                     let mut bytes_array = [0; 4];
                     for i in 0..4 {
                         bytes_array[i] = cell_bytes[i];
                     }
                     let value = i32::from_be_bytes(bytes_array);
-                    // debug!("cell value : {}", value);
 
                     cells.push(IntField::new(value));
 
@@ -81,6 +79,24 @@ impl Tuple {
         }
     }
 }
+
+impl PartialEq for Tuple {
+    fn eq(&self, other: &Self) -> bool {
+        if self.scheme != other.scheme {
+            return false;
+        }
+
+        for (i, field) in self.fields.iter().enumerate() {
+            if field != &other.fields[i] {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
+impl Eq for Tuple {}
 
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -1,4 +1,7 @@
 test:
+	RUST_LOG=error cargo test -- --test-threads=1
+
+test-verbose:
 	# Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 	# 
 	# The `tee out` will make test always exit with 0.
@@ -8,8 +11,14 @@ test:
 	# by multiple threads at the same time. Note that this option can be removed
 	# once the file used by tests is not conflict with each other.
 	# 
+	# "--nocapture" instructs the test to print all output to stdout.
+	# 
+	# "--exact" instructs the test to print the exact output of the test.
+	# 
 	# `2>&1` is used since the log is printed to stderr.
-	RUST_LOG=info RUST_BACKTRACE=1 cargo test -- --test-threads=1 2>&1
+	# 
+	# `tee out` is used to redirect the output to stdout and a file.
+	RUST_LOG=info RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact 2>&1 | tee out
 
 clean:
 	rm *.db; \

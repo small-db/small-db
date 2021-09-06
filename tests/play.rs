@@ -27,6 +27,7 @@ impl std::ops::Deref for B {
 }
 
 #[test]
+#[ignore]
 fn inheritance() {
     let a1 = A { a: 1 };
     a1.talk();
