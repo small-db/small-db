@@ -1,9 +1,7 @@
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
-use simple_db_rust::{
-    btree::table::WriteScene, util::simple_int_tuple_scheme, *,
-};
+use simple_db_rust::{util::simple_int_tuple_scheme, *};
 
 pub fn setup() {
     test_utils::init_log();

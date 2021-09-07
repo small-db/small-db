@@ -3,7 +3,7 @@ use log::info;
 use crate::{util::simple_int_tuple_scheme, Tuple};
 
 use std::{
-    cell::{Cell, RefCell},
+    cell::RefCell,
     collections::HashMap,
     fs::File,
     io::{prelude::*, Result, Seek, SeekFrom},

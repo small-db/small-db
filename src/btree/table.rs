@@ -3,7 +3,7 @@ use super::{
     page::{
         empty_page_data, BTreeInternalPageIterator,
         BTreeInternalPageReverseIterator, BTreeLeafPage, BTreeLeafPageIterator,
-        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
+        BTreeLeafPageReverseIterator, BTreePageID, Entry,
     },
 };
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 };
 
 use core::fmt;
-use log::{debug, info};
+use log::info;
 use std::{borrow::Borrow, cell::Cell, str};
 
 use std::{
