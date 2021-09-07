@@ -13,7 +13,10 @@ use std::{
 
 use std::{mem, sync::Once};
 
-use super::page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory};
+use super::{
+    page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory},
+    tuple::TupleScheme,
+};
 
 use super::{
     catalog::Catalog,
@@ -192,6 +195,10 @@ impl BufferPool {
         );
     }
 
+    pub fn rows_per_page(scheme: &TupleScheme) -> usize {
+        BTreeLeafPage::get_max_tuples(&scheme)
+    }
+
     pub fn get_page_size() -> usize {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
@@ -229,7 +236,7 @@ mod tests {
         let table = BTreeTable::new(
             "test_buffer_pool.db",
             0,
-            simple_int_tuple_scheme(3, ""),
+            &simple_int_tuple_scheme(3, ""),
         );
         let table_id = table.get_id();
         Catalog::global().add_table(Rc::new(RefCell::new(table)));

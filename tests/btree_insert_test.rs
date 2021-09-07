@@ -16,7 +16,8 @@ fn insert_tuple() {
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let path = "btree.db";
     let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_ref = Rc::new(RefCell::new(BTreeTable::new(path, 1, row_scheme)));
+    let table_ref =
+        Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
     Catalog::global().add_table(Rc::clone(&table_ref));
     let table = table_ref.borrow();
 
@@ -67,7 +68,8 @@ fn insert_duplicate_tuples() {
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let path = "btree.db";
     let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_ref = Rc::new(RefCell::new(BTreeTable::new(path, 1, row_scheme)));
+    let table_ref =
+        Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
     Catalog::global().add_table(Rc::clone(&table_ref));
     let table = table_ref.borrow();
 
@@ -225,8 +227,7 @@ fn split_internal_page() {
     common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages
-    // BufferPool::set_page_size(1024);
-    BufferPool::set_page_size(300);
+    BufferPool::set_page_size(1024);
 
     /*
     This should create a B+ tree with a packed second tier of internal pages
@@ -237,8 +238,7 @@ fn split_internal_page() {
     125 = second level internal pages
     124 = leaf pages
     */
-    // let rows = 2 * 125 * 124;
-    let rows = 3000;
+    let rows = 2 * 125 * 124;
     let table_rc = common::create_random_btree_table(2, rows);
 
     let table = table_rc.borrow();

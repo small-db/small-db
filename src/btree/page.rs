@@ -625,7 +625,7 @@ impl BTreeInternalPage {
         if self.empty_slots_count() == Self::get_max_entries(4) {
             self.children[0] = e.get_left_child();
             self.children[1] = e.get_right_child();
-            self.keys[1] = e.key;
+            self.keys[1] = e.get_key();
             self.mark_slot_status(0, true);
             self.mark_slot_status(1, true);
             return;
@@ -676,7 +676,7 @@ impl BTreeInternalPage {
             // validate that the next key is greater than or equal to the one we
             // are inserting
             if less_or_eq_slot != -1 {
-                if self.keys[i] < e.key {
+                if self.keys[i] < e.get_key() {
                     panic!("key is not in order");
                 }
                 break;
@@ -702,7 +702,7 @@ impl BTreeInternalPage {
             good_slot = less_or_eq_slot + 1
         }
 
-        self.keys[good_slot as usize] = e.key;
+        self.keys[good_slot as usize] = e.get_key();
         self.children[good_slot as usize] = e.get_right_child();
         self.mark_slot_status(good_slot as usize, true);
     }
@@ -728,9 +728,12 @@ than or equal to the key.
 */
 #[derive(Clone, Copy)]
 pub struct Entry {
-    pub key: i32,
+    key: i32,
     left: BTreePageID,
     right: BTreePageID,
+
+    // position in the internal page
+    record_id: usize,
 }
 
 impl Entry {
@@ -739,7 +742,21 @@ impl Entry {
             key,
             left: *left,
             right: *right,
+
+            record_id: 0,
         }
+    }
+
+    pub fn set_record_id(&mut self, record_id: usize) {
+        self.record_id = record_id;
+    }
+
+    pub fn get_record_id(&self) -> usize {
+        self.record_id
+    }
+
+    pub fn get_key(&self) -> i32 {
+        self.key
     }
 
     pub fn get_left_child(&self) -> BTreePageID {

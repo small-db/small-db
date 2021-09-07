@@ -74,7 +74,7 @@ impl BTreeTable {
     pub fn new(
         file_path: &str,
         key_field: usize,
-        row_scheme: TupleScheme,
+        row_scheme: &TupleScheme,
     ) -> Self {
         File::create(file_path).expect("io error");
 
@@ -95,7 +95,7 @@ impl BTreeTable {
         Self {
             file_path: file_path.to_string(),
             key_field,
-            tuple_scheme: row_scheme,
+            tuple_scheme: row_scheme.clone(),
             file: f,
             table_id,
 
@@ -362,32 +362,24 @@ impl BTreeTable {
 
             let mut delete_indexes: Vec<usize> = Vec::new();
             let mut it = BTreeInternalPageReverseIterator::new(&page);
-            let mut middle_entry_id: usize = 0;
-            for (i, e) in it.by_ref().take(move_entries_count).enumerate() {
-                delete_indexes.push(enties_count - i - 1);
+            for e in it.by_ref().take(move_entries_count) {
+                delete_indexes.push(e.get_record_id());
                 sibling.insert_entry(&e);
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
                 Self::set_parent(&right_pid, &sibling.get_page_id());
-
-                if i == move_entries_count - 1 {
-                    // for the last moved entry, update parent id for left child
-                    let left_pid = e.get_left_child();
-                    Self::set_parent(&left_pid, &sibling.get_page_id());
-
-                    // remember the middle entry
-                    middle_entry_id = i - 1;
-                    // ... and delete it
-                    delete_indexes.push(middle_entry_id);
-                }
             }
 
+            let middle_entry = it.next().unwrap();
+
+            // also delete the middle entry
+            delete_indexes.push(middle_entry.get_record_id());
             for i in delete_indexes {
                 page.delete_entry(i);
             }
 
-            key = page.get_entry(middle_entry_id).unwrap().key;
+            key = middle_entry.get_key();
 
             new_entry =
                 Entry::new(key, &sibling.get_page_id(), &page.get_page_id());
@@ -493,7 +485,7 @@ impl BTreeTable {
                     for e in it {
                         match field {
                             Some(f) => {
-                                if e.key >= f.value {
+                                if e.get_key() >= f.value {
                                     child_pid = Some(e.get_left_child());
                                     found = true;
                                     break;
@@ -758,7 +750,7 @@ impl BTreeTable {
         if id == 0 {
             self.draw_subtree(&entry.get_left_child(), level + 1, max_level);
         }
-        println!("{}├── key: {}", prefix, entry.key);
+        println!("{}├── key: {}", prefix, entry.get_key());
         self.draw_subtree(&entry.get_right_child(), level + 1, max_level);
     }
 

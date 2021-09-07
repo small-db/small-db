@@ -1,7 +1,11 @@
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
-use simple_db_rust::{util::simple_int_tuple_scheme, *};
+use simple_db_rust::{
+    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    util::simple_int_tuple_scheme,
+    *,
+};
 
 pub fn setup() {
     test_utils::init_log();
@@ -25,7 +29,7 @@ pub fn create_random_btree_table(
     let key_field = 0;
     let row_scheme = simple_int_tuple_scheme(columns, "");
     let table_rc =
-        Rc::new(RefCell::new(BTreeTable::new(path, key_field, row_scheme)));
+        Rc::new(RefCell::new(BTreeTable::new(path, key_field, &row_scheme)));
     Catalog::global().add_table(Rc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
@@ -41,12 +45,24 @@ pub fn create_random_btree_table(
     // borrow of table_rc start here
     {
         let table = table_rc.borrow();
-
-        for t in tuples {
-            table.insert_tuple(t);
-        }
+        sequential_insert_into_table(&table, &tuples, &row_scheme);
     }
     // borrow of table_rc ends here
 
     return table_rc;
+}
+
+fn sequential_insert_into_table(
+    table: &BTreeTable,
+    tuples: &Vec<Tuple>,
+    tuple_scheme: &TupleScheme,
+) {
+    let leaf_page_count: usize;
+    if tuples.len() % BufferPool::rows_per_page(tuple_scheme) > 0 {
+        leaf_page_count =
+            (tuples.len() / BufferPool::rows_per_page(tuple_scheme)) + 1;
+    } else {
+        leaf_page_count =
+            tuples.len() / BufferPool::rows_per_page(tuple_scheme);
+    }
 }
