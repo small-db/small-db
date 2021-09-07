@@ -130,8 +130,6 @@ fn split_leaf_page() {
         .get_leaf_page(&entry.get_right_child())
         .unwrap();
     assert!(right_ref.borrow().empty_slots_count() <= 251);
-
-    table.draw_tree(-32);
 }
 
 #[test]
@@ -218,7 +216,6 @@ fn split_root_page() {
             }
         }
 
-        table.draw_tree(-1);
         assert!(found);
     }
 }
@@ -245,8 +242,6 @@ fn split_internal_page() {
     let table_rc = common::create_random_btree_table(2, rows);
 
     let table = table_rc.borrow();
-
-    table.draw_tree(2);
 
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
