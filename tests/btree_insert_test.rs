@@ -1,11 +1,6 @@
 use log::info;
 use rand::Rng;
-use simple_db_rust::{
-    btree::{
-        buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
-    },
-    *,
-};
+use simple_db_rust::{*, btree::{buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE}, page::PageCategory, table::BTreeTableIterator}};
 use std::{cell::RefCell, rc::Rc};
 mod common;
 
@@ -245,4 +240,7 @@ fn split_internal_page() {
 
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
+
+    // revert to default page size for other tests
+    BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 }

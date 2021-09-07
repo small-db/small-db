@@ -92,10 +92,26 @@ fn sequential_insert_into_table(
         {
             let mut leaf = leaf_rc.borrow_mut();
             for _ in 0..rows_per_leaf_page {
-                leaf.insert_tuple(&tuples[tuple_index]);
+                let t = tuples.get(tuple_index);
+                match t {
+                    Some(t) => {
+                        leaf.insert_tuple(t);
+                    }
+                    None => {}
+                }
 
                 tuple_index += 1;
+                if page_index < leaf_page_count {
+                    let right_pid = BTreePageID::new(
+                        btree::page::PageCategory::Leaf,
+                        table.get_id(),
+                        page_index + 1,
+                    );
+                    leaf.set_right_sibling_pid(Some(right_pid));
+                }
             }
+
+            // set right sibling
         }
         // borrow of leaf_rc ends here
     }

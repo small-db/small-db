@@ -23,7 +23,7 @@ use super::{
     page::{BTreeLeafPage, BTreePageID},
 };
 
-const DEFAULT_PAGE_SIZE: usize = 4096;
+pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
