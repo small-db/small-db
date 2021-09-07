@@ -158,12 +158,12 @@ fn sequential_insert_into_table(
                 let key = it.next().unwrap().get_field(0).value;
 
                 let mut internal = internal_rc.borrow_mut();
-                let e = Entry::new(
+                let mut e = Entry::new(
                     key,
                     &left_rc.borrow().get_pid(),
                     &right_rc.borrow().get_pid(),
                 );
-                internal.insert_entry(&e);
+                internal.insert_entry(&mut e);
 
                 leaf_index += 1;
 
@@ -223,13 +223,13 @@ fn write_internal_pages(
                 // borrow of right_rc ends here
 
                 let mut root = root_rc.borrow_mut();
-                let e = Entry::new(
+                let mut e = Entry::new(
                     key,
                     &left_rc.borrow().get_pid(),
                     &right_rc.borrow().get_pid(),
                 );
                 info!("inserting entry: {}", e);
-                root.insert_entry(&e);
+                root.insert_entry(&mut e);
 
                 // set parent for all left children
                 left_rc.borrow_mut().set_parent_pid(&pid);

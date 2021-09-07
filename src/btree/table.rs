@@ -204,9 +204,9 @@ impl BTreeTable {
             let mut parent = parent_rc.borrow_mut();
             let mut page = page_rc.borrow_mut();
             let mut new_sibling = new_sibling_rc.borrow_mut();
-            let entry =
+            let mut entry =
                 Entry::new(key, &page.get_pid(), &new_sibling.get_pid());
-            parent.insert_entry(&entry);
+            parent.insert_entry(&mut entry);
 
             // set parent id
             page.set_parent_pid(&parent.get_page_id());
@@ -321,10 +321,13 @@ impl BTreeTable {
         page_rc: Rc<RefCell<BTreeInternalPage>>,
         field: IntField,
     ) -> Rc<RefCell<BTreeInternalPage>> {
+        info!("split start");
+        self.draw_tree(-1);
+
         let sibling_rc = self.get_empty_interanl_page();
         let key: i32;
         let mut parent_pid: BTreePageID;
-        let new_entry: Entry;
+        let mut new_entry: Entry;
 
         // borrow of sibling_rc start here
         // borrow of page_rc start here
@@ -357,9 +360,9 @@ impl BTreeTable {
 
             let mut delete_indexes: Vec<usize> = Vec::new();
             let mut it = BTreeInternalPageReverseIterator::new(&page);
-            for e in it.by_ref().take(move_entries_count) {
+            for mut e in it.by_ref().take(move_entries_count) {
                 delete_indexes.push(e.get_record_id());
-                sibling.insert_entry(&e);
+                sibling.insert_entry(&mut e);
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
@@ -390,7 +393,7 @@ impl BTreeTable {
         {
             let mut parent = parent_rc.borrow_mut();
             info!("entry: {}", new_entry);
-            parent.insert_entry(&new_entry);
+            parent.insert_entry(&mut new_entry);
 
             let mut page = page_rc.borrow_mut();
             let mut sibling = sibling_rc.borrow_mut();
@@ -400,6 +403,9 @@ impl BTreeTable {
         // borrow of parent_rc end here
         // borrow of page_rc end here
         // borrow of sibling_rc end here
+
+        info!("split end");
+        self.draw_tree(-1);
 
         if field.value > key {
             sibling_rc

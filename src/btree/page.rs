@@ -1,9 +1,9 @@
-use std::{borrow::Borrow, cell::RefCell, convert::TryInto, fmt, rc::Rc};
+use std::{cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
 use log::{debug, info};
 
-use crate::field::get_type_length;
+use crate::{field::get_type_length, Catalog};
 
 use super::{
     buffer_pool::BufferPool,
@@ -530,7 +530,7 @@ impl BTreeInternalPage {
 
         Self {
             page: BTreeBasePage {
-                pid: page_id.borrow().clone(),
+                pid: page_id.clone(),
                 parent_pid: BTreePageID::empty(),
             },
             keys,
@@ -619,7 +619,7 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) {
+    pub fn insert_entry(&mut self, e: &mut Entry) {
         // if this is the first entry, add it and return
         if self.empty_slots_count() == Self::get_max_entries(4) {
             self.children[0] = e.get_left_child();
@@ -683,7 +683,9 @@ impl BTreeInternalPage {
         }
 
         if less_or_eq_slot == -1 {
-            panic!("no less or equal slot, page id: {}", self.pid);
+            info!("you are try to insert: {}", e);
+            info!("page id: {}", self.pid);
+            panic!("no less or equal slot",);
         }
 
         // shift entries back or forward to fill empty slot and make room for
@@ -703,6 +705,7 @@ impl BTreeInternalPage {
 
         self.keys[good_slot as usize] = e.get_key();
         self.children[good_slot as usize] = e.get_right_child();
+        e.set_record_id(good_slot as usize);
         self.mark_slot_status(good_slot as usize, true);
     }
 
