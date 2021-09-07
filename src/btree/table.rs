@@ -656,6 +656,10 @@ impl BTreeTable {
         todo!()
     }
 
+    pub fn set_page_index(&self, i: usize) {
+        self.page_index.set(i);
+    }
+
     // get the last tuple under the internal/leaf page
     pub fn get_last_tuple(&self, pid: &BTreePageID) -> Option<Tuple> {
         match pid.category {

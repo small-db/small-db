@@ -53,7 +53,9 @@ pub fn create_random_btree_table(
     // borrow of table_rc start here
     {
         let table = table_rc.borrow();
-        sequential_insert_into_table(&table, &tuples, &row_scheme);
+        let page_index =
+            sequential_insert_into_table(&table, &tuples, &row_scheme);
+        table.set_page_index(page_index);
     }
     // borrow of table_rc ends here
 
@@ -64,7 +66,7 @@ fn sequential_insert_into_table(
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
     tuple_scheme: &TupleScheme,
-) {
+) -> usize {
     // write leaf pages
     let leaf_page_count: usize;
     let rows_per_leaf_page: usize = BufferPool::rows_per_page(tuple_scheme);
@@ -119,7 +121,7 @@ fn sequential_insert_into_table(
     if leaves.len() <= 1 {
         let leaf = leaves[0].borrow();
         table.set_root_pid(&leaf.get_pid());
-        return;
+        return page_index;
     }
 
     // write internal pages
@@ -173,18 +175,19 @@ fn sequential_insert_into_table(
         leaf_index += 1;
     }
 
-    write_internal_pages(table, internals, &mut page_index);
+    return write_internal_pages(table, internals, &mut page_index);
 }
 
 fn write_internal_pages(
     table: &BTreeTable,
     internals: Vec<Rc<RefCell<BTreeInternalPage>>>,
     page_index: &mut usize,
-) {
+) -> usize {
     let childrent_per_internal_page = BufferPool::children_per_page();
     if internals.len() <= 1 {
         let internal = internals[0].borrow();
         table.set_root_pid(&internal.get_pid());
+        return *page_index;
     } else if internals.len() <= childrent_per_internal_page {
         // write a new internal page (the root page)
         *page_index += 1;
@@ -226,6 +229,8 @@ fn write_internal_pages(
 
         // update root pointer
         table.set_root_pid(&pid);
+        return *page_index;
     } else {
+        todo!()
     }
 }
