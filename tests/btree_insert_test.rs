@@ -1,6 +1,13 @@
 use log::info;
 use rand::Rng;
-use simple_db_rust::{*, btree::{buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE}, page::PageCategory, table::BTreeTableIterator}};
+use simple_db_rust::{
+    btree::{
+        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
+        page::PageCategory,
+        table::BTreeTableIterator,
+    },
+    *,
+};
 use std::{cell::RefCell, rc::Rc};
 mod common;
 
@@ -156,6 +163,8 @@ fn split_root_page() {
         let it = btree::page::BTreeInternalPageIterator::new(&root);
         info!("root entries count: {}", it.count());
     }
+
+    table.draw_tree(-1);
 
     // now insert a tuple
     BufferPool::global()

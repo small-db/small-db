@@ -289,6 +289,8 @@ impl BTreeTable {
                 }
                 // borrow of parent_rc end here
 
+                info!("empty slots count: {}", empty_slots_count);
+
                 if empty_slots_count > 0 {
                     return parent_rc;
                 } else {
