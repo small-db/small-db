@@ -212,8 +212,8 @@ impl BTreeTable {
             parent.insert_entry(&entry);
 
             // set parent id
-            page.set_parent_id(&parent.get_page_id());
-            new_sibling.set_parent_id(&parent.get_page_id());
+            page.set_parent_pid(&parent.get_page_id());
+            new_sibling.set_parent_pid(&parent.get_page_id());
         }
         // borrow of parent_rc end here
         // borrow of page_rc end here
@@ -397,8 +397,8 @@ impl BTreeTable {
 
             let mut page = page_rc.borrow_mut();
             let mut sibling = sibling_rc.borrow_mut();
-            page.set_parent_id(&parent.get_page_id());
-            sibling.set_parent_id(&parent.get_page_id());
+            page.set_parent_pid(&parent.get_page_id());
+            sibling.set_parent_pid(&parent.get_page_id());
         }
         // borrow of parent_rc end here
         // borrow of page_rc end here
@@ -430,7 +430,7 @@ impl BTreeTable {
                 // borrow of left_rc start here
                 {
                     let mut left = left_rc.borrow_mut();
-                    left.set_parent_id(&parent_pid);
+                    left.set_parent_pid(&parent_pid);
                 }
                 // borrow of left_rc end here
             }
@@ -441,7 +441,7 @@ impl BTreeTable {
                 // borrow of left_rc start here
                 {
                     let mut child = child_rc.borrow_mut();
-                    child.set_parent_id(&parent_pid);
+                    child.set_parent_pid(&parent_pid);
                 }
                 // borrow of left_rc end here
             }

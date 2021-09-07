@@ -103,6 +103,8 @@ fn sequential_insert_into_table(
                 }
 
                 tuple_index += 1;
+
+                // set right sibling for all but the last leaf page
                 if page_index < leaf_page_count {
                     let right_pid = BTreePageID::new(
                         btree::page::PageCategory::Leaf,
@@ -112,8 +114,6 @@ fn sequential_insert_into_table(
                     leaf.set_right_sibling_pid(Some(right_pid));
                 }
             }
-
-            // set right sibling
         }
         // borrow of leaf_rc ends here
     }
@@ -137,7 +137,7 @@ fn sequential_insert_into_table(
     let mut leaf_index = 0;
 
     let mut internals = Vec::new();
-    for _ in 0..internal_page_count {
+    for i in 0..internal_page_count {
         page_index += 1;
         let pid = BTreePageID::new(
             btree::page::PageCategory::Internal,
@@ -163,10 +163,16 @@ fn sequential_insert_into_table(
                     &left_rc.borrow().get_pid(),
                     &right_rc.borrow().get_pid(),
                 );
-                // info!("inserting entry: {}", e);
                 internal.insert_entry(&e);
 
                 leaf_index += 1;
+
+                // set parent for all left children
+                left_rc.borrow_mut().set_parent_pid(&pid);
+                // set parent for the last right child
+                if i == internal_page_count - 1 {
+                    right_rc.borrow_mut().set_parent_pid(&pid);
+                }
             }
             // borrow of internal_rc ends here
         }
@@ -201,7 +207,8 @@ fn write_internal_pages(
         let root_rc = BufferPool::global().get_internal_page(&pid).unwrap();
 
         // insert entries
-        for i in 0..internals.len() - 1 {
+        let entries_count = internals.len() - 1;
+        for i in 0..entries_count {
             // borrow of root_rc start here
             {
                 let left_rc = internals[i].clone();
@@ -223,6 +230,13 @@ fn write_internal_pages(
                 );
                 info!("inserting entry: {}", e);
                 root.insert_entry(&e);
+
+                // set parent for all left children
+                left_rc.borrow_mut().set_parent_pid(&pid);
+                // set parent for the last right child
+                if i == entries_count - 1 {
+                    right_rc.borrow_mut().set_parent_pid(&pid);
+                }
             }
             // borrow of root_rc ends here
         }

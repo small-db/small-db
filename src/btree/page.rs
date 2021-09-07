@@ -87,8 +87,8 @@ impl BTreeBasePage {
         self.parent_pid
     }
 
-    pub fn set_parent_id(&mut self, id: &BTreePageID) {
-        self.parent_pid = id.clone();
+    pub fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        self.parent_pid = pid.clone();
     }
 
     pub fn empty_page_data() -> Vec<u8> {

@@ -170,6 +170,8 @@ fn split_root_page() {
     BufferPool::global()
         .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
 
+    table.draw_tree(-1);
+
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
 
