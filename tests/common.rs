@@ -2,7 +2,7 @@ use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
 use simple_db_rust::{
-    btree::table::SplitStrategy, util::simple_int_tuple_scheme, *,
+    btree::table::WriteScene, util::simple_int_tuple_scheme, *,
 };
 
 pub fn setup() {
@@ -26,9 +26,9 @@ pub fn create_random_btree_table(
     let path = "btree.db";
     let key_field = 0;
     let row_scheme = simple_int_tuple_scheme(columns, "");
-    let table_ref =
+    let table_rc =
         Rc::new(RefCell::new(BTreeTable::new(path, key_field, row_scheme)));
-    Catalog::global().add_table(Rc::clone(&table_ref));
+    Catalog::global().add_table(Rc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
@@ -40,18 +40,19 @@ pub fn create_random_btree_table(
 
     tuples.sort_by(|a, b| a.get_field(key_field).cmp(&b.get_field(key_field)));
 
+    // borrow of table_rc start here
     {
-        // The borrow lasts until the returned Ref exits scope.
-        let table = table_ref.borrow();
+        let table = table_rc.borrow();
 
         // Using specific strategy to fill every page.
-        table.set_split_strategy(SplitStrategy::AddRightWithoutMove);
+        table.set_split_strategy(WriteScene::Sequential);
         for t in tuples {
             table.insert_tuple(t);
         }
         // Revert to default split strategy.
-        table.set_split_strategy(SplitStrategy::MoveHalfToRight)
-    } // The borrow to table_ref is released here.
+        table.set_split_strategy(WriteScene::Random);
+    }
+    // borrow of table_rc ends here
 
-    return table_ref;
+    return table_rc;
 }

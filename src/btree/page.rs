@@ -5,9 +5,10 @@ use log::{debug, info};
 
 use crate::field::get_type_length;
 
+use super::buffer_pool::BufferPool;
 use super::tuple::{Tuple, TupleScheme};
 
-use super::consts::{INDEX_SIZE, PAGE_SIZE};
+use super::consts::INDEX_SIZE;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
@@ -76,7 +77,7 @@ pub struct BTreeBasePage {
 }
 
 impl BTreeBasePage {
-    pub fn get_page_id(&self) -> BTreePageID {
+    pub fn get_pid(&self) -> BTreePageID {
         self.pid
     }
 
@@ -89,7 +90,7 @@ impl BTreeBasePage {
     }
 
     pub fn empty_page_data() -> Vec<u8> {
-        let data: Vec<u8> = vec![0; PAGE_SIZE];
+        let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
         data
     }
 }
@@ -158,8 +159,13 @@ impl BTreeLeafPage {
         }
     }
 
-    pub fn set_right_sibling_pid(&mut self, page_index: &usize) {
-        self.right_sibling_id = *page_index;
+    pub fn set_right_sibling_pid(&mut self, pid: Option<BTreePageID>) {
+        match pid {
+            Some(pid) => {
+                self.right_sibling_id = pid.page_index;
+            }
+            None => {}
+        }
     }
 
     pub fn get_right_sibling_pid(&self) -> Option<BTreePageID> {
@@ -183,7 +189,8 @@ impl BTreeLeafPage {
         // pointer
         let index_size: usize = 4;
         let extra_bits = 3 * index_size * 8;
-        (PAGE_SIZE * 8 - extra_bits) / bits_per_tuple_including_header
+        (BufferPool::get_page_size() * 8 - extra_bits)
+            / bits_per_tuple_including_header
     }
 
     pub fn empty_slots_count(&self) -> usize {
@@ -408,10 +415,6 @@ impl BTreeRootPointerPage {
         }
     }
 
-    pub fn page_size() -> usize {
-        PAGE_SIZE
-    }
-
     pub fn get_root_pid(&self) -> BTreePageID {
         self.root_pid
     }
@@ -550,15 +553,15 @@ impl BTreeInternalPage {
     }
 
     fn get_header_size(max_entries_count: usize) -> usize {
-        let slots_per_page = max_entries_count + 1;
-        let header_bytes = slots_per_page / 8;
-        header_bytes
+        // +1 for children
+        let slots = max_entries_count + 1;
+        slots / 8 + 1
     }
 
     /**
     Retrieve the maximum number of entries this page can hold. (The number of keys)
     */
-    fn get_max_entries(key_size: usize) -> usize {
+    pub fn get_max_entries(key_size: usize) -> usize {
         let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
         /*
         extraBits are: one parent pointer, 1 byte for child page category,
@@ -567,9 +570,9 @@ impl BTreeInternalPage {
         1 bit for extra header (why?)
         */
         let extra_bits = 2 * INDEX_SIZE * 8 + 8;
-        let entries_per_page =
-            (PAGE_SIZE * 8 - extra_bits) / bits_per_entry_including_header; //round down
-        entries_per_page
+        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
+            / bits_per_entry_including_header; //round down
+        return entries_per_page;
     }
 
     pub fn get_page_id(&self) -> BTreePageID {
@@ -614,8 +617,6 @@ impl BTreeInternalPage {
             return;
         }
 
-        info!("inserting entry: {}", e);
-
         // find the first empty slot, start from 1
         let mut empty_slot: i32 = -1;
         for i in 0..self.slot_count {
@@ -637,11 +638,21 @@ impl BTreeInternalPage {
                 continue;
             }
 
-            if self.children[i] == e.get_left_child()
-                || self.children[i] == e.get_right_child()
-            {
+            if self.children[i] == e.get_left_child() {
                 // gotcha
                 less_or_eq_slot = i as i32;
+
+                // we not break here, but break on the next iteration
+                // to validate the keys is in order
+                continue;
+            }
+
+            if self.children[i] == e.get_right_child() {
+                // gotcha
+                less_or_eq_slot = i as i32;
+
+                // update right child of current entry
+                self.children[i] = e.get_left_child();
 
                 // we not break here, but break on the next iteration
                 // to validate the keys is in order
@@ -804,6 +815,6 @@ impl Iterator for BTreeInternalPageReverseIterator<'_> {
 }
 
 pub fn empty_page_data() -> Vec<u8> {
-    let data: Vec<u8> = vec![0; PAGE_SIZE];
+    let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
     data
 }

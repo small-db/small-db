@@ -1,5 +1,4 @@
-pub static PAGE_SIZE: usize = 4096;
-
+// page index (i32)
 pub const INDEX_SIZE: usize = 4;
 
 // Debug Options

@@ -2,7 +2,7 @@ use log::info;
 use rand::Rng;
 use simple_db_rust::{
     btree::{
-        buffer_pool::BufferPool, table::BTreeTableIterator, page::PageCategory,
+        buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
     },
     *,
 };
@@ -131,7 +131,7 @@ fn split_leaf_page() {
         .unwrap();
     assert!(right_ref.borrow().empty_slots_count() <= 251);
 
-    table.draw_tree();
+    table.draw_tree(-32);
 }
 
 #[test]
@@ -218,7 +218,7 @@ fn split_root_page() {
             }
         }
 
-        table.draw_tree();
+        table.draw_tree(-1);
         assert!(found);
     }
 }
@@ -228,12 +228,26 @@ fn split_internal_page() {
     common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages
-    BufferPool::global().set_page_size(1024);
+    // BufferPool::set_page_size(1024);
+    BufferPool::set_page_size(300);
 
     /*
     This should create a B+ tree with a packed second tier of internal pages
     and packed third tier of leaf pages
     (124 entries per internal/leaf page, 125 children per internal page ->
-    125*2*124 = 31000)
+    2 * 125 * 124 = 31000)
+    2 = top level internal pages
+    125 = second level internal pages
+    124 = leaf pages
     */
+    // let rows = 2 * 125 * 124;
+    let rows = 3000;
+    let table_rc = common::create_random_btree_table(2, rows);
+
+    let table = table_rc.borrow();
+
+    table.draw_tree(2);
+
+    // there should be 250 leaf pages + 3 internal nodes
+    assert_eq!(253, table.pages_count());
 }

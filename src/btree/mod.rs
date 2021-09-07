@@ -11,5 +11,4 @@ pub mod consts;
 pub mod entry;
 pub mod table;
 pub mod page;
-pub mod page_id;
 pub mod tuple;

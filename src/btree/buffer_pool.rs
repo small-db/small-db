@@ -1,16 +1,16 @@
-use crate::Tuple;
+use log::info;
 
-use super::consts::PAGE_SIZE;
+use crate::{util::simple_int_tuple_scheme, Tuple};
 
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::HashMap,
     fs::File,
     io::{prelude::*, Result, Seek, SeekFrom},
     rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
-use log::debug;
 use std::{mem, sync::Once};
 
 use super::page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory};
@@ -19,6 +19,9 @@ use super::{
     catalog::Catalog,
     page::{BTreeLeafPage, BTreePageID},
 };
+
+const DEFAULT_PAGE_SIZE: usize = 4096;
+static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
     roop_pointer_buffer:
@@ -36,10 +39,6 @@ impl BufferPool {
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
         }
-    }
-
-    pub fn get_page_size() -> usize {
-        PAGE_SIZE
     }
 
     pub fn global() -> &'static mut Self {
@@ -72,17 +71,12 @@ impl BufferPool {
     }
 
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
-        let start_pos: usize = match key.category {
-            PageCategory::RootPointer => 0,
-            _ => {
-                BTreeRootPointerPage::page_size()
-                    + (key.page_index - 1) * PAGE_SIZE
-            }
-        };
+        let page_size = Self::get_page_size();
+        let start_pos = key.page_index * page_size;
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 
-        let mut buf: Vec<u8> = vec![0; PAGE_SIZE];
+        let mut buf: Vec<u8> = vec![0; page_size];
         file.read_exact(&mut buf).expect("io error");
         Ok(buf)
     }
@@ -169,7 +163,7 @@ impl BufferPool {
                 let pid = BTreePageID::new(
                     PageCategory::RootPointer,
                     table.get_id(),
-                    table.get_empty_page_index(),
+                    0,
                 );
                 let page = BTreeRootPointerPage::new(&pid, buf.to_vec());
 
@@ -182,8 +176,24 @@ impl BufferPool {
         Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
     }
 
-    pub fn set_page_size(&mut self, page_size: usize) {
-        unimplemented!()
+    pub fn set_page_size(page_size: usize) {
+        PAGE_SIZE.store(page_size, Ordering::Relaxed);
+
+        info!("set page size to {}", page_size);
+        let scheme = simple_int_tuple_scheme(2, "");
+        info!(
+            "leaf page slot count: {}",
+            BTreeLeafPage::get_max_tuples(&scheme)
+        );
+        info!(
+            "internal page entries count: {}, children count: {}",
+            BTreeInternalPage::get_max_entries(4),
+            BTreeInternalPage::get_max_entries(4) + 1,
+        );
+    }
+
+    pub fn get_page_size() -> usize {
+        PAGE_SIZE.load(Ordering::Relaxed)
     }
 
     /**
