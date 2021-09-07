@@ -69,13 +69,13 @@ fn test_page_category() {
     assert_eq!(format!("{:?}", c), "INTERNAL");
 }
 
-pub struct BTreePage {
+pub struct BTreeBasePage {
     pid: BTreePageID,
 
     parent_pid: BTreePageID,
 }
 
-impl BTreePage {
+impl BTreeBasePage {
     pub fn get_page_id(&self) -> BTreePageID {
         self.pid
     }
@@ -88,13 +88,14 @@ impl BTreePage {
         self.parent_pid = id.clone();
     }
 
-    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        [0; PAGE_SIZE]
+    pub fn empty_page_data() -> Vec<u8> {
+        let data: Vec<u8> = vec![0; PAGE_SIZE];
+        data
     }
 }
 
 pub struct BTreeLeafPage {
-    page: BTreePage,
+    page: BTreeBasePage,
 
     pub slot_count: usize,
 
@@ -112,7 +113,7 @@ pub struct BTreeLeafPage {
 }
 
 impl std::ops::Deref for BTreeLeafPage {
-    type Target = BTreePage;
+    type Target = BTreeBasePage;
     fn deref(&self) -> &Self::Target {
         &self.page
     }
@@ -144,7 +145,7 @@ impl BTreeLeafPage {
         }
 
         Self {
-            page: BTreePage {
+            page: BTreeBasePage {
                 pid: page_id.clone(),
                 parent_pid: BTreePageID::empty(),
             },
@@ -368,11 +369,26 @@ impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
 // and points to the rootpage. So we can find the location of
 // rootpage easily.
 pub struct BTreeRootPointerPage {
+    base: BTreeBasePage,
+
     root_pid: BTreePageID,
 }
 
+impl std::ops::Deref for BTreeRootPointerPage {
+    type Target = BTreeBasePage;
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl std::ops::DerefMut for BTreeRootPointerPage {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 impl BTreeRootPointerPage {
-    pub fn new(bytes: Vec<u8>) -> Self {
+    pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let root_page_index =
             i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
         let root_pid = BTreePageID {
@@ -382,23 +398,18 @@ impl BTreeRootPointerPage {
             // TODO: set table id
             table_id: 0,
         };
-        Self { root_pid }
+        Self {
+            base: BTreeBasePage {
+                pid: pid.clone(),
+                parent_pid: BTreePageID::empty(),
+            },
+
+            root_pid,
+        }
     }
 
     pub fn page_size() -> usize {
         PAGE_SIZE
-    }
-
-    /**
-    get empty data, init root pid to 1
-    */
-    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        let mut data = [0; PAGE_SIZE];
-        let bytes = 1_i32.to_le_bytes();
-        for i in 0..4 {
-            data[i] = bytes[i];
-        }
-        data
     }
 
     pub fn get_root_pid(&self) -> BTreePageID {
@@ -413,7 +424,6 @@ impl BTreeRootPointerPage {
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
-// TODO: PageID must be hashable
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BTreePageID {
     // category indicates the category of the page
@@ -469,7 +479,7 @@ impl BTreePageID {
 }
 
 pub struct BTreeInternalPage {
-    page: BTreePage,
+    page: BTreeBasePage,
 
     keys: Vec<i32>,
     children: Vec<BTreePageID>,
@@ -485,7 +495,7 @@ pub struct BTreeInternalPage {
 }
 
 impl std::ops::Deref for BTreeInternalPage {
-    type Target = BTreePage;
+    type Target = BTreeBasePage;
     fn deref(&self) -> &Self::Target {
         &self.page
     }
@@ -515,7 +525,7 @@ impl BTreeInternalPage {
         children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
 
         Self {
-            page: BTreePage {
+            page: BTreeBasePage {
                 pid: page_id.borrow().clone(),
                 parent_pid: BTreePageID::empty(),
             },
@@ -684,10 +694,6 @@ impl BTreeInternalPage {
     fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }
-
-    pub fn empty_page_data() -> [u8; PAGE_SIZE] {
-        [0; PAGE_SIZE]
-    }
 }
 
 /*
@@ -795,4 +801,9 @@ impl Iterator for BTreeInternalPageReverseIterator<'_> {
             ));
         }
     }
+}
+
+pub fn empty_page_data() -> Vec<u8> {
+    let data: Vec<u8> = vec![0; PAGE_SIZE];
+    data
 }

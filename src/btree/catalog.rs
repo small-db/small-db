@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use log::debug;
 use std::{mem, sync::Once};
 
-use super::file::BTreeTable;
+use super::table::BTreeTable;
 
 pub struct Catalog {
     map: HashMap<Key, Value>,

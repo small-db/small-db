@@ -2,7 +2,7 @@ use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
 use simple_db_rust::{
-    btree::file::SplitStrategy, util::simple_int_tuple_scheme, *,
+    btree::table::SplitStrategy, util::simple_int_tuple_scheme, *,
 };
 
 pub fn setup() {

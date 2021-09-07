@@ -2,7 +2,7 @@ use log::info;
 use rand::Rng;
 use simple_db_rust::{
     btree::{
-        buffer_pool::BufferPool, file::BTreeTableIterator, page::PageCategory,
+        buffer_pool::BufferPool, table::BTreeTableIterator, page::PageCategory,
     },
     *,
 };
@@ -82,16 +82,16 @@ fn insert_duplicate_tuples() {
 
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(Op::Equals, field::IntField::new(1));
-    let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
+    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
         Predicate::new(Op::GreaterThanOrEq, field::IntField::new(2));
-    let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
+    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
     let predicate = Predicate::new(Op::LessThan, field::IntField::new(2));
-    let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
+    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
     assert_eq!(it.count(), repetition_count * 2);
 }
 
@@ -203,14 +203,13 @@ fn split_root_page() {
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
-
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         info!("inserting tuple: {}", tuple);
         BufferPool::global().insert_tuple(table.get_id(), tuple.clone());
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
-        let it = btree::file::BTreeTableSearchIterator::new(&table, predicate);
+        let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
         let mut found = false;
         for t in it {
             if t == tuple {
@@ -222,4 +221,19 @@ fn split_root_page() {
         table.draw_tree();
         assert!(found);
     }
+}
+
+#[test]
+fn split_internal_page() {
+    common::setup();
+
+    // For this test we will decrease the size of the Buffer Pool pages
+    BufferPool::global().set_page_size(1024);
+
+    /*
+    This should create a B+ tree with a packed second tier of internal pages
+    and packed third tier of leaf pages
+    (124 entries per internal/leaf page, 125 children per internal page ->
+    125*2*124 = 31000)
+    */
 }

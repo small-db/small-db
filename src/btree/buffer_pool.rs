@@ -10,7 +10,7 @@ use std::{
     rc::Rc,
 };
 
-use log::{debug};
+use log::debug;
 use std::{mem, sync::Once};
 
 use super::page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory};
@@ -36,6 +36,10 @@ impl BufferPool {
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
         }
+    }
+
+    pub fn get_page_size() -> usize {
+        PAGE_SIZE
     }
 
     pub fn global() -> &'static mut Self {
@@ -68,7 +72,6 @@ impl BufferPool {
     }
 
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
-        debug!("get page from disk, pid: {}", key);
         let start_pos: usize = match key.category {
             PageCategory::RootPointer => 0,
             _ => {
@@ -79,9 +82,9 @@ impl BufferPool {
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 
-        let mut buf: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
+        let mut buf: Vec<u8> = vec![0; PAGE_SIZE];
         file.read_exact(&mut buf).expect("io error");
-        Ok(buf.to_vec())
+        Ok(buf)
     }
 
     pub fn get_internal_page(
@@ -163,7 +166,12 @@ impl BufferPool {
                 let buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
-                let page = BTreeRootPointerPage::new(buf.to_vec());
+                let pid = BTreePageID::new(
+                    PageCategory::RootPointer,
+                    table.get_id(),
+                    table.get_empty_page_index(),
+                );
+                let page = BTreeRootPointerPage::new(&pid, buf.to_vec());
 
                 // 4. put page into buffer pool
                 self.roop_pointer_buffer
@@ -172,6 +180,10 @@ impl BufferPool {
         }
 
         Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
+    }
+
+    pub fn set_page_size(&mut self, page_size: usize) {
+        unimplemented!()
     }
 
     /**
