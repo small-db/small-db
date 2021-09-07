@@ -5,8 +5,10 @@ use log::{debug, info};
 
 use crate::field::get_type_length;
 
-use super::buffer_pool::BufferPool;
-use super::tuple::{Tuple, TupleScheme};
+use super::{
+    buffer_pool::BufferPool,
+    tuple::{Tuple, TupleScheme},
+};
 
 use super::consts::INDEX_SIZE;
 
