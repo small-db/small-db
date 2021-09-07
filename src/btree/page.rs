@@ -422,7 +422,6 @@ impl BTreeRootPointerPage {
     }
 
     pub fn set_root_pid(&mut self, pid: &BTreePageID) {
-        debug!("set root pid: {}", pid);
         self.root_pid = *pid;
     }
 }

@@ -3,20 +3,17 @@ use super::{
     page::{
         empty_page_data, BTreeInternalPageIterator,
         BTreeInternalPageReverseIterator, BTreeLeafPage, BTreeLeafPageIterator,
-        BTreeLeafPageReverseIterator, BTreePageID, Entry,
+        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
     },
 };
 use crate::{
-    btree::{
-        consts::WRITE_DISK,
-        page::{BTreeBasePage, PageCategory},
-    },
+    btree::page::{BTreeBasePage, PageCategory},
     field::IntField,
 };
 
 use core::fmt;
 use log::info;
-use std::{borrow::Borrow, cell::Cell, str};
+use std::{cell::Cell, str};
 
 use std::{
     cell::RefCell,
@@ -125,11 +122,11 @@ impl BTreeTable {
         let field = tuple.get_field(self.key_field);
         let mut leaf_rc = self.find_leaf_page(root_pid, Some(field));
 
-        if (*leaf_rc).borrow().empty_slots_count() == 0 {
+        if leaf_rc.borrow().empty_slots_count() == 0 {
             leaf_rc =
                 self.split_leaf_page(leaf_rc, tuple.get_field(self.key_field));
         }
-        (*leaf_rc).borrow_mut().insert_tuple(&tuple);
+        leaf_rc.borrow_mut().insert_tuple(&tuple);
     }
 
     /**
@@ -163,8 +160,8 @@ impl BTreeTable {
         // borrow of new_sibling_rc start here
         // borrow of page_rc start here
         {
-            let mut new_sibling = (*new_sibling_rc).borrow_mut();
-            let mut page = (*page_rc).borrow_mut();
+            let mut new_sibling = new_sibling_rc.borrow_mut();
+            let mut page = page_rc.borrow_mut();
             // 1. adding a new page on the right of the existing
             // page and moving half of the tuples to the new page
             let tuple_count = page.tuples_count();
@@ -207,9 +204,9 @@ impl BTreeTable {
         // borrow of page_rc start here
         // borrow of new_sibling_rc start here
         {
-            let mut parent = (*parent_rc).borrow_mut();
-            let mut page = (*page_rc).borrow_mut();
-            let mut new_sibling = (*new_sibling_rc).borrow_mut();
+            let mut parent = parent_rc.borrow_mut();
+            let mut page = page_rc.borrow_mut();
+            let mut new_sibling = new_sibling_rc.borrow_mut();
             let entry =
                 Entry::new(key, &page.get_pid(), &new_sibling.get_pid());
             parent.insert_entry(&entry);
@@ -261,7 +258,7 @@ impl BTreeTable {
 
                 // borrow of new_parent_rc start here
                 {
-                    let new_parent = (*new_parent_rc).borrow_mut();
+                    let new_parent = new_parent_rc.borrow_mut();
 
                     // update the root pointer
                     let page_id = BTreePageID::new(
@@ -273,7 +270,7 @@ impl BTreeTable {
                         .get_root_pointer_page(&page_id)
                         .unwrap();
 
-                    (*root_pointer_page)
+                    root_pointer_page
                         .borrow_mut()
                         .set_root_pid(&new_parent.get_page_id());
                 }
@@ -288,8 +285,7 @@ impl BTreeTable {
 
                 // borrow of parent_rc start here
                 {
-                    empty_slots_count =
-                        (*parent_rc).borrow().empty_slots_count();
+                    empty_slots_count = parent_rc.borrow().empty_slots_count();
                 }
                 // borrow of parent_rc end here
 
@@ -334,8 +330,8 @@ impl BTreeTable {
         // borrow of sibling_rc start here
         // borrow of page_rc start here
         {
-            let mut sibling = (*sibling_rc).borrow_mut();
-            let mut page = (*page_rc).borrow_mut();
+            let mut sibling = sibling_rc.borrow_mut();
+            let mut page = page_rc.borrow_mut();
 
             parent_pid = page.get_parent_pid();
 
@@ -343,7 +339,7 @@ impl BTreeTable {
                 // create new parent page if the parent page is root pointer
                 // page.
                 let parent_rc = self.get_empty_interanl_page();
-                parent_pid = (*parent_rc).borrow().get_page_id();
+                parent_pid = parent_rc.borrow().get_page_id();
 
                 // update the root pointer
                 let root_pointer_pid = BTreePageID::new(
@@ -354,7 +350,7 @@ impl BTreeTable {
                 let root_pointer_page = BufferPool::global()
                     .get_root_pointer_page(&root_pointer_pid)
                     .unwrap();
-                (*root_pointer_page).borrow_mut().set_root_pid(&parent_pid);
+                root_pointer_page.borrow_mut().set_root_pid(&parent_pid);
             }
 
             let enties_count = page.entries_count();
@@ -393,12 +389,12 @@ impl BTreeTable {
         // borrow of page_rc start here
         // borrow of sibling_rc start here
         {
-            let mut parent = (*parent_rc).borrow_mut();
+            let mut parent = parent_rc.borrow_mut();
             info!("entry: {}", new_entry);
             parent.insert_entry(&new_entry);
 
-            let mut page = (*page_rc).borrow_mut();
-            let mut sibling = (*sibling_rc).borrow_mut();
+            let mut page = page_rc.borrow_mut();
+            let mut sibling = sibling_rc.borrow_mut();
             page.set_parent_id(&parent.get_page_id());
             sibling.set_parent_id(&parent.get_page_id());
         }
@@ -413,6 +409,15 @@ impl BTreeTable {
         }
     }
 
+    pub fn set_root_pid(&self, root_pid: &BTreePageID) {
+        let root_pointer_pid =
+            BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);
+        let root_pointer_rc = BufferPool::global()
+            .get_root_pointer_page(&root_pointer_pid)
+            .unwrap();
+        root_pointer_rc.borrow_mut().set_root_pid(root_pid);
+    }
+
     fn set_parent(child_pid: &BTreePageID, parent_pid: &BTreePageID) {
         match child_pid.category {
             PageCategory::RootPointer => todo!(),
@@ -422,7 +427,7 @@ impl BTreeTable {
 
                 // borrow of left_rc start here
                 {
-                    let mut left = (*left_rc).borrow_mut();
+                    let mut left = left_rc.borrow_mut();
                     left.set_parent_id(&parent_pid);
                 }
                 // borrow of left_rc end here
@@ -433,7 +438,7 @@ impl BTreeTable {
 
                 // borrow of left_rc start here
                 {
-                    let mut child = (*child_rc).borrow_mut();
+                    let mut child = child_rc.borrow_mut();
                     child.set_parent_id(&parent_pid);
                 }
                 // borrow of left_rc end here
@@ -478,7 +483,7 @@ impl BTreeTable {
 
                 // borrow of page_rc start here
                 {
-                    let page = (*page_rc).borrow();
+                    let page = page_rc.borrow();
                     let it = BTreeInternalPageIterator::new(&page);
                     let mut entry: Option<Entry> = None;
                     let mut found = false;
@@ -600,21 +605,16 @@ impl BTreeTable {
         page_rc
     }
 
-    fn write_page_to_disk(&self, page_id: &BTreePageID) {
-        if WRITE_DISK {
-            info!("crate new page and write it to disk, pid: {}", page_id);
-            let start_pos: usize =
-                page_id.page_index * BufferPool::get_page_size();
-            self.get_file()
-                .seek(SeekFrom::Start(start_pos as u64))
-                .expect("io error");
-            self.get_file()
-                .write(&BTreeBasePage::empty_page_data())
-                .expect("io error");
-            self.get_file().flush().expect("io error");
-        } else {
-            // info!("crate new page, pid: {}", page_id);
-        }
+    pub fn write_page_to_disk(&self, page_id: &BTreePageID) {
+        info!("crate new page and write it to disk, pid: {}", page_id);
+        let start_pos: usize = page_id.page_index * BufferPool::get_page_size();
+        self.get_file()
+            .seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
+        self.get_file()
+            .write(&BTreeBasePage::empty_page_data())
+            .expect("io error");
+        self.get_file().flush().expect("io error");
     }
 
     fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
@@ -635,7 +635,7 @@ impl BTreeTable {
         let page_ref = BufferPool::global()
             .get_root_pointer_page(&root_pointer_pid)
             .expect("io error");
-        let page = (*page_ref).borrow();
+        let page = page_ref.borrow();
         let mut root_pid = page.get_root_pid();
         root_pid.table_id = self.get_id();
         root_pid
@@ -647,11 +647,41 @@ impl BTreeTable {
     (BTreeRootPointerPage is not included)
     */
     pub fn pages_count(&self) -> usize {
-        if WRITE_DISK {
-            todo!()
-        } else {
-            BufferPool::global().leaf_buffer.len()
-                + BufferPool::global().internal_buffer.len()
+        let file_size = self.file.borrow().metadata().unwrap().len() as usize;
+        file_size / BufferPool::get_page_size() - 1
+    }
+
+    // get the first tuple under the internal/leaf page
+    pub fn get_first_tuple(&self, pid: &BTreePageID) -> Option<Tuple> {
+        todo!()
+    }
+
+    // get the last tuple under the internal/leaf page
+    pub fn get_last_tuple(&self, pid: &BTreePageID) -> Option<Tuple> {
+        match pid.category {
+            PageCategory::RootPointer => todo!(),
+            PageCategory::Internal => {
+                let page_rc =
+                    BufferPool::global().get_internal_page(pid).unwrap();
+
+                // borrow of page_rc start here
+                let child_pid: BTreePageID;
+                {
+                    let page = page_rc.borrow();
+                    let mut it = BTreeInternalPageReverseIterator::new(&page);
+                    child_pid = it.next().unwrap().get_right_child();
+                }
+                // borrow of page_rc end here
+                self.get_last_tuple(&child_pid)
+            }
+            PageCategory::Leaf => {
+                let page_rc = BufferPool::global().get_leaf_page(pid).unwrap();
+
+                let page = page_rc.borrow();
+                let mut it = BTreeLeafPageReverseIterator::new(&page);
+                it.next()
+            }
+            PageCategory::Header => todo!(),
         }
     }
 
@@ -696,7 +726,7 @@ impl BTreeTable {
         let mut it = BTreeLeafPageIterator::new(Rc::clone(&page_rc));
         let first_tuple = it.next().unwrap();
 
-        let page = (*page_rc).borrow();
+        let page = page_rc.borrow();
         let mut rit = BTreeLeafPageReverseIterator::new(&page);
         let last_tuple = rit.next().unwrap();
 
@@ -721,7 +751,7 @@ impl BTreeTable {
 
         // borrow of page_rc start here
         {
-            let page = (*page_rc).borrow();
+            let page = page_rc.borrow();
             println!(
                 "{}├── internal: {} ({} entries)",
                 prefix,
@@ -753,8 +783,6 @@ impl BTreeTable {
         println!("{}├── key: {}", prefix, entry.get_key());
         self.draw_subtree(&entry.get_right_child(), level + 1, max_level);
     }
-
-    pub fn merge_pages(&self) {}
 }
 
 pub struct BTreeTableIterator {

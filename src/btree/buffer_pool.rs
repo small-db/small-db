@@ -199,6 +199,10 @@ impl BufferPool {
         BTreeLeafPage::get_max_tuples(&scheme)
     }
 
+    pub fn children_per_page() -> usize {
+        BTreeInternalPage::get_max_entries(4) + 1
+    }
+
     pub fn get_page_size() -> usize {
         PAGE_SIZE.load(Ordering::Relaxed)
     }

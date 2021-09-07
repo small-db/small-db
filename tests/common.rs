@@ -1,8 +1,16 @@
+use log::info;
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
 use simple_db_rust::{
-    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    btree::{
+        buffer_pool::BufferPool,
+        page::{
+            BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeLeafPageIterator, BTreePageID, Entry,
+        },
+        tuple::TupleScheme,
+    },
     util::simple_int_tuple_scheme,
     *,
 };
@@ -57,12 +65,151 @@ fn sequential_insert_into_table(
     tuples: &Vec<Tuple>,
     tuple_scheme: &TupleScheme,
 ) {
+    // write leaf pages
     let leaf_page_count: usize;
-    if tuples.len() % BufferPool::rows_per_page(tuple_scheme) > 0 {
-        leaf_page_count =
-            (tuples.len() / BufferPool::rows_per_page(tuple_scheme)) + 1;
+    let rows_per_leaf_page: usize = BufferPool::rows_per_page(tuple_scheme);
+    let mut leaves = Vec::new();
+    if tuples.len() % rows_per_leaf_page > 0 {
+        leaf_page_count = (tuples.len() / rows_per_leaf_page) + 1;
     } else {
-        leaf_page_count =
-            tuples.len() / BufferPool::rows_per_page(tuple_scheme);
+        leaf_page_count = tuples.len() / rows_per_leaf_page;
+    }
+
+    let mut page_index = 0;
+    let mut tuple_index = 0;
+    for _ in 0..leaf_page_count {
+        page_index += 1;
+        let pid = BTreePageID::new(
+            btree::page::PageCategory::Leaf,
+            table.get_id(),
+            page_index,
+        );
+        table.write_page_to_disk(&pid);
+
+        let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        leaves.push(leaf_rc.clone());
+        // borrow of leaf_rc start here
+        {
+            let mut leaf = leaf_rc.borrow_mut();
+            for _ in 0..rows_per_leaf_page {
+                leaf.insert_tuple(&tuples[tuple_index]);
+
+                tuple_index += 1;
+            }
+        }
+        // borrow of leaf_rc ends here
+    }
+
+    if leaves.len() <= 1 {
+        let leaf = leaves[0].borrow();
+        table.set_root_pid(&leaf.get_pid());
+        return;
+    }
+
+    // write internal pages
+    let childrent_per_internal_page = BufferPool::children_per_page();
+    let entries_per_internal_page = childrent_per_internal_page - 1;
+    let mut internal_page_count = leaf_page_count / childrent_per_internal_page;
+    if leaf_page_count % childrent_per_internal_page > 0 {
+        internal_page_count =
+            (leaf_page_count / childrent_per_internal_page) + 1;
+    }
+
+    // leaf index in the leaves vector
+    let mut leaf_index = 0;
+
+    let mut internals = Vec::new();
+    for _ in 0..internal_page_count {
+        page_index += 1;
+        let pid = BTreePageID::new(
+            btree::page::PageCategory::Internal,
+            table.get_id(),
+            page_index,
+        );
+        table.write_page_to_disk(&pid);
+
+        let internal_rc = BufferPool::global().get_internal_page(&pid).unwrap();
+        internals.push(internal_rc.clone());
+
+        for _ in 0..entries_per_internal_page {
+            // borrow of internal_rc start here
+            {
+                let left_rc = leaves[leaf_index].clone();
+                let right_rc = leaves[leaf_index + 1].clone();
+                let mut it = BTreeLeafPageIterator::new(right_rc.clone());
+                let key = it.next().unwrap().get_field(0).value;
+
+                let mut internal = internal_rc.borrow_mut();
+                let e = Entry::new(
+                    key,
+                    &left_rc.borrow().get_pid(),
+                    &right_rc.borrow().get_pid(),
+                );
+                // info!("inserting entry: {}", e);
+                internal.insert_entry(&e);
+
+                leaf_index += 1;
+            }
+            // borrow of internal_rc ends here
+        }
+
+        // increase for the last right child
+        leaf_index += 1;
+    }
+
+    write_internal_pages(table, internals, &mut page_index);
+}
+
+fn write_internal_pages(
+    table: &BTreeTable,
+    internals: Vec<Rc<RefCell<BTreeInternalPage>>>,
+    page_index: &mut usize,
+) {
+    let childrent_per_internal_page = BufferPool::children_per_page();
+    if internals.len() <= 1 {
+        let internal = internals[0].borrow();
+        table.set_root_pid(&internal.get_pid());
+    } else if internals.len() <= childrent_per_internal_page {
+        // write a new internal page (the root page)
+        *page_index += 1;
+        let pid = BTreePageID::new(
+            btree::page::PageCategory::Internal,
+            table.get_id(),
+            *page_index,
+        );
+        table.write_page_to_disk(&pid);
+
+        let root_rc = BufferPool::global().get_internal_page(&pid).unwrap();
+
+        // insert entries
+        for i in 0..internals.len() - 1 {
+            // borrow of root_rc start here
+            {
+                let left_rc = internals[i].clone();
+                let right_rc = internals[i + 1].clone();
+
+                // borrow of right_rc start here
+                let key = table
+                    .get_last_tuple(&left_rc.borrow().get_pid())
+                    .unwrap()
+                    .get_field(table.key_field)
+                    .value;
+                // borrow of right_rc ends here
+
+                let mut root = root_rc.borrow_mut();
+                let e = Entry::new(
+                    key,
+                    &left_rc.borrow().get_pid(),
+                    &right_rc.borrow().get_pid(),
+                );
+                info!("inserting entry: {}", e);
+                root.insert_entry(&e);
+            }
+            // borrow of root_rc ends here
+        }
+
+        // update root pointer
+        table.set_root_pid(&pid);
+    } else {
     }
 }
