@@ -142,9 +142,6 @@ impl BTreeTable {
     Return the leaf page into which a new tuple with
     key field "field" should be inserted.
 
-    UPDATE:
-    split leaf page based on the split strategy.
-
     # Arguments
     * `field`: the key field of the tuple to be inserted after the split is complete. Necessary to know which of the two pages to return.
     */
@@ -405,9 +402,9 @@ impl BTreeTable {
         // borrow of sibling_rc end here
 
         if field.value > key {
-            page_rc
-        } else {
             sibling_rc
+        } else {
+            page_rc
         }
     }
 
