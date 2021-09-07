@@ -579,6 +579,18 @@ impl BTreeInternalPage {
         self.pid
     }
 
+    pub fn get_entry(&self, index: usize) -> Option<Entry> {
+        if self.is_slot_used(index) {
+            Some(Entry::new(
+                self.keys[index],
+                &self.children[index - 1],
+                &self.children[index],
+            ))
+        } else {
+            None
+        }
+    }
+
     pub fn empty_slots_count(&self) -> usize {
         let mut count = 0;
         // start from 1 because the first key slot is not used

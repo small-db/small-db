@@ -44,13 +44,9 @@ pub fn create_random_btree_table(
     {
         let table = table_rc.borrow();
 
-        // Using specific strategy to fill every page.
-        table.set_split_strategy(WriteScene::Sequential);
         for t in tuples {
             table.insert_tuple(t);
         }
-        // Revert to default split strategy.
-        table.set_split_strategy(WriteScene::Random);
     }
     // borrow of table_rc ends here
 

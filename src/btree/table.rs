@@ -52,8 +52,6 @@ pub struct BTreeTable {
     table_id: i32,
 
     page_index: Cell<usize>,
-
-    write_scene: Cell<WriteScene>,
 }
 
 #[derive(Copy, Clone)]
@@ -107,17 +105,11 @@ impl BTreeTable {
             TODO: init it according to actual condition
             */
             page_index: Cell::new(1),
-
-            write_scene: Cell::new(WriteScene::Random),
         }
     }
 
     pub fn get_id(&self) -> i32 {
         self.table_id
-    }
-
-    pub fn set_split_strategy(&self, strategy: WriteScene) {
-        self.write_scene.set(strategy);
     }
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
@@ -164,54 +156,33 @@ impl BTreeTable {
         page_rc: Rc<RefCell<BTreeLeafPage>>,
         field: IntField,
     ) -> Rc<RefCell<BTreeLeafPage>> {
-        info!("split leaf page");
-        self.draw_tree(-1);
-
         let new_sibling_rc = self.get_empty_leaf_page();
         let parent_pid: BTreePageID;
-        let mut key: i32 = 0;
+        let key: i32;
 
         // borrow of new_sibling_rc start here
         // borrow of page_rc start here
         {
             let mut new_sibling = (*new_sibling_rc).borrow_mut();
             let mut page = (*page_rc).borrow_mut();
+            // 1. adding a new page on the right of the existing
+            // page and moving half of the tuples to the new page
+            let tuple_count = page.tuples_count();
+            let move_tuple_count = tuple_count / 2;
 
-            match self.write_scene.get() {
-                WriteScene::Random => {
-                    // 1. adding a new page on the right of the existing
-                    // page and moving half of the tuples to the new page
-                    let tuple_count = page.tuples_count();
-                    let move_tuple_count = tuple_count / 2;
-
-                    let mut it = BTreeLeafPageReverseIterator::new(&page);
-                    let mut delete_indexes: Vec<usize> = Vec::new();
-                    let mut middle_tuple: Option<Tuple> = None;
-                    for (i, tuple) in
-                        it.by_ref().take(move_tuple_count).enumerate()
-                    {
-                        delete_indexes.push(tuple_count - i - 1);
-                        new_sibling.insert_tuple(&tuple);
-
-                        middle_tuple = Some(tuple);
-                    }
-
-                    key = middle_tuple.unwrap().get_field(self.key_field).value;
-
-                    for i in &delete_indexes {
-                        page.delete_tuple(i);
-                    }
-
-                    // do a check
-                    if page.empty_slots_count() != delete_indexes.len() {
-                        panic!("{}", page.empty_slots_count());
-                    }
-                }
-                WriteScene::Sequential => {
-                    let mut it = BTreeLeafPageReverseIterator::new(&page);
-                    key = it.next().unwrap().get_field(self.key_field).value;
-                }
+            let mut it = BTreeLeafPageReverseIterator::new(&page);
+            let mut delete_indexes: Vec<usize> = Vec::new();
+            for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate() {
+                delete_indexes.push(tuple_count - i - 1);
+                new_sibling.insert_tuple(&tuple);
             }
+
+            for i in &delete_indexes {
+                page.delete_tuple(i);
+            }
+
+            let mut it = BTreeLeafPageReverseIterator::new(&page);
+            key = it.next().unwrap().get_field(self.key_field).value;
 
             // set sibling id
             new_sibling.set_right_sibling_pid(page.get_right_sibling_pid());
@@ -250,8 +221,6 @@ impl BTreeTable {
         // borrow of parent_rc end here
         // borrow of page_rc end here
         // borrow of new_sibling_rc end here
-
-        self.draw_tree(-1);
 
         if field.value > key {
             new_sibling_rc
@@ -337,23 +306,6 @@ impl BTreeTable {
         }
     }
 
-    fn split_internal_page_for_seq(
-        &self,
-        page_rc: Rc<RefCell<BTreeInternalPage>>,
-        field: IntField,
-    ) -> Rc<RefCell<BTreeInternalPage>> {
-        // on sequential write, check is there is already a left
-        // sibling page. If there is, then move half of the entries
-        // to it.
-
-        // borrow of page_rc start here
-        {
-            let page = (*page_rc).borrow();
-        }
-
-        todo!()
-    }
-
     /**
     Split an internal page to make room for new entries and recursively split its parent page
     as needed to accommodate a new entry. The new entry for the parent should have a key matching
@@ -405,65 +357,37 @@ impl BTreeTable {
                 (*root_pointer_page).borrow_mut().set_root_pid(&parent_pid);
             }
 
-            match self.write_scene.get() {
-                WriteScene::Random => {
-                    let enties_count = page.entries_count();
-                    let move_entries_count = enties_count / 2;
+            let enties_count = page.entries_count();
+            let move_entries_count = enties_count / 2;
 
-                    let mut delete_indexes: Vec<usize> = Vec::new();
-                    let mut it = BTreeInternalPageIterator::new(&page);
-                    let mut entry: Option<Entry> = None;
-                    for (i, e) in
-                        it.by_ref().take(move_entries_count).enumerate()
-                    {
-                        delete_indexes.push(i + 1); // entries index start from 1
-                        sibling.insert_entry(&e);
-                        entry = Some(e);
+            let mut delete_indexes: Vec<usize> = Vec::new();
+            let mut it = BTreeInternalPageReverseIterator::new(&page);
+            let mut middle_entry_id: usize = 0;
+            for (i, e) in it.by_ref().take(move_entries_count).enumerate() {
+                delete_indexes.push(enties_count - i - 1);
+                sibling.insert_entry(&e);
 
-                        // set parent id for left child
-                        let left_pid = e.get_left_child();
-                        Self::set_parent(&left_pid, &sibling.get_page_id());
-                    }
+                // set parent id for right child
+                let right_pid = e.get_right_child();
+                Self::set_parent(&right_pid, &sibling.get_page_id());
 
-                    for i in delete_indexes {
-                        page.delete_entry(i);
-                    }
+                if i == move_entries_count - 1 {
+                    // for the last moved entry, update parent id for left child
+                    let left_pid = e.get_left_child();
+                    Self::set_parent(&left_pid, &sibling.get_page_id());
 
-                    key = entry.unwrap().key;
-
-                    let the_last_right_pid = entry.unwrap().get_right_child();
-                    Self::set_parent(
-                        &the_last_right_pid,
-                        &sibling.get_page_id(),
-                    );
-                }
-                WriteScene::Sequential => {
-                    let mut it = BTreeInternalPageReverseIterator::new(&page);
-                    let last_leaf_pid = it.next().unwrap().get_left_child();
-                    match last_leaf_pid.category {
-                        PageCategory::RootPointer => todo!(),
-                        PageCategory::Internal => todo!(),
-                        PageCategory::Leaf => {
-                            let last_leaf_rc = BufferPool::global()
-                                .get_leaf_page(&last_leaf_pid)
-                                .unwrap();
-
-                            // borrow of last_leaf_rc start here
-                            {
-                                let last_leaf = (*last_leaf_rc).borrow();
-                                let mut it = BTreeLeafPageReverseIterator::new(
-                                    &last_leaf,
-                                );
-                                let last_tuple = it.next().unwrap();
-                                key =
-                                    last_tuple.get_field(self.key_field).value;
-                            }
-                            // borrow of last_leaf_rc end here
-                        }
-                        PageCategory::Header => todo!(),
-                    }
+                    // remember the middle entry
+                    middle_entry_id = i - 1;
+                    // ... and delete it
+                    delete_indexes.push(middle_entry_id);
                 }
             }
+
+            for i in delete_indexes {
+                page.delete_entry(i);
+            }
+
+            key = page.get_entry(middle_entry_id).unwrap().key;
 
             new_entry =
                 Entry::new(key, &sibling.get_page_id(), &page.get_page_id());
