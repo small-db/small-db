@@ -46,3 +46,15 @@ fn test_small() {
         vec![0, 1, 2, 511, 512, 513, 1023, 1024, 1025, 4096 + 521];
     test_scan(row_count_list, column_count_list);
 }
+
+// not needed for now
+#[test]
+fn test_rewind() {}
+
+// not needed for now
+#[test]
+fn test_rewind_predicates() {}
+
+// not needed for now
+#[test]
+fn test_read_page() {}
