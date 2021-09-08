@@ -249,7 +249,7 @@ fn split_internal_page() {
 
     // now make sure we have 31100 records and they are all in sorted order
     let it = BTreeTableIterator::new(&table);
-    let mut pre: i32 = -1;
+    let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
         count += 1;
@@ -290,7 +290,7 @@ fn split_internal_page() {
 
     // now make sure we have 31100 records and they are all in sorted order
     let it = BTreeTableIterator::new(&table);
-    let mut pre: i32 = -1;
+    let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
         count += 1;
