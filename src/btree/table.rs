@@ -111,7 +111,7 @@ impl BTreeTable {
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&self, tuple: Tuple) {
+    pub fn insert_tuple(&self, tuple: &Tuple) {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -306,7 +306,7 @@ impl BTreeTable {
     as needed to accommodate a new entry. The new entry for the parent should have a key matching
     the middle key in the original internal page being split (this key is "pushed up" to the parent).
 
-    Make a left sibling page and move half of entries to it.
+    Make a right sibling page and move half of entries to it.
 
     The child pointers of the new parent entry should point to the two internal pages resulting
     from the split. Update parent pointers as needed.
@@ -360,9 +360,9 @@ impl BTreeTable {
 
             let mut delete_indexes: Vec<usize> = Vec::new();
             let mut it = BTreeInternalPageReverseIterator::new(&page);
-            for mut e in it.by_ref().take(move_entries_count) {
+            for e in it.by_ref().take(move_entries_count) {
                 delete_indexes.push(e.get_record_id());
-                sibling.insert_entry(&mut e);
+                sibling.insert_entry(&e);
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
@@ -373,14 +373,20 @@ impl BTreeTable {
 
             // also delete the middle entry
             delete_indexes.push(middle_entry.get_record_id());
+            info!("delete_indexes: {:?}", delete_indexes);
             for i in delete_indexes {
                 page.delete_entry(i);
             }
 
-            key = middle_entry.get_key();
+            // set parent id for right child to the middle entry
+            Self::set_parent(
+                &middle_entry.get_right_child(),
+                &sibling.get_page_id(),
+            );
 
+            key = middle_entry.get_key();
             new_entry =
-                Entry::new(key, &sibling.get_page_id(), &page.get_page_id());
+                Entry::new(key, &page.get_page_id(), &sibling.get_page_id());
         }
         // borrow of sibling_rc end here
         // borrow of page_rc end here

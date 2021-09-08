@@ -6,6 +6,7 @@ use simple_db_rust::{
         page::PageCategory,
         table::BTreeTableIterator,
     },
+    field::IntField,
     *,
 };
 use std::{cell::RefCell, rc::Rc};
@@ -30,7 +31,7 @@ fn insert_tuple() {
     info!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(tuple);
+        table.insert_tuple(&tuple);
         insert_value += 1;
         assert_eq!(1, table.pages_count());
     }
@@ -41,7 +42,7 @@ fn insert_tuple() {
     info!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(tuple);
+        table.insert_tuple(&tuple);
         insert_value += 1;
 
         // there are 3 pages: 1 root page + 2 leaf pages
@@ -51,7 +52,7 @@ fn insert_tuple() {
     // one more insert greater than 502 should cause page 2 to split
     info!("start insert, count: {}", 1);
     let tuple = Tuple::new_btree_tuple(insert_value, 2);
-    table.insert_tuple(tuple);
+    table.insert_tuple(&tuple);
 
     // there are 4 pages: 1 root page + 3 leaf pages
     assert_eq!(4, table.pages_count());
@@ -80,7 +81,7 @@ fn insert_duplicate_tuples() {
     for i in 0..5 {
         for _ in 0..repetition_count {
             let tuple = Tuple::new_btree_tuple(i, 2);
-            table.insert_tuple(tuple);
+            table.insert_tuple(&tuple);
         }
     }
 
@@ -164,13 +165,9 @@ fn split_root_page() {
         info!("root entries count: {}", it.count());
     }
 
-    table.draw_tree(-1);
-
     // now insert a tuple
     BufferPool::global()
         .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
-
-    table.draw_tree(-1);
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
@@ -211,7 +208,6 @@ fn split_root_page() {
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        info!("inserting tuple: {}", tuple);
         BufferPool::global().insert_tuple(table.get_id(), tuple.clone());
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
@@ -251,6 +247,67 @@ fn split_internal_page() {
 
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
+
+    // now make sure we have 31100 records and they are all in sorted order
+    let it = BTreeTableIterator::new(&table);
+    let mut pre: i32 = -1;
+    let mut count: i32 = 0;
+    for t in it {
+        count += 1;
+
+        let cur = t.get_field(table.key_field).value;
+        if t.get_field(table.key_field).value < pre {
+            panic!(
+                "records are not sorted, i: {}, pre: {}, cur: {}",
+                count, pre, cur
+            );
+        }
+
+        pre = cur;
+    }
+
+    assert_eq!(count, rows);
+
+    // now insert some random tuples and make sure we can find them
+    let mut rng = rand::thread_rng();
+    let rows_increment = 100;
+    for _ in 0..rows_increment {
+        let insert_value = rng.gen_range(0, i32::MAX);
+        let tuple = Tuple::new_btree_tuple(insert_value, 2);
+        table.insert_tuple(&tuple);
+
+        let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
+        let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+        let mut found = false;
+        for t in it {
+            if t == tuple {
+                found = true;
+                break;
+            }
+        }
+
+        assert!(found);
+    }
+
+    // now make sure we have 31100 records and they are all in sorted order
+    let it = BTreeTableIterator::new(&table);
+    let mut pre: i32 = -1;
+    let mut count: i32 = 0;
+    for t in it {
+        count += 1;
+
+        let cur = t.get_field(table.key_field).value;
+        if t.get_field(table.key_field).value < pre {
+            panic!(
+                "records are not sorted, i: {}, pre: {}, cur: {}",
+                count, pre, cur
+            );
+        }
+
+        pre = cur;
+    }
+
+    assert_eq!(count, rows + rows_increment);
 
     // revert to default page size for other tests
     BufferPool::set_page_size(DEFAULT_PAGE_SIZE);

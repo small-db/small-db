@@ -485,8 +485,8 @@ impl BTreePageID {
 pub struct BTreeInternalPage {
     page: BTreeBasePage,
 
-    keys: Vec<i32>,
-    children: Vec<BTreePageID>,
+    pub keys: Vec<i32>,
+    pub children: Vec<BTreePageID>,
 
     slot_count: usize,
 
@@ -619,7 +619,7 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &mut Entry) {
+    pub fn insert_entry(&mut self, e: &Entry) {
         // if this is the first entry, add it and return
         if self.empty_slots_count() == Self::get_max_entries(4) {
             self.children[0] = e.get_left_child();
@@ -697,7 +697,7 @@ impl BTreeInternalPage {
             }
             good_slot = less_or_eq_slot
         } else {
-            for i in less_or_eq_slot + 1..empty_slot {
+            for i in (less_or_eq_slot + 1..empty_slot).rev() {
                 self.move_entry(i as usize, i as usize + 1);
             }
             good_slot = less_or_eq_slot + 1
@@ -705,7 +705,6 @@ impl BTreeInternalPage {
 
         self.keys[good_slot as usize] = e.get_key();
         self.children[good_slot as usize] = e.get_right_child();
-        e.set_record_id(good_slot as usize);
         self.mark_slot_status(good_slot as usize, true);
     }
 
@@ -713,8 +712,11 @@ impl BTreeInternalPage {
         if self.is_slot_used(from) && !self.is_slot_used(to) {
             self.keys[to] = self.keys[from];
             self.children[to] = self.children[from];
+            self.children[to - 1] = self.children[from - 1];
             self.mark_slot_status(from, false);
             self.mark_slot_status(to, true);
+        } else {
+            panic!("move_entry: invalid slot, from: {}, to: {}", from, to);
         }
     }
 
@@ -734,7 +736,7 @@ pub struct Entry {
     left: BTreePageID,
     right: BTreePageID,
 
-    // position in the internal page
+    // record position in the page
     record_id: usize,
 }
 
@@ -838,11 +840,13 @@ impl Iterator for BTreeInternalPageReverseIterator<'_> {
             if !self.page.is_slot_used(self.cursor) {
                 continue;
             }
-            return Some(Entry::new(
+            let mut e = Entry::new(
                 self.page.keys[self.cursor],
                 &self.page.children[self.cursor - 1],
                 &self.page.children[self.cursor],
-            ));
+            );
+            e.set_record_id(self.cursor);
+            return Some(e);
         }
     }
 }

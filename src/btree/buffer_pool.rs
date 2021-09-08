@@ -220,7 +220,7 @@ impl BufferPool {
     */
     pub fn insert_tuple(&mut self, table_id: i32, t: Tuple) {
         let v = Catalog::global().get_table(&table_id).unwrap().borrow();
-        v.insert_tuple(t);
+        v.insert_tuple(&t);
     }
 }
 
