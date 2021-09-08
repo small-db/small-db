@@ -104,7 +104,7 @@ fn split_leaf_page() {
     common::setup();
 
     // This should create a B+ tree with one full page
-    let table_rc = common::create_random_btree_table(2, 502);
+    let table_rc = common::create_random_btree_table(2, 502, None, 0, true);
     let table = table_rc.borrow();
 
     // there should be 1 leaf page
@@ -144,7 +144,7 @@ fn split_root_page() {
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
     let rows = 504 * 502;
-    let table_ref = common::create_random_btree_table(2, rows);
+    let table_ref = common::create_random_btree_table(2, rows, None, 0, true);
     let table = table_ref.borrow();
 
     // there should be 504 leaf pages + 1 internal node
@@ -240,7 +240,7 @@ fn split_internal_page() {
     124 = leaf pages
     */
     let rows = 2 * 125 * 124;
-    let table_rc = common::create_random_btree_table(2, rows);
+    let table_rc = common::create_random_btree_table(2, rows, None, 0, true);
 
     let table = table_rc.borrow();
 
@@ -250,7 +250,7 @@ fn split_internal_page() {
     // now make sure we have 31100 records and they are all in sorted order
     let it = BTreeTableIterator::new(&table);
     let mut pre: i32 = -1;
-    let mut count: i32 = 0;
+    let mut count: usize = 0;
     for t in it {
         count += 1;
 
@@ -291,7 +291,7 @@ fn split_internal_page() {
     // now make sure we have 31100 records and they are all in sorted order
     let it = BTreeTableIterator::new(&table);
     let mut pre: i32 = -1;
-    let mut count: i32 = 0;
+    let mut count: usize = 0;
     for t in it {
         count += 1;
 

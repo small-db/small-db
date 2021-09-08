@@ -46,7 +46,6 @@ impl Catalog {
     }
 
     pub fn add_table(&mut self, file: Value) {
-        debug!("add table to catalog, id: {}", file.borrow().get_id());
         self.map.insert(file.borrow().get_id(), Rc::clone(&file));
     }
 }

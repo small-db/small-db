@@ -5,10 +5,7 @@ use std::{cell::RefCell, rc::Rc};
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool,
-        page::{
-            BTreeInternalPage,
-            BTreeLeafPageIterator, BTreePageID, Entry,
-        },
+        page::{BTreeInternalPage, BTreeLeafPageIterator, BTreePageID, Entry},
         tuple::TupleScheme,
     },
     util::simple_int_tuple_scheme,
@@ -30,11 +27,13 @@ The rows are inserted to pages in a compact manner. Result
 in all leaf pages being full.
 */
 pub fn create_random_btree_table(
-    columns: i32,
-    rows: i32,
+    columns: usize,
+    rows: usize,
+    int_tuples: Option<&mut Vec<Vec<i32>>>,
+    key_field: usize,
+    packed_layout: bool,
 ) -> Rc<RefCell<BTreeTable>> {
     let path = "btree.db";
-    let key_field = 0;
     let row_scheme = simple_int_tuple_scheme(columns, "");
     let table_rc =
         Rc::new(RefCell::new(BTreeTable::new(path, key_field, &row_scheme)));
@@ -43,19 +42,35 @@ pub fn create_random_btree_table(
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
     for _ in 0..rows {
-        let insert_value = rng.gen_range(0, i32::MAX);
-        let tuple = Tuple::new_btree_tuple(insert_value, 2);
+        let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+        let tuple = Tuple::new_btree_tuple(insert_value, columns);
         tuples.push(tuple);
     }
 
     tuples.sort_by(|a, b| a.get_field(key_field).cmp(&b.get_field(key_field)));
 
+    if let Some(int_tuples) = int_tuples {
+        for t in tuples.iter() {
+            let mut row = Vec::new();
+            for i in 0..columns {
+                row.push(t.get_field(i).value);
+            }
+            int_tuples.push(row);
+        }
+    }
+
     // borrow of table_rc start here
     {
         let table = table_rc.borrow();
-        let page_index =
-            sequential_insert_into_table(&table, &tuples, &row_scheme);
-        table.set_page_index(page_index);
+        if packed_layout {
+            let page_index =
+                sequential_insert_into_table(&table, &tuples, &row_scheme);
+            table.set_page_index(page_index);
+        } else {
+            for t in tuples.iter() {
+                table.insert_tuple(t);
+            }
+        }
     }
     // borrow of table_rc ends here
 
@@ -118,15 +133,22 @@ fn sequential_insert_into_table(
         // borrow of leaf_rc ends here
     }
 
-    if leaves.len() <= 1 {
-        let leaf = leaves[0].borrow();
-        table.set_root_pid(&leaf.get_pid());
-        return page_index;
+    match leaves.len() {
+        0 => {
+            return page_index;
+        }
+        1 => {
+            let leaf = leaves[0].borrow();
+            table.set_root_pid(&leaf.get_pid());
+            return page_index;
+        }
+        _ => {}
     }
 
     // write internal pages
     let childrent_per_internal_page = BufferPool::children_per_page();
     let entries_per_internal_page = childrent_per_internal_page - 1;
+
     let mut internal_page_count = leaf_page_count / childrent_per_internal_page;
     if leaf_page_count % childrent_per_internal_page > 0 {
         internal_page_count =

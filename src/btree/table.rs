@@ -13,7 +13,7 @@ use crate::{
 
 use core::fmt;
 use log::info;
-use std::{cell::Cell, str};
+use std::{cell::Cell, str, time::SystemTime};
 
 use std::{
     cell::RefCell,
@@ -85,6 +85,10 @@ impl BTreeTable {
 
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
+        let unix_time = SystemTime::now();
+        unix_time.hash(&mut hasher);
+        // unix_time.
+
         let table_id = hasher.finish() as i32;
 
         Self::file_init(f.borrow_mut());
@@ -285,8 +289,6 @@ impl BTreeTable {
                     empty_slots_count = parent_rc.borrow().empty_slots_count();
                 }
                 // borrow of parent_rc end here
-
-                info!("empty slots count: {}", empty_slots_count);
 
                 if empty_slots_count > 0 {
                     return parent_rc;
@@ -617,7 +619,6 @@ impl BTreeTable {
     }
 
     pub fn write_page_to_disk(&self, page_id: &BTreePageID) {
-        info!("crate new page and write it to disk, pid: {}", page_id);
         let start_pos: usize = page_id.page_index * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
