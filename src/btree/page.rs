@@ -3,7 +3,7 @@ use std::{cell::RefCell, convert::TryInto, fmt, rc::Rc};
 use bit_vec::BitVec;
 use log::{debug, info};
 
-use crate::{field::get_type_length, Catalog};
+use crate::{field::get_type_length};
 
 use super::{
     buffer_pool::BufferPool,

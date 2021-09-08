@@ -6,7 +6,6 @@ use simple_db_rust::{
         page::PageCategory,
         table::BTreeTableIterator,
     },
-    field::IntField,
     *,
 };
 use std::{cell::RefCell, rc::Rc};

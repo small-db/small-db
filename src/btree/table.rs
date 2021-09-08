@@ -3,7 +3,7 @@ use super::{
     page::{
         empty_page_data, BTreeInternalPageIterator,
         BTreeInternalPageReverseIterator, BTreeLeafPage, BTreeLeafPageIterator,
-        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
+        BTreeLeafPageReverseIterator, BTreePageID, Entry,
     },
 };
 use crate::{
@@ -663,7 +663,7 @@ impl BTreeTable {
     }
 
     // get the first tuple under the internal/leaf page
-    pub fn get_first_tuple(&self, pid: &BTreePageID) -> Option<Tuple> {
+    pub fn get_first_tuple(&self, _pid: &BTreePageID) -> Option<Tuple> {
         todo!()
     }
 

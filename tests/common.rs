@@ -6,7 +6,7 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeInternalPage,
             BTreeLeafPageIterator, BTreePageID, Entry,
         },
         tuple::TupleScheme,
