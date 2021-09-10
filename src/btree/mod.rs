@@ -12,3 +12,5 @@ pub mod entry;
 pub mod page;
 pub mod table;
 pub mod tuple;
+
+pub mod internal_page;

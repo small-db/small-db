@@ -1,15 +1,8 @@
-use super::{
-    buffer_pool::BufferPool,
-    page::{
-        empty_page_data, BTreeInternalPageIterator,
-        BTreeInternalPageReverseIterator, BTreeLeafPage, BTreeLeafPageIterator,
-        BTreeLeafPageReverseIterator, BTreePageID, Entry,
-    },
-};
-use crate::{
-    btree::page::{BTreeBasePage, PageCategory},
-    field::IntField,
-};
+use super::{buffer_pool::BufferPool, internal_page::{BTreeInternalPage, Entry}, page::{
+        empty_page_data, BTreeLeafPage, BTreeLeafPageIteratorRc,
+        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage,
+    }};
+use crate::{btree::{internal_page::{BTreeInternalPageIterator, BTreeInternalPageReverseIterator}, page::{BTreeBasePage, PageCategory}}, field::IntField};
 
 use core::fmt;
 use log::info;
@@ -28,7 +21,6 @@ use std::{
 use std::cell::RefMut;
 
 use super::{
-    page::BTreeInternalPage,
     tuple::{Tuple, TupleScheme},
 };
 
@@ -638,19 +630,21 @@ impl BTreeTable {
     Get the root page pid.
     */
     pub fn get_root_pid(&self) -> BTreePageID {
-        // get root pointer page
-        let root_pointer_pid = BTreePageID {
+        let root_ptr_rc = self.get_root_ptr_page();
+        let mut root_pid = root_ptr_rc.borrow().get_root_pid();
+        root_pid.table_id = self.get_id();
+        root_pid
+    }
+
+    pub fn get_root_ptr_page(&self) -> Rc<RefCell<BTreeRootPointerPage>> {
+        let root_ptr_pid = BTreePageID {
             category: PageCategory::RootPointer,
             page_index: 0,
             table_id: self.table_id,
         };
-        let page_ref = BufferPool::global()
-            .get_root_pointer_page(&root_pointer_pid)
-            .expect("io error");
-        let page = page_ref.borrow();
-        let mut root_pid = page.get_root_pid();
-        root_pid.table_id = self.get_id();
-        root_pid
+        BufferPool::global()
+            .get_root_pointer_page(&root_ptr_pid)
+            .unwrap()
     }
 
     /**
@@ -739,7 +733,7 @@ impl BTreeTable {
         let prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
-        let mut it = BTreeLeafPageIterator::new(Rc::clone(&page_rc));
+        let mut it = BTreeLeafPageIteratorRc::new(Rc::clone(&page_rc));
         let first_tuple = it.next().unwrap();
 
         let page = page_rc.borrow();
@@ -799,11 +793,100 @@ impl BTreeTable {
         println!("{}├── key: {}", prefix, entry.get_key());
         self.draw_subtree(&entry.get_right_child(), level + 1, max_level);
     }
+
+    /**
+    checks the integrity of the tree:
+    - parent pointers.
+    - sibling pointers.
+    - range invariants.
+    - record to page pointers.
+    - occupancy invariants. (if enabled)
+
+    panic on any error found.
+    */
+    pub fn check_integrity(&self, check_occupancy: bool) {
+        let root_ptr_page = self.get_root_ptr_page();
+        let root_pid = root_ptr_page.borrow().get_root_pid();
+        self.check_sub_tree(&root_pid, None, None, check_occupancy, 0);
+    }
+
+    /**
+    panic on any error found.
+    */
+    fn check_sub_tree(
+        &self,
+        pid: &BTreePageID,
+        lower_bound: Option<IntField>,
+        upper_bound: Option<IntField>,
+        check_occupancy: bool,
+        depth: usize,
+    ) -> SubtreeSummary {
+        match pid.category {
+            PageCategory::Leaf => {
+                let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+                let page = page_rc.borrow();
+                page.check_integrity(
+                    lower_bound,
+                    upper_bound,
+                    check_occupancy,
+                    depth,
+                );
+            }
+
+            PageCategory::Internal => {
+                let page_rc =
+                    BufferPool::global().get_internal_page(&pid).unwrap();
+                let page = page_rc.borrow();
+                page.check_integrity(
+                    lower_bound,
+                    upper_bound,
+                    check_occupancy,
+                    depth,
+                );
+            }
+
+            // no other page types allowed inside the tree.
+            _ => panic!("invalid page category"),
+        };
+
+        todo!()
+    }
+}
+
+struct SubtreeSummary {
+    /// The distance towards the root.
+    depth: usize,
+
+    left_ptr: Option<BTreePageID>,
+    left_most_pid: Option<BTreePageID>,
+    right_ptr: Option<BTreePageID>,
+    right_most_pid: Option<BTreePageID>,
+}
+
+impl BTreeTableIterator {
+    /// `acc` is the abbreviation of accumulation.
+    fn check_and_merge(
+        accleft: &mut SubtreeSummary,
+        right: &mut SubtreeSummary,
+    ) -> SubtreeSummary {
+        assert_eq!(accleft.depth, right.depth);
+        assert_eq!(accleft.right_ptr, right.left_most_pid);
+        assert_eq!(accleft.right_most_pid, right.left_ptr);
+
+        let acc = SubtreeSummary {
+            depth: accleft.depth,
+            left_ptr: accleft.left_ptr,
+            left_most_pid: accleft.left_most_pid,
+            right_ptr: right.right_ptr,
+            right_most_pid: right.right_most_pid,
+        };
+        return acc;
+    }
 }
 
 pub struct BTreeTableIterator {
     page_rc: Rc<RefCell<BTreeLeafPage>>,
-    page_it: BTreeLeafPageIterator,
+    page_it: BTreeLeafPageIteratorRc,
 }
 
 impl BTreeTableIterator {
@@ -812,7 +895,7 @@ impl BTreeTableIterator {
 
         Self {
             page_rc: Rc::clone(&page_rc),
-            page_it: BTreeLeafPageIterator::new(Rc::clone(&page_rc)),
+            page_it: BTreeLeafPageIteratorRc::new(Rc::clone(&page_rc)),
         }
     }
 }
@@ -832,7 +915,7 @@ impl Iterator for BTreeTableIterator {
                 let sibling_rc =
                     BufferPool::global().get_leaf_page(&right).unwrap();
                 let page_it =
-                    BTreeLeafPageIterator::new(Rc::clone(&sibling_rc));
+                    BTreeLeafPageIteratorRc::new(Rc::clone(&sibling_rc));
 
                 self.page_rc = Rc::clone(&sibling_rc);
                 self.page_it = page_it;
@@ -868,7 +951,7 @@ impl Predicate {
 
 pub struct BTreeTableSearchIterator {
     current_page_rc: Rc<RefCell<BTreeLeafPage>>,
-    page_it: BTreeLeafPageIterator,
+    page_it: BTreeLeafPageIteratorRc,
     predicate: Predicate,
     key_field: usize,
 }
@@ -892,7 +975,7 @@ impl BTreeTableSearchIterator {
 
         Self {
             current_page_rc: Rc::clone(&rc),
-            page_it: BTreeLeafPageIterator::new(Rc::clone(&rc)),
+            page_it: BTreeLeafPageIteratorRc::new(Rc::clone(&rc)),
             predicate: index_predicate,
             key_field: table.key_field,
         }
@@ -959,7 +1042,7 @@ impl Iterator for BTreeTableSearchIterator {
                                 .unwrap();
                             self.current_page_rc = Rc::clone(&rc);
                             self.page_it =
-                                BTreeLeafPageIterator::new(Rc::clone(&rc));
+                                BTreeLeafPageIteratorRc::new(Rc::clone(&rc));
                             continue;
                         }
                         None => {

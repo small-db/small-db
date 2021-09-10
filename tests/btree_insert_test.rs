@@ -18,10 +18,9 @@ fn insert_tuple() {
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let path = "btree.db";
     let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_ref =
-        Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
-    Catalog::global().add_table(Rc::clone(&table_ref));
-    let table = table_ref.borrow();
+    let table_rc = Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
+    Catalog::global().add_table(Rc::clone(&table_rc));
+    let table = table_rc.borrow();
 
     let mut insert_value = 0;
 
@@ -123,7 +122,7 @@ fn split_leaf_page() {
     assert_eq!(502, root.empty_slots_count());
 
     // each child should have half of the records
-    let mut it = btree::page::BTreeInternalPageIterator::new(&root);
+    let mut it = btree::internal_page::BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
     let left_ref = BufferPool::global()
         .get_leaf_page(&entry.get_left_child())
@@ -160,7 +159,7 @@ fn split_root_page() {
             BufferPool::global().get_internal_page(&root_pid).unwrap();
         let root = root_ref.borrow();
         info!("root empty slot count: {}", root.empty_slots_count());
-        let it = btree::page::BTreeInternalPageIterator::new(&root);
+        let it = btree::internal_page::BTreeInternalPageIterator::new(&root);
         info!("root entries count: {}", it.count());
     }
 
@@ -185,7 +184,8 @@ fn split_root_page() {
         assert_eq!(root_page.empty_slots_count(), 502);
 
         // each child should have half of the entries
-        let mut it = btree::page::BTreeInternalPageIterator::new(&root_page);
+        let mut it =
+            btree::internal_page::BTreeInternalPageIterator::new(&root_page);
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
         let left_rc =

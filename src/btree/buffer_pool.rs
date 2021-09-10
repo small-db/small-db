@@ -13,10 +13,7 @@ use std::{
 
 use std::{mem, sync::Once};
 
-use super::{
-    page::{BTreeInternalPage, BTreeRootPointerPage, PageCategory},
-    tuple::TupleScheme,
-};
+use super::{internal_page::BTreeInternalPage, page::{BTreeRootPointerPage, PageCategory}, tuple::TupleScheme};
 
 use super::{
     catalog::Catalog,

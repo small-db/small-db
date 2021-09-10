@@ -2,15 +2,7 @@ use log::info;
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
-use simple_db_rust::{
-    btree::{
-        buffer_pool::BufferPool,
-        page::{BTreeInternalPage, BTreeLeafPageIterator, BTreePageID, Entry},
-        tuple::TupleScheme,
-    },
-    util::simple_int_tuple_scheme,
-    *,
-};
+use simple_db_rust::{*, btree::{buffer_pool::BufferPool, internal_page::{BTreeInternalPage, Entry}, page::{BTreeLeafPageIteratorRc, BTreePageID}, tuple::TupleScheme}, util::simple_int_tuple_scheme};
 
 pub fn setup() {
     test_utils::init_log();
@@ -176,7 +168,7 @@ fn sequential_insert_into_table(
             {
                 let left_rc = leaves[leaf_index].clone();
                 let right_rc = leaves[leaf_index + 1].clone();
-                let mut it = BTreeLeafPageIterator::new(right_rc.clone());
+                let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
                 let key = it.next().unwrap().get_field(0).value;
 
                 let mut internal = internal_rc.borrow_mut();
