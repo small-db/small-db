@@ -1,14 +1,16 @@
 use bit_vec::BitVec;
 
-use crate::{Tuple, btree::{buffer_pool::BufferPool, tuple::TupleScheme}};
+use crate::{
+    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    Tuple,
+};
 
 use super::{BTreeBasePage, BTreePageID, PageCategory};
 use std::{cell::RefCell, rc::Rc};
 
-use log::{debug};
+use log::debug;
 
-use crate::field::{IntField};
-
+use crate::field::IntField;
 
 pub struct BTreeLeafPage {
     page: BTreeBasePage,

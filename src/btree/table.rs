@@ -1,15 +1,15 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        empty_page_data, BTreeLeafPage, BTreeLeafPageIteratorRc,
-        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage,
+        empty_page_data, BTreeInternalPage, BTreeLeafPage,
+        BTreeLeafPageIteratorRc, BTreeLeafPageReverseIterator, BTreePageID,
+        BTreeRootPointerPage, Entry,
     },
-    page::{BTreeInternalPage, Entry},
 };
 use crate::{
-    btree::{
-        page::{BTreeBasePage, PageCategory},
-        page::{BTreeInternalPageIterator, BTreeInternalPageReverseIterator},
+    btree::page::{
+        BTreeBasePage, BTreeInternalPageIterator,
+        BTreeInternalPageReverseIterator, PageCategory,
     },
     field::IntField,
 };

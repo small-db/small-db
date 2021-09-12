@@ -13,7 +13,8 @@ fn test_redistribute_leaf_pages() {
 // // This should create a B+ tree with two partially full leaf pages
 // BTreeFile twoLeafPageFile = BTreeUtility.createRandomBTreeFile(2, 600,
 //         null, null, 0);
-// BTreeChecker.checkRep(twoLeafPageFile, tid, new HashMap<PageId, Page>(), true);
+// BTreeChecker.checkRep(twoLeafPageFile, tid, new HashMap<PageId, Page>(),
+// true);
 
 // // Delete some tuples from the first page until it gets to minimum occupancy
 // DbFileIterator it = twoLeafPageFile.iterator(tid);
@@ -28,10 +29,11 @@ fn test_redistribute_leaf_pages() {
 //     twoLeafPageFile.deleteTuple(tid, t);
 //     count++;
 // }
-// BTreeChecker.checkRep(twoLeafPageFile,tid, new HashMap<PageId, Page>(), true);
+// BTreeChecker.checkRep(twoLeafPageFile,tid, new HashMap<PageId, Page>(),
+// true);
 
-// // deleting a tuple now should bring the page below minimum occupancy and cause
-// // the tuples to be redistributed
+// // deleting a tuple now should bring the page below minimum occupancy and
+// cause // the tuples to be redistributed
 // Tuple t = it.next();
 // it.close();
 // BTreePageId pid = (BTreePageId) t.getRecordId().getPageId();
@@ -42,6 +44,6 @@ fn test_redistribute_leaf_pages() {
 // assertTrue(p.getNumEmptySlots() <= 251);
 
 // BTreePageId rightSiblingId = p.getRightSiblingId();
-// BTreeLeafPage rightSibling = (BTreeLeafPage) Database.getBufferPool().getPage(
-//         tid, rightSiblingId, Permissions.READ_ONLY);
-// assertTrue(rightSibling.getNumEmptySlots() > 202);
+// BTreeLeafPage rightSibling = (BTreeLeafPage)
+// Database.getBufferPool().getPage(         tid, rightSiblingId,
+// Permissions.READ_ONLY); assertTrue(rightSibling.getNumEmptySlots() > 202);

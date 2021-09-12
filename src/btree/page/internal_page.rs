@@ -1,9 +1,12 @@
 use std::{cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
-use log::{info};
+use log::info;
 
-use crate::{btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme}, field::{get_type_length, IntField}};
+use crate::{
+    btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
+    field::{get_type_length, IntField},
+};
 
 use super::{BTreeBasePage, BTreePageID, PageCategory};
 
