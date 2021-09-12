@@ -3,7 +3,7 @@ use rand::Rng;
 use simple_db_rust::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
-        page::PageCategory,
+        page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },
     *,
@@ -122,7 +122,7 @@ fn split_leaf_page() {
     assert_eq!(502, root.empty_slots_count());
 
     // each child should have half of the records
-    let mut it = btree::internal_page::BTreeInternalPageIterator::new(&root);
+    let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
     let left_ref = BufferPool::global()
         .get_leaf_page(&entry.get_left_child())
@@ -159,7 +159,7 @@ fn split_root_page() {
             BufferPool::global().get_internal_page(&root_pid).unwrap();
         let root = root_ref.borrow();
         info!("root empty slot count: {}", root.empty_slots_count());
-        let it = btree::internal_page::BTreeInternalPageIterator::new(&root);
+        let it = BTreeInternalPageIterator::new(&root);
         info!("root entries count: {}", it.count());
     }
 
@@ -184,8 +184,7 @@ fn split_root_page() {
         assert_eq!(root_page.empty_slots_count(), 502);
 
         // each child should have half of the entries
-        let mut it =
-            btree::internal_page::BTreeInternalPageIterator::new(&root_page);
+        let mut it = BTreeInternalPageIterator::new(&root_page);
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
         let left_rc =

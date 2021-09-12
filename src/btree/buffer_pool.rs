@@ -13,12 +13,7 @@ use std::{
 
 use std::{mem, sync::Once};
 
-use super::{internal_page::BTreeInternalPage, page::{BTreeRootPointerPage, PageCategory}, tuple::TupleScheme};
-
-use super::{
-    catalog::Catalog,
-    page::{BTreeLeafPage, BTreePageID},
-};
+use super::{catalog::Catalog, page::{BTreeInternalPage, BTreeLeafPage, BTreePageID, BTreeRootPointerPage, PageCategory}, tuple::TupleScheme};
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);

@@ -1,8 +1,18 @@
-use super::{buffer_pool::BufferPool, internal_page::{BTreeInternalPage, Entry}, page::{
+use super::{
+    buffer_pool::BufferPool,
+    page::{
         empty_page_data, BTreeLeafPage, BTreeLeafPageIteratorRc,
         BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage,
-    }};
-use crate::{btree::{internal_page::{BTreeInternalPageIterator, BTreeInternalPageReverseIterator}, page::{BTreeBasePage, PageCategory}}, field::IntField};
+    },
+    page::{BTreeInternalPage, Entry},
+};
+use crate::{
+    btree::{
+        page::{BTreeBasePage, PageCategory},
+        page::{BTreeInternalPageIterator, BTreeInternalPageReverseIterator},
+    },
+    field::IntField,
+};
 
 use core::fmt;
 use log::info;
@@ -20,9 +30,7 @@ use std::{
 
 use std::cell::RefMut;
 
-use super::{
-    tuple::{Tuple, TupleScheme},
-};
+use super::tuple::{Tuple, TupleScheme};
 
 // B+ Tree
 pub struct BTreeTable {

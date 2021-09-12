@@ -2,7 +2,16 @@ use log::info;
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
-use simple_db_rust::{*, btree::{buffer_pool::BufferPool, internal_page::{BTreeInternalPage, Entry}, page::{BTreeLeafPageIteratorRc, BTreePageID}, tuple::TupleScheme}, util::simple_int_tuple_scheme};
+use simple_db_rust::{
+    btree::{
+        buffer_pool::BufferPool,
+        page::{BTreeInternalPage, Entry},
+        page::{BTreeLeafPageIteratorRc, BTreePageID},
+        tuple::TupleScheme,
+    },
+    util::simple_int_tuple_scheme,
+    *,
+};
 
 pub fn setup() {
     test_utils::init_log();
