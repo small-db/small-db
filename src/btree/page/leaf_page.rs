@@ -3,11 +3,11 @@ use bit_vec::BitVec;
 use crate::{Tuple, btree::{buffer_pool::BufferPool, tuple::TupleScheme}};
 
 use super::{BTreeBasePage, BTreePageID, PageCategory};
-use std::{cell::RefCell, convert::TryInto, fmt, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use log::{debug, info};
+use log::{debug};
 
-use crate::field::{get_type_length, IntField};
+use crate::field::{IntField};
 
 
 pub struct BTreeLeafPage {

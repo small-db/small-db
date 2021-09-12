@@ -1,4 +1,4 @@
-use log::info;
+
 use rand::Rng;
 use simple_db_rust::btree::{
     buffer_pool::BufferPool, table::BTreeTableIterator,

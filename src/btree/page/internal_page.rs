@@ -1,7 +1,7 @@
 use std::{cell::RefCell, convert::TryInto, fmt, rc::Rc};
 
 use bit_vec::BitVec;
-use log::{debug, info};
+use log::{info};
 
 use crate::{btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme}, field::{get_type_length, IntField}};
 
@@ -251,10 +251,10 @@ impl BTreeInternalPage {
 
     pub fn check_integrity(
         &self,
-        lower_bound: Option<IntField>,
-        upper_bound: Option<IntField>,
-        check_occupancy: bool,
-        depth: usize,
+        _lower_bound: Option<IntField>,
+        _upper_bound: Option<IntField>,
+        _check_occupancy: bool,
+        _depth: usize,
     ) {
     }
 }

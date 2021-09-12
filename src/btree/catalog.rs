@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use log::debug;
+
 use std::{mem, sync::Once};
 
 use super::table::BTreeTable;
