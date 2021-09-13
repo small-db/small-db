@@ -5,6 +5,7 @@ use super::{
         BTreeLeafPageIteratorRc, BTreeLeafPageReverseIterator, BTreePageID,
         BTreeRootPointerPage, Entry,
     },
+    tuple::WrappedTuple,
 };
 use crate::{
     btree::page::{
@@ -156,7 +157,7 @@ impl BTreeTable {
     ) -> Rc<RefCell<BTreeLeafPage>> {
         let new_sibling_rc = self.get_empty_leaf_page();
         let parent_pid: BTreePageID;
-        let key: i32;
+        let key: IntField;
 
         // borrow of new_sibling_rc start here
         // borrow of page_rc start here
@@ -170,20 +171,21 @@ impl BTreeTable {
 
             let mut it = BTreeLeafPageReverseIterator::new(&page);
             let mut delete_indexes: Vec<usize> = Vec::new();
-            for (i, tuple) in it.by_ref().take(move_tuple_count).enumerate() {
-                delete_indexes.push(tuple_count - i - 1);
+            for tuple in it.by_ref().take(move_tuple_count) {
+                delete_indexes.push(tuple.get_slot_number());
                 new_sibling.insert_tuple(&tuple);
             }
 
-            for i in &delete_indexes {
+            for i in delete_indexes {
                 page.delete_tuple(i);
             }
 
             let mut it = BTreeLeafPageReverseIterator::new(&page);
-            key = it.next().unwrap().get_field(self.key_field).value;
+            key = it.next().unwrap().get_field(self.key_field);
 
             // set sibling id
             new_sibling.set_right_sibling_pid(page.get_right_sibling_pid());
+            new_sibling.set_left_sibling_pid(Some(page.get_pid()));
             page.set_right_sibling_pid(Some(new_sibling.get_pid()));
 
             // get parent pid for use later
@@ -220,7 +222,7 @@ impl BTreeTable {
         // borrow of page_rc end here
         // borrow of new_sibling_rc end here
 
-        if field.value > key {
+        if field > key {
             new_sibling_rc
         } else {
             page_rc
@@ -327,7 +329,7 @@ impl BTreeTable {
         self.draw_tree(-1);
 
         let sibling_rc = self.get_empty_interanl_page();
-        let key: i32;
+        let key: IntField;
         let mut parent_pid: BTreePageID;
         let mut new_entry: Entry;
 
@@ -415,12 +417,49 @@ impl BTreeTable {
         info!("split end");
         self.draw_tree(-1);
 
-        if field.value > key {
+        if field > key {
             sibling_rc
         } else {
             page_rc
         }
     }
+
+    /**
+    Delete a tuple from this BTreeFile.
+
+    May cause pages to merge or redistribute entries/tuples if the pages
+    become less than half full.
+    */
+    pub fn delete_tuple(&self, tuple: Rc<WrappedTuple>) {
+        let pid = (*tuple).get_pid();
+        let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+
+        // borrow of leaf_rc start here
+        {
+            let mut leaf = leaf_rc.borrow_mut();
+            leaf.delete_tuple(tuple.get_slot_number());
+        }
+        // borrow of leaf_rc end here
+    }
+
+    //  HashMap<PageId, Page> dirtypages = new HashMap<PageId, Page>();
+
+    //  BTreePageId pageId = new BTreePageId(tableid, t.getRecordId().getPageId().getPageNumber(),
+    //          BTreePageId.LEAF);
+    //  BTreeLeafPage page = (BTreeLeafPage) getPage(tid, dirtypages, pageId, Permissions.READ_WRITE);
+    //  page.deleteTuple(t);
+
+    //  // if the page is below minimum occupancy, get some tuples from its siblings
+    //  // or merge with one of the siblings
+    //  int maxEmptySlots = page.getMaxTuples() - page.getMaxTuples() / 2; // ceiling
+    //  if (page.getNumEmptySlots() > maxEmptySlots) {
+    //      handleMinOccupancyPage(tid, dirtypages, page);
+    //  }
+
+    //  ArrayList<Page> dirtyPagesArr = new ArrayList<Page>();
+    //  dirtyPagesArr.addAll(dirtypages.values());
+    //  return dirtyPagesArr;
+    // }
 
     pub fn set_root_pid(&self, root_pid: &BTreePageID) {
         let root_pointer_pid =
@@ -503,7 +542,7 @@ impl BTreeTable {
                     for e in it {
                         match field {
                             Some(f) => {
-                                if e.get_key() >= f.value {
+                                if e.get_key() >= f {
                                     child_pid = Some(e.get_left_child());
                                     found = true;
                                     break;
@@ -629,7 +668,7 @@ impl BTreeTable {
         self.get_file().flush().expect("io error");
     }
 
-    fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
+    pub fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
         return self.find_leaf_page(page_id, None);
     }
@@ -675,7 +714,7 @@ impl BTreeTable {
     }
 
     // get the last tuple under the internal/leaf page
-    pub fn get_last_tuple(&self, pid: &BTreePageID) -> Option<Tuple> {
+    pub fn get_last_tuple(&self, pid: &BTreePageID) -> Option<WrappedTuple> {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
@@ -815,7 +854,16 @@ impl BTreeTable {
     pub fn check_integrity(&self, check_occupancy: bool) {
         let root_ptr_page = self.get_root_ptr_page();
         let root_pid = root_ptr_page.borrow().get_root_pid();
-        self.check_sub_tree(&root_pid, None, None, check_occupancy, 0);
+        let root_summary = self.check_sub_tree(
+            &root_pid,
+            &root_ptr_page.borrow().get_pid(),
+            None,
+            None,
+            check_occupancy,
+            0,
+        );
+        assert!(root_summary.left_ptr.is_none());
+        assert!(root_summary.right_ptr.is_none());
     }
 
     /**
@@ -824,7 +872,8 @@ impl BTreeTable {
     fn check_sub_tree(
         &self,
         pid: &BTreePageID,
-        lower_bound: Option<IntField>,
+        parent_pid: &BTreePageID,
+        mut lower_bound: Option<IntField>,
         upper_bound: Option<IntField>,
         check_occupancy: bool,
         depth: usize,
@@ -834,11 +883,22 @@ impl BTreeTable {
                 let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
                 let page = page_rc.borrow();
                 page.check_integrity(
+                    parent_pid,
                     lower_bound,
                     upper_bound,
                     check_occupancy,
                     depth,
                 );
+
+                return SubtreeSummary {
+                    left_ptr: page.get_left_sibling_pid(),
+                    right_ptr: page.get_right_sibling_pid(),
+
+                    left_most_pid: Some(page.get_pid()),
+                    right_most_pid: Some(page.get_pid()),
+
+                    depth,
+                };
             }
 
             PageCategory::Internal => {
@@ -846,18 +906,59 @@ impl BTreeTable {
                     BufferPool::global().get_internal_page(&pid).unwrap();
                 let page = page_rc.borrow();
                 page.check_integrity(
+                    parent_pid,
                     lower_bound,
                     upper_bound,
                     check_occupancy,
                     depth,
                 );
+
+                let mut it = BTreeInternalPageIterator::new(&page);
+                let current = it.next().unwrap();
+                let mut accumulation = self.check_sub_tree(
+                    &current.get_left_child(),
+                    pid,
+                    lower_bound,
+                    Some(current.get_key()),
+                    check_occupancy,
+                    depth + 1,
+                );
+
+                let mut last_entry = current;
+                for entry in it {
+                    let current_summary = self.check_sub_tree(
+                        &entry.get_left_child(),
+                        pid,
+                        lower_bound,
+                        Some(entry.get_key()),
+                        check_occupancy,
+                        depth + 1,
+                    );
+                    accumulation =
+                        accumulation.check_and_merge(&current_summary);
+
+                    lower_bound = Some(entry.get_key());
+
+                    last_entry = entry;
+                }
+
+                let last_right_summary = self.check_sub_tree(
+                    &last_entry.get_right_child(),
+                    pid,
+                    lower_bound,
+                    upper_bound,
+                    check_occupancy,
+                    depth + 1,
+                );
+                accumulation =
+                    accumulation.check_and_merge(&last_right_summary);
+
+                return accumulation;
             }
 
             // no other page types allowed inside the tree.
             _ => panic!("invalid page category"),
-        };
-
-        todo!()
+        }
     }
 }
 
@@ -871,20 +972,16 @@ struct SubtreeSummary {
     right_most_pid: Option<BTreePageID>,
 }
 
-impl BTreeTableIterator {
-    /// `acc` is the abbreviation of accumulation.
-    fn check_and_merge(
-        accleft: &mut SubtreeSummary,
-        right: &mut SubtreeSummary,
-    ) -> SubtreeSummary {
-        assert_eq!(accleft.depth, right.depth);
-        assert_eq!(accleft.right_ptr, right.left_most_pid);
-        assert_eq!(accleft.right_most_pid, right.left_ptr);
+impl SubtreeSummary {
+    fn check_and_merge(&mut self, right: &SubtreeSummary) -> SubtreeSummary {
+        assert_eq!(self.depth, right.depth);
+        assert_eq!(self.right_ptr, right.left_most_pid);
+        assert_eq!(self.right_most_pid, right.left_ptr);
 
         let acc = SubtreeSummary {
-            depth: accleft.depth,
-            left_ptr: accleft.left_ptr,
-            left_most_pid: accleft.left_most_pid,
+            depth: self.depth,
+            left_ptr: self.left_ptr,
+            left_most_pid: self.left_most_pid,
             right_ptr: right.right_ptr,
             right_most_pid: right.right_most_pid,
         };
@@ -909,7 +1006,7 @@ impl BTreeTableIterator {
 }
 
 impl Iterator for BTreeTableIterator {
-    type Item = Tuple;
+    type Item = Rc<WrappedTuple>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let v = self.page_it.next();
@@ -964,7 +1061,7 @@ pub struct BTreeTableSearchIterator {
     key_field: usize,
 }
 
-impl BTreeTableSearchIterator {
+impl<'t> BTreeTableSearchIterator {
     pub fn new(table: &BTreeTable, index_predicate: Predicate) -> Self {
         let rc: Rc<RefCell<BTreeLeafPage>>;
 
@@ -991,7 +1088,7 @@ impl BTreeTableSearchIterator {
 }
 
 impl Iterator for BTreeTableSearchIterator {
-    type Item = Tuple;
+    type Item = Rc<WrappedTuple>;
 
     // TODO: Short circuit on some conditions.
     fn next(&mut self) -> Option<Self::Item> {

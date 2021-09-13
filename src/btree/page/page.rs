@@ -63,22 +63,38 @@ fn test_page_category() {
 }
 
 pub struct BTreeBasePage {
-    pub pid: BTreePageID,
-
-    pub parent_pid: BTreePageID,
+    pid: BTreePageID,
+    parent_page_index: usize,
 }
 
 impl BTreeBasePage {
+    pub fn new(pid: &BTreePageID) -> BTreeBasePage {
+        BTreeBasePage {
+            pid: pid.clone(),
+            parent_page_index: 0,
+        }
+    }
+
     pub fn get_pid(&self) -> BTreePageID {
         self.pid
     }
 
     pub fn get_parent_pid(&self) -> BTreePageID {
-        self.parent_pid
+        let category: PageCategory;
+        if self.parent_page_index == 0 {
+            category = PageCategory::RootPointer;
+        } else {
+            category = PageCategory::Internal;
+        }
+        BTreePageID::new(
+            category,
+            self.pid.get_table_id(),
+            self.parent_page_index,
+        )
     }
 
     pub fn set_parent_pid(&mut self, pid: &BTreePageID) {
-        self.parent_pid = pid.clone();
+        self.parent_page_index = pid.page_index;
     }
 
     pub fn empty_page_data() -> Vec<u8> {
@@ -121,7 +137,7 @@ impl BTreeRootPointerPage {
         Self {
             base: BTreeBasePage {
                 pid: pid.clone(),
-                parent_pid: BTreePageID::empty(),
+                parent_page_index: 0,
             },
 
             root_pid,
@@ -188,8 +204,8 @@ impl BTreePageID {
         }
     }
 
-    pub fn get_table_id(&self) -> &i32 {
-        &self.table_id
+    pub fn get_table_id(&self) -> i32 {
+        self.table_id
     }
 }
 

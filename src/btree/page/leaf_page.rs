@@ -1,7 +1,10 @@
 use bit_vec::BitVec;
 
 use crate::{
-    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    btree::{
+        buffer_pool::BufferPool,
+        tuple::{TupleScheme, WrappedTuple},
+    },
     Tuple,
 };
 
@@ -25,7 +28,9 @@ pub struct BTreeLeafPage {
 
     pub tuple_scheme: TupleScheme,
 
+    // use usize instead of Option<BTreePageID> to reduce memory footprint
     right_sibling_id: usize,
+    left_sibling_id: usize,
 
     key_field: usize,
 }
@@ -45,7 +50,7 @@ impl std::ops::DerefMut for BTreeLeafPage {
 
 impl BTreeLeafPage {
     pub fn new(
-        page_id: &BTreePageID,
+        pid: &BTreePageID,
         bytes: Vec<u8>,
         tuple_scheme: &TupleScheme,
         key_field: usize,
@@ -63,15 +68,13 @@ impl BTreeLeafPage {
         }
 
         Self {
-            page: BTreeBasePage {
-                pid: page_id.clone(),
-                parent_pid: BTreePageID::empty(),
-            },
+            page: BTreeBasePage::new(pid),
             slot_count,
             header: BitVec::from_bytes(&bytes[..header_size]),
             tuples,
             tuple_scheme: tuple_scheme.clone(),
             right_sibling_id: 0,
+            left_sibling_id: 0,
             key_field,
         }
     }
@@ -91,8 +94,29 @@ impl BTreeLeafPage {
         } else {
             return Some(BTreePageID::new(
                 PageCategory::Leaf,
-                self.pid.table_id,
+                self.get_pid().table_id,
                 self.right_sibling_id,
+            ));
+        }
+    }
+
+    pub fn set_left_sibling_pid(&mut self, pid: Option<BTreePageID>) {
+        match pid {
+            Some(pid) => {
+                self.left_sibling_id = pid.page_index;
+            }
+            None => {}
+        }
+    }
+
+    pub fn get_left_sibling_pid(&self) -> Option<BTreePageID> {
+        if self.left_sibling_id == 0 {
+            return None;
+        } else {
+            return Some(BTreePageID::new(
+                PageCategory::Leaf,
+                self.get_pid().table_id,
+                self.left_sibling_id,
             ));
         }
     }
@@ -205,8 +229,8 @@ impl BTreeLeafPage {
         None
     }
 
-    pub fn delete_tuple(&mut self, slot_index: &usize) {
-        self.mark_slot_status(*slot_index, false);
+    pub fn delete_tuple(&mut self, slot_index: usize) {
+        self.mark_slot_status(slot_index, false);
     }
 
     /**
@@ -225,18 +249,21 @@ impl BTreeLeafPage {
 
     pub fn check_integrity(
         &self,
+        parent_pid: &BTreePageID,
         lower_bound: Option<IntField>,
         upper_bound: Option<IntField>,
         check_occupancy: bool,
         depth: usize,
     ) {
+        assert_eq!(self.get_pid().category, PageCategory::Leaf);
+        assert_eq!(&self.get_parent_pid(), parent_pid);
+
         let mut previous = lower_bound;
         let it = BTreeLeafPageIterator::new(self);
         for tuple in it {
             if let Some(previous) = previous {
                 assert!(previous <= tuple.get_field(self.key_field));
             }
-
             previous = Some(tuple.get_field(self.key_field));
         }
 
@@ -267,7 +294,7 @@ impl BTreeLeafPageIteratorRc {
 }
 
 impl Iterator for BTreeLeafPageIteratorRc {
-    type Item = Tuple;
+    type Item = Rc<WrappedTuple>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let page = (*self.page).borrow();
@@ -275,7 +302,11 @@ impl Iterator for BTreeLeafPageIteratorRc {
             if page.is_slot_used(self.cursor) {
                 let tuple = page.tuples[self.cursor].clone();
                 self.cursor += 1;
-                return Some(tuple);
+                return Some(Rc::new(WrappedTuple::new(
+                    tuple,
+                    self.cursor,
+                    page.get_pid(),
+                )));
             } else {
                 self.cursor += 1;
             }
@@ -332,18 +363,25 @@ impl<'page> BTreeLeafPageReverseIterator<'page> {
 }
 
 impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
-    type Item = Tuple;
+    type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.page.is_slot_used(self.cursor) {
-                let tuple = self.page.tuples[self.cursor].clone();
-                self.cursor -= 1;
-                return Some(tuple);
-            } else if self.cursor == 0 {
-                return None;
-            } else {
-                self.cursor -= 1;
+            match self.cursor.checked_sub(1) {
+                Some(cursor) => {
+                    self.cursor = cursor;
+                    if self.page.is_slot_used(cursor) {
+                        let tuple = self.page.tuples[cursor].clone();
+                        return Some(WrappedTuple::new(
+                            tuple,
+                            cursor,
+                            self.page.get_pid(),
+                        ));
+                    }
+                }
+                None => {
+                    return None;
+                }
             }
         }
     }

@@ -92,7 +92,7 @@ impl BufferPool {
             None => {
                 // 1. get table
                 let v =
-                    Catalog::global().get_table(key.get_table_id()).unwrap();
+                    Catalog::global().get_table(&key.get_table_id()).unwrap();
                 let table = v.borrow();
 
                 // 2. read page content
@@ -124,7 +124,7 @@ impl BufferPool {
             None => {
                 // 1. get table
                 let v =
-                    Catalog::global().get_table(key.get_table_id()).unwrap();
+                    Catalog::global().get_table(&key.get_table_id()).unwrap();
                 let table = v.borrow();
 
                 // 2. read page content
@@ -155,7 +155,7 @@ impl BufferPool {
             None => {
                 // 1. get table
                 let v =
-                    Catalog::global().get_table(key.get_table_id()).unwrap();
+                    Catalog::global().get_table(&key.get_table_id()).unwrap();
                 let table = v.borrow();
 
                 // 2. read page content

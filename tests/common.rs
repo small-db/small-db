@@ -86,10 +86,12 @@ fn sequential_insert_into_table(
 ) -> usize {
     // write leaf pages
     let leaf_page_count: usize;
-    let rows_per_leaf_page: usize = BufferPool::rows_per_page(tuple_scheme);
+    let mut rows_per_leaf_page: usize = BufferPool::rows_per_page(tuple_scheme);
     let mut leaves = Vec::new();
-    if tuples.len() % rows_per_leaf_page > 0 {
+    let remainder = tuples.len() % rows_per_leaf_page;
+    if remainder > 0 {
         leaf_page_count = (tuples.len() / rows_per_leaf_page) + 1;
+        rows_per_leaf_page = tuples.len() / leaf_page_count;
     } else {
         leaf_page_count = tuples.len() / rows_per_leaf_page;
     }
@@ -110,6 +112,7 @@ fn sequential_insert_into_table(
         // borrow of leaf_rc start here
         {
             let mut leaf = leaf_rc.borrow_mut();
+
             for _ in 0..rows_per_leaf_page {
                 let t = tuples.get(tuple_index);
                 match t {
@@ -121,7 +124,9 @@ fn sequential_insert_into_table(
 
                 tuple_index += 1;
 
-                // set right sibling for all but the last leaf page
+                // page index in range of [1, leaf_page_count], inclusive
+
+                // set sibling for all but the last leaf page
                 if page_index < leaf_page_count {
                     let right_pid = BTreePageID::new(
                         btree::page::PageCategory::Leaf,
@@ -129,6 +134,16 @@ fn sequential_insert_into_table(
                         page_index + 1,
                     );
                     leaf.set_right_sibling_pid(Some(right_pid));
+                }
+
+                // set sibling for all but the first leaf page
+                if page_index > 1 {
+                    let left_pid = BTreePageID::new(
+                        btree::page::PageCategory::Leaf,
+                        table.get_id(),
+                        page_index - 1,
+                    );
+                    leaf.set_left_sibling_pid(Some(left_pid));
                 }
             }
         }
@@ -173,13 +188,17 @@ fn sequential_insert_into_table(
         let internal_rc = BufferPool::global().get_internal_page(&pid).unwrap();
         internals.push(internal_rc.clone());
 
-        for _ in 0..entries_per_internal_page {
+        let mut entries_count = entries_per_internal_page;
+        if leaves.len() < entries_per_internal_page + 1 {
+            entries_count = leaves.len() - 1;
+        }
+        for _ in 0..entries_count {
             // borrow of internal_rc start here
             {
                 let left_rc = leaves[leaf_index].clone();
                 let right_rc = leaves[leaf_index + 1].clone();
                 let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
-                let key = it.next().unwrap().get_field(0).value;
+                let key = it.next().unwrap().get_field(table.key_field);
 
                 let mut internal = internal_rc.borrow_mut();
                 let mut e = Entry::new(
@@ -242,8 +261,7 @@ fn write_internal_pages(
                 let key = table
                     .get_last_tuple(&left_rc.borrow().get_pid())
                     .unwrap()
-                    .get_field(table.key_field)
-                    .value;
+                    .get_field(table.key_field);
                 // borrow of right_rc ends here
 
                 let mut root = root_rc.borrow_mut();

@@ -1,3 +1,4 @@
+#[derive(PartialEq, Eq, Clone, Debug)]
 struct A {
     a: i32,
 }
@@ -35,4 +36,16 @@ fn inheritance() {
     b1.walk();
     b1.a.talk();
     b1.talk();
+}
+
+#[test]
+#[ignore]
+fn ptr_equality() {
+    let a1 = A { a: 1 };
+    let a2 = A { a: 1 };
+    assert_eq!(a1, a2);
+
+    let ptr_1 = &a1;
+    let ptr_2 = &a2;
+    assert_eq!(ptr_1, ptr_2);
 }

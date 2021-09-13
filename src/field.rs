@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 
 use crate::Predicate;
 
@@ -43,5 +43,11 @@ impl IntField {
             crate::Op::Like => todo!(),
             crate::Op::NotEquals => self.value != predicate.field.value,
         }
+    }
+}
+
+impl fmt::Display for IntField {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.value)
     }
 }

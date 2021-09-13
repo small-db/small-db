@@ -4,6 +4,8 @@ use std::{
     usize,
 };
 
+use super::page::BTreePageID;
+
 #[derive(Debug, Default)]
 pub struct Tuple {
     pub scheme: TupleScheme,
@@ -99,6 +101,63 @@ impl PartialEq for Tuple {
 impl Eq for Tuple {}
 
 impl fmt::Display for Tuple {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut content: String = "{".to_owned();
+        for cell in &self.fields {
+            let cell_str = format!("{}, ", cell.value);
+            content.push_str(&cell_str);
+        }
+        content = content[..content.len() - 2].to_string();
+        content.push_str(&"}");
+        write!(f, "{}", content,)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct WrappedTuple {
+    internal: Tuple,
+    slot_number: usize,
+    pid: BTreePageID,
+}
+
+impl std::ops::Deref for WrappedTuple {
+    type Target = Tuple;
+    fn deref(&self) -> &Self::Target {
+        &self.internal
+    }
+}
+
+impl std::ops::DerefMut for WrappedTuple {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.internal
+    }
+}
+
+impl WrappedTuple {
+    pub fn new(
+        internal: Tuple,
+        slot_number: usize,
+        pid: BTreePageID,
+    ) -> WrappedTuple {
+        WrappedTuple {
+            internal,
+            slot_number,
+            pid,
+        }
+    }
+
+    pub fn get_slot_number(&self) -> usize {
+        self.slot_number
+    }
+
+    pub fn get_pid(&self) -> BTreePageID {
+        self.pid
+    }
+}
+
+impl Eq for WrappedTuple {}
+
+impl fmt::Display for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
         for cell in &self.fields {

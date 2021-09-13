@@ -13,7 +13,7 @@ use super::{BTreeBasePage, BTreePageID, PageCategory};
 pub struct BTreeInternalPage {
     page: BTreeBasePage,
 
-    pub keys: Vec<i32>,
+    pub keys: Vec<IntField>,
     pub children: Vec<BTreePageID>,
 
     slot_count: usize,
@@ -41,7 +41,7 @@ impl std::ops::DerefMut for BTreeInternalPage {
 
 impl BTreeInternalPage {
     pub fn new(
-        page_id: &BTreePageID,
+        pid: &BTreePageID,
         bytes: Vec<u8>,
         tuple_scheme: &TupleScheme,
         key_field: usize,
@@ -51,16 +51,13 @@ impl BTreeInternalPage {
         let slot_count = Self::get_max_entries(key_size) + 1;
         let header_size = Self::get_header_size(slot_count) as usize;
 
-        let mut keys: Vec<i32> = Vec::new();
+        let mut keys: Vec<IntField> = Vec::new();
         let mut children: Vec<BTreePageID> = Vec::new();
-        keys.resize(slot_count, 0);
+        keys.resize(slot_count, IntField::new(0));
         children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
 
         Self {
-            page: BTreeBasePage {
-                pid: page_id.clone(),
-                parent_pid: BTreePageID::empty(),
-            },
+            page: BTreeBasePage::new(pid),
             keys,
             children,
             slot_count,
@@ -71,7 +68,11 @@ impl BTreeInternalPage {
     }
 
     pub fn dig(&self) {
-        info!("page id: {}, parent pid: {}", self.pid, self.parent_pid);
+        info!(
+            "page id: {}, parent pid: {}",
+            self.get_pid(),
+            self.get_parent_pid()
+        );
         info!("empty slot count: {}", self.empty_slots_count());
         info!("keys: {:?}", self.keys);
         info!("children: {:?}", self.children);
@@ -105,7 +106,7 @@ impl BTreeInternalPage {
     }
 
     pub fn get_page_id(&self) -> BTreePageID {
-        self.pid
+        self.get_pid()
     }
 
     pub fn get_entry(&self, index: usize) -> Option<Entry> {
@@ -212,7 +213,7 @@ impl BTreeInternalPage {
 
         if less_or_eq_slot == -1 {
             info!("you are try to insert: {}", e);
-            info!("page id: {}", self.pid);
+            info!("page id: {}", self.get_pid());
             panic!("no less or equal slot",);
         }
 
@@ -254,11 +255,33 @@ impl BTreeInternalPage {
 
     pub fn check_integrity(
         &self,
-        _lower_bound: Option<IntField>,
-        _upper_bound: Option<IntField>,
-        _check_occupancy: bool,
-        _depth: usize,
+        parent_pid: &BTreePageID,
+        lower_bound: Option<IntField>,
+        upper_bound: Option<IntField>,
+        check_occupancy: bool,
+        depth: usize,
     ) {
+        assert_eq!(self.get_pid().category, PageCategory::Internal);
+        assert_eq!(&self.get_parent_pid(), parent_pid);
+
+        let mut previous = lower_bound;
+        let it = BTreeInternalPageIterator::new(self);
+        for e in it {
+            if let Some(previous) = previous {
+                assert!(previous <= e.get_key());
+            }
+            previous = Some(e.get_key());
+        }
+
+        if let Some(upper_bound) = upper_bound {
+            if let Some(previous) = previous {
+                assert!(previous <= upper_bound);
+            }
+        }
+
+        if check_occupancy && depth > 0 {
+            assert!(self.entries_count() >= Self::get_max_entries(4) / 2);
+        }
     }
 }
 
@@ -269,7 +292,7 @@ than or equal to the key.
 */
 #[derive(Clone, Copy)]
 pub struct Entry {
-    key: i32,
+    key: IntField,
     left: BTreePageID,
     right: BTreePageID,
 
@@ -278,7 +301,7 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn new(key: i32, left: &BTreePageID, right: &BTreePageID) -> Self {
+    pub fn new(key: IntField, left: &BTreePageID, right: &BTreePageID) -> Self {
         Self {
             key,
             left: *left,
@@ -296,7 +319,7 @@ impl Entry {
         self.record_id
     }
 
-    pub fn get_key(&self) -> i32 {
+    pub fn get_key(&self) -> IntField {
         self.key
     }
 

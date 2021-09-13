@@ -212,7 +212,7 @@ fn split_root_page() {
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
         let mut found = false;
         for t in it {
-            if t == tuple {
+            if **t == tuple {
                 found = true;
                 break;
             }
@@ -278,7 +278,7 @@ fn split_internal_page() {
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
         let mut found = false;
         for t in it {
-            if t == tuple {
+            if **t == tuple {
                 found = true;
                 break;
             }

@@ -1,13 +1,31 @@
+use simple_db_rust::btree::table::BTreeTableIterator;
+
 mod common;
 
 #[test]
 fn test_redistribute_leaf_pages() {
     common::setup();
     // This should create a B+ tree with two partially full leaf pages
-    let table_rc = common::create_random_btree_table(2, 600, None, 0, false);
+    let table_rc = common::create_random_btree_table(2, 600, None, 0, true);
     let table = table_rc.borrow();
 
+    table.draw_tree(-1);
     table.check_integrity(true);
+
+    // Delete some tuples from the first page until it gets to minimum occupancy
+    let it = BTreeTableIterator::new(&table);
+    let mut count = 0;
+    let page_rc = table.get_first_page();
+    for tuple in it {
+        assert_eq!(202 + count, page_rc.borrow().empty_slots_count());
+
+        table.delete_tuple(tuple);
+
+        count += 1;
+        if count >= 49 {
+            break;
+        }
+    }
 }
 
 // // This should create a B+ tree with two partially full leaf pages
