@@ -1,4 +1,6 @@
-use simple_db_rust::btree::table::BTreeTableIterator;
+use simple_db_rust::btree::{
+    buffer_pool::BufferPool, table::BTreeTableIterator,
+};
 
 mod common;
 
@@ -13,10 +15,10 @@ fn test_redistribute_leaf_pages() {
     table.check_integrity(true);
 
     // Delete some tuples from the first page until it gets to minimum occupancy
-    let it = BTreeTableIterator::new(&table);
+    let mut it = BTreeTableIterator::new(&table);
     let mut count = 0;
     let page_rc = table.get_first_page();
-    for tuple in it {
+    for tuple in it.by_ref() {
         assert_eq!(202 + count, page_rc.borrow().empty_slots_count());
 
         table.delete_tuple(tuple);
@@ -26,6 +28,14 @@ fn test_redistribute_leaf_pages() {
             break;
         }
     }
+
+    // deleting a tuple now should bring the page below minimum occupancy and cause
+    // the tuples to be redistributed
+    let t = it.next().unwrap();
+    let page_rc = BufferPool::global().get_leaf_page(&t.get_pid()).unwrap();
+    assert_eq!(page_rc.borrow().empty_slots_count(), 251);
+    table.delete_tuple(t);
+    assert!(page_rc.borrow().empty_slots_count() <= 251);
 }
 
 // // This should create a B+ tree with two partially full leaf pages

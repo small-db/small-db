@@ -55,8 +55,8 @@ impl BTreeLeafPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
-        let slot_count = Self::get_max_tuples(&tuple_scheme);
-        let header_size = Self::get_header_size(slot_count) as usize;
+        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+        let header_size = Self::calculate_header_size(slot_count) as usize;
 
         // init tuples
         let mut tuples = Vec::new();
@@ -124,7 +124,7 @@ impl BTreeLeafPage {
     /**
     Retrieve the maximum number of tuples this page can hold.
     */
-    pub fn get_max_tuples(scheme: &TupleScheme) -> usize {
+    pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
         let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
         // extraBits are: left sibling pointer, right sibling pointer, parent
         // pointer
@@ -132,6 +132,19 @@ impl BTreeLeafPage {
         let extra_bits = 3 * index_size * 8;
         (BufferPool::get_page_size() * 8 - extra_bits)
             / bits_per_tuple_including_header
+    }
+
+    pub fn get_slots_count(&self) -> usize {
+        self.slot_count
+    }
+
+    /**
+    Maximum number of empty slots, a page merging will
+    be triggered on more empty slots.
+    */
+    pub fn max_stable_empty_slots(&self) -> usize {
+        // ceiling
+        self.slot_count - self.slot_count / 2
     }
 
     pub fn empty_slots_count(&self) -> usize {
@@ -152,7 +165,7 @@ impl BTreeLeafPage {
     // Computes the number of bytes in the header of
     // a page in a BTreeFile with each tuple occupying
     // tupleSize bytes
-    pub fn get_header_size(slot_count: usize) -> usize {
+    pub fn calculate_header_size(slot_count: usize) -> usize {
         slot_count / 8 + 1
     }
 
@@ -274,10 +287,7 @@ impl BTreeLeafPage {
         }
 
         if check_occupancy && depth > 0 {
-            assert!(
-                self.tuples_count()
-                    >= Self::get_max_tuples(&self.tuple_scheme) / 2
-            );
+            assert!(self.tuples_count() >= self.get_slots_count() / 2);
         }
     }
 }

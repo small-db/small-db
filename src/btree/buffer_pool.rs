@@ -185,7 +185,7 @@ impl BufferPool {
         let scheme = simple_int_tuple_scheme(2, "");
         info!(
             "leaf page slot count: {}",
-            BTreeLeafPage::get_max_tuples(&scheme)
+            BTreeLeafPage::calculate_slots_count(&scheme)
         );
         info!(
             "internal page entries count: {}, children count: {}",
@@ -195,7 +195,7 @@ impl BufferPool {
     }
 
     pub fn rows_per_page(scheme: &TupleScheme) -> usize {
-        BTreeLeafPage::get_max_tuples(&scheme)
+        BTreeLeafPage::calculate_slots_count(&scheme)
     }
 
     pub fn children_per_page() -> usize {

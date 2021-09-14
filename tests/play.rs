@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 struct A {
     a: i32,
@@ -48,4 +50,93 @@ fn ptr_equality() {
     let ptr_1 = &a1;
     let ptr_2 = &a2;
     assert_eq!(ptr_1, ptr_2);
+}
+
+// `Option` has the kind `Type -> Type`,
+// we'll represent it with `OptionFamily`
+struct OptionFamily;
+// `Result` has the kind `Type -> Type -> Type`,
+// so we fill in one of the types with a concrete one
+struct ResultFamily<E>(PhantomData<E>);
+
+// I'll leave the implementation of `VecFamily` to you
+struct VecFamily;
+
+// This trait represents the `kind` `Type -> Type`
+pub trait OneTypeParam<A> {
+    // This represents the output of the function `Type -> Type`
+    // for a specific argument `A`.
+    type This;
+}
+
+impl<A> OneTypeParam<A> for OptionFamily {
+    // `OptionFamily` represents `Type -> Type`,
+    // so filling in the first argument means
+    // `Option<A>`
+    type This = Option<A>;
+}
+
+impl<A, E> OneTypeParam<A> for ResultFamily<E> {
+    // note how all results in this family have `E` as the error type
+    // This is similar to how currying works in functional languages
+    type This = Result<A, E>;
+}
+
+impl<A> OneTypeParam<A> for VecFamily {
+    type This = Vec<A>;
+}
+
+// Option<A> == This<OptionFamily, A>
+pub type This<T, A> = <T as OneTypeParam<A>>::This;
+
+trait Functor<A, B>: OneTypeParam<A> + OneTypeParam<B> {
+    fn map<F>(self, this: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> B + Copy;
+}
+
+impl<A, B> Functor<A, B> for OptionFamily {
+    fn map<F>(self, this: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> B + Copy,
+    {
+        // I'm not cheating!
+        this.map(f)
+    }
+}
+
+// try out `VecFamily`, it doesn't need to be optimal, it just needs to work!
+impl<A, B> Functor<A, B> for VecFamily {
+    fn map<F>(self, this: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> B + Copy,
+    {
+        this.into_iter().map(f).collect()
+    }
+}
+
+trait Monad<A, B>: Functor<A, B> {
+    fn bind<F>(self, a: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> This<Self, B> + Copy;
+}
+
+impl<A, B> Monad<A, B> for OptionFamily {
+    fn bind<F>(self, this: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> This<Self, B> + Copy,
+    {
+        // It fits 😉
+        this.and_then(f)
+    }
+}
+
+// try out `VecFamily`, it doesn't need to be optimal, it just needs to work!
+impl<A, B> Monad<A, B> for VecFamily {
+    fn bind<F>(self, this: This<Self, A>, f: F) -> This<Self, B>
+    where
+        F: Fn(A) -> This<Self, B> + Copy,
+    {
+        this.into_iter().flat_map(f).collect()
+    }
 }
