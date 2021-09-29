@@ -430,132 +430,52 @@ impl BTreeTable {
     May cause pages to merge or redistribute entries/tuples if the pages
     become less than half full.
     */
-    pub fn delete_tuple(&self, tuple: Rc<WrappedTuple>) {
-        let pid = (*tuple).get_pid();
+    pub fn delete_tuple(&self, tuple: WrappedTuple) {
+        let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        let should_merge: bool;
 
         // borrow of leaf_rc start here
         {
             let mut leaf = leaf_rc.borrow_mut();
             leaf.delete_tuple(tuple.get_slot_number());
 
-            // if the page is below minimum occupancy, get some tuples from its siblings
-            // or merge with one of the siblings
-            let max_empty_slots = leaf.slot_count - leaf.slot_count / 2; // ceiling
-            if leaf.empty_slots_count() > max_empty_slots {
-                self.handle_min_occupancy_page(&pid);
-            }
+            should_merge = leaf.should_merge();
         }
         // borrow of leaf_rc end here
-    }
 
-    /**
-    Handle the case when a B+ tree page becomes less than half full due to deletions.
-    If one of its siblings has extra tuples/entries, redistribute those tuples/entries.
-    Otherwise merge with one of the siblings. Update pointers as needed.
-    */
-    fn handle_min_occupancy_page(&self, pid: &BTreePageID) {
-        match pid.category {
-            PageCategory::Internal => {
-                let page_rc =
-                    BufferPool::global().get_internal_page(&pid).unwrap();
-                self.handle_min_occupancy_internal_page(page_rc);
-            }
-            PageCategory::Leaf => {
-                unimplemented!()
-            }
-            _ => {
-                panic!("handle_min_occupancy_page: invalid page category");
-            }
+        if should_merge {
+            self.handle_erratic_leaf_page(leaf_rc);
         }
     }
 
-    /**
-    Handle the case when a leaf page becomes less than half full due to deletions.
-    If one of its siblings has extra tuples, redistribute those tuples.
-    Otherwise merge with one of the siblings. Update pointers as needed.
-
-    # Arguments
-
-    * `page_rc` - the leaf page to handle
-    * `left_entry` - the entry in the parent pointing to the given page and its left-sibling
-    * `right_entry` - the entry in the parent pointing to the given page and its right-sibling
-
-    */
-    fn handle_min_occupancy_leaf_page(
-        &self,
-        page_rc: Rc<RefCell<BTreeLeafPage>>,
-        left_entry: Option<Entry>,
-        right_entry: Option<Entry>,
-    ) {
-        let parent_rc = BufferPool::global()
-            .get_internal_page(&page_rc.borrow().get_parent_pid())
-            .unwrap();
-
+    fn handle_erratic_leaf_page(&self, page_rc: Rc<RefCell<BTreeLeafPage>>) {
         // borrow of page_rc start here
         {
-            let page = page_rc.borrow();
+            let mut page = page_rc.borrow_mut();
+
+            // 1. merge the page with its left/right sibling
             if let Some(left_pid) = page.get_left_sibling_pid() {
                 let left_rc =
                     BufferPool::global().get_leaf_page(&left_pid).unwrap();
-                // borrow of left_rc start here
-                {
-                    let mut left = left_rc.borrow_mut();
-                    if left.empty_slots_count() > left.max_stable_empty_slots()
-                    {
-                        unimplemented!()
-                    } else {
-                    }
-                }
-                // borrow of left_rc end here
+                let mut left = left_rc.borrow_mut();
+                self.merge_leaf_page(&mut left, &mut page);
             }
+
+            // 2. delete corresponding entry in parent page
         }
         // borrow of page_rc end here
+
+        todo!()
     }
 
-    /**
-    Merge two leaf pages by moving all tuples from the right page to the left page.
-    Delete the corresponding key and right child pointer from the parent, and recursively
-    handle the case when the parent gets below minimum occupancy.
-    Update sibling pointers as needed, and make the right page available for reuse.
-
-    # Arguments
-
-    - `left_page`    - the left leaf page
-    - `right_page`   - the right leaf page
-    - `parent`      - the parent of the two pages
-    - `parent_entry` - the entry in the parent corresponding to the left_page and right_page
-
-    */
-    fn merge_leaf_pages(
+    fn merge_leaf_page(
         &self,
-        left_page_rc: Rc<RefCell<BTreeLeafPage>>,
-        right_page_rc: Rc<RefCell<BTreeLeafPage>>,
-        parent_rc: Rc<RefCell<BTreeInternalPage>>,
-        parent_entry: &Entry,
+        left: &mut BTreeLeafPage,
+        right: &mut BTreeLeafPage,
     ) {
-        unimplemented!()
-    }
-
-    /**
-    Steal tuples from a sibling and copy them to the given page so that both pages are at least
-    half full.  Update the parent's entry so that the key matches the key field of the first
-    tuple in the right-hand page.
-    */
-    fn steal_from_leaf_page(&self) {
-        unimplemented!()
-    }
-
-    /**
-    Handle the case when an internal page becomes less than half full due to deletions.
-    If one of its siblings has extra entries, redistribute those entries.
-    Otherwise merge with one of the siblings. Update pointers as needed.
-    */
-    fn handle_min_occupancy_internal_page(
-        &self,
-        page: Rc<RefCell<BTreeInternalPage>>,
-    ) {
-        unimplemented!();
+        let it = BTreeLeafPageIterator::new(right);
+        for tuple in it {}
     }
 
     pub fn set_root_pid(&self, root_pid: &BTreePageID) {
@@ -1103,7 +1023,7 @@ impl BTreeTableIterator {
 }
 
 impl Iterator for BTreeTableIterator {
-    type Item = Rc<WrappedTuple>;
+    type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
         let v = self.page_it.next();
@@ -1185,7 +1105,7 @@ impl<'t> BTreeTableSearchIterator {
 }
 
 impl Iterator for BTreeTableSearchIterator {
-    type Item = Rc<WrappedTuple>;
+    type Item = WrappedTuple;
 
     // TODO: Short circuit on some conditions.
     fn next(&mut self) -> Option<Self::Item> {

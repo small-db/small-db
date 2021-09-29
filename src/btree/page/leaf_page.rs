@@ -138,13 +138,13 @@ impl BTreeLeafPage {
         self.slot_count
     }
 
-    /**
-    Maximum number of empty slots, a page merging will
-    be triggered on more empty slots.
-    */
-    pub fn max_stable_empty_slots(&self) -> usize {
-        // ceiling
-        self.slot_count - self.slot_count / 2
+    pub fn should_merge(&self) -> bool {
+        if self.get_parent_pid().category == PageCategory::RootPointer {
+            return false;
+        }
+
+        let max_empty_slots = self.slot_count - self.slot_count / 2; // ceiling
+        return self.empty_slots_count() > max_empty_slots;
     }
 
     pub fn empty_slots_count(&self) -> usize {
@@ -304,7 +304,7 @@ impl BTreeLeafPageIteratorRc {
 }
 
 impl Iterator for BTreeLeafPageIteratorRc {
-    type Item = Rc<WrappedTuple>;
+    type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
         let page = (*self.page).borrow();
@@ -312,11 +312,11 @@ impl Iterator for BTreeLeafPageIteratorRc {
             if page.is_slot_used(self.cursor) {
                 let tuple = page.tuples[self.cursor].clone();
                 self.cursor += 1;
-                return Some(Rc::new(WrappedTuple::new(
+                return Some(WrappedTuple::new(
                     tuple,
                     self.cursor,
                     page.get_pid(),
-                )));
+                ));
             } else {
                 self.cursor += 1;
             }
@@ -341,16 +341,19 @@ impl<'page> BTreeLeafPageIterator<'page> {
 }
 
 impl<'page> Iterator for BTreeLeafPageIterator<'_> {
-    type Item = Tuple;
+    type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.cursor < self.page.slot_count {
+            self.cursor += 1;
             if self.page.is_slot_used(self.cursor) {
-                let tuple = self.page.tuples[self.cursor].clone();
-                self.cursor += 1;
-                return Some(tuple);
-            } else {
-                self.cursor += 1;
+                let real_cursor = self.cursor - 1;
+                let t = WrappedTuple::new(
+                    self.page.tuples[real_cursor].clone(),
+                    real_cursor,
+                    self.page.get_pid(),
+                );
+                return Some(t);
             }
         }
 
