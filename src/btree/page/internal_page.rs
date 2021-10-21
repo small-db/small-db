@@ -1,4 +1,4 @@
-use std::{fmt};
+use std::fmt;
 
 use bit_vec::BitVec;
 use log::info;
@@ -137,8 +137,8 @@ impl BTreeInternalPage {
         self.slot_count - self.empty_slots_count() - 1
     }
 
-    pub fn delete_entry(&mut self, index: usize) {
-        self.mark_slot_status(index, false);
+    pub fn delete_key_and_right_child(&mut self, record_id: usize) {
+        self.mark_slot_status(record_id, false);
     }
 
     pub fn update_entry(&mut self, entry: &Entry) {

@@ -2,6 +2,8 @@ use std::{convert::TryInto, fmt};
 
 use crate::btree::buffer_pool::BufferPool;
 
+pub const EMPTY_PAGE_ID: usize = 0;
+
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
 pub enum PageCategory {
     RootPointer,

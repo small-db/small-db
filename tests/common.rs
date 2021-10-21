@@ -177,7 +177,7 @@ fn sequential_insert_into_table(
                         table.get_id(),
                         page_index + 1,
                     );
-                    leaf.set_right_sibling_pid(Some(right_pid));
+                    leaf.set_right_pid(Some(right_pid));
                 }
 
                 // set sibling for all but the first leaf page
@@ -187,7 +187,7 @@ fn sequential_insert_into_table(
                         table.get_id(),
                         page_index - 1,
                     );
-                    leaf.set_left_sibling_pid(Some(left_pid));
+                    leaf.set_left_pid(Some(left_pid));
                 }
             }
         }

@@ -8,7 +8,7 @@ use crate::{
     Tuple,
 };
 
-use super::{BTreeBasePage, BTreePageID, PageCategory};
+use super::{page_id, BTreeBasePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use std::{cell::RefCell, rc::Rc};
 
 use log::debug;
@@ -73,23 +73,25 @@ impl BTreeLeafPage {
             header: BitVec::from_bytes(&bytes[..header_size]),
             tuples,
             tuple_scheme: tuple_scheme.clone(),
-            right_sibling_id: 0,
-            left_sibling_id: 0,
+            right_sibling_id: EMPTY_PAGE_ID,
+            left_sibling_id: EMPTY_PAGE_ID,
             key_field,
         }
     }
 
-    pub fn set_right_sibling_pid(&mut self, pid: Option<BTreePageID>) {
+    pub fn set_right_pid(&mut self, pid: Option<BTreePageID>) {
         match pid {
             Some(pid) => {
                 self.right_sibling_id = pid.page_index;
             }
-            None => {}
+            None => {
+                self.right_sibling_id = EMPTY_PAGE_ID;
+            }
         }
     }
 
     pub fn get_right_pid(&self) -> Option<BTreePageID> {
-        if self.right_sibling_id == 0 {
+        if self.right_sibling_id == EMPTY_PAGE_ID {
             return None;
         } else {
             return Some(BTreePageID::new(
@@ -100,17 +102,19 @@ impl BTreeLeafPage {
         }
     }
 
-    pub fn set_left_sibling_pid(&mut self, pid: Option<BTreePageID>) {
+    pub fn set_left_pid(&mut self, pid: Option<BTreePageID>) {
         match pid {
             Some(pid) => {
                 self.left_sibling_id = pid.page_index;
             }
-            None => {}
+            None => {
+                self.left_sibling_id = EMPTY_PAGE_ID;
+            }
         }
     }
 
     pub fn get_left_pid(&self) -> Option<BTreePageID> {
-        if self.left_sibling_id == 0 {
+        if self.left_sibling_id == EMPTY_PAGE_ID {
             return None;
         } else {
             return Some(BTreePageID::new(

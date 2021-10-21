@@ -1,8 +1,7 @@
 use common::TreeLayout;
-use simple_db_rust::{
-    btree::{
-        buffer_pool::BufferPool, table::BTreeTableIterator,
-    },
+use log::info;
+use simple_db_rust::btree::{
+    buffer_pool::BufferPool, table::BTreeTableIterator,
 };
 
 mod common;
@@ -10,6 +9,7 @@ mod common;
 #[test]
 fn test_redistribute_leaf_pages() {
     common::setup();
+
     // This should create a B+ tree with two partially full leaf pages
     let table_rc = common::create_random_btree_table(
         2,
@@ -57,6 +57,8 @@ fn test_redistribute_leaf_pages() {
 
 #[test]
 fn test_merge_leaf_pages() {
+    common::setup();
+
     // This should create a B+ tree with one three half-full leaf pages
     let table_rc = common::create_random_btree_table(
         2,
@@ -78,46 +80,3 @@ fn test_merge_leaf_pages() {
     table.draw_tree(-1);
     table.check_integrity(true);
 }
-
-// public void testMergeLeafPages() throws Exception {
-//     // This should create a B+ tree with one full page and two half-full leaf
-// pages     BTreeFile threeLeafPageFile = BTreeUtility.createRandomBTreeFile(2,
-// 1005,             null, null, 0);
-
-//     BTreeChecker.checkRep(threeLeafPageFile,
-//             tid, new HashMap<PageId, Page>(), true);
-//     // there should be one internal node and 3 leaf nodes
-//     assertEquals(4, threeLeafPageFile.numPages());
-
-//     // delete the last two tuples
-//     DbFileIterator it = threeLeafPageFile.iterator(tid);
-//     it.open();
-//     Tuple secondToLast = null;
-//     Tuple last = null;
-//     while(it.hasNext()) {
-//         secondToLast = last;
-//         last = it.next();
-//     }
-//     it.close();
-//     threeLeafPageFile.deleteTuple(tid, secondToLast);
-//     threeLeafPageFile.deleteTuple(tid, last);
-//     BTreeChecker.checkRep(threeLeafPageFile, tid, new HashMap<PageId,
-// Page>(), true);
-
-//     // confirm that the last two pages have merged successfully
-//     BTreePageId rootPtrId =
-// BTreeRootPtrPage.getId(threeLeafPageFile.getId());     BTreeRootPtrPage
-// rootPtr = (BTreeRootPtrPage) Database.getBufferPool().getPage(
-// tid, rootPtrId, Permissions.READ_ONLY);     BTreeInternalPage root =
-// (BTreeInternalPage) Database.getBufferPool().getPage(             tid,
-// rootPtr.getRootId(), Permissions.READ_ONLY);     assertEquals(502,
-// root.getNumEmptySlots());     BTreeEntry e = root.iterator().next();
-//     BTreeLeafPage leftChild = (BTreeLeafPage)
-// Database.getBufferPool().getPage(             tid, e.getLeftChild(),
-// Permissions.READ_ONLY);     BTreeLeafPage rightChild = (BTreeLeafPage)
-// Database.getBufferPool().getPage(             tid, e.getRightChild(),
-// Permissions.READ_ONLY);     assertEquals(0, leftChild.getNumEmptySlots());
-//     assertEquals(1, rightChild.getNumEmptySlots());
-//     assertTrue(e.getKey().equals(rightChild.iterator().next().getField(0)));
-
-// }
