@@ -33,6 +33,12 @@ use std::cell::RefMut;
 
 use super::tuple::{Tuple, TupleScheme};
 
+enum SearchFor {
+    IntField(IntField),
+    LeftMost,
+    RightMost,
+}
+
 // B+ Tree
 pub struct BTreeTable {
     // the file that stores the on-disk backing store for this B+ tree
@@ -125,7 +131,8 @@ impl BTreeTable {
         // the key field, and split the leaf page if there are no
         // more slots available
         let field = tuple.get_field(self.key_field);
-        let mut leaf_rc = self.find_leaf_page(root_pid, Some(field));
+        let mut leaf_rc =
+            self.find_leaf_page(root_pid, SearchFor::IntField(field));
 
         if leaf_rc.borrow().empty_slots_count() == 0 {
             leaf_rc =
@@ -576,9 +583,6 @@ impl BTreeTable {
         info!("right slot count: {}", right.tuples_count());
 
         todo!();
-
-        let it = BTreeLeafPageIterator::new(right);
-        for _tuple in it {}
     }
 
     /**
@@ -689,22 +693,21 @@ impl BTreeTable {
     along the path to the leaf node with READ_ONLY permission,
     and locks the leaf node with permission perm.
 
-    If f is null, it finds the left-most leaf page -- used
-    for the iterator
-
     # Arguments
+
     * tid  - the transaction id
     * pid  - the current page being searched
     * perm - the permissions with which to lock the leaf page
     * f    - the field to search for
 
     # Return
+
     * the left-most leaf page possibly containing the key field f
     */
-    pub fn find_leaf_page(
+    fn find_leaf_page(
         &self,
         page_id: BTreePageID,
-        field: Option<IntField>,
+        search: SearchFor,
     ) -> Rc<RefCell<BTreeLeafPage>> {
         match page_id.category {
             PageCategory::Leaf => {
@@ -723,18 +726,21 @@ impl BTreeTable {
                     let mut entry: Option<Entry> = None;
                     let mut found = false;
                     for e in it {
-                        match field {
-                            Some(f) => {
-                                if e.get_key() >= f {
+                        match search {
+                            SearchFor::IntField(field) => {
+                                if e.get_key() >= field {
                                     child_pid = Some(e.get_left_child());
                                     found = true;
                                     break;
                                 }
                             }
-                            None => {
+                            SearchFor::LeftMost => {
                                 child_pid = Some(e.get_left_child());
                                 found = true;
-                                break;
+                            }
+                            SearchFor::RightMost => {
+                                child_pid = Some(e.get_right_child());
+                                found = true;
                             }
                         }
                         entry = Some(e);
@@ -752,9 +758,10 @@ impl BTreeTable {
                 }
                 // borrow of page_rc end here
 
+                // search child page recursively
                 match child_pid {
                     Some(child_pid) => {
-                        return self.find_leaf_page(child_pid, field);
+                        return self.find_leaf_page(child_pid, search);
                     }
                     None => todo!(),
                 }
@@ -853,7 +860,12 @@ impl BTreeTable {
 
     pub fn get_first_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
-        return self.find_leaf_page(page_id, None);
+        return self.find_leaf_page(page_id, SearchFor::LeftMost);
+    }
+
+    pub fn get_last_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
+        let page_id = self.get_root_pid();
+        return self.find_leaf_page(page_id, SearchFor::RightMost);
     }
 
     /**
@@ -1187,15 +1199,18 @@ impl SubtreeSummary {
 
 pub struct BTreeTableIterator {
     page_rc: Rc<RefCell<BTreeLeafPage>>,
+    last_page_rc: Rc<RefCell<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
 }
 
 impl BTreeTableIterator {
     pub fn new(table: &BTreeTable) -> Self {
         let page_rc = table.get_first_page();
+        let last_page_rc = table.get_last_page();
 
         Self {
             page_rc: Rc::clone(&page_rc),
+            last_page_rc: Rc::clone(&last_page_rc),
             page_it: BTreeLeafPageIteratorRc::new(Rc::clone(&page_rc)),
         }
     }
@@ -1231,7 +1246,7 @@ impl Iterator for BTreeTableIterator {
 
 impl DoubleEndedIterator for BTreeTableIterator {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let v = self.page_it.next();
+        let v = self.page_it.next_back();
         if !v.is_none() {
             return v;
         }
@@ -1246,7 +1261,7 @@ impl DoubleEndedIterator for BTreeTableIterator {
 
                 self.page_rc = Rc::clone(&sibling_rc);
                 self.page_it = page_it;
-                return self.page_it.next();
+                return self.page_it.next_back();
             }
             None => {
                 return None;
@@ -1285,24 +1300,27 @@ pub struct BTreeTableSearchIterator {
 
 impl<'t> BTreeTableSearchIterator {
     pub fn new(table: &BTreeTable, index_predicate: Predicate) -> Self {
-        let rc: Rc<RefCell<BTreeLeafPage>>;
+        let start_rc: Rc<RefCell<BTreeLeafPage>>;
 
         let root_pid = table.get_root_pid();
 
         match index_predicate.op {
             Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {
-                rc = table.find_leaf_page(root_pid, Some(index_predicate.field))
+                start_rc = table.find_leaf_page(
+                    root_pid,
+                    SearchFor::IntField(index_predicate.field),
+                )
             }
             Op::LessThan | Op::LessThanOrEq => {
-                rc = table.find_leaf_page(root_pid, None)
+                start_rc = table.find_leaf_page(root_pid, SearchFor::LeftMost)
             }
             Op::Like => todo!(),
             Op::NotEquals => todo!(),
         }
 
         Self {
-            current_page_rc: Rc::clone(&rc),
-            page_it: BTreeLeafPageIteratorRc::new(Rc::clone(&rc)),
+            current_page_rc: Rc::clone(&start_rc),
+            page_it: BTreeLeafPageIteratorRc::new(Rc::clone(&start_rc)),
             predicate: index_predicate,
             key_field: table.key_field,
         }
