@@ -1,5 +1,3 @@
-#![feature(generic_associated_types)]
-
 pub mod btree;
 pub mod field;
 pub mod util;
