@@ -88,7 +88,7 @@ impl BTreeLeafPage {
         }
     }
 
-    pub fn get_right_sibling_pid(&self) -> Option<BTreePageID> {
+    pub fn get_right_pid(&self) -> Option<BTreePageID> {
         if self.right_sibling_id == 0 {
             return None;
         } else {
@@ -109,7 +109,7 @@ impl BTreeLeafPage {
         }
     }
 
-    pub fn get_left_sibling_pid(&self) -> Option<BTreePageID> {
+    pub fn get_left_pid(&self) -> Option<BTreePageID> {
         if self.left_sibling_id == 0 {
             return None;
         } else {
@@ -230,6 +230,11 @@ impl BTreeLeafPage {
 
     // Move a tuple from one slot to another slot, destination must be empty
     fn move_tuple(&mut self, from: usize, to: usize) {
+        // return if the source slot is empty
+        if !self.is_slot_used(from) {
+            return;
+        }
+
         self.tuples[to] = self.tuples[from].clone();
         self.mark_slot_status(to, true);
         self.mark_slot_status(from, false);
@@ -282,7 +287,12 @@ impl BTreeLeafPage {
 
         if let Some(upper_bound) = upper_bound {
             if let Some(previous) = previous {
-                assert!(previous <= upper_bound);
+                assert!(
+                    previous <= upper_bound,
+                    "the last tuple exceeds upper_bound, last tuple: {}, upper bound: {}",
+                    previous,
+                    upper_bound,
+                );
             }
         }
 
@@ -294,12 +304,18 @@ impl BTreeLeafPage {
 
 pub struct BTreeLeafPageIteratorRc {
     page: Rc<RefCell<BTreeLeafPage>>,
-    cursor: usize,
+    cursor: i32,
+    reverse_cursor: i32,
 }
 
 impl BTreeLeafPageIteratorRc {
     pub fn new(page: Rc<RefCell<BTreeLeafPage>>) -> Self {
-        Self { page, cursor: 0 }
+        let slot_count = page.borrow().get_slots_count();
+        Self {
+            page,
+            cursor: -1,
+            reverse_cursor: slot_count as i32,
+        }
     }
 }
 
@@ -307,35 +323,58 @@ impl Iterator for BTreeLeafPageIteratorRc {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let page = (*self.page).borrow();
-        while self.cursor < page.slot_count {
-            if page.is_slot_used(self.cursor) {
-                let tuple = page.tuples[self.cursor].clone();
-                self.cursor += 1;
+        let page = self.page.borrow();
+        loop {
+            self.cursor += 1;
+            let cursor = self.cursor as usize;
+            if cursor >= page.slot_count {
+                return None;
+            }
+
+            if page.is_slot_used(cursor) {
                 return Some(WrappedTuple::new(
-                    tuple,
-                    self.cursor,
+                    page.tuples[cursor].clone(),
+                    cursor,
                     page.get_pid(),
                 ));
-            } else {
-                self.cursor += 1;
             }
         }
+    }
+}
 
-        None
+impl DoubleEndedIterator for BTreeLeafPageIteratorRc {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let page = self.page.borrow();
+        loop {
+            self.reverse_cursor -= 1;
+            if self.reverse_cursor < 0 {
+                return None;
+            }
+
+            let cursor = self.reverse_cursor as usize;
+            if page.is_slot_used(cursor) {
+                return Some(WrappedTuple::new(
+                    page.tuples[cursor].clone(),
+                    cursor,
+                    page.get_pid(),
+                ));
+            }
+        }
     }
 }
 
 pub struct BTreeLeafPageIterator<'page> {
     page: &'page BTreeLeafPage,
-    cursor: usize,
+    cursor: i32,
+    reverse_cursor: i32,
 }
 
 impl<'page> BTreeLeafPageIterator<'page> {
     pub fn new(page: &'page BTreeLeafPage) -> Self {
         Self {
             page,
-            cursor: page.slot_count,
+            cursor: -1,
+            reverse_cursor: page.slot_count as i32,
         }
     }
 }
@@ -344,57 +383,41 @@ impl<'page> Iterator for BTreeLeafPageIterator<'_> {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.cursor < self.page.slot_count {
+        let page = self.page;
+        loop {
             self.cursor += 1;
-            if self.page.is_slot_used(self.cursor) {
-                let real_cursor = self.cursor - 1;
-                let t = WrappedTuple::new(
-                    self.page.tuples[real_cursor].clone(),
-                    real_cursor,
-                    self.page.get_pid(),
-                );
-                return Some(t);
+            let cursor = self.cursor as usize;
+            if cursor >= page.slot_count {
+                return None;
+            }
+
+            if page.is_slot_used(cursor) {
+                return Some(WrappedTuple::new(
+                    page.tuples[cursor].clone(),
+                    cursor,
+                    page.get_pid(),
+                ));
             }
         }
-
-        None
     }
 }
 
-pub struct BTreeLeafPageReverseIterator<'page> {
-    page: &'page BTreeLeafPage,
-    cursor: usize,
-}
-
-impl<'page> BTreeLeafPageReverseIterator<'page> {
-    pub fn new(page: &'page BTreeLeafPage) -> Self {
-        Self {
-            page,
-            cursor: page.slot_count,
-        }
-    }
-}
-
-impl<'page> Iterator for BTreeLeafPageReverseIterator<'_> {
-    type Item = WrappedTuple;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl<'page> DoubleEndedIterator for BTreeLeafPageIterator<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let page = self.page;
         loop {
-            match self.cursor.checked_sub(1) {
-                Some(cursor) => {
-                    self.cursor = cursor;
-                    if self.page.is_slot_used(cursor) {
-                        let tuple = self.page.tuples[cursor].clone();
-                        return Some(WrappedTuple::new(
-                            tuple,
-                            cursor,
-                            self.page.get_pid(),
-                        ));
-                    }
-                }
-                None => {
-                    return None;
-                }
+            self.reverse_cursor -= 1;
+            if self.reverse_cursor < 0 {
+                return None;
+            }
+
+            let cursor = self.reverse_cursor as usize;
+            if page.is_slot_used(cursor) {
+                return Some(WrappedTuple::new(
+                    page.tuples[cursor].clone(),
+                    cursor,
+                    page.get_pid(),
+                ));
             }
         }
     }

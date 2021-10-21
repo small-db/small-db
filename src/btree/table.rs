@@ -2,8 +2,8 @@ use super::{
     buffer_pool::BufferPool,
     page::{
         empty_page_data, BTreeInternalPage, BTreeLeafPage,
-        BTreeLeafPageIterator, BTreeLeafPageIteratorRc,
-        BTreeLeafPageReverseIterator, BTreePageID, BTreeRootPointerPage, Entry,
+        BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
+        BTreeRootPointerPage, Entry,
     },
     tuple::WrappedTuple,
 };
@@ -169,9 +169,9 @@ impl BTreeTable {
             let tuple_count = page.tuples_count();
             let move_tuple_count = tuple_count / 2;
 
-            let mut it = BTreeLeafPageReverseIterator::new(&page);
+            let mut it = BTreeLeafPageIterator::new(&page);
             let mut delete_indexes: Vec<usize> = Vec::new();
-            for tuple in it.by_ref().take(move_tuple_count) {
+            for tuple in it.by_ref().rev().take(move_tuple_count) {
                 delete_indexes.push(tuple.get_slot_number());
                 new_sibling.insert_tuple(&tuple);
             }
@@ -180,11 +180,11 @@ impl BTreeTable {
                 page.delete_tuple(i);
             }
 
-            let mut it = BTreeLeafPageReverseIterator::new(&page);
-            key = it.next().unwrap().get_field(self.key_field);
+            let mut it = BTreeLeafPageIterator::new(&page);
+            key = it.next_back().unwrap().get_field(self.key_field);
 
             // set sibling id
-            new_sibling.set_right_sibling_pid(page.get_right_sibling_pid());
+            new_sibling.set_right_sibling_pid(page.get_right_pid());
             new_sibling.set_left_sibling_pid(Some(page.get_pid()));
             page.set_right_sibling_pid(Some(new_sibling.get_pid()));
 
@@ -445,28 +445,124 @@ impl BTreeTable {
         // borrow of leaf_rc end here
 
         if should_merge {
-            self.handle_erratic_leaf_page(leaf_rc);
+            let pid = leaf_rc.borrow_mut().get_pid();
+            self.handle_erratic_page(pid);
         }
     }
 
-    fn handle_erratic_leaf_page(&self, page_rc: Rc<RefCell<BTreeLeafPage>>) {
+    /**
+
+    # Arguments
+
+    - pid: the page id of the leaf/internal page to be handled
+    */
+    fn handle_erratic_page(&self, pid: BTreePageID) {
+        match pid.category {
+            PageCategory::Leaf => {
+                let mut left_entry: Option<Entry> = None;
+                let mut right_entry: Option<Entry> = None;
+
+                let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+
+                // borrow of leaf_rc start here
+                {
+                    let leaf = leaf_rc.borrow_mut();
+                    let parent_pid = leaf.get_parent_pid();
+                    if parent_pid.category == PageCategory::Internal {
+                    } else {
+                        panic!("parent page is not internal page");
+                    }
+
+                    let parent_rc = BufferPool::global()
+                        .get_internal_page(&parent_pid)
+                        .unwrap();
+                    // borrow of parent_rc start here
+                    {
+                        let parent = parent_rc.borrow();
+                        let mut it = BTreeInternalPageIterator::new(&parent);
+                        for e in it.by_ref() {
+                            if e.get_left_child() == pid {
+                                right_entry = Some(e);
+                                break;
+                            } else if e.get_right_child() == pid {
+                                left_entry = Some(e);
+                            }
+                        }
+                    }
+                    // borrow of parent_rc end here
+                }
+                // borrow of leaf_rc end here
+
+                self.handle_erratic_leaf_page(leaf_rc, left_entry, right_entry);
+            }
+            PageCategory::Internal => {
+                // let internal_rc =
+                // BufferPool::global().get_internal_page(&pid).unwrap();
+                // self.handle_erratic_internal_page(internal_rc);
+
+                todo!()
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
+
+    /**
+    An `erratic` leaf page is a leaf page whose tuples is less than half full.
+
+    # Arguments
+
+    - leftEntry - the entry in the parent pointing to the given page and its left-sibling
+    - rightEntry - the entry in the parent pointing to the given page and its right-sibling
+    */
+    fn handle_erratic_leaf_page(
+        &self,
+        page_rc: Rc<RefCell<BTreeLeafPage>>,
+        left_entry: Option<Entry>,
+        right_entry: Option<Entry>,
+    ) {
         // borrow of page_rc start here
         {
             let mut page = page_rc.borrow_mut();
 
-            // 1. merge the page with its left/right sibling
-            if let Some(left_pid) = page.get_left_sibling_pid() {
+            let critical_point =
+                page.get_slots_count() - page.get_slots_count() / 2;
+
+            if let Some(left_pid) = page.get_left_pid() {
                 let left_rc =
                     BufferPool::global().get_leaf_page(&left_pid).unwrap();
                 let mut left = left_rc.borrow_mut();
-                self.merge_leaf_page(&mut left, &mut page);
-            }
 
-            // 2. delete corresponding entry in parent page
+                if left.empty_slots_count() >= critical_point {
+                    self.merge_leaf_page(&mut left, &mut page);
+                } else {
+                    self.steal_from_leaf_page(
+                        &mut page,
+                        &mut left,
+                        &mut left_entry.unwrap(),
+                        false,
+                    );
+                }
+            } else if let Some(right_pid) = page.get_right_pid() {
+                let right_rc =
+                    BufferPool::global().get_leaf_page(&right_pid).unwrap();
+                let mut right = right_rc.borrow_mut();
+                if right.empty_slots_count() >= critical_point {
+                    self.merge_leaf_page(&mut page, &mut right);
+                } else {
+                    self.steal_from_leaf_page(
+                        &mut page,
+                        &mut right,
+                        &mut right_entry.unwrap(),
+                        true,
+                    );
+                }
+            } else {
+                panic!("erratic leaf page has no sibling");
+            }
         }
         // borrow of page_rc end here
-
-        todo!()
     }
 
     fn merge_leaf_page(
@@ -474,8 +570,78 @@ impl BTreeTable {
         left: &mut BTreeLeafPage,
         right: &mut BTreeLeafPage,
     ) {
+        info!("left empty slot count: {}", left.empty_slots_count());
+        info!("left slot count: {}", left.tuples_count());
+        info!("right empty slot count: {}", right.empty_slots_count());
+        info!("right slot count: {}", right.tuples_count());
+
+        todo!();
+
         let it = BTreeLeafPageIterator::new(right);
         for tuple in it {}
+    }
+
+    /**
+    Steal tuples from a sibling and copy them to the given page so that both pages are at least
+    half full.  Update the parent's entry so that the key matches the key field of the first
+    tuple in the right-hand page.
+
+    # Arguments
+
+    - page           - the leaf page which is less than half full
+    - sibling        - the sibling which has tuples to spare
+    - parent         - the parent of the two leaf pages
+    - entry          - the entry in the parent pointing to the two leaf pages
+    - is_right_sibling - whether the sibling is a right-sibling
+    */
+    fn steal_from_leaf_page(
+        &self,
+        page: &mut BTreeLeafPage,
+        sibling: &mut BTreeLeafPage,
+        entry: &mut Entry,
+        is_right_sibling: bool,
+    ) {
+        let current_tuple_count = page.tuples_count();
+        let sibling_tuple_count = sibling.tuples_count();
+        let move_count = (current_tuple_count + sibling_tuple_count) / 2
+            - current_tuple_count;
+
+        let mut key: Option<Tuple> = None;
+
+        let mut delete_tuples = Vec::new();
+
+        if is_right_sibling {
+            let mut iter = BTreeLeafPageIterator::new(sibling);
+            for tuple in iter.by_ref().take(move_count) {
+                page.insert_tuple(&tuple);
+                delete_tuples.push(tuple.get_slot_number());
+                key = Some(tuple.clone());
+            }
+        } else {
+            let mut iter = BTreeLeafPageIterator::new(sibling);
+            for tuple in iter.by_ref().rev().take(move_count) {
+                page.insert_tuple(&tuple);
+                delete_tuples.push(tuple.get_slot_number());
+                key = Some(tuple.clone());
+            }
+        }
+
+        for i in delete_tuples {
+            sibling.delete_tuple(i);
+        }
+
+        entry.set_key(key.unwrap().get_field(self.key_field));
+
+        let parent_pid = page.get_parent_pid();
+        let parent_rc =
+            BufferPool::global().get_internal_page(&parent_pid).unwrap();
+
+        // borrow of parent_rc start here
+        {
+            let mut parent = parent_rc.borrow_mut();
+            parent.update_entry(entry);
+        }
+        // borrow of parent_rc end here
     }
 
     pub fn set_root_pid(&self, root_pid: &BTreePageID) {
@@ -752,8 +918,8 @@ impl BTreeTable {
                 let page_rc = BufferPool::global().get_leaf_page(pid).unwrap();
 
                 let page = page_rc.borrow();
-                let mut it = BTreeLeafPageReverseIterator::new(&page);
-                it.next()
+                let mut it = BTreeLeafPageIterator::new(&page);
+                it.next_back()
             }
             PageCategory::Header => todo!(),
         }
@@ -794,6 +960,8 @@ impl BTreeTable {
     }
 
     fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) {
+        let print_sibling = false;
+
         let prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
@@ -801,15 +969,26 @@ impl BTreeTable {
         let first_tuple = it.next().unwrap();
 
         let page = page_rc.borrow();
-        let mut rit = BTreeLeafPageReverseIterator::new(&page);
-        let last_tuple = rit.next().unwrap();
+        let mut rit = BTreeLeafPageIterator::new(&page);
+        let last_tuple = rit.next_back().unwrap();
 
-        println!(
-            "{}├── leaf: {} ({} tuples)",
-            prefix,
-            page.get_pid(),
-            page.tuples_count()
-        );
+        if print_sibling {
+            println!(
+                "{}├── leaf: {} ({} tuples) (left: {:?}, right: {:?})",
+                prefix,
+                page.get_pid(),
+                page.tuples_count(),
+                page.get_left_pid(),
+                page.get_right_pid(),
+            );
+        } else {
+            println!(
+                "{}├── leaf: {} ({} tuples)",
+                prefix,
+                page.get_pid(),
+                page.tuples_count(),
+            );
+        }
         println!("{}├── first: {}", prefix, first_tuple);
         println!("{}└── last:  {}", prefix, last_tuple);
     }
@@ -908,8 +1087,8 @@ impl BTreeTable {
                 );
 
                 return SubtreeSummary {
-                    left_ptr: page.get_left_sibling_pid(),
-                    right_ptr: page.get_right_sibling_pid(),
+                    left_ptr: page.get_left_pid(),
+                    right_ptr: page.get_right_pid(),
 
                     left_most_pid: Some(page.get_pid()),
                     right_most_pid: Some(page.get_pid()),
@@ -1031,11 +1210,37 @@ impl Iterator for BTreeTableIterator {
             return v;
         }
 
-        let right = (*self.page_rc).borrow().get_right_sibling_pid();
+        let right = self.page_rc.borrow().get_right_pid();
         match right {
             Some(right) => {
                 let sibling_rc =
                     BufferPool::global().get_leaf_page(&right).unwrap();
+                let page_it =
+                    BTreeLeafPageIteratorRc::new(Rc::clone(&sibling_rc));
+
+                self.page_rc = Rc::clone(&sibling_rc);
+                self.page_it = page_it;
+                return self.page_it.next();
+            }
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+impl DoubleEndedIterator for BTreeTableIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let v = self.page_it.next();
+        if !v.is_none() {
+            return v;
+        }
+
+        let left = self.page_rc.borrow().get_left_pid();
+        match left {
+            Some(left) => {
+                let sibling_rc =
+                    BufferPool::global().get_leaf_page(&left).unwrap();
                 let page_it =
                     BTreeLeafPageIteratorRc::new(Rc::clone(&sibling_rc));
 
@@ -1154,9 +1359,8 @@ impl Iterator for BTreeTableSearchIterator {
                 },
                 None => {
                     // init iterator on next page and continue search
-                    let right = (*self.current_page_rc)
-                        .borrow()
-                        .get_right_sibling_pid();
+                    let right =
+                        (*self.current_page_rc).borrow().get_right_pid();
                     match right {
                         Some(pid) => {
                             let rc = BufferPool::global()

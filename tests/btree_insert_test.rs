@@ -10,6 +10,7 @@ use simple_db_rust::{
 };
 use std::{cell::RefCell, rc::Rc};
 mod common;
+use common::TreeLayout;
 
 #[test]
 fn insert_tuple() {
@@ -103,7 +104,13 @@ fn split_leaf_page() {
     common::setup();
 
     // This should create a B+ tree with one full page
-    let table_rc = common::create_random_btree_table(2, 502, None, 0, true);
+    let table_rc = common::create_random_btree_table(
+        2,
+        502,
+        None,
+        0,
+        TreeLayout::EvenlyDistributed,
+    );
     let table = table_rc.borrow();
 
     // there should be 1 leaf page
@@ -143,7 +150,13 @@ fn split_root_page() {
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
     let rows = 504 * 502;
-    let table_ref = common::create_random_btree_table(2, rows, None, 0, true);
+    let table_ref = common::create_random_btree_table(
+        2,
+        rows,
+        None,
+        0,
+        TreeLayout::EvenlyDistributed,
+    );
     let table = table_ref.borrow();
 
     // there should be 504 leaf pages + 1 internal node
@@ -239,7 +252,13 @@ fn split_internal_page() {
     124 = leaf pages
     */
     let rows = 2 * 125 * 124;
-    let table_rc = common::create_random_btree_table(2, rows, None, 0, true);
+    let table_rc = common::create_random_btree_table(
+        2,
+        rows,
+        None,
+        0,
+        TreeLayout::EvenlyDistributed,
+    );
 
     let table = table_rc.borrow();
 

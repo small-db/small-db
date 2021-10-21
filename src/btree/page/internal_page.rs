@@ -141,6 +141,13 @@ impl BTreeInternalPage {
         self.mark_slot_status(index, false);
     }
 
+    pub fn update_entry(&mut self, entry: &Entry) {
+        let record_id = entry.get_record_id();
+        self.children[record_id - 1] = entry.get_left_child();
+        self.children[record_id] = entry.get_right_child();
+        self.keys[record_id] = entry.get_key();
+    }
+
     /**
     Returns true if associated slot on this page is filled.
     */
@@ -323,6 +330,10 @@ impl Entry {
         self.key
     }
 
+    pub fn set_key(&mut self, key: IntField) {
+        self.key = key;
+    }
+
     pub fn get_left_child(&self) -> BTreePageID {
         self.left
     }
@@ -362,11 +373,13 @@ impl Iterator for BTreeInternalPageIterator<'_> {
             if !self.page.is_slot_used(self.cursor) {
                 continue;
             }
-            return Some(Entry::new(
+            let mut e = Entry::new(
                 self.page.keys[self.cursor],
                 &self.page.children[self.cursor - 1],
                 &self.page.children[self.cursor],
-            ));
+            );
+            e.set_record_id(self.cursor);
+            return Some(e);
         }
     }
 }

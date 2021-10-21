@@ -19,6 +19,12 @@ pub fn setup() {
     btree::buffer_pool::BufferPool::global().clear();
 }
 
+pub enum TreeLayout {
+    Naturally,
+    EvenlyDistributed,
+    LastTwoEvenlyDistributed,
+}
+
 /**
 Create a table with a given number of rows and columns.
 
@@ -33,7 +39,7 @@ pub fn create_random_btree_table(
     rows: usize,
     int_tuples: Option<&mut Vec<Vec<i32>>>,
     key_field: usize,
-    packed_layout: bool,
+    tree_layout: TreeLayout,
 ) -> Rc<RefCell<BTreeTable>> {
     let path = "btree.db";
     let row_scheme = simple_int_tuple_scheme(columns, "");
@@ -64,13 +70,21 @@ pub fn create_random_btree_table(
     // borrow of table_rc start here
     {
         let table = table_rc.borrow();
-        if packed_layout {
-            let page_index =
-                sequential_insert_into_table(&table, &tuples, &row_scheme);
-            table.set_page_index(page_index);
-        } else {
-            for t in tuples.iter() {
-                table.insert_tuple(t);
+        match tree_layout {
+            TreeLayout::Naturally => {
+                for t in tuples.iter() {
+                    table.insert_tuple(t);
+                }
+            }
+            TreeLayout::EvenlyDistributed
+            | TreeLayout::LastTwoEvenlyDistributed => {
+                let page_index = sequential_insert_into_table(
+                    &table,
+                    &tuples,
+                    &row_scheme,
+                    tree_layout,
+                );
+                table.set_page_index(page_index);
             }
         }
     }
@@ -83,22 +97,52 @@ fn sequential_insert_into_table(
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
     tuple_scheme: &TupleScheme,
+    tree_layout: TreeLayout,
 ) -> usize {
     // write leaf pages
-    let leaf_page_count: usize;
-    let mut rows_per_leaf_page: usize = BufferPool::rows_per_page(tuple_scheme);
+
+    let mut leaf_page_count;
     let mut leaves = Vec::new();
-    let remainder = tuples.len() % rows_per_leaf_page;
-    if remainder > 0 {
-        leaf_page_count = (tuples.len() / rows_per_leaf_page) + 1;
-        rows_per_leaf_page = tuples.len() / leaf_page_count;
-    } else {
-        leaf_page_count = tuples.len() / rows_per_leaf_page;
+    let mut rows_counts = Vec::new();
+    match tree_layout {
+        TreeLayout::Naturally => {
+            panic!("TreeLayout::Naturally not supported");
+        }
+        TreeLayout::EvenlyDistributed => {
+            let mut rows_per_page: usize =
+                BufferPool::rows_per_page(tuple_scheme);
+            leaf_page_count = tuples.len() / rows_per_page;
+            if tuples.len() % rows_per_page > 0 {
+                leaf_page_count += 1;
+                rows_per_page = tuples.len() / leaf_page_count;
+            }
+            for _ in 0..leaf_page_count {
+                rows_counts.push(rows_per_page);
+            }
+        }
+        TreeLayout::LastTwoEvenlyDistributed => {
+            let rows_per_page: usize = BufferPool::rows_per_page(tuple_scheme);
+            leaf_page_count = tuples.len() / rows_per_page;
+            let remainder = tuples.len() % rows_per_page;
+            if remainder > 0 {
+                leaf_page_count += 1;
+                let last_tuples_count = remainder + rows_per_page;
+                for _ in 0..leaf_page_count - 2 {
+                    rows_counts.push(rows_per_page);
+                }
+                rows_counts.push(last_tuples_count / 2);
+                rows_counts.push(last_tuples_count - last_tuples_count / 2);
+            } else {
+                for _ in 0..leaf_page_count {
+                    rows_counts.push(rows_per_page);
+                }
+            }
+        }
     }
 
     let mut page_index = 0;
     let mut tuple_index = 0;
-    for _ in 0..leaf_page_count {
+    for row_count in rows_counts {
         page_index += 1;
         let pid = BTreePageID::new(
             btree::page::PageCategory::Leaf,
@@ -113,7 +157,7 @@ fn sequential_insert_into_table(
         {
             let mut leaf = leaf_rc.borrow_mut();
 
-            for _ in 0..rows_per_leaf_page {
+            for _ in 0..row_count {
                 let t = tuples.get(tuple_index);
                 match t {
                     Some(t) => {
