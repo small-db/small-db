@@ -559,6 +559,7 @@ impl BTreeTable {
                     self.steal_from_leaf_page(
                         page,
                         &mut left,
+                        parent,
                         &mut left_entry.unwrap(),
                         false,
                     );
@@ -578,6 +579,7 @@ impl BTreeTable {
                     self.steal_from_leaf_page(
                         page,
                         &mut right,
+                        parent,
                         &mut right_entry.unwrap(),
                         true,
                     );
@@ -636,6 +638,7 @@ impl BTreeTable {
         &self,
         page: &mut BTreeLeafPage,
         sibling: &mut BTreeLeafPage,
+        parent: &mut BTreeInternalPage,
         entry: &mut Entry,
         is_right_sibling: bool,
     ) {
@@ -669,17 +672,7 @@ impl BTreeTable {
         }
 
         entry.set_key(key.unwrap().get_field(self.key_field));
-
-        let parent_pid = page.get_parent_pid();
-        let parent_rc =
-            BufferPool::global().get_internal_page(&parent_pid).unwrap();
-
-        // borrow of parent_rc start here
-        {
-            let mut parent = parent_rc.borrow_mut();
-            parent.update_entry(entry);
-        }
-        // borrow of parent_rc end here
+        parent.update_entry(entry);
     }
 
     pub fn set_root_pid(&self, root_pid: &BTreePageID) {
