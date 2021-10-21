@@ -1,9 +1,8 @@
 use common::TreeLayout;
 use simple_db_rust::{
     btree::{
-        buffer_pool::BufferPool, table::BTreeTableIterator, tuple::WrappedTuple,
+        buffer_pool::BufferPool, table::BTreeTableIterator,
     },
-    Tuple,
 };
 
 mod common;

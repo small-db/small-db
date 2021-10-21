@@ -578,7 +578,7 @@ impl BTreeTable {
         todo!();
 
         let it = BTreeLeafPageIterator::new(right);
-        for tuple in it {}
+        for _tuple in it {}
     }
 
     /**
