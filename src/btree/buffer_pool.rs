@@ -178,6 +178,30 @@ impl BufferPool {
         Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
     }
 
+    /**
+    Remove the specific page id from the buffer pool.
+    Needed by the recovery manager to ensure that the
+    buffer pool doesn't keep a rolled back page in its
+    cache.
+
+    Also used by B+ tree files to ensure that deleted pages
+    are removed from the cache so they can be reused safely
+    */
+    pub fn discard_page(&mut self, pid: &BTreePageID) {
+        match pid.category {
+            PageCategory::Internal => {
+                self.internal_buffer.remove(pid);
+            }
+            PageCategory::Leaf => {
+                self.leaf_buffer.remove(pid);
+            }
+            PageCategory::RootPointer => {
+                self.roop_pointer_buffer.remove(pid);
+            }
+            PageCategory::Header => todo!(),
+        }
+    }
+
     pub fn set_page_size(page_size: usize) {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
 

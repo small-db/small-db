@@ -617,8 +617,59 @@ impl BTreeTable {
         // pointer
         left.set_right_pid(right.get_right_pid());
 
+        self.delete_parent_entry(left, parent, parent_entry);
+    }
+
+    /**
+    Method to encapsulate the process of deleting an entry (specifically
+    the key and right child) from a parent node.
+
+    If the parent becomes empty (no keys remaining), that indicates that
+    it was the root node and should be replaced by its one remaining
+    child.
+
+    Otherwise, if it gets below minimum occupancy for non-root internal
+    nodes, it should steal from one of its siblings or merge with a sibling.
+
+    # Arguments
+
+    - left_page    - the child remaining after the key and right child are deleted
+    - parent      - the parent containing the entry to be deleted
+    - parent_entry - the entry to be deleted
+    */
+    fn delete_parent_entry(
+        &self,
+        left_page: &mut BTreeLeafPage,
+        parent: &mut BTreeInternalPage,
+        parent_entry: &Entry,
+    ) {
         // delete the corresponding entry in the parent page
         parent.delete_key_and_right_child(parent_entry.get_record_id());
+
+        // if the parent is empty, then the left page is now the new root
+        if parent.entries_count() == 0 {
+            let root_ptr_page_rc = self.get_root_ptr_page();
+
+            // borrow of root_ptr_page_rc start here
+            {
+                let mut root_ptr_page = root_ptr_page_rc.borrow_mut();
+                left_page.set_parent_pid(&root_ptr_page.get_pid());
+                root_ptr_page.set_root_pid(&left_page.get_pid());
+            }
+            // borrow of root_ptr_page_rc end here
+
+            // release the parent page for reuse
+            self.set_empty_page(&parent.get_pid());
+        }
+    }
+
+    /**
+    Mark a page in this BTreeTable as empty. Find the corresponding header
+    page (create it if needed), and mark the corresponding slot in the header
+    page as empty.
+    */
+    fn set_empty_page(&self, pid: &BTreePageID) {
+        BufferPool::global().discard_page(pid);
     }
 
     /**

@@ -1,7 +1,6 @@
 use common::TreeLayout;
-use log::info;
 use simple_db_rust::btree::{
-    buffer_pool::BufferPool, table::BTreeTableIterator,
+    buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
 };
 
 mod common;
@@ -80,3 +79,66 @@ fn test_merge_leaf_pages() {
     table.draw_tree(-1);
     table.check_integrity(true);
 }
+
+#[test]
+fn test_delete_root_page() {
+    common::setup();
+
+    // This should create a B+ tree with two half-full leaf pages
+    let table_rc = common::create_random_btree_table(
+        2,
+        503,
+        None,
+        0,
+        TreeLayout::LastTwoEvenlyDistributed,
+    );
+    let table = table_rc.borrow();
+    assert_eq!(3, table.pages_count());
+    table.check_integrity(true);
+
+    // delete the first two tuples
+    let mut it = BTreeTableIterator::new(&table);
+    table.delete_tuple(it.next().unwrap());
+    table.check_integrity(true);
+    table.delete_tuple(it.next().unwrap());
+    table.check_integrity(true);
+
+    table.draw_tree(-1);
+
+    let root_pid = table.get_root_pid();
+    assert!(root_pid.category == PageCategory::Leaf);
+    let root_rc = BufferPool::global().get_leaf_page(&root_pid).unwrap();
+    assert_eq!(root_rc.borrow().empty_slots_count(), 1);
+}
+
+// public void testDeleteRootPage() throws Exception {
+//     // This should create a B+ tree with two half-full leaf pages
+//     BTreeFile twoLeafPageFile = BTreeUtility.createRandomBTreeFile(2, 503,
+//             null, null, 0);
+//     // there should be one internal node and 2 leaf nodes
+//     assertEquals(3, twoLeafPageFile.numPages());
+//     BTreeChecker.checkRep(twoLeafPageFile,
+//             tid, new HashMap<PageId, Page>(), true);
+
+//     // delete the first two tuples
+//     DbFileIterator it = twoLeafPageFile.iterator(tid);
+//     it.open();
+//     Tuple first = it.next();
+//     Tuple second = it.next();
+//     it.close();
+//     twoLeafPageFile.deleteTuple(tid, first);
+//     BTreeChecker.checkRep(twoLeafPageFile, tid, new HashMap<PageId, Page>(),
+// false);     twoLeafPageFile.deleteTuple(tid, second);
+//     BTreeChecker.checkRep(twoLeafPageFile,tid, new HashMap<PageId, Page>(),
+// false);
+
+//     // confirm that the last two pages have merged successfully and replaced
+// the root     BTreePageId rootPtrId =
+// BTreeRootPtrPage.getId(twoLeafPageFile.getId());     BTreeRootPtrPage rootPtr
+// = (BTreeRootPtrPage) Database.getBufferPool().getPage(             tid,
+// rootPtrId, Permissions.READ_ONLY);     assertTrue(rootPtr.getRootId().
+// pgcateg() == BTreePageId.LEAF);     BTreeLeafPage root = (BTreeLeafPage)
+// Database.getBufferPool().getPage(             tid, rootPtr.getRootId(),
+// Permissions.READ_ONLY);     assertEquals(1, root.getNumEmptySlots());
+//     assertTrue(root.getParentId().equals(rootPtrId));
+// }
