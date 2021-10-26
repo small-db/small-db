@@ -1,9 +1,9 @@
 use super::{
     buffer_pool::BufferPool,
     page::{
-        empty_page_data, BTreeInternalPage, BTreeLeafPage,
+        empty_page_data, BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
         BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
-        BTreeRootPointerPage, Entry,
+        BTreeRootPointerPage, BTreeVirtualPage, Entry,
     },
     tuple::WrappedTuple,
 };
@@ -118,6 +118,10 @@ impl BTreeTable {
 
     pub fn get_id(&self) -> i32 {
         self.table_id
+    }
+
+    pub fn get_tuple_scheme(&self) -> TupleScheme {
+        self.tuple_scheme.clone()
     }
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
@@ -617,6 +621,8 @@ impl BTreeTable {
         // pointer
         left.set_right_pid(right.get_right_pid());
 
+        self.set_empty_page(&right.get_pid());
+
         self.delete_parent_entry(left, parent, parent_entry);
     }
 
@@ -670,6 +676,32 @@ impl BTreeTable {
     */
     fn set_empty_page(&self, pid: &BTreePageID) {
         BufferPool::global().discard_page(pid);
+
+        let root_ptr_rc = self.get_root_ptr_page();
+        let header_rc: Rc<RefCell<BTreeHeaderPage>>;
+        // borrow of root_ptr_rc start here
+        {
+            let mut root_ptr = root_ptr_rc.borrow_mut();
+            match root_ptr.get_header_pid() {
+                Some(header_pid) => todo!(),
+                None => {
+                    // if there are no header pages, create the first header
+                    // page and update the header pointer
+                    // in the BTreeRootPtrPage
+                    header_rc = self.get_empty_header_page();
+                    root_ptr.set_header_pid(&header_rc.borrow().get_pid());
+                }
+            }
+        }
+        // borrow of root_ptr_rc end here
+
+        // borrow of header_rc start here
+        {
+            let mut header = header_rc.borrow_mut();
+            let slot_index = pid.page_index % header.get_slots_count();
+            header.mark_slot_status(slot_index, false);
+        }
+        // borrow of header_rc end here
     }
 
     /**
@@ -883,6 +915,10 @@ impl BTreeTable {
         }
     }
 
+    fn read_page(&self, page_id: &BTreePageID) -> BTreeVirtualPage {
+        todo!()
+    }
+
     fn get_empty_leaf_page(&self) -> Rc<RefCell<BTreeLeafPage>> {
         // create the new page
         let page_index = self.get_empty_page_index();
@@ -924,6 +960,24 @@ impl BTreeTable {
 
         BufferPool::global()
             .internal_buffer
+            .insert(page_id, page_rc.clone());
+
+        page_rc
+    }
+
+    fn get_empty_header_page(&self) -> Rc<RefCell<BTreeHeaderPage>> {
+        // create the new page
+        let page_index = self.get_empty_page_index();
+        let page_id =
+            BTreePageID::new(PageCategory::Header, self.table_id, page_index);
+        let page = BTreeHeaderPage::new(&page_id);
+
+        self.write_page_to_disk(&page_id);
+
+        let page_rc = Rc::new(RefCell::new(page));
+
+        BufferPool::global()
+            .header_buffer
             .insert(page_id, page_rc.clone());
 
         page_rc

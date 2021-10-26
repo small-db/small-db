@@ -16,8 +16,8 @@ use std::{mem, sync::Once};
 use super::{
     catalog::Catalog,
     page::{
-        BTreeInternalPage, BTreeLeafPage, BTreePageID, BTreeRootPointerPage,
-        PageCategory,
+        BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePageID,
+        BTreeRootPointerPage, PageCategory,
     },
     tuple::TupleScheme,
 };
@@ -30,6 +30,7 @@ pub struct BufferPool {
         HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
     pub internal_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeInternalPage>>>,
     pub leaf_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeLeafPage>>>,
+    pub header_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeHeaderPage>>>,
 }
 
 type Key = BTreePageID;
@@ -40,6 +41,7 @@ impl BufferPool {
             roop_pointer_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
+            header_buffer: HashMap::new(),
         }
     }
 
@@ -144,6 +146,32 @@ impl BufferPool {
         }
 
         Ok(Rc::clone(self.leaf_buffer.get(key).unwrap()))
+    }
+
+    pub fn get_header_page(
+        &mut self,
+        key: &Key,
+    ) -> Result<Rc<RefCell<BTreeHeaderPage>>> {
+        match self.leaf_buffer.get(key) {
+            Some(_) => {}
+            None => {
+                // 1. get table
+                let v =
+                    Catalog::global().get_table(&key.get_table_id()).unwrap();
+                let table = v.borrow();
+
+                // 2. read page content
+                let buf = self.read_page(&mut table.get_file(), key)?;
+
+                // 3. instantiate page
+                let page = BTreeHeaderPage::new(key);
+
+                // 4. put page into buffer pool
+                self.header_buffer.insert(*key, Rc::new(RefCell::new(page)));
+            }
+        }
+
+        Ok(Rc::clone(self.header_buffer.get(key).unwrap()))
     }
 
     pub fn get_root_pointer_page(

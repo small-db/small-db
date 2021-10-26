@@ -1,4 +1,4 @@
-use std::{convert::TryInto, fmt};
+use std::fmt;
 
 use crate::btree::buffer_pool::BufferPool;
 
@@ -102,56 +102,6 @@ impl BTreeBasePage {
     pub fn empty_page_data() -> Vec<u8> {
         let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
         data
-    }
-}
-
-pub struct BTreeRootPointerPage {
-    base: BTreeBasePage,
-
-    // The root_pid in mandatory to avoid a bunch of Option & match
-    root_pid: BTreePageID,
-}
-
-impl std::ops::Deref for BTreeRootPointerPage {
-    type Target = BTreeBasePage;
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl std::ops::DerefMut for BTreeRootPointerPage {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
-    }
-}
-
-impl BTreeRootPointerPage {
-    pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
-        let root_page_index =
-            i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
-        let root_pid = BTreePageID {
-            category: PageCategory::Leaf,
-            page_index: root_page_index,
-
-            // TODO: set table id
-            table_id: 0,
-        };
-        Self {
-            base: BTreeBasePage {
-                pid: pid.clone(),
-                parent_page_index: 0,
-            },
-
-            root_pid,
-        }
-    }
-
-    pub fn get_root_pid(&self) -> BTreePageID {
-        self.root_pid
-    }
-
-    pub fn set_root_pid(&mut self, pid: &BTreePageID) {
-        self.root_pid = *pid;
     }
 }
 

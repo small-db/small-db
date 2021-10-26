@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use std::{mem, sync::Once};
 
-use super::table::BTreeTable;
+use super::{table::BTreeTable, tuple::TupleScheme};
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
@@ -40,8 +40,19 @@ impl Catalog {
         }
     }
 
-    pub fn get_table(&self, key: &Key) -> Option<&Value> {
-        self.map.get(key)
+    pub fn get_table(&self, table_index: &Key) -> Option<&Value> {
+        self.map.get(table_index)
+    }
+
+    pub fn get_tuple_scheme(&self, table_index: &Key) -> Option<TupleScheme> {
+        let table_rc = self.map.get(table_index);
+        match table_rc {
+            Some(table_rc) => {
+                let table = table_rc.borrow();
+                Some(table.get_tuple_scheme())
+            }
+            None => None,
+        }
     }
 
     pub fn add_table(&mut self, file: Value) {

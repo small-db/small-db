@@ -5,10 +5,13 @@ use crate::{
         buffer_pool::BufferPool,
         tuple::{TupleScheme, WrappedTuple},
     },
-    Tuple,
+    Catalog, Tuple,
 };
 
-use super::{page_id, BTreeBasePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
+use super::{
+    page_id, BTreeBasePage, BTreePageID, BTreeVirtualPage, PageCategory,
+    EMPTY_PAGE_ID,
+};
 use std::{cell::RefCell, rc::Rc};
 
 use log::debug;
@@ -303,6 +306,23 @@ impl BTreeLeafPage {
         if check_occupancy && depth > 0 {
             assert!(self.tuples_count() >= self.get_slots_count() / 2);
         }
+    }
+}
+
+impl From<BTreeVirtualPage> for Rc<RefCell<BTreeLeafPage>> {
+    fn from(v: BTreeVirtualPage) -> Self {
+        let scheme = Catalog::global()
+            .get_tuple_scheme(&v.get_pid().get_table_id())
+            .unwrap();
+
+        let page = BTreeLeafPage::new(
+            &v.get_pid(),
+            v.get_bytes(),
+            &scheme,
+            v.get_key_field(),
+        );
+
+        todo!()
     }
 }
 
