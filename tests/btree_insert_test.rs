@@ -267,7 +267,6 @@ fn split_internal_page() {
 
     let table = table_rc.borrow();
 
-    table.check_integrity(true);
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
 
@@ -289,7 +288,6 @@ fn split_internal_page() {
         pre = cur;
     }
 
-    table.check_integrity(true);
     assert_eq!(count, rows);
 
     // now insert some random tuples and make sure we can find them
@@ -299,9 +297,6 @@ fn split_internal_page() {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&tuple);
-
-        info!("i: {}", i);
-        table.check_integrity(true);
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
