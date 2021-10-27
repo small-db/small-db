@@ -17,9 +17,12 @@ fn insert_tuple() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let path = "btree.db";
     let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_rc = Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
+    let table_rc = Rc::new(RefCell::new(BTreeTable::new(
+        common::DB_FILE,
+        1,
+        &row_scheme,
+    )));
     Catalog::global().add_table(Rc::clone(&table_rc));
     let table = table_rc.borrow();
 
@@ -68,10 +71,12 @@ fn insert_duplicate_tuples() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let path = "btree.db";
     let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_ref =
-        Rc::new(RefCell::new(BTreeTable::new(path, 1, &row_scheme)));
+    let table_ref = Rc::new(RefCell::new(BTreeTable::new(
+        common::DB_FILE,
+        1,
+        &row_scheme,
+    )));
     Catalog::global().add_table(Rc::clone(&table_ref));
     let table = table_ref.borrow();
 
@@ -245,11 +250,11 @@ fn split_internal_page() {
     /*
     This should create a B+ tree with a packed second tier of internal pages
     and packed third tier of leaf pages
-    (124 entries per internal/leaf page, 125 children per internal page ->
+    (124 tuples per leaf page, 125 children per internal page ->
     2 * 125 * 124 = 31000)
-    2 = top level internal pages
-    125 = second level internal pages
-    124 = leaf pages
+    2 = 2 children (internal pages) for the top level internal page
+    125 = 125 children (leaf pages) for each second level internal pages
+    124 = 124 tuples per leaf page
     */
     let rows = 2 * 125 * 124;
     let table_rc = common::create_random_btree_table(
@@ -262,6 +267,7 @@ fn split_internal_page() {
 
     let table = table_rc.borrow();
 
+    table.check_integrity(true);
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
 
@@ -283,15 +289,19 @@ fn split_internal_page() {
         pre = cur;
     }
 
+    table.check_integrity(true);
     assert_eq!(count, rows);
 
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
     let rows_increment = 100;
-    for _ in 0..rows_increment {
+    for i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&tuple);
+
+        info!("i: {}", i);
+        table.check_integrity(true);
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);

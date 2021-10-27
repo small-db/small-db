@@ -160,6 +160,10 @@ impl BTreeInternalPage {
     }
 
     pub fn insert_entry(&mut self, e: &Entry) {
+        if self.empty_slots_count() == 0 {
+            panic!("no empty slot on this page");
+        }
+
         // if this is the first entry, add it and return
         if self.empty_slots_count() == Self::get_max_entries(4) {
             self.children[0] = e.get_left_child();
@@ -170,82 +174,61 @@ impl BTreeInternalPage {
             return;
         }
 
+        let placeholder_slot: usize = 0;
+
         // find the first empty slot, start from 1
-        let mut empty_slot: i32 = -1;
+        let mut empty_slot = placeholder_slot;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
-                empty_slot = i as i32;
+                empty_slot = i;
                 break;
             }
-        }
-
-        // if there is no empty slot, return
-        if empty_slot == -1 {
-            panic!("no empty slot");
         }
 
         // find the child pointer matching the left or right child in this entry
-        let mut less_or_eq_slot = -1;
+        let mut slot_just_ahead: usize = placeholder_slot;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 continue;
             }
 
+            // circumstances 1: we want to insert a entry just after the current
+            // entry
             if self.children[i] == e.get_left_child() {
-                // gotcha
-                less_or_eq_slot = i as i32;
-
-                // we not break here, but break on the next iteration
-                // to validate the keys is in order
-                continue;
-            }
-
-            if self.children[i] == e.get_right_child() {
-                // gotcha
-                less_or_eq_slot = i as i32;
-
-                // update right child of current entry
-                self.children[i] = e.get_left_child();
-
-                // we not break here, but break on the next iteration
-                // to validate the keys is in order
-                continue;
-            }
-
-            // validate that the next key is greater than or equal to the one we
-            // are inserting
-            if less_or_eq_slot != -1 {
-                if self.keys[i] < e.get_key() {
-                    panic!("key is not in order");
-                }
+                slot_just_ahead = i;
                 break;
             }
-        }
 
-        if less_or_eq_slot == -1 {
-            info!("you are try to insert: {}", e);
-            info!("page id: {}", self.get_pid());
-            panic!("no less or equal slot",);
+            // circumstances 2: we want to insert a entry just inside the
+            // current entry, so the right child of the current
+            // entry should be updated to the left child of the new
+            // entry
+            if self.children[i] == e.get_right_child() {
+                slot_just_ahead = i;
+                // update right child of current entry
+                self.children[i] = e.get_left_child();
+                break;
+            }
         }
 
         // shift entries back or forward to fill empty slot and make room for
         // new entry while keeping entries in sorted order
-        let good_slot: i32;
-        if empty_slot < less_or_eq_slot {
-            for i in empty_slot..less_or_eq_slot {
-                self.move_entry((i + 1) as usize, i as usize);
+        let good_slot: usize;
+        if empty_slot < slot_just_ahead {
+            for i in empty_slot..slot_just_ahead {
+                self.move_entry(i + 1, i);
             }
-            good_slot = less_or_eq_slot
+            good_slot = slot_just_ahead
         } else {
-            for i in (less_or_eq_slot + 1..empty_slot).rev() {
-                self.move_entry(i as usize, i as usize + 1);
+            for i in (slot_just_ahead + 1..empty_slot).rev() {
+                self.move_entry(i, i + 1);
             }
-            good_slot = less_or_eq_slot + 1
+            good_slot = slot_just_ahead + 1
         }
 
-        self.keys[good_slot as usize] = e.get_key();
-        self.children[good_slot as usize] = e.get_right_child();
-        self.mark_slot_status(good_slot as usize, true);
+        self.keys[good_slot] = e.get_key();
+        self.children[good_slot] = e.get_right_child();
+        self.mark_slot_status(good_slot, true);
     }
 
     fn move_entry(&mut self, from: usize, to: usize) {
@@ -279,7 +262,12 @@ impl BTreeInternalPage {
         let it = BTreeInternalPageIterator::new(self);
         for e in it {
             if let Some(previous) = previous {
-                assert!(previous <= e.get_key());
+                assert!(
+                    previous <= e.get_key(),
+                    "entries are not in order, previous: {}, current: {}",
+                    previous,
+                    e,
+                );
             }
             previous = Some(e.get_key());
         }
@@ -291,7 +279,15 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            assert!(self.entries_count() >= Self::get_max_entries(4) / 2);
+            // minus 1 hear since the page may become lower than half full
+            // in the process of splitting
+            let minimal_stable = Self::get_max_entries(4) / 2 - 1;
+            assert!(
+                self.entries_count() >= minimal_stable,
+                "entries count: {}, max entries: {}",
+                self.entries_count(),
+                Self::get_max_entries(4)
+            );
         }
     }
 }
@@ -379,7 +375,7 @@ impl<'page> BTreeInternalPageIterator<'page> {
             cursor: 0,
             left_child_position: 0,
 
-            reverse_cursor: right_child_position + 1,
+            reverse_cursor: right_child_position,
             right_child_position,
         }
     }
@@ -393,7 +389,7 @@ impl Iterator for BTreeInternalPageIterator<'_> {
             self.cursor += 1;
             let cursor = self.cursor;
 
-            if self.cursor >= self.page.slot_count {
+            if cursor >= self.page.slot_count {
                 return None;
             }
 
@@ -418,28 +414,24 @@ impl Iterator for BTreeInternalPageIterator<'_> {
 impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            self.reverse_cursor -= 1;
-            let cursor = self.reverse_cursor;
+            if let Some(cursor) = self.reverse_cursor.checked_sub(1) {
+                self.reverse_cursor = cursor;
+                if !self.page.is_slot_used(cursor) {
+                    continue;
+                }
 
-            // entries start from 1
-            if cursor < 1 {
-                return None;
+                let mut e = Entry::new(
+                    self.page.keys[self.right_child_position],
+                    &self.page.children[cursor],
+                    &self.page.children[self.right_child_position],
+                );
+                e.set_record_id(self.right_child_position);
+
+                // set right child position for next iteration
+                self.right_child_position = cursor;
+
+                return Some(e);
             }
-
-            if !self.page.is_slot_used(cursor) {
-                continue;
-            }
-            let mut e = Entry::new(
-                self.page.keys[cursor],
-                &self.page.children[cursor - 1],
-                &self.page.children[self.right_child_position],
-            );
-            e.set_record_id(cursor);
-
-            // set right child position for next iteration
-            self.right_child_position = cursor;
-
-            return Some(e);
         }
     }
 }

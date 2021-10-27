@@ -281,7 +281,13 @@ impl BTreeLeafPage {
         depth: usize,
     ) {
         assert_eq!(self.get_pid().category, PageCategory::Leaf);
-        assert_eq!(&self.get_parent_pid(), parent_pid);
+        assert_eq!(
+            &self.get_parent_pid(),
+            parent_pid,
+            "parent pid incorrect, current page: {:?}, parent pid: {:?}",
+            self.get_pid(),
+            parent_pid
+        );
 
         let mut previous = lower_bound;
         let it = BTreeLeafPageIterator::new(self);

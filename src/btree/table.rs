@@ -191,20 +191,6 @@ impl BTreeTable {
             let mut it = BTreeLeafPageIterator::new(&page);
             key = it.next_back().unwrap().get_field(self.key_field);
 
-            // TODO: set left pointer for the old right sibling
-            if let Some(old_right_pid) = page.get_right_pid() {
-                let old_right_rc =
-                    BufferPool::global().get_leaf_page(&old_right_pid).unwrap();
-                old_right_rc
-                    .borrow_mut()
-                    .set_left_pid(Some(new_sibling.get_pid()));
-            }
-
-            // set sibling id
-            new_sibling.set_right_pid(page.get_right_pid());
-            new_sibling.set_left_pid(Some(page.get_pid()));
-            page.set_right_pid(Some(new_sibling.get_pid()));
-
             // get parent pid for use later
             parent_pid = page.get_parent_pid();
         }
@@ -230,6 +216,20 @@ impl BTreeTable {
             let mut entry =
                 Entry::new(key, &page.get_pid(), &new_sibling.get_pid());
             parent.insert_entry(&mut entry);
+
+            // set left pointer for the old right sibling
+            if let Some(old_right_pid) = page.get_right_pid() {
+                let old_right_rc =
+                    BufferPool::global().get_leaf_page(&old_right_pid).unwrap();
+                old_right_rc
+                    .borrow_mut()
+                    .set_left_pid(Some(new_sibling.get_pid()));
+            }
+
+            // set sibling id
+            new_sibling.set_right_pid(page.get_right_pid());
+            new_sibling.set_left_pid(Some(page.get_pid()));
+            page.set_right_pid(Some(new_sibling.get_pid()));
 
             // set parent id
             page.set_parent_pid(&parent.get_page_id());
@@ -361,9 +361,6 @@ impl BTreeTable {
         page_rc: Rc<RefCell<BTreeInternalPage>>,
         field: IntField,
     ) -> Rc<RefCell<BTreeInternalPage>> {
-        info!("split start");
-        self.draw_tree(-1);
-
         let sibling_rc = self.get_empty_interanl_page();
         let key: IntField;
         let mut parent_pid: BTreePageID;
@@ -413,7 +410,6 @@ impl BTreeTable {
 
             // also delete the middle entry
             delete_indexes.push(middle_entry.get_record_id());
-            info!("delete_indexes: {:?}", delete_indexes);
             for i in delete_indexes {
                 page.delete_key_and_right_child(i);
             }
@@ -432,26 +428,17 @@ impl BTreeTable {
         // borrow of page_rc end here
 
         let parent_rc = self.get_parent_with_empty_slots(parent_pid, field);
+        parent_pid = parent_rc.borrow().get_pid();
+        page_rc.borrow_mut().set_parent_pid(&parent_pid);
+        sibling_rc.borrow_mut().set_parent_pid(&parent_pid);
 
         // borrow of parent_rc start here
-        // borrow of page_rc start here
-        // borrow of sibling_rc start here
         {
             let mut parent = parent_rc.borrow_mut();
             info!("entry: {}", new_entry);
             parent.insert_entry(&mut new_entry);
-
-            let mut page = page_rc.borrow_mut();
-            let mut sibling = sibling_rc.borrow_mut();
-            page.set_parent_pid(&parent.get_page_id());
-            sibling.set_parent_pid(&parent.get_page_id());
         }
         // borrow of parent_rc end here
-        // borrow of page_rc end here
-        // borrow of sibling_rc end here
-
-        info!("split end");
-        self.draw_tree(-1);
 
         if field > key {
             sibling_rc
@@ -1145,7 +1132,7 @@ impl BTreeTable {
     }
 
     fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) {
-        let print_sibling = true;
+        let print_sibling = false;
 
         let prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
@@ -1364,7 +1351,11 @@ struct SubtreeSummary {
 impl SubtreeSummary {
     fn check_and_merge(&mut self, right: &SubtreeSummary) -> SubtreeSummary {
         assert_eq!(self.depth, right.depth);
-        assert_eq!(self.right_ptr, right.left_most_pid);
+        assert_eq!(
+            self.right_ptr, right.left_most_pid,
+            "depth: {}, left_ptr: {:?}, right_ptr: {:?}",
+            self.depth, self.right_ptr, right.left_most_pid
+        );
         assert_eq!(self.right_most_pid, right.left_ptr);
 
         let acc = SubtreeSummary {

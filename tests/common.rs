@@ -1,6 +1,6 @@
 use log::info;
 use rand::prelude::*;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fs, rc::Rc};
 
 use simple_db_rust::{
     btree::{
@@ -14,9 +14,12 @@ use simple_db_rust::{
     *,
 };
 
+pub const DB_FILE: &str = "./btree.db";
+
 pub fn setup() {
     test_utils::init_log();
     btree::buffer_pool::BufferPool::global().clear();
+    fs::remove_file(DB_FILE).unwrap();
 }
 
 pub enum TreeLayout {
@@ -41,10 +44,12 @@ pub fn create_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Rc<RefCell<BTreeTable>> {
-    let path = "btree.db";
     let row_scheme = simple_int_tuple_scheme(columns, "");
-    let table_rc =
-        Rc::new(RefCell::new(BTreeTable::new(path, key_field, &row_scheme)));
+    let table_rc = Rc::new(RefCell::new(BTreeTable::new(
+        DB_FILE,
+        key_field,
+        &row_scheme,
+    )));
     Catalog::global().add_table(Rc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
@@ -99,7 +104,7 @@ fn sequential_insert_into_table(
     tuple_scheme: &TupleScheme,
     tree_layout: TreeLayout,
 ) -> usize {
-    // write leaf pages
+    // stage 1: write leaf pages
 
     let mut leaf_page_count;
     let mut leaves = Vec::new();
@@ -206,7 +211,8 @@ fn sequential_insert_into_table(
         _ => {}
     }
 
-    // write internal pages
+    // stage 2: write internal pages
+
     let childrent_per_internal_page = BufferPool::children_per_page();
     let entries_per_internal_page = childrent_per_internal_page - 1;
 
@@ -236,7 +242,7 @@ fn sequential_insert_into_table(
         if leaves.len() < entries_per_internal_page + 1 {
             entries_count = leaves.len() - 1;
         }
-        for _ in 0..entries_count {
+        for j in 0..entries_count {
             // borrow of internal_rc start here
             {
                 let left_rc = leaves[leaf_index].clone();
@@ -257,7 +263,7 @@ fn sequential_insert_into_table(
                 // set parent for all left children
                 left_rc.borrow_mut().set_parent_pid(&pid);
                 // set parent for the last right child
-                if i == internal_page_count - 1 {
+                if j == entries_count - 1 {
                     right_rc.borrow_mut().set_parent_pid(&pid);
                 }
             }
