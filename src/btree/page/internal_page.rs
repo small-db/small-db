@@ -14,6 +14,10 @@ pub struct BTreeInternalPage {
     page: BTreeBasePage,
 
     pub keys: Vec<IntField>,
+
+    /// note: the left child of the nth `entry` is not always locate in
+    /// the n-1 slot, but the nearest left slot which has been marked
+    /// as used.
     pub children: Vec<BTreePageID>,
 
     slot_count: usize,
@@ -351,12 +355,33 @@ impl fmt::Display for Entry {
 
 pub struct BTreeInternalPageIterator<'page> {
     page: &'page BTreeInternalPage,
+
     cursor: usize,
+    left_child_position: usize,
+
+    reverse_cursor: usize,
+    right_child_position: usize,
 }
 
 impl<'page> BTreeInternalPageIterator<'page> {
     pub fn new(page: &'page BTreeInternalPage) -> Self {
-        Self { page, cursor: 0 }
+        let mut right_child_position = page.slot_count;
+        loop {
+            right_child_position -= 1;
+            if page.is_slot_used(right_child_position) {
+                break;
+            }
+        }
+
+        Self {
+            page,
+
+            cursor: 0,
+            left_child_position: 0,
+
+            reverse_cursor: right_child_position + 1,
+            right_child_position,
+        }
     }
 }
 
@@ -366,59 +391,54 @@ impl Iterator for BTreeInternalPageIterator<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             self.cursor += 1;
+            let cursor = self.cursor;
+
             if self.cursor >= self.page.slot_count {
                 return None;
             }
 
-            if !self.page.is_slot_used(self.cursor) {
+            if !self.page.is_slot_used(cursor) {
                 continue;
             }
             let mut e = Entry::new(
-                self.page.keys[self.cursor],
-                &self.page.children[self.cursor - 1],
-                &self.page.children[self.cursor],
+                self.page.keys[cursor],
+                &self.page.children[self.left_child_position],
+                &self.page.children[cursor],
             );
-            e.set_record_id(self.cursor);
+            e.set_record_id(cursor);
+
+            // set left child position for next iteration
+            self.left_child_position = cursor;
+
             return Some(e);
         }
     }
 }
 
-pub struct BTreeInternalPageReverseIterator<'page> {
-    page: &'page BTreeInternalPage,
-    cursor: usize,
-}
-
-impl<'page> BTreeInternalPageReverseIterator<'page> {
-    pub fn new(page: &'page BTreeInternalPage) -> Self {
-        Self {
-            page,
-            cursor: page.slot_count,
-        }
-    }
-}
-
-impl Iterator for BTreeInternalPageReverseIterator<'_> {
-    type Item = Entry;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            self.cursor -= 1;
+            self.reverse_cursor -= 1;
+            let cursor = self.reverse_cursor;
 
             // entries start from 1
-            if self.cursor < 1 {
+            if cursor < 1 {
                 return None;
             }
 
-            if !self.page.is_slot_used(self.cursor) {
+            if !self.page.is_slot_used(cursor) {
                 continue;
             }
             let mut e = Entry::new(
-                self.page.keys[self.cursor],
-                &self.page.children[self.cursor - 1],
-                &self.page.children[self.cursor],
+                self.page.keys[cursor],
+                &self.page.children[cursor - 1],
+                &self.page.children[self.right_child_position],
             );
-            e.set_record_id(self.cursor);
+            e.set_record_id(cursor);
+
+            // set right child position for next iteration
+            self.right_child_position = cursor;
+
             return Some(e);
         }
     }

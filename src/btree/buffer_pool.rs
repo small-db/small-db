@@ -152,7 +152,7 @@ impl BufferPool {
         &mut self,
         key: &Key,
     ) -> Result<Rc<RefCell<BTreeHeaderPage>>> {
-        match self.leaf_buffer.get(key) {
+        match self.header_buffer.get(key) {
             Some(_) => {}
             None => {
                 // 1. get table

@@ -131,8 +131,6 @@ fn test_reuse_deleted_pages() {
 
     // 3 leaf pages, 1 internal page
     assert_eq!(4, table.pages_count());
-    table.draw_tree(-1);
-    table.check_integrity(true);
 
     // delete enough tuples to ensure one page gets deleted
     let it = BTreeTableIterator::new(&table);
@@ -143,8 +141,6 @@ fn test_reuse_deleted_pages() {
     // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page, 1
     // header page
     assert_eq!(5, table.pages_count());
-    table.draw_tree(-1);
-    table.check_integrity(true);
 
     // insert enough tuples to ensure one of the leaf pages splits
     for value in 0..502 {
@@ -154,39 +150,4 @@ fn test_reuse_deleted_pages() {
 
     // now there should be 3 leaf pages, 1 internal page, and 1 header page
     assert_eq!(5, table.pages_count());
-    table.draw_tree(-1);
-    table.check_integrity(true);
 }
-
-// public void testReuseDeletedPages() throws Exception {
-//     // this should create a B+ tree with 3 leaf nodes
-//     BTreeFile threeLeafPageFile = BTreeUtility.createRandomBTreeFile(2, 1005,
-//             null, null, 0);
-//     BTreeChecker.checkRep(threeLeafPageFile, tid, new HashMap<PageId,
-// Page>(), true);
-
-//     // 3 leaf pages, 1 internal page
-//     assertEquals(4, threeLeafPageFile.numPages());
-
-//     // delete enough tuples to ensure one page gets deleted
-//     DbFileIterator it = threeLeafPageFile.iterator(tid);
-//     it.open();
-//     for(int i = 0; i < 502; ++i) {
-//         Database.getBufferPool().deleteTuple(tid, it.next());
-//         it.rewind();
-//     }
-//     it.close();
-
-//     // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page,
-// 1 header page     assertEquals(5, threeLeafPageFile.numPages());
-
-//     // insert enough tuples to ensure one of the leaf pages splits
-//     for(int i = 0; i < 502; ++i) {
-//         Database.getBufferPool().insertTuple(tid, threeLeafPageFile.getId(),
-//                 BTreeUtility.getBTreeTuple(i, 2));
-//     }
-
-//     // now there should be 3 leaf pages, 1 internal page, and 1 header page
-//     assertEquals(5, threeLeafPageFile.numPages());
-//     BTreeChecker.checkRep(threeLeafPageFile, tid, new HashMap<PageId,
-// Page>(), true); }
