@@ -19,7 +19,6 @@ pub const DB_FILE: &str = "./btree.db";
 pub fn setup() {
     test_utils::init_log();
     btree::buffer_pool::BufferPool::global().clear();
-    fs::remove_file(DB_FILE).unwrap();
 }
 
 pub enum TreeLayout {
