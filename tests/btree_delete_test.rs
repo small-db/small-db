@@ -168,6 +168,24 @@ fn test_redistribute_internal_pages() {
     );
     let table = table_rc.borrow();
     table.check_integrity(true);
+
+    // bring the left internal page to minimum occupancy
+    let mut it = BTreeTableIterator::new(&table);
+    for t in it.by_ref().take(49 * 502 + 1) {
+        table.delete_tuple(t);
+    }
+
+    table.draw_tree(2);
+    table.check_integrity(true);
+
+    // deleting a page of tuples should bring the internal page below minimum
+    // occupancy and cause the entries to be redistributed
+    for t in it.by_ref().take(49 * 502 + 1) {
+        table.delete_tuple(t);
+    }
+
+    table.draw_tree(2);
+    table.check_integrity(true);
 }
 
 // @Test

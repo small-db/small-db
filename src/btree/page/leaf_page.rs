@@ -145,13 +145,13 @@ impl BTreeLeafPage {
         self.slot_count
     }
 
-    pub fn should_merge(&self) -> bool {
+    pub fn stable(&self) -> bool {
         if self.get_parent_pid().category == PageCategory::RootPointer {
-            return false;
+            return true;
         }
 
         let max_empty_slots = self.slot_count - self.slot_count / 2; // ceiling
-        return self.empty_slots_count() > max_empty_slots;
+        return self.empty_slots_count() <= max_empty_slots;
     }
 
     pub fn empty_slots_count(&self) -> usize {

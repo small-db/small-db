@@ -71,19 +71,13 @@ impl BTreeInternalPage {
         }
     }
 
-    pub fn dig(&self) {
-        info!(
-            "page id: {}, parent pid: {}",
-            self.get_pid(),
-            self.get_parent_pid()
-        );
-        info!("empty slot count: {}", self.empty_slots_count());
-        info!("keys: {:?}", self.keys);
-        info!("children: {:?}", self.children);
-        let it = BTreeInternalPageIterator::new(self);
-        for (i, e) in it.enumerate() {
-            info!("{}: {}", i, e);
+    pub fn stable(&self) -> bool {
+        if self.get_parent_pid().category == PageCategory::RootPointer {
+            return true;
         }
+
+        let max_empty_slots = self.slot_count - self.slot_count / 2; // ceiling
+        return self.empty_slots_count() <= max_empty_slots;
     }
 
     fn get_header_size(max_entries_count: usize) -> usize {
