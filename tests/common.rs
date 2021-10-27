@@ -1,3 +1,4 @@
+use itertools::max;
 use log::info;
 use rand::prelude::*;
 use std::{cell::RefCell, fs, rc::Rc};
@@ -21,6 +22,7 @@ pub fn setup() {
     btree::buffer_pool::BufferPool::global().clear();
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum TreeLayout {
     Naturally,
     EvenlyDistributed,
@@ -105,48 +107,54 @@ fn sequential_insert_into_table(
 ) -> usize {
     // stage 1: write leaf pages
 
-    let mut leaf_page_count;
+    // let mut leaf_page_count;
     let mut leaves = Vec::new();
-    let mut rows_counts = Vec::new();
-    match tree_layout {
-        TreeLayout::Naturally => {
-            panic!("TreeLayout::Naturally not supported");
-        }
-        TreeLayout::EvenlyDistributed => {
-            let mut rows_per_page: usize =
-                BufferPool::rows_per_page(tuple_scheme);
-            leaf_page_count = tuples.len() / rows_per_page;
-            if tuples.len() % rows_per_page > 0 {
-                leaf_page_count += 1;
-                rows_per_page = tuples.len() / leaf_page_count;
-            }
-            for _ in 0..leaf_page_count {
-                rows_counts.push(rows_per_page);
-            }
-        }
-        TreeLayout::LastTwoEvenlyDistributed => {
-            let rows_per_page: usize = BufferPool::rows_per_page(tuple_scheme);
-            leaf_page_count = tuples.len() / rows_per_page;
-            let remainder = tuples.len() % rows_per_page;
-            if remainder > 0 {
-                leaf_page_count += 1;
-                let last_tuples_count = remainder + rows_per_page;
-                for _ in 0..leaf_page_count - 2 {
-                    rows_counts.push(rows_per_page);
-                }
-                rows_counts.push(last_tuples_count / 2);
-                rows_counts.push(last_tuples_count - last_tuples_count / 2);
-            } else {
-                for _ in 0..leaf_page_count {
-                    rows_counts.push(rows_per_page);
-                }
-            }
-        }
-    }
+    // let mut rows_counts = Vec::new();
+    // match tree_layout {
+    //     TreeLayout::Naturally => {
+    //         panic!("TreeLayout::Naturally not supported");
+    //     }
+    //     TreeLayout::EvenlyDistributed => {
+    //         let mut rows_per_page: usize =
+    //             BufferPool::rows_per_page(tuple_scheme);
+    //         leaf_page_count = tuples.len() / rows_per_page;
+    //         if tuples.len() % rows_per_page > 0 {
+    //             leaf_page_count += 1;
+    //             rows_per_page = tuples.len() / leaf_page_count;
+    //         }
+    //         for _ in 0..leaf_page_count {
+    //             rows_counts.push(rows_per_page);
+    //         }
+    //     }
+    //     TreeLayout::LastTwoEvenlyDistributed => {
+    //         let rows_per_page: usize =
+    // BufferPool::rows_per_page(tuple_scheme);         leaf_page_count =
+    // tuples.len() / rows_per_page;         let remainder = tuples.len() %
+    // rows_per_page;         if remainder > 0 {
+    //             leaf_page_count += 1;
+    //             let last_tuples_count = remainder + rows_per_page;
+    //             for _ in 0..leaf_page_count - 2 {
+    //                 rows_counts.push(rows_per_page);
+    //             }
+    //             rows_counts.push(last_tuples_count / 2);
+    //             rows_counts.push(last_tuples_count - last_tuples_count / 2);
+    //         } else {
+    //             for _ in 0..leaf_page_count {
+    //                 rows_counts.push(rows_per_page);
+    //             }
+    //         }
+    //     }
+    // }
+
+    let leaf_buckets = get_buckets(
+        tuples.len(),
+        BufferPool::rows_per_page(tuple_scheme),
+        tree_layout,
+    );
 
     let mut page_index = 0;
     let mut tuple_index = 0;
-    for row_count in rows_counts {
+    for tuple_count in &leaf_buckets {
         page_index += 1;
         let pid = BTreePageID::new(
             btree::page::PageCategory::Leaf,
@@ -161,13 +169,9 @@ fn sequential_insert_into_table(
         {
             let mut leaf = leaf_rc.borrow_mut();
 
-            for _ in 0..row_count {
-                let t = tuples.get(tuple_index);
-                match t {
-                    Some(t) => {
-                        leaf.insert_tuple(t);
-                    }
-                    None => {}
+            for _ in 0..*tuple_count {
+                if let Some(t) = tuples.get(tuple_index) {
+                    leaf.insert_tuple(t);
                 }
 
                 tuple_index += 1;
@@ -175,7 +179,7 @@ fn sequential_insert_into_table(
                 // page index in range of [1, leaf_page_count], inclusive
 
                 // set sibling for all but the last leaf page
-                if page_index < leaf_page_count {
+                if page_index < leaf_buckets.len() {
                     let right_pid = BTreePageID::new(
                         btree::page::PageCategory::Leaf,
                         table.get_id(),
@@ -211,21 +215,17 @@ fn sequential_insert_into_table(
     }
 
     // stage 2: write internal pages
-
-    let childrent_per_internal_page = BufferPool::children_per_page();
-    let entries_per_internal_page = childrent_per_internal_page - 1;
-
-    let mut internal_page_count = leaf_page_count / childrent_per_internal_page;
-    if leaf_page_count % childrent_per_internal_page > 0 {
-        internal_page_count =
-            (leaf_page_count / childrent_per_internal_page) + 1;
-    }
+    let interanl_buckets = get_buckets(
+        leaf_buckets.len(),
+        BufferPool::children_per_page(),
+        tree_layout,
+    );
 
     // leaf index in the leaves vector
     let mut leaf_index = 0;
 
     let mut internals = Vec::new();
-    for i in 0..internal_page_count {
+    for children_count in interanl_buckets {
         page_index += 1;
         let pid = BTreePageID::new(
             btree::page::PageCategory::Internal,
@@ -237,10 +237,7 @@ fn sequential_insert_into_table(
         let internal_rc = BufferPool::global().get_internal_page(&pid).unwrap();
         internals.push(internal_rc.clone());
 
-        let mut entries_count = entries_per_internal_page;
-        if leaves.len() < entries_per_internal_page + 1 {
-            entries_count = leaves.len() - 1;
-        }
+        let entries_count = children_count - 1;
         for j in 0..entries_count {
             // borrow of internal_rc start here
             {
@@ -338,4 +335,48 @@ fn write_internal_pages(
     } else {
         todo!()
     }
+}
+
+fn get_buckets(
+    elem_count: usize,
+    max_capacity: usize,
+    layout: TreeLayout,
+) -> Vec<usize> {
+    if elem_count <= max_capacity {
+        return vec![elem_count];
+    }
+
+    let mut bucket_count = elem_count / max_capacity;
+    if elem_count % max_capacity > 0 {
+        bucket_count += 1;
+    }
+
+    let mut table = Vec::new();
+    match layout {
+        TreeLayout::Naturally | TreeLayout::EvenlyDistributed => {
+            let bucket_size = elem_count / bucket_count;
+            let lacked = elem_count % bucket_count;
+            for _ in 0..lacked {
+                table.push(bucket_size + 1);
+            }
+            for _ in lacked..bucket_count {
+                table.push(bucket_size);
+            }
+        }
+        TreeLayout::LastTwoEvenlyDistributed => {
+            let lacked = max_capacity * bucket_count - elem_count;
+            for _ in 0..bucket_count - 2 {
+                table.push(max_capacity);
+            }
+
+            table.push(max_capacity - lacked / 2);
+            if lacked % 2 == 0 {
+                table.push(max_capacity - lacked / 2);
+            } else {
+                table.push(max_capacity - lacked / 2 + 1);
+            }
+        }
+    }
+
+    table
 }
