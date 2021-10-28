@@ -1,6 +1,8 @@
 use std::convert::TryInto;
 
-use super::{BTreeBasePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
+use super::{
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
+};
 
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,

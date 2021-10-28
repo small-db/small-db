@@ -8,7 +8,9 @@ use crate::{
     field::{get_type_length, IntField},
 };
 
-use super::{BTreeBasePage, BTreePageID, PageCategory};
+use super::{
+    BTreeBasePage, BTreeLeafPage, BTreePage, BTreePageID, PageCategory,
+};
 
 pub struct BTreeInternalPage {
     page: BTreeBasePage,
@@ -69,6 +71,31 @@ impl BTreeInternalPage {
             tuple_scheme: tuple_scheme.clone(),
             key_field,
         }
+    }
+
+    pub fn get_coresponding_entry(
+        &self,
+        left_pid: Option<&BTreePageID>,
+        right_pid: Option<&BTreePageID>,
+    ) -> Option<Entry> {
+        let mut it = BTreeInternalPageIterator::new(self);
+        let mut entry = None;
+        for e in it.by_ref() {
+            if let Some(left) = left_pid {
+                if e.get_left_child() != *left {
+                    continue;
+                }
+            }
+            if let Some(right) = right_pid {
+                if e.get_right_child() != *right {
+                    continue;
+                }
+            }
+
+            entry = Some(e);
+            break;
+        }
+        entry
     }
 
     pub fn stable(&self) -> bool {

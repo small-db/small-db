@@ -7,7 +7,8 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePageID, Entry,
+            BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
+            Entry,
         },
         tuple::TupleScheme,
     },

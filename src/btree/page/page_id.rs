@@ -2,6 +2,8 @@ use std::fmt;
 
 use crate::btree::buffer_pool::BufferPool;
 
+use super::BTreePage;
+
 pub const EMPTY_PAGE_ID: usize = 0;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash)]
@@ -34,74 +36,6 @@ impl fmt::Display for PageCategory {
 impl fmt::Debug for PageCategory {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
-    }
-}
-
-#[test]
-fn test_page_category() {
-    assert_ne!(PageCategory::Header, PageCategory::Leaf);
-    if PageCategory::Leaf == PageCategory::RootPointer {
-        println!("error")
-    } else {
-        println!("ok")
-    }
-    let c = PageCategory::Header;
-    match c {
-        PageCategory::Leaf => {
-            println!("error")
-        }
-        PageCategory::Header => {
-            println!("ok")
-        }
-        _ => {}
-    }
-    println!("{}", c);
-    assert_eq!(format!("{}", c), "HEADER");
-
-    let c = PageCategory::Internal;
-    println!("{}", c);
-    assert_eq!(format!("{}", c), "INTERNAL");
-    assert_eq!(format!("{:?}", c), "INTERNAL");
-}
-
-pub struct BTreeBasePage {
-    pid: BTreePageID,
-    parent_page_index: usize,
-}
-
-impl BTreeBasePage {
-    pub fn new(pid: &BTreePageID) -> BTreeBasePage {
-        BTreeBasePage {
-            pid: pid.clone(),
-            parent_page_index: 0,
-        }
-    }
-
-    pub fn get_pid(&self) -> BTreePageID {
-        self.pid
-    }
-
-    pub fn get_parent_pid(&self) -> BTreePageID {
-        let category: PageCategory;
-        if self.parent_page_index == 0 {
-            category = PageCategory::RootPointer;
-        } else {
-            category = PageCategory::Internal;
-        }
-        BTreePageID::new(
-            category,
-            self.pid.get_table_id(),
-            self.parent_page_index,
-        )
-    }
-
-    pub fn set_parent_pid(&mut self, pid: &BTreePageID) {
-        self.parent_page_index = pid.page_index;
-    }
-
-    pub fn empty_page_data() -> Vec<u8> {
-        let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
-        data
     }
 }
 

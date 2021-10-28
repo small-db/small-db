@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 struct A {
     a: i32,
 }
@@ -8,6 +8,12 @@ struct A {
 impl A {
     fn talk(&self) {
         println!("A.talk {}", self.a);
+    }
+}
+
+impl CanFly for A {
+    fn fly(self: &mut A) {
+        println!("A.fly {}", self.a);
     }
 }
 
@@ -29,15 +35,32 @@ impl std::ops::Deref for B {
     }
 }
 
+impl std::ops::DerefMut for B {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.a
+    }
+}
+
+trait CanFly {
+    fn fly(&mut self);
+}
+
+fn talk(v: &mut dyn CanFly) {
+    v.fly();
+}
+
 #[test]
 #[ignore]
 fn inheritance() {
-    let a1 = A { a: 1 };
+    let mut a1 = A { a: 1 };
     a1.talk();
-    let b1 = B { a: a1, b: 2 };
+    let mut b1 = B { a: a1, b: 2 };
     b1.walk();
     b1.a.talk();
     b1.talk();
+
+    talk(&mut a1);
+    talk(&mut *b1);
 }
 
 #[test]

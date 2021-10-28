@@ -154,6 +154,8 @@ fn test_reuse_deleted_pages() {
 
 #[test]
 fn test_redistribute_internal_pages() {
+    common::setup();
+
     // This should create a B+ tree with two nodes in the second tier
     // and 602 nodes in the third tier
     // 302204 = 2 * 301 * 502

@@ -8,10 +8,7 @@ use crate::{
     Catalog, Tuple,
 };
 
-use super::{
-    page_id, BTreeBasePage, BTreePageID, BTreeVirtualPage, PageCategory,
-    EMPTY_PAGE_ID,
-};
+use super::{BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage, EMPTY_PAGE_ID, PageCategory, page_id};
 use std::{cell::RefCell, rc::Rc};
 
 use log::debug;
@@ -188,7 +185,6 @@ impl BTreeLeafPage {
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 first_empty_slot = i as i32;
-                // debug!("first emply slot: {}", first_empty_slot);
                 break;
             }
         }
@@ -228,11 +224,6 @@ impl BTreeLeafPage {
         // insert new record into the correct spot in sorted order
         self.tuples[good_slot] = tuple.clone();
         self.mark_slot_status(good_slot, true);
-
-        debug!(
-            "good slot: {}, first: {}, last: {}",
-            good_slot, first_empty_slot, last_less_slot
-        );
     }
 
     // Move a tuple from one slot to another slot, destination must be empty
