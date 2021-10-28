@@ -682,6 +682,12 @@ impl BTreeTable {
         page: &mut BTreeInternalPage,
         entry: &Entry,
     ) {
+        info!(
+            "merging leaf page {} and {}",
+            left_child.get_pid(),
+            right_child.get_pid()
+        );
+
         let mut it = BTreeLeafPageIterator::new(right_child);
         let mut deleted = Vec::new();
         for t in it.by_ref() {
@@ -695,12 +701,18 @@ impl BTreeTable {
         // set the right pointer of the left page to the right page's right
         // pointer
         left_child.set_right_pid(right_child.get_right_pid());
+        info!(
+            "setting right pointer of {} to {:?}",
+            left_child.get_pid(),
+            right_child.get_right_pid(),
+        );
 
         // set the left pointer for the newer right page
         if let Some(newer_right_pid) = right_child.get_right_pid() {
             let newer_right_rc = BufferPool::global()
                 .get_leaf_page(&newer_right_pid)
                 .unwrap();
+            info!("newer right pid: {}", newer_right_pid);
             newer_right_rc
                 .borrow_mut()
                 .set_left_pid(Some(left_child.get_pid()));
@@ -793,6 +805,15 @@ impl BTreeTable {
         // borrow of header_rc end here
     }
 
+    /**
+    Steal entries from the sibling and copy them to the given page
+    so that both pages are at least half full.
+
+    Keys can be thought of as rotating through the parent entry, so
+    the original key in the parent is "pulled down" to the erratic
+    page, and the last key in the sibling page is "pushed up" to
+    the parent.  Update parent pointers as needed.
+    */
     fn steal_from_internal_page(
         &self,
         page: &mut BTreeInternalPage,
@@ -804,29 +825,71 @@ impl BTreeTable {
         let page_entries = page.entries_count();
         let sibling_entries = sibling.entries_count();
         let move_count = (page_entries + sibling_entries) / 2 - page_entries;
+        if move_count == 0 {
+            if is_right_sibling {
+                self.merge_internal_page(page, sibling, parent, entry);
+            } else {
+                self.merge_internal_page(sibling, page, parent, entry);
+            }
+            return;
+        }
 
-        let mut key: Option<Entry> = None;
+        let mut key: IntField = entry.get_key();
         let mut delete_indexes = Vec::new();
         if is_right_sibling {
+            let mut edge_child_pid = page.get_last_child_pid();
             let mut iter = BTreeInternalPageIterator::new(sibling);
             for e in iter.by_ref().take(move_count) {
-                page.insert_entry(&e);
+                let new_entry =
+                    Entry::new(key, &edge_child_pid, &e.get_left_child());
+                page.insert_entry(&new_entry);
+                info!(
+                    "inserting entry {} into page {}",
+                    new_entry,
+                    page.get_pid(),
+                );
                 delete_indexes.push(e.get_record_id());
-                key = Some(e.clone());
+
+                // update for next iteration
+                key = e.get_key();
+                edge_child_pid = new_entry.get_right_child();
+
+                let moved_child_pid = new_entry.get_right_child();
+                // TODO: handle cases where the child is internal
+                let moved_child_rc = BufferPool::global()
+                    .get_leaf_page(&moved_child_pid)
+                    .unwrap();
+                // moved_child_pid.borrow_mut().set_parent_pid(&page.get_pid());
+            }
+            for i in delete_indexes {
+                sibling.delete_key_and_left_child(i);
             }
         } else {
+            let mut edge_child_pid = page.get_first_child_pid();
             let mut iter = BTreeInternalPageIterator::new(sibling);
             for e in iter.by_ref().rev().take(move_count) {
-                page.insert_entry(&e);
+                let new_entry =
+                    Entry::new(key, &e.get_right_child(), &edge_child_pid);
+                page.insert_entry(&new_entry);
                 delete_indexes.push(e.get_record_id());
-                key = Some(e.clone());
+
+                // update for next iteration
+                key = e.get_key();
+                edge_child_pid = new_entry.get_left_child();
+
+                // let moved_child_pid = new_entry.get_left_child();
+                // // TODO: handle cases where the child is internal
+                // let moved_child_rc = BufferPool::global()
+                //     .get_leaf_page(&moved_child_pid)
+                //     .unwrap();
+                // moved_child_pid.borrow_mut().set_parent_pid(&page.get_pid());
+            }
+            for i in delete_indexes {
+                sibling.delete_key_and_right_child(i);
             }
         }
-        for i in delete_indexes {
-            sibling.delete_key_and_right_child(i);
-        }
 
-        entry.set_key(key.unwrap().get_key());
+        entry.set_key(key);
         parent.update_entry(entry);
     }
 
@@ -854,10 +917,14 @@ impl BTreeTable {
         let page_tuples = page.tuples_count();
         let sibling_tuples = sibling.tuples_count();
         let move_count = (page_tuples + sibling_tuples) / 2 - page_tuples;
-        info!(
-            "steal_from_leaf_page: page_tuples: {}, sibling_tuples: {}, move_count: {}",
-            page_tuples, sibling_tuples, move_count
-        );
+        if move_count == 0 {
+            if is_right_sibling {
+                self.merge_leaf_page(page, sibling, parent, entry);
+            } else {
+                self.merge_leaf_page(sibling, page, parent, entry);
+            }
+            return;
+        }
 
         let mut key: Option<Tuple> = None;
         let mut delete_tuples = Vec::new();
@@ -1509,6 +1576,7 @@ impl Iterator for BTreeTableIterator {
         let right = self.page_rc.borrow().get_right_pid();
         match right {
             Some(right) => {
+                info!("right for iter: {:?}", right);
                 let sibling_rc =
                     BufferPool::global().get_leaf_page(&right).unwrap();
                 let page_it =

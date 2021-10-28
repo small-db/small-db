@@ -1,4 +1,5 @@
 use common::TreeLayout;
+use log::info;
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
@@ -170,23 +171,34 @@ fn test_redistribute_internal_pages() {
     );
     let table = table_rc.borrow();
     table.check_integrity(true);
+    table.draw_tree(-1);
 
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&table);
     for t in it.by_ref().take(49 * 502 + 1) {
+        info!(
+            "deleting_slot: {}, pid: {}",
+            t.get_slot_number(),
+            t.get_pid()
+        );
         table.delete_tuple(t);
     }
 
-    table.draw_tree(2);
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
-    for t in it.by_ref().take(49 * 502 + 1) {
+    for t in it.by_ref().take(502) {
+        info!(
+            "deleting_slot: {}, pid: {}",
+            t.get_slot_number(),
+            t.get_pid()
+        );
         table.delete_tuple(t);
     }
 
-    table.draw_tree(2);
+    table.draw_tree(-1);
     table.check_integrity(true);
 }
 

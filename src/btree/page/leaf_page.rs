@@ -8,7 +8,10 @@ use crate::{
     Catalog, Tuple,
 };
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage, EMPTY_PAGE_ID, PageCategory, page_id};
+use super::{
+    page_id, BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage,
+    PageCategory, EMPTY_PAGE_ID,
+};
 use std::{cell::RefCell, rc::Rc};
 
 use log::debug;
@@ -142,13 +145,16 @@ impl BTreeLeafPage {
         self.slot_count
     }
 
+    /**
+    stable means at least half of the page is occupied
+    */
     pub fn stable(&self) -> bool {
         if self.get_parent_pid().category == PageCategory::RootPointer {
             return true;
         }
 
-        let max_empty_slots = self.slot_count - self.slot_count / 2; // ceiling
-        return self.empty_slots_count() <= max_empty_slots;
+        let stable_threshold = self.slot_count - self.slot_count / 2; // ceiling
+        return self.tuples_count() >= stable_threshold;
     }
 
     pub fn empty_slots_count(&self) -> usize {

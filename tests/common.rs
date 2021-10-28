@@ -317,7 +317,6 @@ fn write_internal_pages(
                     &left_rc.borrow().get_pid(),
                     &right_rc.borrow().get_pid(),
                 );
-                info!("inserting entry: {}", e);
                 root.insert_entry(&mut e);
 
                 // set parent for all left children

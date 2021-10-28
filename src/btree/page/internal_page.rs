@@ -166,9 +166,25 @@ impl BTreeInternalPage {
         self.mark_slot_status(record_id, false);
     }
 
+    pub fn delete_key_and_left_child(&mut self, record_id: usize) {
+        for i in (0..record_id).rev() {
+            if self.is_slot_used(i) {
+                self.mark_slot_status(i, false);
+            }
+        }
+    }
+
     pub fn update_entry(&mut self, entry: &Entry) {
         let record_id = entry.get_record_id();
-        self.children[record_id - 1] = entry.get_left_child();
+
+        // set left child
+        for i in (0..record_id).rev() {
+            if self.is_slot_used(i) {
+                self.children[i] = entry.get_left_child();
+                break;
+            }
+        }
+
         self.children[record_id] = entry.get_right_child();
         self.keys[record_id] = entry.get_key();
     }
@@ -195,10 +211,8 @@ impl BTreeInternalPage {
             return;
         }
 
-        let placeholder_slot: usize = 0;
-
         // find the first empty slot, start from 1
-        let mut empty_slot = placeholder_slot;
+        let mut empty_slot = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 empty_slot = i;
@@ -207,7 +221,7 @@ impl BTreeInternalPage {
         }
 
         // find the child pointer matching the left or right child in this entry
-        let mut slot_just_ahead: usize = placeholder_slot;
+        let mut slot_just_ahead: usize = usize::MAX;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 continue;
@@ -230,6 +244,10 @@ impl BTreeInternalPage {
                 self.children[i] = e.get_left_child();
                 break;
             }
+        }
+
+        if slot_just_ahead == usize::MAX {
+            panic!("no slot found");
         }
 
         // shift entries back or forward to fill empty slot and make room for
@@ -255,17 +273,31 @@ impl BTreeInternalPage {
     fn move_entry(&mut self, from: usize, to: usize) {
         if self.is_slot_used(from) && !self.is_slot_used(to) {
             self.keys[to] = self.keys[from];
+
+            // note that we don't need to update the left child slot, since the
+            // left child slot is not the nearest left slot, but the nearest
+            // `used` slot, so it should be kept untouched
             self.children[to] = self.children[from];
-            self.children[to - 1] = self.children[from - 1];
+
             self.mark_slot_status(from, false);
             self.mark_slot_status(to, true);
         } else {
-            panic!("move_entry: invalid slot, from: {}, to: {}", from, to);
+            // there is hole in the middle of the page, just ignore it
         }
     }
 
     fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
+    }
+
+    pub fn get_first_child_pid(&self) -> BTreePageID {
+        let mut it = BTreeInternalPageIterator::new(self);
+        return it.next().unwrap().get_left_child();
+    }
+
+    pub fn get_last_child_pid(&self) -> BTreePageID {
+        let mut it = BTreeInternalPageIterator::new(self);
+        return it.next_back().unwrap().get_right_child();
     }
 
     pub fn check_integrity(
