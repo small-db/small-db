@@ -15,7 +15,6 @@ use crate::{
 };
 
 use core::fmt;
-use log::info;
 use std::{cell::Cell, str, time::SystemTime};
 
 use std::{
@@ -437,7 +436,6 @@ impl BTreeTable {
         // borrow of parent_rc start here
         {
             let mut parent = parent_rc.borrow_mut();
-            info!("entry: {}", new_entry);
             parent.insert_entry(&mut new_entry);
         }
         // borrow of parent_rc end here
@@ -682,12 +680,6 @@ impl BTreeTable {
         page: &mut BTreeInternalPage,
         entry: &Entry,
     ) {
-        info!(
-            "merging leaf page {} and {}",
-            left_child.get_pid(),
-            right_child.get_pid()
-        );
-
         let mut it = BTreeLeafPageIterator::new(right_child);
         let mut deleted = Vec::new();
         for t in it.by_ref() {
@@ -701,18 +693,12 @@ impl BTreeTable {
         // set the right pointer of the left page to the right page's right
         // pointer
         left_child.set_right_pid(right_child.get_right_pid());
-        info!(
-            "setting right pointer of {} to {:?}",
-            left_child.get_pid(),
-            right_child.get_right_pid(),
-        );
 
         // set the left pointer for the newer right page
         if let Some(newer_right_pid) = right_child.get_right_pid() {
             let newer_right_rc = BufferPool::global()
                 .get_leaf_page(&newer_right_pid)
                 .unwrap();
-            info!("newer right pid: {}", newer_right_pid);
             newer_right_rc
                 .borrow_mut()
                 .set_left_pid(Some(left_child.get_pid()));
@@ -843,11 +829,6 @@ impl BTreeTable {
                 let new_entry =
                     Entry::new(key, &edge_child_pid, &e.get_left_child());
                 page.insert_entry(&new_entry);
-                info!(
-                    "inserting entry {} into page {}",
-                    new_entry,
-                    page.get_pid(),
-                );
                 delete_indexes.push(e.get_record_id());
 
                 // update for next iteration
@@ -1576,7 +1557,6 @@ impl Iterator for BTreeTableIterator {
         let right = self.page_rc.borrow().get_right_pid();
         match right {
             Some(right) => {
-                info!("right for iter: {:?}", right);
                 let sibling_rc =
                     BufferPool::global().get_leaf_page(&right).unwrap();
                 let page_it =
