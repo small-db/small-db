@@ -281,9 +281,9 @@ impl BTreeLeafPage {
         assert_eq!(
             &self.get_parent_pid(),
             parent_pid,
-            "parent pid incorrect, current page: {:?}, parent pid: {:?}",
+            "parent pid incorrect, current page: {:?}, current parent pid: {:?}",
             self.get_pid(),
-            parent_pid
+            self.get_parent_pid(),
         );
 
         let mut previous = lower_bound;

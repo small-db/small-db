@@ -859,7 +859,7 @@ impl BTreeTable {
                 let moved_child_rc = BufferPool::global()
                     .get_leaf_page(&moved_child_pid)
                     .unwrap();
-                // moved_child_pid.borrow_mut().set_parent_pid(&page.get_pid());
+                moved_child_rc.borrow_mut().set_parent_pid(&page.get_pid());
             }
             for i in delete_indexes {
                 sibling.delete_key_and_left_child(i);
@@ -877,12 +877,12 @@ impl BTreeTable {
                 key = e.get_key();
                 edge_child_pid = new_entry.get_left_child();
 
-                // let moved_child_pid = new_entry.get_left_child();
-                // // TODO: handle cases where the child is internal
-                // let moved_child_rc = BufferPool::global()
-                //     .get_leaf_page(&moved_child_pid)
-                //     .unwrap();
-                // moved_child_pid.borrow_mut().set_parent_pid(&page.get_pid());
+                let moved_child_pid = new_entry.get_left_child();
+                // TODO: handle cases where the child is internal
+                let moved_child_rc = BufferPool::global()
+                    .get_leaf_page(&moved_child_pid)
+                    .unwrap();
+                moved_child_rc.borrow_mut().set_parent_pid(&page.get_pid());
             }
             for i in delete_indexes {
                 sibling.delete_key_and_right_child(i);

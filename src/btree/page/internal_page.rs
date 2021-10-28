@@ -169,7 +169,12 @@ impl BTreeInternalPage {
     pub fn delete_key_and_left_child(&mut self, record_id: usize) {
         for i in (0..record_id).rev() {
             if self.is_slot_used(i) {
-                self.mark_slot_status(i, false);
+
+                // why?
+                self.children[i] = self.children[record_id];
+
+                self.mark_slot_status(record_id, false);
+                return;
             }
         }
     }
