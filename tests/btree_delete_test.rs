@@ -1,4 +1,5 @@
 use common::TreeLayout;
+use log::info;
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
@@ -191,66 +192,160 @@ fn test_redistribute_internal_pages() {
     table.check_integrity(true);
 }
 
-// @Test
-// public void testRedistributeInternalPages() throws Exception {
-// 	// This should create a B+ tree with two nodes in the second tier
-// 	// and 602 nodes in the third tier
-// 	BTreeFile bf = BTreeUtility.createRandomBTreeFile(2, 302204,
-// 			null, null, 0);
-// 	BTreeChecker.checkRep(bf, tid, new HashMap<PageId, Page>(), true);
+#[test]
+fn test_delete_internal_pages() {
+    common::setup();
 
-// 	Database.resetBufferPool(500); // we need more pages for this test
+    BufferPool::set_page_size(1024);
 
-// 	BTreeRootPtrPage rootPtr = (BTreeRootPtrPage)
-// Database.getBufferPool().getPage( 			tid, BTreeRootPtrPage.getId(bf.getId()),
-// Permissions.READ_ONLY); 	BTreeInternalPage root = (BTreeInternalPage)
-// Database.getBufferPool().getPage( 			tid, rootPtr.getRootId(),
-// Permissions.READ_ONLY); 	assertEquals(502, root.getNumEmptySlots());
+    // This should create a B+ tree with three nodes in the second tier
+    // and 252 nodes in the third tier
+    // (124 entries per internal/leaf page, 125 children per internal page ->
+    // 251*124 + 1 = 31125)
+    let table_rc = common::create_random_btree_table(
+        2,
+        31125,
+        None,
+        0,
+        TreeLayout::LastTwoEvenlyDistributed,
+    );
+    let table = table_rc.borrow();
+    table.draw_tree(2);
+    table.check_integrity(true);
 
-// 	BTreeEntry rootEntry = root.iterator().next();
-// 	BTreeInternalPage leftChild = (BTreeInternalPage)
-// Database.getBufferPool().getPage( 			tid, rootEntry.getLeftChild(),
-// Permissions.READ_ONLY); 	BTreeInternalPage rightChild = (BTreeInternalPage)
-// Database.getBufferPool().getPage( 			tid, rootEntry.getRightChild(),
-// Permissions.READ_ONLY);
+    let root_pid = table.get_root_pid();
+    let root_rc = BufferPool::global().get_internal_page(&root_pid).unwrap();
+    assert_eq!(122, root_rc.borrow().empty_slots_count());
 
-// 	// delete from the right child to test redistribution from the left
-// 	Iterator<BTreeEntry> it = rightChild.iterator();
-// 	int count = 0;
-// 	// bring the right internal page to minimum occupancy
-// 	while(it.hasNext() && count < 49 * 502 + 1) {
-// 		BTreeLeafPage leaf = (BTreeLeafPage) Database.getBufferPool().getPage(tid,
-// 				it.next().getLeftChild(), Permissions.READ_ONLY);
-// 		Tuple t = leaf.iterator().next();
-// 		Database.getBufferPool().deleteTuple(tid, t);
-// 		it = rightChild.iterator();
-// 		count++;
-// 	}
+    // Delete tuples causing leaf pages to merge until the first internal page
+    // gets to minimum occupancy
+    let it = BTreeTableIterator::new(&table);
+    for (i, t) in it.rev().take(1 + 62 * 124).enumerate() {
+        if i > 3840 {
+            info!("deleting tuple {}", i);
+            info!(
+                "deleting tuple {}, slot: {}, pid: {:?}",
+                t,
+                t.get_slot_number(),
+                t.get_pid(),
+            );
+            table.draw_tree(-1);
+            table.check_integrity(true);
+        }
+        table.delete_tuple(t);
+    }
 
-// 	// deleting a page of tuples should bring the internal page below minimum
-// 	// occupancy and cause the entries to be redistributed
-// 	assertEquals(252, rightChild.getNumEmptySlots());
-// 	count = 0;
-// 	while(it.hasNext() && count < 502) {
-// 		BTreeLeafPage leaf = (BTreeLeafPage) Database.getBufferPool().getPage(tid,
-// 				it.next().getLeftChild(), Permissions.READ_ONLY);
-// 		Tuple t = leaf.iterator().next();
-// 		Database.getBufferPool().deleteTuple(tid, t);
-// 		it = rightChild.iterator();
-// 		count++;
-// 	}
-// 	assertTrue(leftChild.getNumEmptySlots() > 203);
-// 	assertTrue(rightChild.getNumEmptySlots() <= 252);
-// 	BTreeChecker.checkRep(bf, tid, new HashMap<PageId, Page>(), true);
+    table.draw_tree(2);
+    table.check_integrity(true);
+}
 
-// 	// sanity check that the entries make sense
-// 	BTreeEntry lastLeftEntry = null;
-// 	it = leftChild.iterator();
-// 	while(it.hasNext()) {
-// 		lastLeftEntry = it.next();
-// 	}
-// 	rootEntry = root.iterator().next();
-// 	BTreeEntry firstRightEntry = rightChild.iterator().next();
-// 	assertTrue(lastLeftEntry.getKey().compare(Op.LESS_THAN_OR_EQ,
-// rootEntry.getKey())); 	assertTrue(rootEntry.getKey().compare(Op.
-// LESS_THAN_OR_EQ, firstRightEntry.getKey())); }
+// public void testDeleteInternalPages() throws Exception {
+//     // For this test we will decrease the size of the Buffer Pool pages
+//     BufferPool.setPageSize(1024);
+
+//     // This should create a B+ tree with three nodes in the second tier
+//     // and 252 nodes in the third tier
+//     // (124 entries per internal/leaf page, 125 children per internal page ->
+//     // 251*124 + 1 = 31125)
+//     BTreeFile bigFile = BTreeUtility.createRandomBTreeFile(2, 31125,
+//             null, null, 0);
+
+//     BTreeChecker.checkRep(bigFile, tid, new HashMap<PageId, Page>(), true);
+
+//     Database.resetBufferPool(500); // we need more pages for this test
+
+//     BTreeRootPtrPage rootPtr = (BTreeRootPtrPage)
+// Database.getBufferPool().getPage(             tid,
+// BTreeRootPtrPage.getId(bigFile.getId()), Permissions.READ_ONLY);
+//     BTreeInternalPage root = (BTreeInternalPage)
+// Database.getBufferPool().getPage(             tid, rootPtr.getRootId(),
+// Permissions.READ_ONLY);     assertEquals(122, root.getNumEmptySlots());
+
+//     BTreeEntry e = root.iterator().next();
+//     BTreeInternalPage leftChild = (BTreeInternalPage)
+// Database.getBufferPool().getPage(             tid, e.getLeftChild(),
+// Permissions.READ_ONLY);     BTreeInternalPage rightChild =
+// (BTreeInternalPage) Database.getBufferPool().getPage(             tid,
+// e.getRightChild(), Permissions.READ_ONLY);
+
+//     // Delete tuples causing leaf pages to merge until the first internal
+// page     // gets to minimum occupancy
+//     DbFileIterator it = bigFile.iterator(tid);
+//     it.open();
+//     int count = 0;
+//     Database.getBufferPool().deleteTuple(tid, it.next());
+//     it.rewind();
+//     while(count < 62) {
+//         assertEquals(count, leftChild.getNumEmptySlots());
+//         for(int i = 0; i < 124; ++i) {
+//             Database.getBufferPool().deleteTuple(tid, it.next());
+//             it.rewind();
+//         }
+//         count++;
+//     }
+
+//     BTreeChecker.checkRep(bigFile, tid, new HashMap<PageId, Page>(), true);
+
+//     // deleting a page of tuples should bring the internal page below minimum
+//     // occupancy and cause the entries to be redistributed
+//     assertEquals(62, leftChild.getNumEmptySlots());
+//     for(int i = 0; i < 124; ++i) {
+//         Database.getBufferPool().deleteTuple(tid, it.next());
+//         it.rewind();
+//     }
+
+//     BTreeChecker.checkRep(bigFile, tid, new HashMap<PageId, Page>(), true);
+
+//     assertEquals(62, leftChild.getNumEmptySlots());
+//     assertEquals(62, rightChild.getNumEmptySlots());
+
+//     // deleting another page of tuples should bring the page below minimum
+// occupancy     // again but this time cause it to merge with its right sibling
+//     for(int i = 0; i < 124; ++i) {
+//         Database.getBufferPool().deleteTuple(tid, it.next());
+//         it.rewind();
+//     }
+
+//     // confirm that the pages have merged
+//     assertEquals(123, root.getNumEmptySlots());
+//     e = root.iterator().next();
+//     leftChild = (BTreeInternalPage) Database.getBufferPool().getPage(
+//             tid, e.getLeftChild(), Permissions.READ_ONLY);
+//     rightChild = (BTreeInternalPage) Database.getBufferPool().getPage(
+//             tid, e.getRightChild(), Permissions.READ_ONLY);
+//     assertEquals(0, leftChild.getNumEmptySlots());
+//     assertTrue(e.getKey().compare(Op.LESS_THAN_OR_EQ,
+// rightChild.iterator().next().getKey()));
+
+//     // Delete tuples causing leaf pages to merge until the first internal
+// page     // gets below minimum occupancy and causes the entries to be
+// redistributed     count = 0;
+//     while(count < 62) {
+//         assertEquals(count, leftChild.getNumEmptySlots());
+//         for(int i = 0; i < 124; ++i) {
+//             Database.getBufferPool().deleteTuple(tid, it.next());
+//             it.rewind();
+//         }
+//         count++;
+//     }
+
+//     // deleting another page of tuples should bring the page below minimum
+// occupancy     // and cause it to merge with the right sibling to replace the
+// root     for(int i = 0; i < 124; ++i) {
+//         Database.getBufferPool().deleteTuple(tid, it.next());
+//         it.rewind();
+//     }
+
+//     // confirm that the last two internal pages have merged successfully and
+//     // replaced the root
+//     BTreePageId rootPtrId = BTreeRootPtrPage.getId(bigFile.getId());
+//     rootPtr = (BTreeRootPtrPage) Database.getBufferPool().getPage(
+//             tid, rootPtrId, Permissions.READ_ONLY);
+//     assertTrue(rootPtr.getRootId().pgcateg() == BTreePageId.INTERNAL);
+//     root = (BTreeInternalPage) Database.getBufferPool().getPage(
+//             tid, rootPtr.getRootId(), Permissions.READ_ONLY);
+//     assertEquals(0, root.getNumEmptySlots());
+//     assertTrue(root.getParentId().equals(rootPtrId));
+
+//     it.close();
+// }

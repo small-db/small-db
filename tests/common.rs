@@ -373,7 +373,7 @@ fn get_buckets(
             if lacked % 2 == 0 {
                 table.push(max_capacity - lacked / 2);
             } else {
-                table.push(max_capacity - lacked / 2 + 1);
+                table.push(max_capacity - lacked / 2 - 1);
             }
         }
     }

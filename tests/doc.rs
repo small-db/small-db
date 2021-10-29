@@ -1,6 +1,8 @@
 /*
 run test:
-RUST_LOG=info RUST_BACKTRACE=1 cargo test --package simple-db-rust --test btree_insert_test --all-features -- insert_duplicate_tuples --exact --nocapture 2>&1 | tee out
+FILE=btree_delete_test
+TEST=test_delete_internal_pages
+RUST_LOG=info RUST_BACKTRACE=1 cargo test --package simple-db-rust --test $FILE --all-features -- $TEST --exact --nocapture 2>&1 | tee out
 
 build the test binary:
 cargo test --no-run
