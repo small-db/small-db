@@ -1,3 +1,4 @@
+use crate::error::MyError;
 use std::fmt;
 
 use bit_vec::BitVec;
@@ -95,6 +96,9 @@ impl BTreeInternalPage {
             entry = Some(e);
             break;
         }
+
+        // not found in the page, maybe it's a edge entry (half of the entry
+        // in the sibling page)
         entry
     }
 
@@ -169,7 +173,6 @@ impl BTreeInternalPage {
     pub fn delete_key_and_left_child(&mut self, record_id: usize) {
         for i in (0..record_id).rev() {
             if self.is_slot_used(i) {
-
                 // why?
                 self.children[i] = self.children[record_id];
 
@@ -201,9 +204,9 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) {
+    pub fn insert_entry(&mut self, e: &Entry) -> Result<(), MyError> {
         if self.empty_slots_count() == 0 {
-            panic!("no empty slot on this page");
+            return Err(MyError::new("No empty slots on this page."));
         }
 
         // if this is the first entry, add it and return
@@ -213,7 +216,7 @@ impl BTreeInternalPage {
             self.keys[1] = e.get_key();
             self.mark_slot_status(0, true);
             self.mark_slot_status(1, true);
-            return;
+            return Ok(());
         }
 
         // find the first empty slot, start from 1
@@ -252,7 +255,7 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
-            panic!("no slot found");
+            return Err(MyError::new("No slot found."));
         }
 
         // shift entries back or forward to fill empty slot and make room for
@@ -273,6 +276,7 @@ impl BTreeInternalPage {
         self.keys[good_slot] = e.get_key();
         self.children[good_slot] = e.get_right_child();
         self.mark_slot_status(good_slot, true);
+        Ok(())
     }
 
     fn move_entry(&mut self, from: usize, to: usize) {

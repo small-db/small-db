@@ -11,11 +11,12 @@ use crate::{
     btree::page::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
+    error::MyError,
     field::IntField,
 };
 
 use core::fmt;
-use std::{cell::Cell, str, time::SystemTime};
+use std::{cell::Cell, cmp, num, str, time::SystemTime};
 
 use std::{
     cell::RefCell,
@@ -456,7 +457,7 @@ impl BTreeTable {
     May cause pages to merge or redistribute entries/tuples if the pages
     become less than half full.
     */
-    pub fn delete_tuple(&self, tuple: WrappedTuple) {
+    pub fn delete_tuple(&self, tuple: WrappedTuple) -> Result<(), ()> {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
@@ -470,6 +471,8 @@ impl BTreeTable {
             }
         }
         // release the leaf page
+
+        Ok(())
     }
 
     /**
@@ -478,9 +481,12 @@ impl BTreeTable {
     If one of its siblings has extra tuples, redistribute those tuples.
     Otherwise merge with one of the siblings. Update pointers as needed.
     */
-    fn handle_erratic_leaf_page(&self, page: &mut BTreeLeafPage) {
+    fn handle_erratic_leaf_page(
+        &self,
+        page: &mut BTreeLeafPage,
+    ) -> Result<(), MyError> {
         if page.get_parent_pid().category == PageCategory::RootPointer {
-            return;
+            return Ok(());
         }
 
         let parent_rc = BufferPool::global()
@@ -491,71 +497,55 @@ impl BTreeTable {
         {
             let mut parent = parent_rc.borrow_mut();
 
-            if let Some(left_pid) = page.get_left_pid() {
-                let left_rc =
-                    BufferPool::global().get_leaf_page(&left_pid).unwrap();
+            // try to find the entry whose right child points to the page
+            let entry =
+                parent.get_coresponding_entry(None, Some(&page.get_pid()));
+            if entry.is_some() && page.get_left_pid().is_some() {
+                let left_rc = BufferPool::global()
+                    .get_leaf_page(&page.get_left_pid().unwrap())
+                    .unwrap();
 
-                // hold the left page
-                {
-                    let mut left = left_rc.borrow_mut();
-                    let mut entry = parent
-                        .get_coresponding_entry(
-                            Some(&left.get_pid()),
-                            Some(&page.get_pid()),
-                        )
+                self.steal_from_leaf_page(
+                    &mut left_rc.borrow_mut(),
+                    page,
+                    &mut parent,
+                    &mut entry.unwrap(),
+                )?;
+                self.merge_leaf_page(
+                    &mut left_rc.borrow_mut(),
+                    page,
+                    &mut parent,
+                    &entry.unwrap(),
+                )?;
+            } else {
+                // try to find the entry whose left child points to the page
+                let entry =
+                    parent.get_coresponding_entry(Some(&page.get_pid()), None);
+                if entry.is_some() && page.get_right_pid().is_some() {
+                    let right_rc = BufferPool::global()
+                        .get_leaf_page(&page.get_right_pid().unwrap())
                         .unwrap();
-                    if left.stable() {
-                        self.steal_from_leaf_page(
-                            page,
-                            &mut left,
-                            &mut parent,
-                            &mut entry,
-                            false,
-                        );
-                    } else {
-                        self.merge_leaf_page(
-                            &mut left,
-                            page,
-                            &mut parent,
-                            &entry,
-                        );
-                    }
-                }
-                // release the left page
-            } else if let Some(right_pid) = page.get_right_pid() {
-                let right_rc =
-                    BufferPool::global().get_leaf_page(&right_pid).unwrap();
 
-                // hold the right page
-                {
-                    let mut right = right_rc.borrow_mut();
-                    let mut entry = parent
-                        .get_coresponding_entry(
-                            Some(&page.get_pid()),
-                            Some(&right.get_pid()),
-                        )
-                        .unwrap();
-                    if right.stable() {
-                        self.steal_from_leaf_page(
-                            page,
-                            &mut right,
-                            &mut parent,
-                            &mut entry,
-                            true,
-                        );
-                    } else {
-                        self.merge_leaf_page(
-                            page,
-                            &mut right,
-                            &mut parent,
-                            &entry,
-                        );
-                    }
+                    self.steal_from_leaf_page(
+                        page,
+                        &mut right_rc.borrow_mut(),
+                        &mut parent,
+                        &mut entry.unwrap(),
+                    );
+                    self.merge_leaf_page(
+                        page,
+                        &mut right_rc.borrow_mut(),
+                        &mut parent,
+                        &entry.unwrap(),
+                    )?;
+                } else {
+                    panic!("Cannot find the entry whose left/right child points to the page");
                 }
-                // release the right page
             }
         }
         // release the parent page
+
+        Ok(())
     }
 
     /**
@@ -569,9 +559,12 @@ impl BTreeTable {
 
     - page - the erratic internal page to be handled
     */
-    fn handle_erratic_internal_page(&self, page: &mut BTreeInternalPage) {
+    fn handle_erratic_internal_page(
+        &self,
+        page: &mut BTreeInternalPage,
+    ) -> Result<(), MyError> {
         if page.get_parent_pid().category == PageCategory::RootPointer {
-            return;
+            return Ok(());
         }
 
         let parent_rc = BufferPool::global()
@@ -601,14 +594,14 @@ impl BTreeTable {
                             &mut parent,
                             &mut left_entry,
                             false,
-                        );
+                        )?;
                     } else {
                         self.merge_internal_page(
                             &mut left,
                             page,
                             &mut parent,
                             &left_entry,
-                        );
+                        )?;
                     }
                 }
                 // release the left sibling
@@ -626,20 +619,22 @@ impl BTreeTable {
                             &mut parent,
                             &mut right_entry,
                             true,
-                        );
+                        )?;
                     } else {
                         self.merge_internal_page(
                             page,
                             &mut right,
                             &mut parent,
                             &right_entry,
-                        );
+                        )?;
                     }
                 }
                 // release the right sibling
             }
         }
         // release the parent page
+
+        Ok(())
     }
 
     /**
@@ -653,11 +648,11 @@ impl BTreeTable {
         right_child: &mut BTreeInternalPage,
         page: &mut BTreeInternalPage,
         entry: &Entry,
-    ) {
+    ) -> Result<(), MyError> {
         let mut it = BTreeInternalPageIterator::new(right_child);
         let mut deleted_indexes = Vec::new();
         for e in it.by_ref() {
-            left_child.insert_entry(&e);
+            left_child.insert_entry(&e)?;
             deleted_indexes.push(e.get_record_id());
         }
         for slot in deleted_indexes {
@@ -665,7 +660,8 @@ impl BTreeTable {
         }
 
         self.set_empty_page(&right_child.get_pid());
-        self.delete_parent_entry(&mut **left_child, page, entry);
+        self.delete_parent_entry(&mut **left_child, page, entry)?;
+        Ok(())
     }
 
     /**
@@ -679,7 +675,7 @@ impl BTreeTable {
         right_child: &mut BTreeLeafPage,
         page: &mut BTreeInternalPage,
         entry: &Entry,
-    ) {
+    ) -> Result<(), MyError> {
         let mut it = BTreeLeafPageIterator::new(right_child);
         let mut deleted = Vec::new();
         for t in it.by_ref() {
@@ -705,7 +701,8 @@ impl BTreeTable {
         }
 
         self.set_empty_page(&right_child.get_pid());
-        self.delete_parent_entry(&mut **left_child, page, entry);
+        self.delete_parent_entry(&mut **left_child, page, entry)?;
+        Ok(())
     }
 
     /**
@@ -730,7 +727,7 @@ impl BTreeTable {
         left_child: &mut dyn BTreePage,
         page: &mut BTreeInternalPage,
         entry: &Entry,
-    ) {
+    ) -> Result<(), MyError> {
         // delete the corresponding entry in the parent page
         page.delete_key_and_right_child(entry.get_record_id());
 
@@ -749,8 +746,9 @@ impl BTreeTable {
             // release the page for reuse
             self.set_empty_page(&page.get_pid());
         } else if !page.stable() {
-            self.handle_erratic_internal_page(page);
+            self.handle_erratic_internal_page(page)?;
         }
+        Ok(())
     }
 
     /**
@@ -807,17 +805,17 @@ impl BTreeTable {
         parent: &mut BTreeInternalPage,
         entry: &mut Entry,
         is_right_sibling: bool,
-    ) {
+    ) -> Result<(), MyError> {
         let page_entries = page.entries_count();
         let sibling_entries = sibling.entries_count();
         let move_count = (page_entries + sibling_entries) / 2 - page_entries;
         if move_count == 0 {
             if is_right_sibling {
-                self.merge_internal_page(page, sibling, parent, entry);
+                self.merge_internal_page(page, sibling, parent, entry)?;
             } else {
-                self.merge_internal_page(sibling, page, parent, entry);
+                self.merge_internal_page(sibling, page, parent, entry)?;
             }
-            return;
+            return Ok(());
         }
 
         let mut key: IntField = entry.get_key();
@@ -828,7 +826,7 @@ impl BTreeTable {
             for e in iter.by_ref().take(move_count) {
                 let new_entry =
                     Entry::new(key, &edge_child_pid, &e.get_left_child());
-                page.insert_entry(&new_entry);
+                page.insert_entry(&new_entry)?;
                 delete_indexes.push(e.get_record_id());
 
                 // update for next iteration
@@ -851,7 +849,7 @@ impl BTreeTable {
             for e in iter.by_ref().rev().take(move_count) {
                 let new_entry =
                     Entry::new(key, &e.get_right_child(), &edge_child_pid);
-                page.insert_entry(&new_entry);
+                page.insert_entry(&new_entry)?;
                 delete_indexes.push(e.get_record_id());
 
                 // update for next iteration
@@ -872,6 +870,7 @@ impl BTreeTable {
 
         entry.set_key(key);
         parent.update_entry(entry);
+        Ok(())
     }
 
     /**
@@ -889,47 +888,48 @@ impl BTreeTable {
     */
     fn steal_from_leaf_page(
         &self,
-        page: &mut BTreeLeafPage,
-        sibling: &mut BTreeLeafPage,
+        left: &mut BTreeLeafPage,
+        right: &mut BTreeLeafPage,
         parent: &mut BTreeInternalPage,
         entry: &mut Entry,
-        is_right_sibling: bool,
-    ) {
-        let page_tuples = page.tuples_count();
-        let sibling_tuples = sibling.tuples_count();
-        let move_count = (page_tuples + sibling_tuples) / 2 - page_tuples;
+    ) -> Result<(), MyError> {
+        let left_tuples = left.tuples_count();
+        let right_tuples = right.tuples_count();
+        let move_count = (left_tuples + right_tuples) / 2
+            - cmp::min(left_tuples, right_tuples);
         if move_count == 0 {
-            if is_right_sibling {
-                self.merge_leaf_page(page, sibling, parent, entry);
-            } else {
-                self.merge_leaf_page(sibling, page, parent, entry);
-            }
-            return;
+            self.merge_leaf_page(left, right, parent, entry)?;
         }
 
         let mut key: Option<Tuple> = None;
         let mut delete_tuples = Vec::new();
-        if is_right_sibling {
-            let mut iter = BTreeLeafPageIterator::new(sibling);
+        if left_tuples < right_tuples {
+            // stolen from right
+            let mut iter = BTreeLeafPageIterator::new(right);
             for tuple in iter.by_ref().take(move_count) {
-                page.insert_tuple(&tuple);
+                left.insert_tuple(&tuple);
                 delete_tuples.push(tuple.get_slot_number());
                 key = Some(tuple.clone());
+            }
+            for i in delete_tuples {
+                right.delete_tuple(i);
             }
         } else {
-            let mut iter = BTreeLeafPageIterator::new(sibling);
+            // stolen from left
+            let mut iter = BTreeLeafPageIterator::new(left);
             for tuple in iter.by_ref().rev().take(move_count) {
-                page.insert_tuple(&tuple);
+                right.insert_tuple(&tuple);
                 delete_tuples.push(tuple.get_slot_number());
                 key = Some(tuple.clone());
             }
-        }
-        for i in delete_tuples {
-            sibling.delete_tuple(i);
+            for i in delete_tuples {
+                left.delete_tuple(i);
+            }
         }
 
         entry.set_key(key.unwrap().get_field(self.key_field));
         parent.update_entry(entry);
+        Ok(())
     }
 }
 

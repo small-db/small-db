@@ -3,6 +3,7 @@ pub mod field;
 pub mod util;
 
 mod log;
+mod error;
 
 pub use btree::{
     catalog::Catalog,
