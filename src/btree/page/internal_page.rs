@@ -1,5 +1,5 @@
 use crate::error::MyError;
-use std::fmt;
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use bit_vec::BitVec;
 use log::{error, info};
@@ -34,7 +34,7 @@ pub struct BTreeInternalPage {
 }
 
 impl std::ops::Deref for BTreeInternalPage {
-    type Target = BTreeBasePage;
+    type Target = dyn BTreePage;
     fn deref(&self) -> &Self::Target {
         &self.page
     }
@@ -132,6 +132,11 @@ impl BTreeInternalPage {
         let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
             / bits_per_entry_including_header; //round down
         return entries_per_page;
+    }
+
+    // TODO: rename
+    pub fn get_max_capacity(&self) -> usize {
+        self.slot_count - 1
     }
 
     pub fn get_page_id(&self) -> BTreePageID {
@@ -315,6 +320,30 @@ impl BTreeInternalPage {
     pub fn get_last_child_pid(&self) -> BTreePageID {
         let mut it = BTreeInternalPageIterator::new(self);
         return it.next_back().unwrap().get_right_child();
+    }
+
+    pub fn get_left_sibling(&self) -> Option<Rc<RefCell<BTreeInternalPage>>> {
+        todo!()
+    }
+
+    pub fn get_right_sibling(&self) -> Option<Rc<RefCell<BTreeInternalPage>>> {
+        todo!()
+    }
+
+    pub fn get_entry_by_children(
+        &self,
+        left_pid: &BTreePageID,
+        right_pid: &BTreePageID,
+    ) -> Option<Entry> {
+        let mut it = BTreeInternalPageIterator::new(self);
+        for entry in it {
+            if entry.get_left_child() == *left_pid
+                && entry.get_right_child() == *right_pid
+            {
+                return Some(entry);
+            }
+        }
+        None
     }
 
     pub fn check_integrity(
