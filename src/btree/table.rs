@@ -838,6 +838,15 @@ impl BTreeTable {
 
             if left_entries < right_entries {
                 left.insert_entry(&edge_entry)?;
+                self.set_parent_pid(
+                    &edge_entry.get_left_child(),
+                    &left.get_pid(),
+                );
+                self.set_parent_pid(
+                    &edge_entry.get_right_child(),
+                    &left.get_pid(),
+                );
+
                 let mut deleted_indexes = Vec::new();
                 let iter = BTreeInternalPageIterator::new(&right);
                 for e in iter.take(move_count - 1) {
@@ -859,6 +868,15 @@ impl BTreeTable {
                 }
             } else {
                 right.insert_entry(&edge_entry)?;
+                self.set_parent_pid(
+                    &edge_entry.get_left_child(),
+                    &right.get_pid(),
+                );
+                self.set_parent_pid(
+                    &edge_entry.get_right_child(),
+                    &right.get_pid(),
+                );
+
                 let mut deleted_indexes = Vec::new();
                 let iter = BTreeInternalPageIterator::new(&left);
                 for e in iter.rev().take(move_count - 1) {
