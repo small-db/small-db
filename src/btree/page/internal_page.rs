@@ -2,7 +2,7 @@ use crate::error::MyError;
 use std::fmt;
 
 use bit_vec::BitVec;
-use log::info;
+use log::{error, info};
 
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
@@ -255,7 +255,15 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
-            return Err(MyError::new("No slot found."));
+            let e = MyError::new(&format!(
+                "No slot found for entry {}, pid: {}, entries count: {}",
+                e,
+                self.get_pid(),
+                self.entries_count()
+            ));
+            error!("{}", e);
+            panic!(e);
+            return Err(e);
         }
 
         // shift entries back or forward to fill empty slot and make room for
@@ -346,9 +354,10 @@ impl BTreeInternalPage {
             let minimal_stable = Self::get_max_entries(4) / 2 - 1;
             assert!(
                 self.entries_count() >= minimal_stable,
-                "entries count: {}, max entries: {}",
+                "entries count: {}, max entries: {}, pid: {}",
                 self.entries_count(),
-                Self::get_max_entries(4)
+                Self::get_max_entries(4),
+                self.get_pid(),
             );
         }
     }
@@ -476,23 +485,25 @@ impl Iterator for BTreeInternalPageIterator<'_> {
 impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(cursor) = self.reverse_cursor.checked_sub(1) {
-                self.reverse_cursor = cursor;
-                if !self.page.is_slot_used(cursor) {
+            if let Some(left_index) = self.reverse_cursor.checked_sub(1) {
+                self.reverse_cursor = left_index;
+                if !self.page.is_slot_used(left_index) {
                     continue;
                 }
 
                 let mut e = Entry::new(
                     self.page.keys[self.right_child_position],
-                    &self.page.children[cursor],
+                    &self.page.children[left_index],
                     &self.page.children[self.right_child_position],
                 );
                 e.set_record_id(self.right_child_position);
 
                 // set right child position for next iteration
-                self.right_child_position = cursor;
+                self.right_child_position = left_index;
 
                 return Some(e);
+            } else {
+                return None;
             }
         }
     }

@@ -1,5 +1,9 @@
+#![feature(backtrace)]
+
+use std::error::Error;
+
 use common::TreeLayout;
-use log::info;
+use log::{error, info};
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
@@ -33,7 +37,7 @@ fn test_redistribute_leaf_pages() {
     for tuple in it.by_ref() {
         assert_eq!(202 + count, page_rc.borrow().empty_slots_count());
 
-        table.delete_tuple(tuple);
+        table.delete_tuple(&tuple);
 
         count += 1;
         if count >= 49 {
@@ -46,7 +50,7 @@ fn test_redistribute_leaf_pages() {
     let t = it.next().unwrap();
     let page_rc = BufferPool::global().get_leaf_page(&t.get_pid()).unwrap();
     assert_eq!(page_rc.borrow().empty_slots_count(), 251);
-    table.delete_tuple(t);
+    table.delete_tuple(&t);
     assert!(page_rc.borrow().empty_slots_count() <= 251);
 
     let right_pid = page_rc.borrow().get_right_pid().unwrap();
@@ -77,8 +81,8 @@ fn test_merge_leaf_pages() {
 
     // delete the last two tuples
     let mut it = BTreeTableIterator::new(&table);
-    table.delete_tuple(it.next_back().unwrap());
-    table.delete_tuple(it.next_back().unwrap());
+    table.delete_tuple(&it.next_back().unwrap());
+    table.delete_tuple(&it.next_back().unwrap());
 
     table.draw_tree(-1);
     table.check_integrity(true);
@@ -102,9 +106,9 @@ fn test_delete_root_page() {
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);
-    table.delete_tuple(it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap());
     table.check_integrity(true);
-    table.delete_tuple(it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap());
     table.check_integrity(true);
 
     table.draw_tree(-1);
@@ -136,7 +140,7 @@ fn test_reuse_deleted_pages() {
     // delete enough tuples to ensure one page gets deleted
     let it = BTreeTableIterator::new(&table);
     for t in it.take(502) {
-        table.delete_tuple(t);
+        table.delete_tuple(&t);
     }
 
     // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page, 1
@@ -176,7 +180,7 @@ fn test_redistribute_internal_pages() {
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&table);
     for t in it.by_ref().take(49 * 502 + 1) {
-        table.delete_tuple(t);
+        table.delete_tuple(&t);
     }
 
     table.draw_tree(2);
@@ -185,7 +189,7 @@ fn test_redistribute_internal_pages() {
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
-        table.delete_tuple(t);
+        table.delete_tuple(&t);
     }
 
     table.draw_tree(2);
@@ -221,18 +225,17 @@ fn test_delete_internal_pages() {
     // gets to minimum occupancy
     let it = BTreeTableIterator::new(&table);
     for (i, t) in it.rev().take(1 + 62 * 124).enumerate() {
-        if i > 3840 {
-            info!("deleting tuple {}", i);
-            info!(
-                "deleting tuple {}, slot: {}, pid: {:?}",
-                t,
-                t.get_slot_number(),
-                t.get_pid(),
-            );
+        info!("deleting i: {}, tuple: {:?}, pid: {:?}", i, t, t.get_pid());
+        // table.draw_tree(-1);
+        table.check_integrity(true);
+        if let Err(e) = table.delete_tuple(&t) {
+            error!("error when deleting tuple: {}, tuple: {}, i: {}", e, t, i);
+            if let Some(backtrace) = e.backtrace() {
+                error!("backtrace: {:?}", backtrace);
+            }
             table.draw_tree(-1);
             table.check_integrity(true);
         }
-        table.delete_tuple(t);
     }
 
     table.draw_tree(2);

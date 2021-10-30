@@ -2,7 +2,7 @@
 run test:
 FILE=btree_delete_test
 TEST=test_delete_internal_pages
-RUST_LOG=info RUST_BACKTRACE=1 cargo test --package simple-db-rust --test $FILE --all-features -- $TEST --exact --nocapture 2>&1 | tee out
+export FILE=btree_delete_test TEST=test_delete_internal_pages RUST_LOG=info RUST_BACKTRACE=1 && cargo test --package simple-db-rust --test $FILE --all-features -- $TEST --exact --nocapture 2>&1 | tee out
 
 build the test binary:
 cargo test --no-run

@@ -1,3 +1,5 @@
+use log::info;
+
 use super::{
     buffer_pool::BufferPool,
     page::{
@@ -36,6 +38,11 @@ enum SearchFor {
     IntField(IntField),
     LeftMost,
     RightMost,
+}
+
+enum Direction {
+    Left,
+    Right,
 }
 
 /// B+ Tree
@@ -457,7 +464,7 @@ impl BTreeTable {
     May cause pages to merge or redistribute entries/tuples if the pages
     become less than half full.
     */
-    pub fn delete_tuple(&self, tuple: WrappedTuple) -> Result<(), ()> {
+    pub fn delete_tuple(&self, tuple: &WrappedTuple) -> Result<(), MyError> {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
@@ -467,7 +474,7 @@ impl BTreeTable {
             leaf.delete_tuple(tuple.get_slot_number());
 
             if !leaf.stable() {
-                self.handle_erratic_leaf_page(&mut leaf);
+                self.handle_erratic_leaf_page(&mut leaf)?;
             }
         }
         // release the leaf page
@@ -531,7 +538,7 @@ impl BTreeTable {
                         &mut right_rc.borrow_mut(),
                         &mut parent,
                         &mut entry.unwrap(),
-                    );
+                    )?;
                     self.merge_leaf_page(
                         page,
                         &mut right_rc.borrow_mut(),
@@ -601,6 +608,7 @@ impl BTreeTable {
                             page,
                             &mut parent,
                             &left_entry,
+                            Direction::Right,
                         )?;
                     }
                 }
@@ -626,6 +634,7 @@ impl BTreeTable {
                             &mut right,
                             &mut parent,
                             &right_entry,
+                            Direction::Left,
                         )?;
                     }
                 }
@@ -637,30 +646,139 @@ impl BTreeTable {
         Ok(())
     }
 
+    fn set_parent_pid(
+        &self,
+        child_pid: &BTreePageID,
+        parent_pid: &BTreePageID,
+    ) {
+        match child_pid.category {
+            PageCategory::Leaf => {
+                let child_rc =
+                    BufferPool::global().get_leaf_page(child_pid).unwrap();
+                if let Ok(mut child) = child_rc.try_borrow_mut() {
+                    child.set_parent_pid(&parent_pid);
+                } else {
+                    // ignore borrow error
+                };
+            }
+            PageCategory::Internal => {
+                let child_rc =
+                    BufferPool::global().get_internal_page(child_pid).unwrap();
+                if let Ok(mut child) = child_rc.try_borrow_mut() {
+                    child.set_parent_pid(&parent_pid);
+                } else {
+                    // ignore borrow error
+                };
+            }
+            _ => panic!("Invalid page category"),
+        }
+    }
+
     /**
     # Arguments
 
-    - entry - the entry in the parent corresponding to the left_child and right_child
+    - parent_entry - the entry in the parent corresponding to the left and right
     */
     fn merge_internal_page(
         &self,
-        left_child: &mut BTreeInternalPage,
-        right_child: &mut BTreeInternalPage,
-        page: &mut BTreeInternalPage,
-        entry: &Entry,
+        left: &mut BTreeInternalPage,
+        right: &mut BTreeInternalPage,
+        parent: &mut BTreeInternalPage,
+        parent_entry: &Entry,
+        move_direction: Direction,
     ) -> Result<(), MyError> {
-        let mut it = BTreeInternalPageIterator::new(right_child);
-        let mut deleted_indexes = Vec::new();
-        for e in it.by_ref() {
-            left_child.insert_entry(&e)?;
-            deleted_indexes.push(e.get_record_id());
-        }
-        for slot in deleted_indexes {
-            right_child.delete_key_and_right_child(slot);
+        info!(
+            "Merging internal page {} and {}",
+            left.get_pid(),
+            right.get_pid()
+        );
+
+        // sanity check
+        match move_direction {
+            Direction::Left => {
+                if left.entries_count() >= right.entries_count() {
+                    panic!("Left page is not less than right page");
+                }
+            }
+            Direction::Right => {
+                if right.entries_count() >= left.entries_count() {
+                    panic!("Right page is not less than left page");
+                }
+            }
         }
 
-        self.set_empty_page(&right_child.get_pid());
-        self.delete_parent_entry(&mut **left_child, page, entry)?;
+        // stage 1: pull down the edge entry from parent and insert it into
+        // target page
+        let edge_entry = Entry::new(
+            parent_entry.get_key(),
+            &left.get_last_child_pid(),
+            &right.get_first_child_pid(),
+        );
+        {
+            let target: &mut BTreeInternalPage;
+            match move_direction {
+                Direction::Left => {
+                    target = left;
+                }
+                Direction::Right => {
+                    target = right;
+                }
+            }
+            self.set_parent_pid(
+                &edge_entry.get_left_child(),
+                &target.get_pid(),
+            );
+            self.set_parent_pid(
+                &edge_entry.get_right_child(),
+                &target.get_pid(),
+            );
+            target.insert_entry(&edge_entry)?;
+        }
+
+        // stage 2: move the entries from the one page to the other
+        match move_direction {
+            Direction::Left => {
+                let mut deleted_indexes = Vec::new();
+                let iter = BTreeInternalPageIterator::new(&right);
+                for e in iter {
+                    left.insert_entry(&e)?;
+                    self.set_parent_pid(&e.get_right_child(), &left.get_pid());
+                    deleted_indexes.push(e.get_record_id());
+                }
+                for i in deleted_indexes {
+                    right.delete_key_and_right_child(i);
+                }
+                self.set_empty_page(&right.get_pid());
+
+                self.delete_parent_entry(
+                    &mut **left,
+                    parent,
+                    parent_entry,
+                    Direction::Right,
+                )?;
+            }
+            Direction::Right => {
+                let mut deleted_indexes = Vec::new();
+                let iter = BTreeInternalPageIterator::new(&left);
+                for e in iter.rev() {
+                    right.insert_entry(&e)?;
+                    self.set_parent_pid(&e.get_left_child(), &right.get_pid());
+                    deleted_indexes.push(e.get_record_id());
+                }
+                for i in deleted_indexes {
+                    left.delete_key_and_left_child(i);
+                }
+                self.set_empty_page(&left.get_pid());
+
+                self.delete_parent_entry(
+                    &mut **right,
+                    parent,
+                    parent_entry,
+                    Direction::Left,
+                )?;
+            }
+        }
+
         Ok(())
     }
 
@@ -676,6 +794,11 @@ impl BTreeTable {
         page: &mut BTreeInternalPage,
         entry: &Entry,
     ) -> Result<(), MyError> {
+        info!(
+            "start merge leaves: {:?} and {:?}",
+            left_child.get_pid(),
+            right_child.get_pid()
+        );
         let mut it = BTreeLeafPageIterator::new(right_child);
         let mut deleted = Vec::new();
         for t in it.by_ref() {
@@ -701,13 +824,18 @@ impl BTreeTable {
         }
 
         self.set_empty_page(&right_child.get_pid());
-        self.delete_parent_entry(&mut **left_child, page, entry)?;
+        self.delete_parent_entry(
+            &mut **left_child,
+            page,
+            entry,
+            Direction::Right,
+        )?;
         Ok(())
     }
 
     /**
-    Method to encapsulate the process of deleting an entry (specifically
-    the key and right child) from a parent node.
+    Method to encapsulate the process of deleting an entry and its left/right
+    key from a parent node.
 
     If the parent becomes empty (no keys remaining), that indicates that
     it was the root node and should be replaced by its one remaining
@@ -718,18 +846,27 @@ impl BTreeTable {
 
     # Arguments
 
-    - left_child    - the child remaining after the key and right child are deleted
-    - page          - the parent containing the entry to be deleted
-    - entry         - the entry to be deleted
+    - reserved_child    - the child reserved after the key and another child are deleted
+    - page              - the parent containing the entry to be deleted
+    - entry             - the entry to be deleted
+    - delete_left_child - which child of the entry should be deleted
     */
     fn delete_parent_entry(
         &self,
-        left_child: &mut dyn BTreePage,
+        reserved_child: &mut dyn BTreePage,
         page: &mut BTreeInternalPage,
         entry: &Entry,
+        delete_direction: Direction,
     ) -> Result<(), MyError> {
-        // delete the corresponding entry in the parent page
-        page.delete_key_and_right_child(entry.get_record_id());
+        // stage 1: delete the corresponding entry in the parent page
+        match delete_direction {
+            Direction::Left => {
+                page.delete_key_and_left_child(entry.get_record_id());
+            }
+            Direction::Right => {
+                page.delete_key_and_right_child(entry.get_record_id());
+            }
+        }
 
         // if the path is empty, then the left child is now the new root
         if page.entries_count() == 0 {
@@ -738,8 +875,8 @@ impl BTreeTable {
             // borrow of root_ptr_page_rc start here
             {
                 let mut root_ptr_page = root_ptr_page_rc.borrow_mut();
-                left_child.set_parent_pid(&root_ptr_page.get_pid());
-                root_ptr_page.set_root_pid(&left_child.get_pid());
+                reserved_child.set_parent_pid(&root_ptr_page.get_pid());
+                root_ptr_page.set_root_pid(&reserved_child.get_pid());
             }
             // borrow of root_ptr_page_rc end here
 
@@ -811,12 +948,31 @@ impl BTreeTable {
         let move_count = (page_entries + sibling_entries) / 2 - page_entries;
         if move_count == 0 {
             if is_right_sibling {
-                self.merge_internal_page(page, sibling, parent, entry)?;
+                self.merge_internal_page(
+                    page,
+                    sibling,
+                    parent,
+                    entry,
+                    Direction::Left,
+                )?;
             } else {
-                self.merge_internal_page(sibling, page, parent, entry)?;
+                self.merge_internal_page(
+                    sibling,
+                    page,
+                    parent,
+                    entry,
+                    Direction::Right,
+                )?;
             }
             return Ok(());
         }
+
+        info!(
+            "steal from {} to {}, move {}",
+            sibling.get_pid(),
+            page.get_pid(),
+            move_count
+        );
 
         let mut key: IntField = entry.get_key();
         let mut delete_indexes = Vec::new();
