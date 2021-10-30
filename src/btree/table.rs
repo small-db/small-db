@@ -533,18 +533,16 @@ impl BTreeTable {
             return Ok(());
         }
 
-        if let Some(left_sibling_rc) = page_rc.borrow().get_left_sibling() {
-            self.balancing_two_internal_pages(
-                left_sibling_rc,
-                page_rc.clone(),
-            )?;
-        } else if let Some(right_sibling_rc) =
-            page_rc.borrow().get_right_sibling()
-        {
-            self.balancing_two_internal_pages(
-                page_rc.clone(),
-                right_sibling_rc,
-            )?;
+        let left_pid = page_rc.borrow().get_left_pid();
+        let right_pid = page_rc.borrow().get_right_pid();
+        if let Some(left_pid) = left_pid {
+            let left_rc =
+                BufferPool::global().get_internal_page(&left_pid).unwrap();
+            self.balancing_two_internal_pages(left_rc, page_rc)?;
+        } else if let Some(right_pid) = right_pid {
+            let right_rc =
+                BufferPool::global().get_internal_page(&right_pid).unwrap();
+            self.balancing_two_internal_pages(page_rc, right_rc)?;
         } else {
             panic!("Cannot find the left/right sibling of the page");
         }

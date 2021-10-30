@@ -322,12 +322,32 @@ impl BTreeInternalPage {
         return it.next_back().unwrap().get_right_child();
     }
 
-    pub fn get_left_sibling(&self) -> Option<Rc<RefCell<BTreeInternalPage>>> {
-        todo!()
+    pub fn get_left_pid(&self) -> Option<BTreePageID> {
+        let parent_pid = self.get_parent_pid();
+        let parent_rc =
+            BufferPool::global().get_internal_page(&parent_pid).unwrap();
+        let parent = parent_rc.borrow();
+        let it = BTreeInternalPageIterator::new(&parent);
+        for e in it {
+            if e.get_right_child() == self.get_pid() {
+                return Some(e.get_left_child());
+            }
+        }
+        return None;
     }
 
-    pub fn get_right_sibling(&self) -> Option<Rc<RefCell<BTreeInternalPage>>> {
-        todo!()
+    pub fn get_right_pid(&self) -> Option<BTreePageID> {
+        let parent_pid = self.get_parent_pid();
+        let parent_rc =
+            BufferPool::global().get_internal_page(&parent_pid).unwrap();
+        let parent = parent_rc.borrow();
+        let it = BTreeInternalPageIterator::new(&parent);
+        for e in it {
+            if e.get_left_child() == self.get_pid() {
+                return Some(e.get_right_child());
+            }
+        }
+        return None;
     }
 
     pub fn get_entry_by_children(
