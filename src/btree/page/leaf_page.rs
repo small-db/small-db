@@ -39,7 +39,7 @@ pub struct BTreeLeafPage {
 }
 
 impl std::ops::Deref for BTreeLeafPage {
-    type Target = BTreeBasePage;
+    type Target = dyn BTreePage;
     fn deref(&self) -> &Self::Target {
         &self.page
     }
