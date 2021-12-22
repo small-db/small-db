@@ -1,5 +1,3 @@
-#![feature(backtrace)]
-
 use std::error::Error;
 
 use common::TreeLayout;
@@ -230,9 +228,6 @@ fn test_delete_internal_pages() {
         table.check_integrity(true);
         if let Err(e) = table.delete_tuple(&t) {
             error!("error when deleting tuple: {}, tuple: {}, i: {}", e, t, i);
-            if let Some(backtrace) = e.backtrace() {
-                error!("backtrace: {:?}", backtrace);
-            }
             table.draw_tree(-1);
             table.check_integrity(true);
         }
