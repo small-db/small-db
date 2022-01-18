@@ -161,7 +161,7 @@ impl BufferPool {
                 let table = v.borrow();
 
                 // 2. read page content
-                let buf = self.read_page(&mut table.get_file(), key)?;
+                let _buf = self.read_page(&mut table.get_file(), key)?;
 
                 // 3. instantiate page
                 let page = BTreeHeaderPage::new(key);

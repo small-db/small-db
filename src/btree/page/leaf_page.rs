@@ -9,12 +9,12 @@ use crate::{
 };
 
 use super::{
-    page_id, BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage,
+    BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage,
     PageCategory, EMPTY_PAGE_ID,
 };
 use std::{cell::RefCell, rc::Rc};
 
-use log::debug;
+
 
 use crate::field::IntField;
 
@@ -318,7 +318,7 @@ impl From<BTreeVirtualPage> for Rc<RefCell<BTreeLeafPage>> {
             .get_tuple_scheme(&v.get_pid().get_table_id())
             .unwrap();
 
-        let page = BTreeLeafPage::new(
+        let _page = BTreeLeafPage::new(
             &v.get_pid(),
             v.get_bytes(),
             &scheme,

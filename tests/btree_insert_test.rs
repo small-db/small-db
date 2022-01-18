@@ -293,7 +293,7 @@ fn split_internal_page() {
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
     let rows_increment = 100;
-    for i in 0..rows_increment {
+    for _i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&tuple);

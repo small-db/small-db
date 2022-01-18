@@ -1,8 +1,8 @@
 use crate::error::MyError;
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{fmt};
 
 use bit_vec::BitVec;
-use log::{error, info};
+use log::{error};
 
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    BTreeBasePage, BTreeLeafPage, BTreePage, BTreePageID, PageCategory,
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
 };
 
 pub struct BTreeInternalPage {
@@ -267,7 +267,7 @@ impl BTreeInternalPage {
                 self.entries_count()
             ));
             error!("{}", e);
-            panic!(e);
+            std::panic::panic_any(e);
             return Err(e);
         }
 
@@ -355,7 +355,7 @@ impl BTreeInternalPage {
         left_pid: &BTreePageID,
         right_pid: &BTreePageID,
     ) -> Option<Entry> {
-        let mut it = BTreeInternalPageIterator::new(self);
+        let it = BTreeInternalPageIterator::new(self);
         for entry in it {
             if entry.get_left_child() == *left_pid
                 && entry.get_right_child() == *right_pid

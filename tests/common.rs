@@ -1,7 +1,7 @@
-use itertools::max;
-use log::info;
+
+
 use rand::prelude::*;
-use std::{cell::RefCell, fs, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use simple_db_rust::{
     btree::{

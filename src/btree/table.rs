@@ -1,5 +1,5 @@
-use log::info;
-use std::ops::{Deref, DerefMut};
+
+use std::ops::{DerefMut};
 
 use super::{
     buffer_pool::BufferPool,
@@ -19,7 +19,7 @@ use crate::{
 };
 
 use core::fmt;
-use std::{cell::Cell, cmp, num, str, time::SystemTime};
+use std::{cell::Cell, cmp, str, time::SystemTime};
 
 use std::{
     cell::RefCell,
@@ -1151,7 +1151,7 @@ impl BTreeTable {
         }
     }
 
-    fn read_page(&self, page_id: &BTreePageID) -> BTreeVirtualPage {
+    fn read_page(&self, _page_id: &BTreePageID) -> BTreeVirtualPage {
         todo!()
     }
 
