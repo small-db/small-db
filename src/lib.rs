@@ -2,8 +2,8 @@ pub mod btree;
 pub mod field;
 pub mod util;
 
-mod log;
 mod error;
+mod log;
 
 pub use btree::{
     catalog::Catalog,

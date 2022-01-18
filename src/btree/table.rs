@@ -1,5 +1,4 @@
-
-use std::ops::{DerefMut};
+use std::ops::DerefMut;
 
 use super::{
     buffer_pool::BufferPool,

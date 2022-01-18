@@ -1,5 +1,3 @@
-
-
 use common::TreeLayout;
 use log::{error, info};
 use simple_db_rust::{

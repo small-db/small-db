@@ -9,12 +9,10 @@ use crate::{
 };
 
 use super::{
-    BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage,
-    PageCategory, EMPTY_PAGE_ID,
+    BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage, PageCategory,
+    EMPTY_PAGE_ID,
 };
 use std::{cell::RefCell, rc::Rc};
-
-
 
 use crate::field::IntField;
 
