@@ -179,3 +179,20 @@ fn main() {
         }
     }
 }
+
+#[test]
+fn lock() {
+    use std::{
+        sync::{Arc, Mutex},
+        thread,
+    };
+    let mutex = Arc::new(Mutex::new(0));
+
+    mutex.try_lock();
+
+    use std::sync::RwLock;
+
+    let lock = RwLock::new(1);
+
+    lock.try_read()
+}
