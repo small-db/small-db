@@ -40,9 +40,7 @@ enum SearchFor {
     RightMost,
 }
 
-/**
-B+ Tree
-*/
+/// B+ Tree
 pub struct BTreeTable {
     // the file that stores the on-disk backing store for this B+ tree
     // file.
@@ -110,11 +108,9 @@ impl BTreeTable {
             file: f,
             table_id,
 
-            /*
-            start from 1 (the root page)
-
-            TODO: init it according to actual condition
-            */
+            // start from 1 (the root page)
+            //
+            // TODO: init it according to actual condition
             page_index: Cell::new(1),
         }
     }
@@ -148,22 +144,21 @@ impl BTreeTable {
         leaf_rc.borrow_mut().insert_tuple(&tuple);
     }
 
-    /**
-    Split a leaf page to make room for new tuples and
-    recursively split the parent node as needed to
-    accommodate a new entry. The new entry should have
-    a key matching the key field of the first tuple in
-    the right-hand page (the key is "copied up"), and
-    child pointers pointing to the two leaf pages
-    resulting from the split.  Update sibling pointers
-    and parent pointers as needed.
-
-    Return the leaf page into which a new tuple with
-    key field "field" should be inserted.
-
-    # Arguments
-    * `field`: the key field of the tuple to be inserted after the split is complete. Necessary to know which of the two pages to return.
-    */
+    /// Split a leaf page to make room for new tuples and
+    /// recursively split the parent node as needed to
+    /// accommodate a new entry. The new entry should have
+    /// a key matching the key field of the first tuple in
+    /// the right-hand page (the key is "copied up"), and
+    /// child pointers pointing to the two leaf pages
+    /// resulting from the split.  Update sibling pointers
+    /// and parent pointers as needed.
+    ///
+    /// Return the leaf page into which a new tuple with
+    /// key field "field" should be inserted.
+    ///
+    /// # Arguments
+    /// `field`: the key field of the tuple to be inserted after the split is
+    /// complete. Necessary to know which of the two pages to return.
     pub fn split_leaf_page(
         &self,
         page_rc: Rc<RefCell<BTreeLeafPage>>,
@@ -277,19 +272,19 @@ impl BTreeTable {
         index
     }
 
-    /**
-    Method to encapsulate the process of getting a parent page
-    ready to accept new entries.
-
-    This may mean creating a page to become the new root of
-    the tree, splitting the existing parent page if there are
-    no empty slots, or simply locking and returning the existing
-    parent page.
-
-    # Arguments
-    * `field`: the key field of the tuple to be inserted after the split is complete. Necessary to know which of the two pages to return.
-    * `parentId`: the id of the parent. May be an internal page or the RootPtr page
-    */
+    /// Method to encapsulate the process of getting a parent page
+    /// ready to accept new entries.
+    ///
+    /// This may mean creating a page to become the new root of
+    /// the tree, splitting the existing parent page if there are
+    /// no empty slots, or simply locking and returning the existing
+    /// parent page.
+    ///
+    /// # Arguments
+    /// `field`: the key field of the tuple to be inserted after the split is
+    /// complete. Necessary to know which of the two pages to return.
+    /// `parentId`: the id of the parent. May be an internal page or the RootPtr
+    /// page
     fn get_parent_with_empty_slots(
         &self,
         parent_id: BTreePageID,
@@ -347,21 +342,24 @@ impl BTreeTable {
         }
     }
 
-    /**
-    Split an internal page to make room for new entries and recursively split its parent page
-    as needed to accommodate a new entry. The new entry for the parent should have a key matching
-    the middle key in the original internal page being split (this key is "pushed up" to the parent).
-
-    Make a right sibling page and move half of entries to it.
-
-    The child pointers of the new parent entry should point to the two internal pages resulting
-    from the split. Update parent pointers as needed.
-
-    Return the internal page into which an entry with key field "field" should be inserted
-
-    # Arguments
-    * `field`: the key field of the tuple to be inserted after the split is complete. Necessary to know which of the two pages to return.
-    */
+    /// Split an internal page to make room for new entries and recursively
+    /// split its parent page as needed to accommodate a new entry. The new
+    /// entry for the parent should have a key matching the middle key in
+    /// the original internal page being split (this key is "pushed up" to the
+    /// parent).
+    ///
+    /// Make a right sibling page and move half of entries to it.
+    ///
+    /// The child pointers of the new parent entry should point to the two
+    /// internal pages resulting from the split. Update parent pointers as
+    /// needed.
+    ///
+    /// Return the internal page into which an entry with key field "field"
+    /// should be inserted
+    ///
+    /// # Arguments
+    /// `field`: the key field of the tuple to be inserted after the split is
+    /// complete. Necessary to know which of the two pages to return.
     fn split_internal_page(
         &self,
         page_rc: Rc<RefCell<BTreeInternalPage>>,
@@ -455,12 +453,10 @@ impl BTreeTable {
 
 /// delete implementation
 impl BTreeTable {
-    /**
-    Delete a tuple from this BTreeFile.
-
-    May cause pages to merge or redistribute entries/tuples if the pages
-    become less than half full.
-    */
+    /// Delete a tuple from this BTreeFile.
+    ///
+    /// May cause pages to merge or redistribute entries/tuples if the pages
+    /// become less than half full.
     pub fn delete_tuple(&self, tuple: &WrappedTuple) -> Result<(), MyError> {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
@@ -479,12 +475,11 @@ impl BTreeTable {
         }
     }
 
-    /**
-    Handle the case when a leaf page becomes less than half full due to deletions.
-
-    If one of its siblings has extra tuples, redistribute those tuples.
-    Otherwise merge with one of the siblings. Update pointers as needed.
-    */
+    /// Handle the case when a leaf page becomes less than half full due to
+    /// deletions.
+    ///
+    /// If one of its siblings has extra tuples, redistribute those tuples.
+    /// Otherwise merge with one of the siblings. Update pointers as needed.
     fn handle_erratic_leaf_page(
         &self,
         page_rc: Rc<RefCell<BTreeLeafPage>>,
@@ -513,17 +508,15 @@ impl BTreeTable {
         Ok(())
     }
 
-    /**
-    Handle the case when an internal page becomes less than half full due
-    to deletions.
-
-    If one of its siblings has extra entries, redistribute those entries.
-    Otherwise merge with one of the siblings. Update pointers as needed.
-
-    # Arguments
-
-    - page_rc - the erratic internal page to be handled
-    */
+    /// Handle the case when an internal page becomes less than half full due
+    /// to deletions.
+    ///
+    /// If one of its siblings has extra entries, redistribute those entries.
+    /// Otherwise merge with one of the siblings. Update pointers as needed.
+    ///
+    /// # Arguments
+    ///
+    /// - page_rc - the erratic internal page to be handled
     fn handle_erratic_internal_page(
         &self,
         page_rc: Rc<RefCell<BTreeInternalPage>>,
@@ -571,11 +564,10 @@ impl BTreeTable {
         }
     }
 
-    /**
-    # Arguments
-
-    - parent_entry - the entry in the parent corresponding to the left and right
-    */
+    /// # Arguments
+    ///
+    /// - parent_entry - the entry in the parent corresponding to the left and
+    ///   right
     fn merge_internal_page(
         &self,
         left_rc: Rc<RefCell<BTreeInternalPage>>,
@@ -622,11 +614,10 @@ impl BTreeTable {
         Ok(())
     }
 
-    /**
-    # Arguments
-
-    - entry - the entry in the parent corresponding to the left_child and right_child
-    */
+    /// # Arguments
+    ///
+    /// - entry - the entry in the parent corresponding to the left_child and
+    ///   right_child
     fn merge_leaf_page(
         &self,
         left_rc: Rc<RefCell<BTreeLeafPage>>,
@@ -676,24 +667,23 @@ impl BTreeTable {
         Ok(())
     }
 
-    /**
-    Method to encapsulate the process of deleting an entry (specifically
-    the key and right child) from a parent node.
-
-    If the parent becomes empty (no keys remaining), that indicates that
-    it was the root node and should be replaced by its one remaining
-    child.
-
-    Otherwise, if it gets below minimum occupancy for non-root internal
-    nodes, it should steal from one of its siblings or merge with a sibling.
-
-    # Arguments
-
-    - reserved_child    - the child reserved after the key and another child are deleted
-    - page              - the parent containing the entry to be deleted
-    - entry             - the entry to be deleted
-    - delete_left_child - which child of the entry should be deleted
-    */
+    /// Method to encapsulate the process of deleting an entry (specifically
+    /// the key and right child) from a parent node.
+    ///
+    /// If the parent becomes empty (no keys remaining), that indicates that
+    /// it was the root node and should be replaced by its one remaining
+    /// child.
+    ///
+    /// Otherwise, if it gets below minimum occupancy for non-root internal
+    /// nodes, it should steal from one of its siblings or merge with a sibling.
+    ///
+    /// # Arguments
+    ///
+    /// - reserved_child    - the child reserved after the key and another child
+    ///   are deleted
+    /// - page              - the parent containing the entry to be deleted
+    /// - entry             - the entry to be deleted
+    /// - delete_left_child - which child of the entry should be deleted
     fn delete_parent_entry<T>(
         &self,
         left_rc: Rc<RefCell<T>>,
@@ -741,11 +731,9 @@ impl BTreeTable {
         Ok(())
     }
 
-    /**
-    Mark a page in this BTreeTable as empty. Find the corresponding header
-    page (create it if needed), and mark the corresponding slot in the header
-    page as empty.
-    */
+    /// Mark a page in this BTreeTable as empty. Find the corresponding header
+    /// page (create it if needed), and mark the corresponding slot in the
+    /// header page as empty.
     fn set_empty_page(&self, pid: &BTreePageID) {
         BufferPool::global().discard_page(pid);
 
@@ -779,20 +767,18 @@ impl BTreeTable {
         // borrow of header_rc end here
     }
 
-    /**
-    Balancing two internal pages according the situation:
-
-    1.  Merge the two pages if the count of entries in the two pages is
-    less than the maximum capacity of a single page.
-
-    2.  Otherwise, steal entries from the sibling and copy them to the
-    given page so that both pages are at least half full.
-
-        Keys can be thought of as rotating through the parent entry, so
-        the original key in the parent is "pulled down" to the erratic
-        page, and the last key in the sibling page is "pushed up" to
-        the parent.  Update parent pointers as needed.
-    */
+    /// Balancing two internal pages according the situation:
+    ///
+    /// 1.  Merge the two pages if the count of entries in the two pages is
+    /// less than the maximum capacity of a single page.
+    ///
+    /// 2.  Otherwise, steal entries from the sibling and copy them to the
+    /// given page so that both pages are at least half full.
+    ///
+    /// Keys can be thought of as rotating through the parent entry, so
+    /// the original key in the parent is "pulled down" to the erratic
+    /// page, and the last key in the sibling page is "pushed up" to
+    /// the parent.  Update parent pointers as needed.
     fn balancing_two_internal_pages(
         &self,
         left_rc: Rc<RefCell<BTreeInternalPage>>,
@@ -912,19 +898,18 @@ impl BTreeTable {
     // {
     // }
 
-    /**
-    Steal tuples from a sibling and copy them to the given page so that both pages are at least
-    half full.  Update the parent's entry so that the key matches the key field of the first
-    tuple in the right-hand page.
-
-    # Arguments
-
-    - page           - the leaf page which is less than half full
-    - sibling        - the sibling which has tuples to spare
-    - parent         - the parent of the two leaf pages
-    - entry          - the entry in the parent pointing to the two leaf pages
-    - is_right_sibling - whether the sibling is a right-sibling
-    */
+    /// Steal tuples from a sibling and copy them to the given page so that both
+    /// pages are at least half full.  Update the parent's entry so that the
+    /// key matches the key field of the first tuple in the right-hand page.
+    ///
+    /// # Arguments
+    ///
+    /// - page           - the leaf page which is less than half full
+    /// - sibling        - the sibling which has tuples to spare
+    /// - parent         - the parent of the two leaf pages
+    /// - entry          - the entry in the parent pointing to the two leaf
+    ///   pages
+    /// - is_right_sibling - whether the sibling is a right-sibling
     fn balancing_two_leaf_pages(
         &self,
         left_rc: Rc<RefCell<BTreeLeafPage>>,
@@ -1033,24 +1018,22 @@ impl BTreeTable {
         }
     }
 
-    /**
-    Recursive function which finds and locks the leaf page in
-    the B+ tree corresponding to the left-most page possibly
-    containing the key field f. It locks all internal nodes
-    along the path to the leaf node with READ_ONLY permission,
-    and locks the leaf node with permission perm.
-
-    # Arguments
-
-    * tid  - the transaction id
-    * pid  - the current page being searched
-    * perm - the permissions with which to lock the leaf page
-    * f    - the field to search for
-
-    # Return
-
-    * the left-most leaf page possibly containing the key field f
-    */
+    /// Recursive function which finds and locks the leaf page in
+    /// the B+ tree corresponding to the left-most page possibly
+    /// containing the key field f. It locks all internal nodes
+    /// along the path to the leaf node with READ_ONLY permission,
+    /// and locks the leaf node with permission perm.
+    ///
+    /// # Arguments
+    ///
+    /// tid  - the transaction id
+    /// pid  - the current page being searched
+    /// perm - the permissions with which to lock the leaf page
+    /// f    - the field to search for
+    ///
+    /// # Return
+    ///
+    /// the left-most leaf page possibly containing the key field f
     fn find_leaf_page(
         &self,
         page_id: BTreePageID,
@@ -1127,9 +1110,7 @@ impl BTreeTable {
         self.file.borrow_mut()
     }
 
-    /**
-    init file in necessary
-    */
+    /// init file in necessary
     fn file_init(mut file: RefMut<File>) {
         // if db file is empty, create root pointer page at first
         if file.metadata().unwrap().len() == 0 {
@@ -1241,9 +1222,7 @@ impl BTreeTable {
         return self.find_leaf_page(page_id, SearchFor::RightMost);
     }
 
-    /**
-    Get the root page pid.
-    */
+    /// Get the root page pid.
     pub fn get_root_pid(&self) -> BTreePageID {
         let root_ptr_rc = self.get_root_ptr_page();
         let mut root_pid = root_ptr_rc.borrow().get_root_pid();
@@ -1262,11 +1241,9 @@ impl BTreeTable {
             .unwrap()
     }
 
-    /**
-    The count of pages in this BTreeFile
-
-    (the ROOT_POINTER page is not included)
-    */
+    /// The count of pages in this BTreeFile
+    ///
+    /// (the ROOT_POINTER page is not included)
     pub fn pages_count(&self) -> usize {
         let file_size = self.file.borrow().metadata().unwrap().len() as usize;
         file_size / BufferPool::get_page_size() - 1
@@ -1313,10 +1290,8 @@ impl BTreeTable {
 
 /// debug methods
 impl BTreeTable {
-    /**
-    # Arguments
-    * `max_level` - the max level of the print, -1 for print all
-    */
+    /// # Arguments
+    /// `max_level` - the max level of the print, -1 for print all
     pub fn draw_tree(&self, max_level: i32) {
         println!("\n----- PRINT TREE STRUCTURE START -----\n");
 
@@ -1424,16 +1399,14 @@ impl BTreeTable {
         self.draw_subtree(&entry.get_right_child(), level + 1, max_level);
     }
 
-    /**
-    checks the integrity of the tree:
-    - parent pointers.
-    - sibling pointers.
-    - range invariants.
-    - record to page pointers.
-    - occupancy invariants. (if enabled)
-
-    panic on any error found.
-    */
+    /// checks the integrity of the tree:
+    /// - parent pointers.
+    /// - sibling pointers.
+    /// - range invariants.
+    /// - record to page pointers.
+    /// - occupancy invariants. (if enabled)
+    ///
+    /// panic on any error found.
     pub fn check_integrity(&self, check_occupancy: bool) {
         let root_ptr_page = self.get_root_ptr_page();
         let root_pid = root_ptr_page.borrow().get_root_pid();
@@ -1457,9 +1430,7 @@ impl BTreeTable {
         );
     }
 
-    /**
-    panic on any error found.
-    */
+    /// panic on any error found.
     fn check_sub_tree(
         &self,
         pid: &BTreePageID,

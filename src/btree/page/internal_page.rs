@@ -115,20 +115,17 @@ impl BTreeInternalPage {
         slots / 8 + 1
     }
 
-    /**
-    Retrieve the maximum number of entries this page can hold. (The number of keys)
-    */
+    /// Retrieve the maximum number of entries this page can hold. (The number
+    /// of keys)
     pub fn get_max_entries(key_size: usize) -> usize {
         let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
-        /*
-        extraBits are: one parent pointer, 1 byte for child page category,
-        one extra child pointer (node with m entries has m+1 pointers to
-        children),
-        1 bit for extra header (why?)
-        */
+        // extraBits are: one parent pointer, 1 byte for child page category,
+        // one extra child pointer (node with m entries has m+1 pointers to
+        // children),
+        // 1 bit for extra header (why?)
         let extra_bits = 2 * INDEX_SIZE * 8 + 8;
         let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
-            / bits_per_entry_including_header; //round down
+            / bits_per_entry_including_header; // round down
         return entries_per_page;
     }
 
@@ -200,9 +197,7 @@ impl BTreeInternalPage {
         self.keys[record_id] = entry.get_key();
     }
 
-    /**
-    Returns true if associated slot on this page is filled.
-    */
+    /// Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
         self.header[slot_index]
     }
@@ -410,11 +405,9 @@ impl BTreeInternalPage {
     }
 }
 
-/*
-All of the entries or tuples in the left child page should be less than or equal to
-the key, and all of the entries or tuples in the right child page should be greater
-than or equal to the key.
-*/
+// All of the entries or tuples in the left child page should be less than or
+// equal to the key, and all of the entries or tuples in the right child page
+// should be greater than or equal to the key.
 #[derive(Clone, Copy)]
 pub struct Entry {
     key: IntField,

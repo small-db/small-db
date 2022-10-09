@@ -203,9 +203,7 @@ impl TupleScheme {
         new_scheme
     }
 
-    /**
-    get tuple size in bytes
-    */
+    /// get tuple size in bytes
     pub fn get_size(&self) -> usize {
         self.fields.len() * 4
     }

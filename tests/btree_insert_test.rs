@@ -247,15 +247,13 @@ fn split_internal_page() {
     // For this test we will decrease the size of the Buffer Pool pages
     BufferPool::set_page_size(1024);
 
-    /*
-    This should create a B+ tree with a packed second tier of internal pages
-    and packed third tier of leaf pages
-    (124 tuples per leaf page, 125 children per internal page ->
-    2 * 125 * 124 = 31000)
-    2 = 2 children (internal pages) for the top level internal page
-    125 = 125 children (leaf pages) for each second level internal pages
-    124 = 124 tuples per leaf page
-    */
+    // This should create a B+ tree with a packed second tier of internal pages
+    // and packed third tier of leaf pages
+    // (124 tuples per leaf page, 125 children per internal page ->
+    // 2 * 125 * 124 = 31000)
+    // 2 = 2 children (internal pages) for the top level internal page
+    // 125 = 125 children (leaf pages) for each second level internal pages
+    // 124 = 124 tuples per leaf page
     let rows = 2 * 125 * 124;
     let table_rc = common::create_random_btree_table(
         2,

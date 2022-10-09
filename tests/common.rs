@@ -17,12 +17,10 @@ use simple_db_rust::{
 
 pub const DB_FILE: &str = "./btree.db";
 
-/**
-# Conduct the initialization
-
-- Setting up log configurations.
-- Clear buffer pool.
-*/
+/// # Conduct the initialization
+///
+/// - Setting up log configurations.
+/// - Clear buffer pool.
 pub fn setup() {
     test_utils::init_log();
     btree::buffer_pool::BufferPool::global().clear();
@@ -35,15 +33,13 @@ pub enum TreeLayout {
     LastTwoEvenlyDistributed,
 }
 
-/**
-Create a table with a given number of rows and columns.
-
-The rows are filled with random data and are sorted by the
-key field/column before being inserted into the table.
-
-The rows are inserted to pages in a compact manner. Result
-in all leaf pages being full.
-*/
+/// Create a table with a given number of rows and columns.
+///
+/// The rows are filled with random data and are sorted by the
+/// key field/column before being inserted into the table.
+///
+/// The rows are inserted to pages in a compact manner. Result
+/// in all leaf pages being full.
 pub fn create_random_btree_table(
     columns: usize,
     rows: usize,

@@ -52,9 +52,7 @@ impl BTreeRootPointerPage {
         self.root_pid = *pid;
     }
 
-    /**
-    Get the id of the first header page
-    */
+    /// Get the id of the first header page
     pub fn get_header_pid(&self) -> Option<BTreePageID> {
         if self.header_page_index == EMPTY_PAGE_ID {
             None
@@ -67,9 +65,7 @@ impl BTreeRootPointerPage {
         }
     }
 
-    /**
-    Set the page id of the first header page
-    */
+    /// Set the page id of the first header page
     pub fn set_header_pid(&mut self, pid: &BTreePageID) {
         self.header_page_index = pid.page_index;
     }

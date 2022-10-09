@@ -126,9 +126,7 @@ impl BTreeLeafPage {
         }
     }
 
-    /**
-    Retrieve the maximum number of tuples this page can hold.
-    */
+    /// Retrieve the maximum number of tuples this page can hold.
     pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
         let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
         // extraBits are: left sibling pointer, right sibling pointer, parent
@@ -143,9 +141,7 @@ impl BTreeLeafPage {
         self.slot_count
     }
 
-    /**
-    stable means at least half of the page is occupied
-    */
+    /// stable means at least half of the page is occupied
     pub fn stable(&self) -> bool {
         if self.get_parent_pid().category == PageCategory::RootPointer {
             return true;
@@ -177,12 +173,10 @@ impl BTreeLeafPage {
         slot_count / 8 + 1
     }
 
-    /**
-    Adds the specified tuple to the page such that all records remain in
-    sorted order; the tuple should be updated to reflect
-    that it is now stored on this page.
-    tuple: The tuple to add.
-    */
+    /// Adds the specified tuple to the page such that all records remain in
+    /// sorted order; the tuple should be updated to reflect
+    /// that it is now stored on this page.
+    /// tuple: The tuple to add.
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
         let mut first_empty_slot: i32 = 0;
@@ -253,16 +247,12 @@ impl BTreeLeafPage {
         self.mark_slot_status(slot_index, false);
     }
 
-    /**
-    Returns true if associated slot on this page is filled.
-    */
+    /// Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
         self.header[slot_index]
     }
 
-    /*
-    mark the slot as empty/filled.
-    */
+    // mark the slot as empty/filled.
     pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }

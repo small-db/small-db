@@ -206,15 +206,13 @@ impl BufferPool {
         Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
     }
 
-    /**
-    Remove the specific page id from the buffer pool.
-    Needed by the recovery manager to ensure that the
-    buffer pool doesn't keep a rolled back page in its
-    cache.
-
-    Also used by B+ tree files to ensure that deleted pages
-    are removed from the cache so they can be reused safely
-    */
+    /// Remove the specific page id from the buffer pool.
+    /// Needed by the recovery manager to ensure that the
+    /// buffer pool doesn't keep a rolled back page in its
+    /// cache.
+    ///
+    /// Also used by B+ tree files to ensure that deleted pages
+    /// are removed from the cache so they can be reused safely
     pub fn discard_page(&mut self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
@@ -258,17 +256,15 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    /**
-    Add a tuple to the specified table on behalf of transaction tid.  Will
-    acquire a write lock on the page the tuple is added to and any other
-    pages that are updated (Lock acquisition is not needed for lab2).
-    May block if the lock(s) cannot be acquired.
-
-    Marks any pages that were dirtied by the operation as dirty by calling
-    their markDirty bit, and adds versions of any pages that have
-    been dirtied to the cache (replacing any existing versions of those pages) so
-    that future requests see up-to-date pages.
-    */
+    /// Add a tuple to the specified table on behalf of transaction tid.  Will
+    /// acquire a write lock on the page the tuple is added to and any other
+    /// pages that are updated (Lock acquisition is not needed for lab2).
+    /// May block if the lock(s) cannot be acquired.
+    ///
+    /// Marks any pages that were dirtied by the operation as dirty by calling
+    /// their markDirty bit, and adds versions of any pages that have
+    /// been dirtied to the cache (replacing any existing versions of those
+    /// pages) so that future requests see up-to-date pages.
     pub fn insert_tuple(&mut self, table_id: i32, t: Tuple) {
         let v = Catalog::global().get_table(&table_id).unwrap().borrow();
         v.insert_tuple(&t);
