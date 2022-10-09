@@ -13,7 +13,7 @@ Cargo.lock
 out
 
 # vscode editor configs
-.vscode
+# .vscode
 
 # db files
 *.db

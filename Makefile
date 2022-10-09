@@ -31,6 +31,11 @@ clean:
 	rm out
 
 fmt:
+	# > rustup run nightly rustfmt --version
+	# rustfmt 1.4.38-nightly (3c17c84a 2022-03-21)
+	# 
+	# 
+	# 
 	rustup run nightly cargo fmt
 
 pub:
