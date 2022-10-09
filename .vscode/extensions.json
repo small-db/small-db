@@ -1,5 +1,9 @@
 {
     "recommendations": [
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "alefragnani.bookmarks",
+        "rust-lang.rust-analyzer",
+        "vscodevim.vim",
+        "GitHub.copilot"
     ]
 }
