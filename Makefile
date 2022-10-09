@@ -1,6 +1,10 @@
+# Used for CI environment or you only need the summarized result of the test.
 test:
 	RUST_LOG=error cargo test -- --test-threads=1
 
+# Used when you want to see the detailed log of the test.
+# 
+# The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test-verbose:
 	# Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 	# 
