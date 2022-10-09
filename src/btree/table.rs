@@ -40,7 +40,9 @@ enum SearchFor {
     RightMost,
 }
 
-/// B+ Tree
+/**
+B+ Tree
+*/
 pub struct BTreeTable {
     // the file that stores the on-disk backing store for this B+ tree
     // file.
@@ -1263,7 +1265,7 @@ impl BTreeTable {
     /**
     The count of pages in this BTreeFile
 
-    (BTreeRootPointerPage is not included)
+    (the ROOT_POINTER page is not included)
     */
     pub fn pages_count(&self) -> usize {
         let file_size = self.file.borrow().metadata().unwrap().len() as usize;
@@ -1390,10 +1392,11 @@ impl BTreeTable {
         {
             let page = page_rc.borrow();
             println!(
-                "{}├── internal: {} ({} entries)",
+                "{}├── internal: {} ({}/{} entries)",
                 prefix,
                 pid,
-                page.entries_count()
+                page.entries_count(),
+                page.get_max_capacity(),
             );
             if max_level != -1 && level as i32 == max_level {
                 return;

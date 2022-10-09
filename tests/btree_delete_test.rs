@@ -88,7 +88,7 @@ fn test_merge_leaf_pages() {
 fn test_delete_root_page() {
     common::setup();
 
-    // This should create a B+ tree with two half-full leaf pages
+    // this should create a B+ tree with two half-full leaf pages
     let table_rc = common::create_random_btree_table(
         2,
         503,
@@ -97,8 +97,11 @@ fn test_delete_root_page() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.borrow();
+    // there should be one internal node and 2 leaf nodes
     assert_eq!(3, table.pages_count());
+    table.draw_tree(-1);
     table.check_integrity(true);
+    return;
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);
@@ -209,6 +212,7 @@ fn test_delete_internal_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
+
     let table = table_rc.borrow();
     table.draw_tree(2);
     table.check_integrity(true);
@@ -221,7 +225,7 @@ fn test_delete_internal_pages() {
     // gets to minimum occupancy
     let it = BTreeTableIterator::new(&table);
     for (i, t) in it.rev().take(1 + 62 * 124).enumerate() {
-        info!("deleting i: {}, tuple: {:?}, pid: {:?}", i, t, t.get_pid());
+        // info!("deleting i: {}, tuple: {:?}, pid: {:?}", i, t, t.get_pid());
         // table.draw_tree(-1);
         table.check_integrity(true);
         if let Err(e) = table.delete_tuple(&t) {
@@ -230,6 +234,8 @@ fn test_delete_internal_pages() {
             table.check_integrity(true);
         }
     }
+
+    return;
 
     table.draw_tree(2);
     table.check_integrity(true);

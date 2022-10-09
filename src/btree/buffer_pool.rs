@@ -233,17 +233,17 @@ impl BufferPool {
     pub fn set_page_size(page_size: usize) {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
 
-        info!("set page size to {}", page_size);
+        // info!("set page size to {}", page_size);
         let scheme = simple_int_tuple_scheme(2, "");
-        info!(
-            "leaf page slot count: {}",
-            BTreeLeafPage::calculate_slots_count(&scheme)
-        );
-        info!(
-            "internal page entries count: {}, children count: {}",
-            BTreeInternalPage::get_max_entries(4),
-            BTreeInternalPage::get_max_entries(4) + 1,
-        );
+        // info!(
+        //     "leaf page slot count: {}",
+        //     BTreeLeafPage::calculate_slots_count(&scheme)
+        // );
+        // info!(
+        //     "internal page entries count: {}, children count: {}",
+        //     BTreeInternalPage::get_max_entries(4),
+        //     BTreeInternalPage::get_max_entries(4) + 1,
+        // );
     }
 
     pub fn rows_per_page(scheme: &TupleScheme) -> usize {

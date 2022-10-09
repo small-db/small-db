@@ -1,3 +1,4 @@
+use log::debug;
 use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
@@ -16,6 +17,12 @@ use simple_db_rust::{
 
 pub const DB_FILE: &str = "./btree.db";
 
+/**
+# Conduct the initialization
+
+- Setting up log configurations.
+- Clear buffer pool.
+*/
 pub fn setup() {
     test_utils::init_log();
     btree::buffer_pool::BufferPool::global().clear();
@@ -94,6 +101,8 @@ pub fn create_random_btree_table(
         }
     }
     // borrow of table_rc ends here
+
+    debug!("table construction finished, insert {} rows in total", rows,);
 
     return table_rc;
 }
