@@ -328,7 +328,4 @@ fn split_internal_page() {
     }
 
     assert_eq!(count, rows + rows_increment);
-
-    // revert to default page size for other tests
-    BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 }

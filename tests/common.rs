@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use simple_db_rust::{
     btree::{
-        buffer_pool::BufferPool,
+        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
             BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
             Entry,
@@ -21,9 +21,11 @@ pub const DB_FILE: &str = "./btree.db";
 ///
 /// - Setting up log configurations.
 /// - Clear buffer pool.
+/// - Reset page size.
 pub fn setup() {
     test_utils::init_log();
-    btree::buffer_pool::BufferPool::global().clear();
+    BufferPool::global().clear();
+    BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -1,6 +1,6 @@
 use std::{env, ops::DerefMut};
 
-use log::{info, debug};
+use log::{debug, info};
 
 use super::{
     buffer_pool::BufferPool,
@@ -93,8 +93,8 @@ impl BTreeTable {
                 .unwrap(),
         );
 
-        let file_size = f.borrow().metadata().unwrap().len() as usize;
-        debug!("btree initialized, file size: {}", file_size);
+        // let file_size = f.borrow().metadata().unwrap().len() as usize;
+        // debug!("btree initialized, file size: {}", file_size);
 
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
@@ -1250,7 +1250,11 @@ impl BTreeTable {
     /// (the ROOT_POINTER page is not included)
     pub fn pages_count(&self) -> usize {
         let file_size = self.file.borrow().metadata().unwrap().len() as usize;
-        // info!("file size: {}, page size: {}", file_size, BufferPool::get_page_size());
+        debug!(
+            "file size: {}, page size: {}",
+            file_size,
+            BufferPool::get_page_size()
+        );
         file_size / BufferPool::get_page_size() - 1
     }
 
@@ -1333,7 +1337,7 @@ impl BTreeTable {
     fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) {
         let print_sibling = false;
 
-        let prefix = "│   ".repeat(level);
+        let mut prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
         let mut it = BTreeLeafPageIteratorRc::new(Rc::clone(&page_rc));
@@ -1354,14 +1358,17 @@ impl BTreeTable {
             );
         } else {
             println!(
-                "{}├── leaf: {} ({} tuples)",
+                "{}├── leaf: {} ({}/{} tuples)",
                 prefix,
                 page.get_pid(),
                 page.tuples_count(),
+                page.slot_count,
             );
         }
-        println!("{}├── first: {}", prefix, first_tuple);
-        println!("{}└── last:  {}", prefix, last_tuple);
+
+        prefix = "│   ".repeat(level + 1);
+        println!("{}├── first tuple: {}", prefix, first_tuple);
+        println!("{}└── last tuple:  {}", prefix, last_tuple);
     }
 
     fn draw_internal_node(
