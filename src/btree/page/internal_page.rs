@@ -134,10 +134,6 @@ impl BTreeInternalPage {
         self.slot_count - 1
     }
 
-    pub fn get_page_id(&self) -> BTreePageID {
-        self.get_pid()
-    }
-
     pub fn get_entry(&self, index: usize) -> Option<Entry> {
         if self.is_slot_used(index) {
             Some(Entry::new(

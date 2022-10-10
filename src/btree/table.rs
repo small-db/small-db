@@ -237,8 +237,8 @@ impl BTreeTable {
             page.set_right_pid(Some(new_sibling.get_pid()));
 
             // set parent id
-            page.set_parent_pid(&parent.get_page_id());
-            new_sibling.set_parent_pid(&parent.get_page_id());
+            page.set_parent_pid(&parent.get_pid());
+            new_sibling.set_parent_pid(&parent.get_pid());
         }
         // borrow of parent_rc end here
         // borrow of page_rc end here
@@ -316,7 +316,7 @@ impl BTreeTable {
 
                     root_pointer_page
                         .borrow_mut()
-                        .set_root_pid(&new_parent.get_page_id());
+                        .set_root_pid(&new_parent.get_pid());
                 }
                 // borrow of new_parent_rc end here
 
@@ -386,7 +386,7 @@ impl BTreeTable {
                 // create new parent page if the parent page is root pointer
                 // page.
                 let parent_rc = self.get_empty_interanl_page();
-                parent_pid = parent_rc.borrow().get_page_id();
+                parent_pid = parent_rc.borrow().get_pid();
 
                 // update the root pointer
                 let root_pointer_pid = BTreePageID::new(
@@ -411,7 +411,7 @@ impl BTreeTable {
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
-                Self::set_parent(&right_pid, &sibling.get_page_id());
+                Self::set_parent(&right_pid, &sibling.get_pid());
             }
 
             let middle_entry = it.next_back().unwrap();
@@ -425,12 +425,12 @@ impl BTreeTable {
             // set parent id for right child to the middle entry
             Self::set_parent(
                 &middle_entry.get_right_child(),
-                &sibling.get_page_id(),
+                &sibling.get_pid(),
             );
 
             key = middle_entry.get_key();
             new_entry =
-                Entry::new(key, &page.get_page_id(), &sibling.get_page_id());
+                Entry::new(key, &page.get_pid(), &sibling.get_pid());
         }
         // borrow of sibling_rc end here
         // borrow of page_rc end here
@@ -461,7 +461,7 @@ impl BTreeTable {
     ///
     /// May cause pages to merge or redistribute entries/tuples if the pages
     /// become less than half full.
-    pub fn delete_tuple(&self, tuple: &WrappedTuple) -> Result<(), MyError> {
+    pub fn delete_tuple(&self, tuple: &WrappedTuple) {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
@@ -472,10 +472,8 @@ impl BTreeTable {
         }
         // release the leaf page
 
-        if leaf_rc.borrow().stable() {
-            return Ok(());
-        } else {
-            return self.handle_erratic_leaf_page(leaf_rc);
+        if !leaf_rc.borrow().stable() {
+            self.handle_erratic_leaf_page(leaf_rc);
         }
     }
 
@@ -484,14 +482,11 @@ impl BTreeTable {
     ///
     /// If one of its siblings has extra tuples, redistribute those tuples.
     /// Otherwise merge with one of the siblings. Update pointers as needed.
-    fn handle_erratic_leaf_page(
-        &self,
-        page_rc: Rc<RefCell<BTreeLeafPage>>,
-    ) -> Result<(), MyError> {
+    fn handle_erratic_leaf_page(&self, page_rc: Rc<RefCell<BTreeLeafPage>>) {
         if page_rc.borrow().get_parent_pid().category
             == PageCategory::RootPointer
         {
-            return Ok(());
+            return;
         }
 
         let left_pid = page_rc.borrow().get_left_pid();
@@ -500,16 +495,14 @@ impl BTreeTable {
         if let Some(left_pid) = left_pid {
             let left_rc =
                 BufferPool::global().get_leaf_page(&left_pid).unwrap();
-            self.balancing_two_leaf_pages(left_rc, page_rc)?;
+            self.balancing_two_leaf_pages(left_rc, page_rc).unwrap();
         } else if let Some(right_pid) = right_pid {
             let right_rc =
                 BufferPool::global().get_leaf_page(&right_pid).unwrap();
-            self.balancing_two_leaf_pages(page_rc, right_rc)?;
+            self.balancing_two_leaf_pages(page_rc, right_rc).unwrap();
         } else {
             panic!("Cannot find the left/right sibling of the page");
         };
-
-        Ok(())
     }
 
     /// Handle the case when an internal page becomes less than half full due
@@ -845,7 +838,8 @@ impl BTreeTable {
                     left.insert_entry(&e)?;
 
                     // 2. update parent id for the moved child
-                    self.set_parent_pid(&e.get_right_child(), &parent_pid);
+                    info!("set parent pid: {:?} -> {:?}", e.get_right_child(), left.get_pid());
+                    self.set_parent_pid(&e.get_right_child(), &left.get_pid());
 
                     // 3. remember the entry for deletion later (cause we can't
                     // modify the page while iterating though it)
@@ -875,7 +869,8 @@ impl BTreeTable {
                     right.insert_entry(&e)?;
 
                     // 2. update parent id for the moved child
-                    self.set_parent_pid(&e.get_left_child(), &parent_pid);
+                    info!("set parent pid: {:?} -> {:?}", e.get_left_child(), right.get_pid());
+                    self.set_parent_pid(&e.get_left_child(), &right.get_pid());
 
                     // 3. remember the entry for deletion later (cause we can't
                     // modify the page while iterating though it)
@@ -1299,8 +1294,15 @@ impl BTreeTable {
 
 /// debug methods
 impl BTreeTable {
+    /// Print the BTreeFile structure.
+    ///
     /// # Arguments
-    /// `max_level` - the max level of the print, -1 for print all
+    ///
+    /// - `max_level` - the max level of the print
+    ///     - 0: print the root pointer page
+    ///     - 1: print the root pointer page and the root page (internal or leaf)
+    ///     - ...
+    ///     - -1: print all pages
     pub fn draw_tree(&self, max_level: i32) {
         // return if the log level is not debug
         if env::var("RUST_LOG").unwrap_or_default() != "debug" {

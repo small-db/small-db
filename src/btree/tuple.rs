@@ -238,7 +238,7 @@ pub fn simple_int_tuple_scheme(width: usize, name_prefix: &str) -> TupleScheme {
 
 #[cfg(test)]
 mod tests {
-    use log::info;
+    use log::{info, debug};
 
     use crate::util::init_log;
 
@@ -249,8 +249,8 @@ mod tests {
         init_log();
 
         let tuple = Tuple::new_btree_tuple(35, 2);
-        info!("tuple: {}", tuple);
+        debug!("tuple: {}", tuple);
         let new_tuple = tuple.clone();
-        info!("new tuple: {}", new_tuple);
+        debug!("new tuple: {}", new_tuple);
     }
 }

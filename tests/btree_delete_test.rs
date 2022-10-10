@@ -101,13 +101,13 @@ fn test_delete_root_page() {
     table.check_integrity(true);
     // there should be one internal node and 2 leaf nodes
     assert_eq!(3, table.pages_count());
-    return;
+    // return;
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);
-    table.delete_tuple(&it.next().unwrap()).unwrap();
+    table.delete_tuple(&it.next().unwrap());
     table.check_integrity(true);
-    table.delete_tuple(&it.next().unwrap()).unwrap();
+    table.delete_tuple(&it.next().unwrap());
     table.check_integrity(true);
 
     table.draw_tree(-1);
@@ -161,7 +161,8 @@ fn test_redistribute_internal_pages() {
     common::setup();
 
     // This should create a B+ tree with two nodes in the second tier
-    // and 602 nodes in the third tier
+    // and 602 nodes in the third tier.
+    // 
     // 302204 = 2 * 301 * 502
     // 2 internal pages
     // 602 leaf pages
@@ -175,11 +176,12 @@ fn test_redistribute_internal_pages() {
     let table = table_rc.borrow();
     table.check_integrity(true);
     table.draw_tree(-1);
+    // return;
 
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&table);
     for t in it.by_ref().take(49 * 502 + 1) {
-        table.delete_tuple(&t).unwrap();
+        table.delete_tuple(&t);
     }
 
     table.draw_tree(2);
@@ -188,10 +190,10 @@ fn test_redistribute_internal_pages() {
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
-        table.delete_tuple(&t).unwrap();
+        table.delete_tuple(&t);
     }
 
-    table.draw_tree(2);
+    table.draw_tree(-1);
     table.check_integrity(true);
 }
 
@@ -225,19 +227,8 @@ fn test_delete_internal_pages() {
     // gets to minimum occupancy
     let it = BTreeTableIterator::new(&table);
     let delete_target = 1 + 62 * 124;
-    for (i, t) in it.rev().take(delete_target).enumerate() {
-        // info!("deleting i: {}, tuple: {:?}, pid: {:?}", i, t, t.get_pid());
-        // table.draw_tree(-1);
-        // table.check_integrity(true);
-        // if i % 200 == 0 {
-        //     info!("deleting {}/{}", i, delete_target);
-        // }
-
-        if let Err(e) = table.delete_tuple(&t) {
-            error!("error when deleting tuple: {}, tuple: {}, i: {}", e, t, i);
-            table.draw_tree(-1);
-            table.check_integrity(true);
-        }
+    for t in it.rev().take(delete_target) {
+        table.delete_tuple(&t);
     }
 
     // return;

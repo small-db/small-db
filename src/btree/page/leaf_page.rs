@@ -1,3 +1,4 @@
+use backtrace::Backtrace;
 use bit_vec::BitVec;
 
 use crate::{
@@ -265,13 +266,16 @@ impl BTreeLeafPage {
         check_occupancy: bool,
         depth: usize,
     ) {
+        let bt = Backtrace::new();
+
         assert_eq!(self.get_pid().category, PageCategory::Leaf);
         assert_eq!(
             &self.get_parent_pid(),
             parent_pid,
-            "parent pid incorrect, current page: {:?}, current parent pid: {:?}",
+            "parent pid incorrect, current page: {:?}, current parent pid: {:?}, backtrace: {:?}",
             self.get_pid(),
             self.get_parent_pid(),
+            bt,
         );
 
         let mut previous = lower_bound;
