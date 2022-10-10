@@ -104,9 +104,9 @@ fn test_delete_root_page() {
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);
-    table.delete_tuple(&it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap()).unwrap();
     table.check_integrity(true);
-    table.delete_tuple(&it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap()).unwrap();
     table.check_integrity(true);
 
     table.draw_tree(-1);
@@ -223,10 +223,15 @@ fn test_delete_internal_pages() {
     // Delete tuples causing leaf pages to merge until the first internal page
     // gets to minimum occupancy
     let it = BTreeTableIterator::new(&table);
-    for (i, t) in it.rev().take(1 + 62 * 124).enumerate() {
+    let delete_target = 1 + 62 * 124;
+    for (i, t) in it.rev().take(delete_target).enumerate() {
         // info!("deleting i: {}, tuple: {:?}, pid: {:?}", i, t, t.get_pid());
         // table.draw_tree(-1);
-        table.check_integrity(true);
+        // table.check_integrity(true);
+        // if i % 200 == 0 {
+        //     info!("deleting {}/{}", i, delete_target);
+        // }
+
         if let Err(e) = table.delete_tuple(&t) {
             error!("error when deleting tuple: {}, tuple: {}, i: {}", e, t, i);
             table.draw_tree(-1);
@@ -234,7 +239,7 @@ fn test_delete_internal_pages() {
         }
     }
 
-    return;
+    // return;
 
     table.draw_tree(2);
     table.check_integrity(true);
