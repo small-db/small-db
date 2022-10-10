@@ -101,7 +101,6 @@ fn test_delete_root_page() {
     assert_eq!(3, table.pages_count());
     table.draw_tree(-1);
     table.check_integrity(true);
-    return;
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);

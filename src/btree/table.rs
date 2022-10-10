@@ -1,6 +1,6 @@
 use std::{env, ops::DerefMut};
 
-use log::info;
+use log::{info, debug};
 
 use super::{
     buffer_pool::BufferPool,
@@ -94,7 +94,7 @@ impl BTreeTable {
         );
 
         let file_size = f.borrow().metadata().unwrap().len() as usize;
-        info!("btree initialized, file size: {}", file_size);
+        debug!("btree initialized, file size: {}", file_size);
 
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
@@ -1250,6 +1250,7 @@ impl BTreeTable {
     /// (the ROOT_POINTER page is not included)
     pub fn pages_count(&self) -> usize {
         let file_size = self.file.borrow().metadata().unwrap().len() as usize;
+        info!("file size: {}, page size: {}", file_size, BufferPool::get_page_size());
         file_size / BufferPool::get_page_size() - 1
     }
 
