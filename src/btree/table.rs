@@ -1293,6 +1293,10 @@ impl BTreeTable {
     /// # Arguments
     /// `max_level` - the max level of the print, -1 for print all
     pub fn draw_tree(&self, max_level: i32) {
+        if log::Level != log::Level::Debug {
+            return;
+        }
+
         println!("\n----- PRINT TREE STRUCTURE START -----\n");
 
         // get root pointer page

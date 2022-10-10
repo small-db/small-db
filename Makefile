@@ -1,8 +1,8 @@
-# Used for CI environment or you only need the summarized result of the test.
+# Used when you don't need too much detail.
 test:
-	RUST_LOG=error cargo test -- --test-threads=1
+	RUST_LOG=info cargo test -- --test-threads=1
 
-# Used when you want to see the detailed log of the test.
+# Used when you need more detail.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test-verbose:
@@ -22,7 +22,7 @@ test-verbose:
 	# `2>&1` is used since the log is printed to stderr.
 	# 
 	# `tee out` is used to redirect the output to stdout and a file.
-	RUST_LOG=info RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact 2>&1 | tee out
 
 clean:
 	rm *.db; \
