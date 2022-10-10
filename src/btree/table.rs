@@ -1,4 +1,6 @@
-use std::ops::DerefMut;
+use std::{env, ops::DerefMut};
+
+use log::info;
 
 use super::{
     buffer_pool::BufferPool,
@@ -91,11 +93,13 @@ impl BTreeTable {
                 .unwrap(),
         );
 
+        let file_size = f.borrow().metadata().unwrap().len() as usize;
+        info!("btree initialized, file size: {}", file_size);
+
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
-        // unix_time.
 
         let table_id = hasher.finish() as i32;
 
@@ -1293,7 +1297,8 @@ impl BTreeTable {
     /// # Arguments
     /// `max_level` - the max level of the print, -1 for print all
     pub fn draw_tree(&self, max_level: i32) {
-        if log::Level != log::Level::Debug {
+        // return if the log level is not debug
+        if env::var("RUST_LOG").unwrap_or_default() != "debug" {
             return;
         }
 
