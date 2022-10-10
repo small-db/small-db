@@ -32,9 +32,9 @@ clean:
 
 fmt:
 	# > rustup run nightly rustfmt --version
-	# rustfmt 1.4.38-nightly (3c17c84a 2022-03-21)
+	# rustfmt 1.5.1-nightly (81f39193 2022-10-09)
 	# 
-	# 
+	# unstable features are only available in nightly channel
 	# 
 	rustup run nightly cargo fmt
 
