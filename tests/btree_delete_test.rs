@@ -162,7 +162,7 @@ fn test_redistribute_internal_pages() {
 
     // This should create a B+ tree with two nodes in the second tier
     // and 602 nodes in the third tier.
-    // 
+    //
     // 302204 = 2 * 301 * 502
     // 2 internal pages
     // 602 leaf pages
@@ -184,13 +184,18 @@ fn test_redistribute_internal_pages() {
         table.delete_tuple(&t);
     }
 
-    table.draw_tree(2);
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
-        table.delete_tuple(&t);
+        if let Err(e) = table.delete_tuple(&t) {
+            println!("Error: {:?}", e);
+            table.draw_tree(-1);
+            table.check_integrity(true);
+            panic!("Error deleting tuple");
+        }
     }
 
     table.draw_tree(-1);

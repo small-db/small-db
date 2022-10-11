@@ -17,12 +17,16 @@ test-verbose:
 	# 
 	# "--nocapture" instructs the test to print all output to stdout.
 	# 
-	# "--exact" instructs the test to print the exact output of the test.
-	# 
 	# `2>&1` is used since the log is printed to stderr.
 	# 
 	# `tee out` is used to redirect the output to stdout and a file.
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture 2>&1 | tee out
+
+# Used to run a single test in verbose mode.
+# 
+# e.g: make test_redistribute_internal_pages
+test_%:
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
 
 clean:
 	rm *.db; \

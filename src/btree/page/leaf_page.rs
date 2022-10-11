@@ -282,7 +282,13 @@ impl BTreeLeafPage {
         let it = BTreeLeafPageIterator::new(self);
         for tuple in it {
             if let Some(previous) = previous {
-                assert!(previous <= tuple.get_field(self.key_field));
+                assert!(
+                    previous <= tuple.get_field(self.key_field),
+                    "previous: {:?}, current: {:?}, page_id: {:?}",
+                    previous,
+                    tuple.get_field(self.key_field),
+                    self.get_pid(),
+                );
             }
             previous = Some(tuple.get_field(self.key_field));
         }

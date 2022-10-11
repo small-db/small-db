@@ -256,7 +256,6 @@ impl BTreeInternalPage {
                 self.entries_count()
             ));
             error!("{}", e);
-            std::panic::panic_any(e);
             return Err(e);
         }
 
@@ -404,7 +403,7 @@ impl BTreeInternalPage {
 // All of the entries or tuples in the left child page should be less than or
 // equal to the key, and all of the entries or tuples in the right child page
 // should be greater than or equal to the key.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Entry {
     key: IntField,
     left: BTreePageID,
