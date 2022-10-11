@@ -40,6 +40,7 @@ fmt:
 	# > rustup run nightly rustfmt --version
 	# rustfmt 1.5.1-nightly (81f39193 2022-10-09)
 	# 
+	cargo fix --allow-dirty --allow-staged
 	rustup run nightly cargo fmt
 
 pub:
