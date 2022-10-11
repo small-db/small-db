@@ -818,6 +818,10 @@ impl BTreeTable {
 
         let mut middle_key = parent_entry.get_key();
 
+        // Remember the entries for deletion later (cause we can't
+        // modify the page while iterating though it)
+        let mut moved_records = Vec::new();
+
         // hold the left and right page
         {
             let mut left = left_rc.borrow_mut();
@@ -826,26 +830,38 @@ impl BTreeTable {
             if left_entries < right_entries {
                 // The edge child of the destination page.
                 let edge_child_pid = left.get_last_child_pid();
+
                 let right_iter = BTreeInternalPageIterator::new(&right);
-                let moved_records = self.move_entries(
+
+                moved_records = self.move_entries(
                     right_iter,
                     left,
                     move_count,
                     &mut middle_key,
                     edge_child_pid,
+                    |edge_pid: BTreePageID, _e: &Entry| edge_pid,
+                    |_edge_pid: BTreePageID, e: &Entry| e.get_left_child(),
+                    |e: &Entry| e.get_left_child(),
                 )?;
+
                 for i in moved_records {
                     right.delete_key_and_left_child(i);
                 }
             } else {
+                // The edge child of the destination page.
                 let edge_child_pid = right.get_first_child_pid();
+
                 let left_iter = BTreeInternalPageIterator::new(&left).rev();
-                let moved_records = self.move_entries(
+
+                moved_records = self.move_entries(
                     left_iter,
                     right,
                     move_count,
                     &mut middle_key,
                     edge_child_pid,
+                    |_edge_pid: BTreePageID, e: &Entry| e.get_right_child(),
+                    |edge_pid: BTreePageID, _e: &Entry| edge_pid,
+                    |e: &Entry| e.get_right_child(),
                 )?;
 
                 for i in moved_records {
@@ -876,42 +892,38 @@ impl BTreeTable {
         move_count: usize,
         middle_key: &mut IntField,
         mut edge_child_pid: BTreePageID,
+        fn_get_left_child_for_new_entry: impl Fn(BTreePageID, &Entry) -> BTreePageID,
+        fn_get_right_child_for_new_entry: impl Fn(
+            BTreePageID,
+            &Entry,
+        ) -> BTreePageID,
+        fn_get_moved_child: impl Fn(&Entry) -> BTreePageID,
     ) -> Result<Vec<usize>, MyError> {
         // Remember the entries for deletion later (cause we can't
         // modify the page while iterating though it)
         let mut moved_records = Vec::new();
 
         for e in src_iter.take(move_count) {
-            // 1. delete the entry from the right page
+            // 1. delete the entry from the src page
             moved_records.push(e.get_record_id());
 
-            let new_entry =
-                Entry::new(*middle_key, &edge_child_pid, &e.get_left_child());
-            debug!("balancing_two_internal_pages: new_entry = {:?}", new_entry,);
-
-            // 1. insert entry
+            // 2. insert new entry to dest page
+            let new_entry = Entry::new(
+                *middle_key,
+                &fn_get_left_child_for_new_entry(edge_child_pid, &e),
+                &fn_get_right_child_for_new_entry(edge_child_pid, &e),
+            );
             dest.insert_entry(&new_entry)?;
 
-            // 2. update parent id for the moved child
-            debug!(
-                "set parent pid: {:?} -> {:?}",
-                e.get_left_child(),
-                dest.get_pid()
-            );
-            self.set_parent_pid(&&e.get_left_child(), &dest.get_pid());
+            // 3. update parent id for the moved child
+            self.set_parent_pid(&fn_get_moved_child(&e), &dest.get_pid());
 
             // 4. update key and edge child for the next iteration
             *middle_key = e.get_key();
-            edge_child_pid = e.get_left_child();
+            edge_child_pid = fn_get_moved_child(&e);
         }
         return Ok(moved_records);
     }
-
-    // fn wtf<T>(&self, a: &mut T)
-    // where
-    //     T: Iterator<Item = Entry>,
-    // {
-    // }
 
     /// Steal tuples from a sibling and copy them to the given page so that both
     /// pages are at least half full.  Update the parent's entry so that the

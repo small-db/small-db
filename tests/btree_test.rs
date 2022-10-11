@@ -11,6 +11,12 @@ fn test_big_table() {
 
     // This should create a B+ tree with a packed second tier of internal pages
     // and packed third tier of leaf pages.
+    //
+    // (124 entries per internal/leaf page, 125 children per internal page)
+    //
+    // 1st tier: 1 internal page
+    // 2nd tier: 2 internal pages (2 * 125 = 250 children)
+    // 3rd tier: 250 leaf pages (250 * 124 = 31,000 entries)
     debug!("Creating large random B+ tree...");
     let _table_rc = common::create_random_btree_table(
         2,
@@ -19,14 +25,6 @@ fn test_big_table() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-
-    // ArrayList<ArrayList<Integer>> tuples = new
-    // ArrayList<ArrayList<Integer>>(); BTreeFile bf =
-    // BTreeUtility.createRandomBTreeFile(2, 31000,         null, tuples,
-    // 0);
-
-    // // we will need more room in the buffer pool for this test
-    // Database.resetBufferPool(500);
 
     // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
     // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.

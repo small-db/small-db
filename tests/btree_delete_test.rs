@@ -1,5 +1,6 @@
 mod common;
 use common::TreeLayout;
+use log::error;
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
@@ -174,7 +175,6 @@ fn test_redistribute_internal_pages() {
     let table = table_rc.borrow();
     table.check_integrity(true);
     table.draw_tree(-1);
-    // return;
 
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&table);
@@ -189,10 +189,9 @@ fn test_redistribute_internal_pages() {
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
         if let Err(e) = table.delete_tuple(&t) {
-            println!("Error: {:?}", e);
+            error!("Error: {:?}", e);
             table.draw_tree(-1);
             table.check_integrity(true);
-            panic!("Error deleting tuple");
         }
     }
 
@@ -207,9 +206,16 @@ fn test_delete_internal_pages() {
     BufferPool::set_page_size(1024);
 
     // This should create a B+ tree with three nodes in the second tier
-    // and 252 nodes in the third tier
-    // (124 entries per internal/leaf page, 125 children per internal page ->
+    // and 252 nodes in the third tier.
+    //
+    // (124 entries per internal/leaf page, 125 children per internal page) ->
     // 251*124 + 1 = 31125)
+    //
+    // (124 entries per internal/leaf page, 125 children per internal page)
+    //
+    // 1st tier: 1 internal page
+    // 2nd tier: 3 internal pages (2 * 125 + 2 = 252 children)
+    // 3rd tier: 252 leaf pages (251 * 124 + 1 = 31125 entries)
     let table_rc = common::create_random_btree_table(
         2,
         31125,
