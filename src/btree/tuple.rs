@@ -238,7 +238,7 @@ pub fn simple_int_tuple_scheme(width: usize, name_prefix: &str) -> TupleScheme {
 
 #[cfg(test)]
 mod tests {
-    use log::{debug, info};
+    use log::{debug};
 
     use crate::util::init_log;
 

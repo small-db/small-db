@@ -1,5 +1,5 @@
 use common::TreeLayout;
-use log::{error, info};
+
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,

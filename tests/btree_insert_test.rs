@@ -2,7 +2,7 @@ use log::debug;
 use rand::Rng;
 use simple_db_rust::{
     btree::{
-        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
+        buffer_pool::{BufferPool},
         page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },

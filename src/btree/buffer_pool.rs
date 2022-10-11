@@ -1,4 +1,4 @@
-use log::info;
+
 
 use crate::{util::simple_int_tuple_scheme, Tuple};
 
@@ -232,7 +232,7 @@ impl BufferPool {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
 
         // info!("set page size to {}", page_size);
-        let scheme = simple_int_tuple_scheme(2, "");
+        let _scheme = simple_int_tuple_scheme(2, "");
         // info!(
         //     "leaf page slot count: {}",
         //     BTreeLeafPage::calculate_slots_count(&scheme)
