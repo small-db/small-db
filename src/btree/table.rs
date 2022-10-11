@@ -792,7 +792,7 @@ impl BTreeTable {
         let parent_rc = BufferPool::global()
             .get_internal_page(&left_rc.borrow().get_parent_pid())
             .unwrap();
-        let mut entry = parent_rc
+        let mut parent_entry = parent_rc
             .borrow()
             .get_entry_by_children(
                 &left_rc.borrow().get_pid(),
@@ -804,8 +804,12 @@ impl BTreeTable {
         let right_entries = right_rc.borrow().entries_count();
         if left_entries + right_entries < left_rc.borrow().get_max_capacity() {
             // if the two pages can be merged, merge them
-            return self
-                .merge_internal_page(left_rc, right_rc, parent_rc, &entry);
+            return self.merge_internal_page(
+                left_rc,
+                right_rc,
+                parent_rc,
+                &parent_entry,
+            );
         }
 
         // if there aren't any entries to move, return immediately
@@ -815,106 +819,96 @@ impl BTreeTable {
             return Ok(());
         }
 
-        // The key between the left and right pages.
-        //
-        // This key is always larger than children in the left page and
-        // smaller than children in the right page. It should be updated
-        // each time an entry is moved from the left/right page to the
-        // otherside.
-        let mut middle_key = entry.get_key();
+        let mut middle_key = parent_entry.get_key();
 
         // hold the left and right page
         {
             let mut left = left_rc.borrow_mut();
             let mut right = right_rc.borrow_mut();
 
-            // The edge child of the destination page.
-            let mut edge_child_pid = left.get_last_child_pid();
-            debug!(
-                "balancing_two_internal_pages: edge_child_pid = {:?}",
-                edge_child_pid,
-            );
-
             if left_entries < right_entries {
-                // Remember the entries for deletion later (cause we can't
-                // modify the page while iterating though it)
-                let mut deleted_indexes = Vec::new();
-
+                // The edge child of the destination page.
+                let edge_child_pid = left.get_last_child_pid();
                 let iter = BTreeInternalPageIterator::new(&right);
-                for e in iter.take(move_count) {
-                    // 1. delete the entry from the right page
-                    deleted_indexes.push(e.get_record_id());
-
-                    let new_entry = Entry::new(
-                        middle_key,
-                        &edge_child_pid,
-                        &e.get_left_child(),
-                    );
-                    debug!(
-                        "balancing_two_internal_pages: new_entry = {:?}",
-                        new_entry,
-                    );
-
-                    // 1. insert entry
-                    left.insert_entry(&new_entry)?;
-
-                    // 2. update parent id for the moved child
-                    info!(
-                        "set parent pid: {:?} -> {:?}",
-                        e.get_left_child(),
-                        left.get_pid()
-                    );
-                    self.set_parent_pid(&&e.get_left_child(), &left.get_pid());
-
-                    // 4. update key and edge child for the next iteration
-                    middle_key = e.get_key();
-                    edge_child_pid = e.get_left_child();
-                }
-                for i in deleted_indexes {
+                let moved_records = self.move_entries(
+                    left,
+                    move_count,
+                    iter,
+                    &mut middle_key,
+                    edge_child_pid,
+                )?;
+                for i in moved_records {
                     right.delete_key_and_left_child(i);
                 }
             } else {
-                // right.insert_entry(&edge_entry)?;
-                // self.set_parent_pid(
-                //     &edge_entry.get_left_child(),
-                //     &right.get_pid(),
-                // );
-                // self.set_parent_pid(
-                //     &edge_entry.get_right_child(),
-                //     &right.get_pid(),
-                // );
+                let edge_child_pid = right.get_first_child_pid();
+                let iter_b = BTreeInternalPageIterator::new(&left).rev();
+                let moved_records = self.move_entries(
+                    right,
+                    move_count,
+                    iter_b,
+                    &mut middle_key,
+                    edge_child_pid,
+                )?;
 
-                // let mut deleted_indexes = Vec::new();
-                // let iter = BTreeInternalPageIterator::new(&left);
-                // for e in iter.rev().take(move_count - 1) {
-                //     // 1. insert entry
-                //     right.insert_entry(&e)?;
-
-                //     // 2. update parent id for the moved child
-                //     info!(
-                //         "set parent pid: {:?} -> {:?}",
-                //         e.get_left_child(),
-                //         right.get_pid()
-                //     );
-                //     self.set_parent_pid(&e.get_left_child(), &right.get_pid());
-
-                //     // 3. remember the entry for deletion later (cause we can't
-                //     // modify the page while iterating though it)
-                //     deleted_indexes.push(e.get_record_id());
-
-                //     // 4. update key and edge child for the next iteration
-                //     middle_key = e.get_key();
-                // }
-                // for i in deleted_indexes {
-                //     left.delete_key_and_left_child(i);
-                // }
+                for i in moved_records {
+                    left.delete_key_and_right_child(i);
+                }
             }
         }
         // release the left and right page
 
-        entry.set_key(middle_key);
-        parent_rc.borrow_mut().update_entry(&entry);
+        parent_entry.set_key(middle_key);
+        parent_rc.borrow_mut().update_entry(&parent_entry);
         Ok(())
+    }
+
+    /// Arguments:
+    /// * `middle_key`:
+    ///
+    ///     The key between the left and right pages.
+    ///
+    ///     This key is always larger than children in the left page and
+    ///     smaller than children in the right page. It should be updated
+    ///     each time an entry is moved from the left/right page to the
+    ///     otherside.
+    fn move_entries(
+        &self,
+        mut dest: impl DerefMut<Target = BTreeInternalPage>,
+        // mut src: impl DerefMut<Target = BTreeInternalPage>,
+        move_count: usize,
+        src_iter: impl Iterator<Item = Entry>,
+        middle_key: &mut IntField,
+        mut edge_child_pid: BTreePageID,
+    ) -> Result<Vec<usize>, MyError> {
+        // Remember the entries for deletion later (cause we can't
+        // modify the page while iterating though it)
+        let mut moved_records = Vec::new();
+
+        for e in src_iter.take(move_count) {
+            // 1. delete the entry from the right page
+            moved_records.push(e.get_record_id());
+
+            let new_entry =
+                Entry::new(*middle_key, &edge_child_pid, &e.get_left_child());
+            debug!("balancing_two_internal_pages: new_entry = {:?}", new_entry,);
+
+            // 1. insert entry
+            dest.insert_entry(&new_entry)?;
+
+            // 2. update parent id for the moved child
+            info!(
+                "set parent pid: {:?} -> {:?}",
+                e.get_left_child(),
+                dest.get_pid()
+            );
+            self.set_parent_pid(&&e.get_left_child(), &dest.get_pid());
+
+            // 4. update key and edge child for the next iteration
+            *middle_key = e.get_key();
+            edge_child_pid = e.get_left_child();
+        }
+        return Ok(moved_records);
     }
 
     // fn wtf<T>(&self, a: &mut T)
