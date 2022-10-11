@@ -1,4 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use log::debug;
 use rand::prelude::*;
@@ -11,7 +15,7 @@ use simple_db_rust::{
         },
         tuple::TupleScheme,
     },
-    util::simple_int_tuple_scheme,
+    utils::{simple_int_tuple_scheme, HandyRwLock},
     *,
 };
 
@@ -23,7 +27,7 @@ pub const DB_FILE: &str = "./btree.db";
 /// - Clear buffer pool.
 /// - Reset page size.
 pub fn setup() {
-    test_utils::init_log();
+    utils::init_log();
     BufferPool::global().clear();
     BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 }
@@ -45,22 +49,21 @@ pub enum TreeLayout {
 ///
 /// # Arguments:
 ///
-/// - int_tuples: The value of tuples used for insertion, "None" for random
-///   data.
+/// - int_tuples: This is a reference used to return all inserted data. Only works when it's not None.
 pub fn create_random_btree_table(
     columns: usize,
     rows: usize,
     int_tuples: Option<&mut Vec<Vec<i32>>>,
     key_field: usize,
     tree_layout: TreeLayout,
-) -> Rc<RefCell<BTreeTable>> {
+) -> Arc<RwLock<BTreeTable>> {
     let row_scheme = simple_int_tuple_scheme(columns, "");
-    let table_rc = Rc::new(RefCell::new(BTreeTable::new(
+    let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         DB_FILE,
         key_field,
         &row_scheme,
     )));
-    Catalog::global().add_table(Rc::clone(&table_rc));
+    Catalog::global().add_table(Arc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
@@ -84,7 +87,7 @@ pub fn create_random_btree_table(
 
     // borrow of table_rc start here
     {
-        let table = table_rc.borrow();
+        let table = table_rc.rl();
         match tree_layout {
             TreeLayout::Naturally => {
                 for t in tuples.iter() {

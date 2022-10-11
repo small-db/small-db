@@ -1,6 +1,6 @@
 pub mod btree;
 pub mod field;
-pub mod util;
+pub mod utils;
 
 mod error;
 mod log;
@@ -10,4 +10,3 @@ pub use btree::{
     table::{BTreeTable, Op, Predicate},
     tuple::Tuple,
 };
-pub use util as test_utils;

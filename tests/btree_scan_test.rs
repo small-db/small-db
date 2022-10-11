@@ -1,9 +1,9 @@
 mod common;
 use common::TreeLayout;
 use rand::Rng;
-use simple_db_rust::btree::{
+use simple_db_rust::{btree::{
     buffer_pool::BufferPool, table::BTreeTableIterator,
-};
+}, utils::HandyRwLock};
 
 fn test_scan(rows_list: Vec<usize>, column_count: Vec<usize>) {
     let mut rng = rand::thread_rng();
@@ -18,7 +18,7 @@ fn test_scan(rows_list: Vec<usize>, column_count: Vec<usize>) {
                 key_field,
                 TreeLayout::Naturally,
             );
-            let table = table_rc.borrow();
+            let table = table_rc.rl();
             let mut it = BTreeTableIterator::new(&table);
             validate_scan(&mut it, &int_tuples);
 

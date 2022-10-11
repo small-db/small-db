@@ -1,4 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, mem, rc::Rc, sync::Once};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    mem,
+    rc::Rc,
+    sync::{Arc, Once, RwLock},
+};
+
+use crate::utils::HandyRwLock;
 
 use super::{table::BTreeTable, tuple::TupleScheme};
 
@@ -7,7 +15,7 @@ pub struct Catalog {
 }
 
 type Key = i32;
-type Value = Rc<RefCell<BTreeTable>>;
+type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     fn new() -> Self {
@@ -46,7 +54,7 @@ impl Catalog {
         let table_rc = self.map.get(table_index);
         match table_rc {
             Some(table_rc) => {
-                let table = table_rc.borrow();
+                let table = table_rc.rl();
                 Some(table.get_tuple_scheme())
             }
             None => None,
@@ -54,6 +62,6 @@ impl Catalog {
     }
 
     pub fn add_table(&mut self, file: Value) {
-        self.map.insert(file.borrow().get_id(), Rc::clone(&file));
+        self.map.insert(file.rl().get_id(), Arc::clone(&file));
     }
 }

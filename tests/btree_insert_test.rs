@@ -1,5 +1,5 @@
 mod common;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use common::TreeLayout;
 use log::debug;
@@ -10,6 +10,7 @@ use simple_db_rust::{
         page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },
+    utils::HandyRwLock,
     *,
 };
 
@@ -18,14 +19,10 @@ fn test_insert_tuple() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_rc = Rc::new(RefCell::new(BTreeTable::new(
-        common::DB_FILE,
-        1,
-        &row_scheme,
-    )));
-    Catalog::global().add_table(Rc::clone(&table_rc));
-    let table = table_rc.borrow();
+    let table_rc =
+        common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    Catalog::global().add_table(Arc::clone(&table_rc));
+    let table = table_rc.rl();
 
     let mut insert_value = 0;
 
@@ -72,14 +69,10 @@ fn test_insert_duplicate_tuples() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let row_scheme = test_utils::simple_int_tuple_scheme(2, "");
-    let table_ref = Rc::new(RefCell::new(BTreeTable::new(
-        common::DB_FILE,
-        1,
-        &row_scheme,
-    )));
-    Catalog::global().add_table(Rc::clone(&table_ref));
-    let table = table_ref.borrow();
+    let table_rc =
+        common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    Catalog::global().add_table(Arc::clone(&table_rc));
+    let table = table_rc.rl();
 
     // add a bunch of identical tuples
     let repetition_count = 600;
@@ -117,7 +110,7 @@ fn test_split_leaf_page() {
         0,
         TreeLayout::EvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
 
     // there should be 1 leaf page
     assert_eq!(1, table.pages_count());
@@ -156,14 +149,14 @@ fn test_split_root_page() {
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
     let rows = 504 * 502;
-    let table_ref = common::create_random_btree_table(
+    let table_rc = common::create_random_btree_table(
         2,
         rows,
         None,
         0,
         TreeLayout::EvenlyDistributed,
     );
-    let table = table_ref.borrow();
+    let table = table_rc.rl();
 
     // there should be 504 leaf pages + 1 internal node
     assert_eq!(505, table.pages_count());
@@ -264,7 +257,7 @@ fn test_split_internal_page() {
         TreeLayout::EvenlyDistributed,
     );
 
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
 
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());

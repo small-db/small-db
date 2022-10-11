@@ -1,7 +1,11 @@
 mod common;
+use rand::prelude::*;
+use std::{thread, time::Duration};
+
 use common::TreeLayout;
 use log::debug;
-use simple_db_rust::btree::buffer_pool::BufferPool;
+use simple_db_rust::utils::HandyRwLock;
+use simple_db_rust::{btree::buffer_pool::BufferPool, Tuple};
 
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
@@ -18,13 +22,25 @@ fn test_big_table() {
     // 2nd tier: 2 internal pages (2 * 125 = 250 children)
     // 3rd tier: 250 leaf pages (250 * 124 = 31,000 entries)
     debug!("Creating large random B+ tree...");
-    let _table_rc = common::create_random_btree_table(
-        2,
+    let columns = 2;
+    let table_rc = common::create_random_btree_table(
+        columns,
         31000,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
+
+    let handle = thread::spawn(|| {
+        let mut rng = rand::thread_rng();
+        let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+        let tuple = Tuple::new_btree_tuple(insert_value, columns);
+        table_rc.rl().insert_tuple(&tuple);
+        for i in 1..10 {
+            println!("hi number {} from the spawned thread!", i);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
 
     // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
     // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.

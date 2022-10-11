@@ -241,7 +241,7 @@ mod tests {
     use log::debug;
 
     use super::*;
-    use crate::util::init_log;
+    use crate::utils::init_log;
 
     #[test]
     fn test_tuple_clone() {

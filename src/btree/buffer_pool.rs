@@ -19,7 +19,10 @@ use super::{
     },
     tuple::TupleScheme,
 };
-use crate::{util::simple_int_tuple_scheme, Tuple};
+use crate::{
+    utils::{simple_int_tuple_scheme, HandyRwLock},
+    Tuple,
+};
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
@@ -94,7 +97,7 @@ impl BufferPool {
                 // 1. get table
                 let v =
                     Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.borrow();
+                let table = v.read().unwrap();
 
                 // 2. read page content
                 let buf = self.read_page(&mut table.get_file(), key)?;
@@ -126,7 +129,7 @@ impl BufferPool {
                 // 1. get table
                 let v =
                     Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.borrow();
+                let table = v.rl();
 
                 // 2. read page content
                 let buf = self.read_page(&mut table.get_file(), key)?;
@@ -157,7 +160,7 @@ impl BufferPool {
                 // 1. get table
                 let v =
                     Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.borrow();
+                let table = v.rl();
 
                 // 2. read page content
                 let _buf = self.read_page(&mut table.get_file(), key)?;
@@ -183,7 +186,7 @@ impl BufferPool {
                 // 1. get table
                 let v =
                     Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.borrow();
+                let table = v.rl();
 
                 // 2. read page content
                 let buf = self.read_page(&mut table.get_file(), key)?;
@@ -265,16 +268,18 @@ impl BufferPool {
     /// been dirtied to the cache (replacing any existing versions of those
     /// pages) so that future requests see up-to-date pages.
     pub fn insert_tuple(&mut self, table_id: i32, t: Tuple) {
-        let v = Catalog::global().get_table(&table_id).unwrap().borrow();
+        let v = Catalog::global().get_table(&table_id).unwrap().rl();
         v.insert_tuple(&t);
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, RwLock};
+
     use super::*;
     use crate::{
-        btree::page::PageCategory, util::simple_int_tuple_scheme, BTreeTable,
+        btree::page::PageCategory, utils::simple_int_tuple_scheme, BTreeTable,
     };
 
     #[test]
@@ -288,7 +293,7 @@ mod tests {
             &simple_int_tuple_scheme(3, ""),
         );
         let table_id = table.get_id();
-        Catalog::global().add_table(Rc::new(RefCell::new(table)));
+        Catalog::global().add_table(Arc::new(RwLock::new(table)));
 
         // write page to disk
 

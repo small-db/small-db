@@ -5,6 +5,7 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
     },
+    utils::HandyRwLock,
     Tuple,
 };
 
@@ -20,7 +21,7 @@ fn test_redistribute_leaf_pages() {
         0,
         TreeLayout::EvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
 
     table.draw_tree(-1);
     table.check_integrity(true);
@@ -69,7 +70,7 @@ fn test_merge_leaf_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
 
     table.draw_tree(-1);
     table.check_integrity(true);
@@ -95,7 +96,7 @@ fn test_delete_root_page() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
     table.draw_tree(-1);
     table.check_integrity(true);
     // there should be one internal node and 2 leaf nodes
@@ -129,7 +130,7 @@ fn test_reuse_deleted_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
     table.check_integrity(true);
 
     // 3 leaf pages, 1 internal page
@@ -172,7 +173,7 @@ fn test_redistribute_internal_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
     table.check_integrity(true);
     table.draw_tree(-1);
 
@@ -224,7 +225,7 @@ fn test_delete_internal_pages() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
 
-    let table = table_rc.borrow();
+    let table = table_rc.rl();
     table.draw_tree(2);
     table.check_integrity(true);
 
