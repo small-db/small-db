@@ -1,5 +1,3 @@
-
-
 use crate::{util::simple_int_tuple_scheme, Tuple};
 
 use std::{

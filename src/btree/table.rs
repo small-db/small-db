@@ -1,6 +1,6 @@
 use std::{env, ops::DerefMut};
 
-use log::{debug};
+use log::debug;
 
 use super::{
     buffer_pool::BufferPool,
