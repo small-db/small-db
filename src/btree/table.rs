@@ -897,7 +897,7 @@ impl BTreeTable {
             dest.insert_entry(&new_entry)?;
 
             // 2. update parent id for the moved child
-            info!(
+            debug!(
                 "set parent pid: {:?} -> {:?}",
                 e.get_left_child(),
                 dest.get_pid()

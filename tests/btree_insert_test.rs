@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 use rand::Rng;
 use simple_db_rust::{
     btree::{
@@ -30,7 +30,7 @@ fn insert_tuple() {
 
     // we should be able to add 502 tuples on one page
     let mut insert_count = 502;
-    info!("start insert, count: {}", insert_count);
+    debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&tuple);
@@ -41,7 +41,7 @@ fn insert_tuple() {
     // the next 251 tuples should live on page 2 since they are greater than
     // all existing tuples in the file
     insert_count = 251;
-    info!("start insert, count: {}", insert_count);
+    debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&tuple);
@@ -52,7 +52,7 @@ fn insert_tuple() {
     }
 
     // one more insert greater than 502 should cause page 2 to split
-    info!("start insert, count: {}", 1);
+    debug!("start insert, count: {}", 1);
     let tuple = Tuple::new_btree_tuple(insert_value, 2);
     table.insert_tuple(&tuple);
 
@@ -176,9 +176,9 @@ fn split_root_page() {
         let root_ref =
             BufferPool::global().get_internal_page(&root_pid).unwrap();
         let root = root_ref.borrow();
-        info!("root empty slot count: {}", root.empty_slots_count());
+        debug!("root empty slot count: {}", root.empty_slots_count());
         let it = BTreeInternalPageIterator::new(&root);
-        info!("root entries count: {}", it.count());
+        debug!("root entries count: {}", it.count());
     }
 
     // now insert a tuple
@@ -208,14 +208,14 @@ fn split_root_page() {
         let left_rc =
             BufferPool::global().get_internal_page(&left_pid).unwrap();
         let left = left_rc.borrow();
-        info!("left entries count: {}", left.entries_count());
+        debug!("left entries count: {}", left.entries_count());
         assert!(left.empty_slots_count() <= 252);
 
         let right_pid = entry.get_right_child();
         let right_rc =
             BufferPool::global().get_internal_page(&right_pid).unwrap();
         let right = right_rc.borrow();
-        info!("right entries count: {}", right.entries_count());
+        debug!("right entries count: {}", right.entries_count());
         assert!(right.empty_slots_count() <= 252);
     }
 
