@@ -1,3 +1,5 @@
+mod common;
+use common::TreeLayout;
 use log::debug;
 use rand::Rng;
 use simple_db_rust::{
@@ -9,11 +11,9 @@ use simple_db_rust::{
     *,
 };
 use std::{cell::RefCell, rc::Rc};
-mod common;
-use common::TreeLayout;
 
 #[test]
-fn insert_tuple() {
+fn test_insert_tuple() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
@@ -67,7 +67,7 @@ fn insert_tuple() {
 }
 
 #[test]
-fn insert_duplicate_tuples() {
+fn test_insert_duplicate_tuples() {
     common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
@@ -105,7 +105,7 @@ fn insert_duplicate_tuples() {
 }
 
 #[test]
-fn split_leaf_page() {
+fn test_split_leaf_page() {
     common::setup();
 
     // This should create a B+ tree with one full page
@@ -148,7 +148,7 @@ fn split_leaf_page() {
 }
 
 #[test]
-fn split_root_page() {
+fn test_split_root_page() {
     common::setup();
 
     // This should create a packed B+ tree with no empty slots
@@ -241,7 +241,7 @@ fn split_root_page() {
 }
 
 #[test]
-fn split_internal_page() {
+fn test_split_internal_page() {
     common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages

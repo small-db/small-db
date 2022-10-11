@@ -42,6 +42,11 @@ pub enum TreeLayout {
 ///
 /// The rows are inserted to pages in a compact manner. Result
 /// in all leaf pages being full.
+///
+/// # Arguments:
+///
+/// - int_tuples: The value of tuples used for insertion, "None" for random
+///   data.
 pub fn create_random_btree_table(
     columns: usize,
     rows: usize,

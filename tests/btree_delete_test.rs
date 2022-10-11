@@ -1,3 +1,4 @@
+mod common;
 use common::TreeLayout;
 
 use simple_db_rust::{
@@ -6,8 +7,7 @@ use simple_db_rust::{
     },
     Tuple,
 };
-
-mod common;
+// use common;
 
 #[test]
 fn test_redistribute_leaf_pages() {
@@ -105,9 +105,9 @@ fn test_delete_root_page() {
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&table);
-    table.delete_tuple(&it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap()).unwrap();
     table.check_integrity(true);
-    table.delete_tuple(&it.next().unwrap());
+    table.delete_tuple(&it.next().unwrap()).unwrap();
     table.check_integrity(true);
 
     table.draw_tree(-1);
@@ -139,7 +139,7 @@ fn test_reuse_deleted_pages() {
     // delete enough tuples to ensure one page gets deleted
     let it = BTreeTableIterator::new(&table);
     for t in it.take(502) {
-        table.delete_tuple(&t);
+        table.delete_tuple(&t).unwrap();
     }
 
     // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page, 1
@@ -181,7 +181,7 @@ fn test_redistribute_internal_pages() {
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&table);
     for t in it.by_ref().take(49 * 502 + 1) {
-        table.delete_tuple(&t);
+        table.delete_tuple(&t).unwrap();
     }
 
     table.draw_tree(-1);
@@ -233,10 +233,8 @@ fn test_delete_internal_pages() {
     let it = BTreeTableIterator::new(&table);
     let delete_target = 1 + 62 * 124;
     for t in it.rev().take(delete_target) {
-        table.delete_tuple(&t);
+        table.delete_tuple(&t).unwrap();
     }
-
-    // return;
 
     table.draw_tree(2);
     table.check_integrity(true);
