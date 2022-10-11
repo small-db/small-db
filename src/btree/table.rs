@@ -876,26 +876,25 @@ impl BTreeTable {
         Ok(())
     }
 
-    /// Arguments:
-    /// * `middle_key`:
-    ///     The key between the left and right pages.
+    /// # Arguments:
     ///
-    ///     This key is always larger than children in the left page and
-    ///     smaller than children in the right page. It should be updated
-    ///     each time an entry is moved from the left/right page to the
-    ///     otherside.
-    /// * `edge_child_pid`:
-    ///     The edge child of the destination page.
-    /// * `fn_get_edge_left_child`:
-    ///     A function to get the left child of the new entry, the first argument
-    ///     is the edge child of the destination page, the second argument is the
-    ///     current entry of the source page (iterator).
-    /// * `fn_get_edge_right_child`:
-    ///     Same as `fn_get_edge_left_child`, but for the right child of the new
-    ///     entry.
-    /// * `fn_get_moved_child`:
-    ///     A function to get the moved child page, the argument is the current
-    ///     entry of the source page (iterator).
+    /// * `middle_key`: The key between the left and right pages. This key is
+    ///   always larger than children in the left page and smaller than children
+    ///   in the right page. It should be updated each time an entry is moved
+    ///   from the left/right page to the otherside.
+    ///
+    /// * `edge_child_pid`: The edge child of the destination page.
+    ///
+    /// * `fn_get_edge_left_child`: A function to get the left child of the new
+    ///   entry, the first argument is the edge child of the destination page,
+    ///   the second argument is the current entry of the source page
+    ///   (iterator).
+    ///
+    /// * `fn_get_edge_right_child`: Same as `fn_get_edge_left_child`, but for
+    ///   the right child of the new entry.
+    ///
+    /// * `fn_get_moved_child`: A function to get the moved child page, the
+    ///   argument is the current entry of the source page (iterator).
     fn move_entries(
         &self,
         src_iter: impl Iterator<Item = Entry>,
