@@ -1320,7 +1320,8 @@ impl BTreeTable {
     ///
     /// - `max_level` - the max level of the print
     ///     - 0: print the root pointer page
-    ///     - 1: print the root pointer page and the root page (internal or leaf)
+    ///     - 1: print the root pointer page and the root page (internal or
+    ///       leaf)
     ///     - ...
     ///     - -1: print all pages
     pub fn draw_tree(&self, max_level: i32) {
