@@ -6,7 +6,6 @@ use simple_db_rust::{
     },
     Tuple,
 };
-// use common;
 
 #[test]
 fn test_redistribute_leaf_pages() {
