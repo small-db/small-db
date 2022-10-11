@@ -829,11 +829,11 @@ impl BTreeTable {
             if left_entries < right_entries {
                 // The edge child of the destination page.
                 let edge_child_pid = left.get_last_child_pid();
-                let iter = BTreeInternalPageIterator::new(&right);
+                let right_iter = BTreeInternalPageIterator::new(&right);
                 let moved_records = self.move_entries(
+                    right_iter,
                     left,
                     move_count,
-                    iter,
                     &mut middle_key,
                     edge_child_pid,
                 )?;
@@ -842,11 +842,11 @@ impl BTreeTable {
                 }
             } else {
                 let edge_child_pid = right.get_first_child_pid();
-                let iter_b = BTreeInternalPageIterator::new(&left).rev();
+                let left_iter = BTreeInternalPageIterator::new(&left).rev();
                 let moved_records = self.move_entries(
+                    left_iter,
                     right,
                     move_count,
-                    iter_b,
                     &mut middle_key,
                     edge_child_pid,
                 )?;
@@ -874,10 +874,9 @@ impl BTreeTable {
     ///     otherside.
     fn move_entries(
         &self,
-        mut dest: impl DerefMut<Target = BTreeInternalPage>,
-        // mut src: impl DerefMut<Target = BTreeInternalPage>,
-        move_count: usize,
         src_iter: impl Iterator<Item = Entry>,
+        mut dest: impl DerefMut<Target = BTreeInternalPage>,
+        move_count: usize,
         middle_key: &mut IntField,
         mut edge_child_pid: BTreePageID,
     ) -> Result<Vec<usize>, MyError> {
