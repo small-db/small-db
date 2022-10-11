@@ -1,15 +1,14 @@
-use crate::error::MyError;
 use std::fmt;
 
 use bit_vec::BitVec;
 use log::error;
 
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
+    error::MyError,
     field::{get_type_length, IntField},
 };
-
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 
 pub struct BTreeInternalPage {
     page: BTreeBasePage,

@@ -1,21 +1,20 @@
+use std::{cell::RefCell, rc::Rc};
+
 use backtrace::Backtrace;
 use bit_vec::BitVec;
-
-use crate::{
-    btree::{
-        buffer_pool::BufferPool,
-        tuple::{TupleScheme, WrappedTuple},
-    },
-    Catalog, Tuple,
-};
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage, PageCategory,
     EMPTY_PAGE_ID,
 };
-use std::{cell::RefCell, rc::Rc};
-
-use crate::field::IntField;
+use crate::{
+    btree::{
+        buffer_pool::BufferPool,
+        tuple::{TupleScheme, WrappedTuple},
+    },
+    field::IntField,
+    Catalog, Tuple,
+};
 
 pub struct BTreeLeafPage {
     page: BTreeBasePage,

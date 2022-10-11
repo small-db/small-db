@@ -1,4 +1,18 @@
-use std::{env, ops::DerefMut};
+use core::fmt;
+use std::{
+    cell::{Cell, RefCell, RefMut},
+    cmp,
+    collections::hash_map::DefaultHasher,
+    env,
+    fs::{File, OpenOptions},
+    hash::{Hash, Hasher},
+    io::{Seek, SeekFrom, Write},
+    ops::DerefMut,
+    rc::Rc,
+    str,
+    time::SystemTime,
+    usize,
+};
 
 use log::debug;
 
@@ -9,7 +23,7 @@ use super::{
         BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
         BTreeRootPointerPage, BTreeVirtualPage, Entry,
     },
-    tuple::WrappedTuple,
+    tuple::{Tuple, TupleScheme, WrappedTuple},
 };
 use crate::{
     btree::page::{
@@ -18,23 +32,6 @@ use crate::{
     error::MyError,
     field::IntField,
 };
-
-use core::fmt;
-use std::{cell::Cell, cmp, str, time::SystemTime};
-
-use std::{
-    cell::RefCell,
-    collections::hash_map::DefaultHasher,
-    fs::{File, OpenOptions},
-    hash::{Hash, Hasher},
-    io::{Seek, SeekFrom, Write},
-    rc::Rc,
-    usize,
-};
-
-use std::cell::RefMut;
-
-use super::tuple::{Tuple, TupleScheme};
 
 enum SearchFor {
     IntField(IntField),

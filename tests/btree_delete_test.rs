@@ -1,6 +1,5 @@
 mod common;
 use common::TreeLayout;
-
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,

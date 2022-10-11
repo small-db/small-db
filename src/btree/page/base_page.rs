@@ -1,6 +1,5 @@
-use crate::btree::buffer_pool::BufferPool;
-
 use super::{BTreePage, BTreePageID, PageCategory};
+use crate::btree::buffer_pool::BufferPool;
 
 pub struct BTreeBasePage {
     pid: BTreePageID,

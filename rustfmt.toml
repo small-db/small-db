@@ -9,3 +9,6 @@ max_width = 80
 
 # https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#normalize_comments
 normalize_comments = true
+
+# https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#group_imports
+group_imports = "StdExternalCrate"

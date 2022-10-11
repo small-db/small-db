@@ -1,6 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use std::{mem, sync::Once};
+use std::{cell::RefCell, collections::HashMap, mem, rc::Rc, sync::Once};
 
 use super::{table::BTreeTable, tuple::TupleScheme};
 

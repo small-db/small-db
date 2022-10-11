@@ -1,15 +1,15 @@
-use crate::{util::simple_int_tuple_scheme, Tuple};
-
 use std::{
     cell::RefCell,
     collections::HashMap,
     fs::File,
     io::{prelude::*, Result, Seek, SeekFrom},
+    mem,
     rc::Rc,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Once,
+    },
 };
-
-use std::{mem, sync::Once};
 
 use super::{
     catalog::Catalog,
@@ -19,6 +19,7 @@ use super::{
     },
     tuple::TupleScheme,
 };
+use crate::{util::simple_int_tuple_scheme, Tuple};
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
@@ -271,11 +272,10 @@ impl BufferPool {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
         btree::page::PageCategory, util::simple_int_tuple_scheme, BTreeTable,
     };
-
-    use super::*;
 
     #[test]
     fn test_buffer_pool() {

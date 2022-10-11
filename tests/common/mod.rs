@@ -1,7 +1,7 @@
-use log::debug;
-use rand::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
+use log::debug;
+use rand::prelude::*;
 use simple_db_rust::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},

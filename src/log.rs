@@ -1,5 +1,6 @@
-use env_logger::Builder;
 use std::io::Write;
+
+use env_logger::Builder;
 
 pub fn init_log() {
     let mut builder = Builder::from_default_env();

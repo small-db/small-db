@@ -1,10 +1,10 @@
-use crate::field::*;
 use std::{
     fmt::{self},
     usize,
 };
 
 use super::page::BTreePageID;
+use crate::field::*;
 
 #[derive(Debug, Default)]
 pub struct Tuple {
@@ -240,9 +240,8 @@ pub fn simple_int_tuple_scheme(width: usize, name_prefix: &str) -> TupleScheme {
 mod tests {
     use log::debug;
 
-    use crate::util::init_log;
-
     use super::*;
+    use crate::util::init_log;
 
     #[test]
     fn test_tuple_clone() {

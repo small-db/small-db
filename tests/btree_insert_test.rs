@@ -1,4 +1,6 @@
 mod common;
+use std::{cell::RefCell, rc::Rc};
+
 use common::TreeLayout;
 use log::debug;
 use rand::Rng;
@@ -10,7 +12,6 @@ use simple_db_rust::{
     },
     *,
 };
-use std::{cell::RefCell, rc::Rc};
 
 #[test]
 fn test_insert_tuple() {
