@@ -1,9 +1,10 @@
 mod common;
 use common::TreeLayout;
 use rand::Rng;
-use simple_db_rust::{btree::{
-    buffer_pool::BufferPool, table::BTreeTableIterator,
-}, utils::HandyRwLock};
+use simple_db_rust::{
+    btree::{buffer_pool::BufferPool, table::BTreeTableIterator},
+    utils::HandyRwLock,
+};
 
 fn test_scan(rows_list: Vec<usize>, column_count: Vec<usize>) {
     let mut rng = rand::thread_rng();

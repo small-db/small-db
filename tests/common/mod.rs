@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use log::debug;
 use rand::prelude::*;
@@ -49,7 +45,8 @@ pub enum TreeLayout {
 ///
 /// # Arguments:
 ///
-/// - int_tuples: This is a reference used to return all inserted data. Only works when it's not None.
+/// - int_tuples: This is a reference used to return all inserted data. Only
+///   works when it's not None.
 pub fn create_random_btree_table(
     columns: usize,
     rows: usize,

@@ -1,4 +1,8 @@
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::{
+    io::prelude::*,
+    ops::Deref,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 /// copy from https://github.com/tikv/tikv/blob/b15ea3b1cd766375cb52019e35c195ed797124df/components/tikv_util/src/lib.rs#L171-L186
 ///
@@ -20,3 +24,10 @@ impl<T> HandyRwLock<T> for RwLock<T> {
 }
 
 pub use crate::{btree::tuple::simple_int_tuple_scheme, log::init_log};
+
+pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
+    let is_read: bool = lock.try_read().is_err();
+    let is_write: bool = lock.try_write().is_err();
+    let is_poisoned: bool = lock.is_poisoned();
+    format!("[r: {}, w: {}, p: {}]", is_read, is_write, is_poisoned)
+}

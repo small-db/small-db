@@ -1,10 +1,8 @@
 use std::{
-    cell::RefCell,
     collections::HashMap,
     fs::File,
     io::{prelude::*, Result, Seek, SeekFrom},
     mem,
-    rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Once, RwLock,

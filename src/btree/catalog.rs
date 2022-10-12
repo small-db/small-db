@@ -4,9 +4,8 @@ use std::{
     sync::{Arc, Once, RwLock},
 };
 
-use crate::utils::HandyRwLock;
-
 use super::{table::BTreeTable, tuple::TupleScheme};
+use crate::utils::HandyRwLock;
 
 pub struct Catalog {
     map: HashMap<Key, Value>,

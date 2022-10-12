@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
+use std::sync::{Arc, RwLock};
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
@@ -13,7 +13,8 @@ use crate::{
         tuple::{TupleScheme, WrappedTuple},
     },
     field::IntField,
-    Catalog, Tuple, utils::HandyRwLock,
+    utils::HandyRwLock,
+    Catalog, Tuple,
 };
 
 pub struct BTreeLeafPage {

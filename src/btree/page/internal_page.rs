@@ -256,6 +256,7 @@ impl BTreeInternalPage {
                 self.entries_count()
             ));
             error!("{}", e);
+            // panic!("{}", e);
             return Err(e);
         }
 

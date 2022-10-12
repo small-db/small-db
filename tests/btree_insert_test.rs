@@ -1,5 +1,5 @@
 mod common;
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use common::TreeLayout;
 use log::debug;

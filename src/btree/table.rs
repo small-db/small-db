@@ -1,6 +1,5 @@
 use core::fmt;
 use std::{
-    cell::{Cell, RefCell, RefMut},
     cmp,
     collections::hash_map::DefaultHasher,
     env,
@@ -8,11 +7,10 @@ use std::{
     hash::{Hash, Hasher},
     io::{Seek, SeekFrom, Write},
     ops::DerefMut,
-    rc::Rc,
     str,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Mutex, MutexGuard, RwLock, Arc,
+        Arc, Mutex, MutexGuard, RwLock,
     },
     time::SystemTime,
     usize,
@@ -34,7 +32,8 @@ use crate::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
     error::MyError,
-    field::IntField, utils::HandyRwLock,
+    field::IntField,
+    utils::{lock_state, HandyRwLock},
 };
 
 enum SearchFor {
@@ -134,7 +133,7 @@ impl BTreeTable {
 
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&self, tuple: &Tuple) {
+    pub fn insert_tuple(&self, tuple: &Tuple) -> Result<(), MyError> {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -148,9 +147,10 @@ impl BTreeTable {
 
         if leaf_rc.rl().empty_slots_count() == 0 {
             leaf_rc =
-                self.split_leaf_page(leaf_rc, tuple.get_field(self.key_field));
+                self.split_leaf_page(leaf_rc, tuple.get_field(self.key_field))?;
         }
         leaf_rc.wl().insert_tuple(&tuple);
+        return Ok(());
     }
 
     /// Split a leaf page to make room for new tuples and
@@ -172,7 +172,7 @@ impl BTreeTable {
         &self,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
         field: IntField,
-    ) -> Arc<RwLock<BTreeLeafPage>> {
+    ) -> Result<Arc<RwLock<BTreeLeafPage>>, MyError> {
         let new_sibling_rc = self.get_empty_leaf_page();
         let parent_pid: BTreePageID;
         let key: IntField;
@@ -225,15 +225,24 @@ impl BTreeTable {
             let mut new_sibling = new_sibling_rc.wl();
             let mut entry =
                 Entry::new(key, &page.get_pid(), &new_sibling.get_pid());
-            parent.insert_entry(&mut entry);
+
+            debug!(
+                "split start, page: {}, lock status: {}, new_sibling: {}, lock status: {}, parent: {}, lock status: {}",
+                page.get_pid(),
+                lock_state(page_rc.clone()),
+                new_sibling.get_pid(),
+                lock_state(new_sibling_rc.clone()),
+                parent.get_pid(),
+                lock_state(parent_rc.clone()),
+            );
+
+            parent.insert_entry(&mut entry)?;
 
             // set left pointer for the old right sibling
             if let Some(old_right_pid) = page.get_right_pid() {
                 let old_right_rc =
                     BufferPool::global().get_leaf_page(&old_right_pid).unwrap();
-                old_right_rc
-                    .wl()
-                    .set_left_pid(Some(new_sibling.get_pid()));
+                old_right_rc.wl().set_left_pid(Some(new_sibling.get_pid()));
             }
 
             // set sibling id
@@ -250,9 +259,9 @@ impl BTreeTable {
         // borrow of new_sibling_rc end here
 
         if field > key {
-            new_sibling_rc
+            Ok(new_sibling_rc)
         } else {
-            page_rc
+            Ok(page_rc)
         }
     }
 
@@ -318,9 +327,7 @@ impl BTreeTable {
                         .get_root_pointer_page(&page_id)
                         .unwrap();
 
-                    root_pointer_page
-                        .wl()
-                        .set_root_pid(&new_parent.get_pid());
+                    root_pointer_page.wl().set_root_pid(&new_parent.get_pid());
                 }
                 // borrow of new_parent_rc end here
 
@@ -411,7 +418,7 @@ impl BTreeTable {
             let mut it = BTreeInternalPageIterator::new(&page);
             for e in it.by_ref().rev().take(move_entries_count) {
                 delete_indexes.push(e.get_record_id());
-                sibling.insert_entry(&e);
+                sibling.insert_entry(&e).unwrap();
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
@@ -446,7 +453,7 @@ impl BTreeTable {
         // borrow of parent_rc start here
         {
             let mut parent = parent_rc.wl();
-            parent.insert_entry(&mut new_entry);
+            parent.insert_entry(&mut new_entry).unwrap();
         }
         // borrow of parent_rc end here
 
@@ -491,9 +498,7 @@ impl BTreeTable {
         &self,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> Result<(), MyError> {
-        if page_rc.rl().get_parent_pid().category
-            == PageCategory::RootPointer
-        {
+        if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
 
@@ -530,9 +535,7 @@ impl BTreeTable {
         &self,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> Result<(), MyError> {
-        if page_rc.rl().get_parent_pid().category
-            == PageCategory::RootPointer
-        {
+        if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
 
@@ -661,9 +664,7 @@ impl BTreeTable {
                 let newer_right_rc = BufferPool::global()
                     .get_leaf_page(&newer_right_pid)
                     .unwrap();
-                newer_right_rc
-                    .wl()
-                    .set_left_pid(Some(left.get_pid()));
+                newer_right_rc.wl().set_left_pid(Some(left.get_pid()));
             }
 
             // stage 4: set the right page as empty
@@ -763,9 +764,7 @@ impl BTreeTable {
             }
         }
 
-        root_ptr_rc
-            .wl()
-            .set_header_pid(&header_rc.rl().get_pid());
+        root_ptr_rc.wl().set_header_pid(&header_rc.rl().get_pid());
 
         // borrow of header_rc start here
         {
@@ -825,10 +824,6 @@ impl BTreeTable {
 
         let mut middle_key = parent_entry.get_key();
 
-        // Remember the entries for deletion later (cause we can't
-        // modify the page while iterating though it)
-        let mut moved_records = Vec::new();
-
         // hold the left and right page
         {
             let mut left = left_rc.wl();
@@ -840,7 +835,7 @@ impl BTreeTable {
 
                 let right_iter = BTreeInternalPageIterator::new(&right);
 
-                moved_records = self.move_entries(
+                let moved_records = self.move_entries(
                     right_iter,
                     left,
                     move_count,
@@ -860,7 +855,7 @@ impl BTreeTable {
 
                 let left_iter = BTreeInternalPageIterator::new(&left).rev();
 
-                moved_records = self.move_entries(
+                let moved_records = self.move_entries(
                     left_iter,
                     right,
                     move_count,
@@ -902,6 +897,9 @@ impl BTreeTable {
     ///
     /// * `fn_get_moved_child`: A function to get the moved child page, the
     ///   argument is the current entry of the source page (iterator).
+    ///
+    /// Return:
+    /// * The index of the moved entries in the source page.
     fn move_entries(
         &self,
         src_iter: impl Iterator<Item = Entry>,
@@ -1021,14 +1019,16 @@ impl BTreeTable {
 }
 
 impl BTreeTable {
-    /// Method to encapsulate the process of locking/fetching a page.  First the method checks the local
-    /// cache ("dirtypages"), and if it can't find the requested page there, it fetches it from the buffer pool.
-    /// It also adds pages to the dirtypages cache if they are fetched with read-write permission, since
-    /// presumably they will soon be dirtied by this transaction.
+    /// Method to encapsulate the process of locking/fetching a page.  First the
+    /// method checks the local cache ("dirtypages"), and if it can't find
+    /// the requested page there, it fetches it from the buffer pool.
+    /// It also adds pages to the dirtypages cache if they are fetched with
+    /// read-write permission, since presumably they will soon be dirtied by
+    /// this transaction.
     ///
-    /// This method is needed to ensure that page updates are not lost if the same pages are
-    /// accessed multiple times.
-    /// 
+    /// This method is needed to ensure that page updates are not lost if the
+    /// same pages are accessed multiple times.
+    ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BTreeFile.java?L551&subtree=true
     pub fn get_page(&self) {}
@@ -1366,7 +1366,9 @@ impl BTreeTable {
             return;
         }
 
-        println!("\n----- PRINT TREE STRUCTURE START -----\n");
+        let mut depiction = "".to_string();
+
+        depiction.push_str("\n\n----- PRINT TREE STRUCTURE START -----\n\n");
 
         // get root pointer page
         let root_pointer_pid = BTreePageID {
@@ -1374,15 +1376,24 @@ impl BTreeTable {
             page_index: 0,
             table_id: self.table_id,
         };
-        println!("root pointer: {}", root_pointer_pid);
+        depiction.push_str(&format!("root pointer: {}\n", root_pointer_pid));
 
         let root_pid = self.get_root_pid();
-        self.draw_subtree(&root_pid, 0, max_level);
+        depiction.push_str(&self.draw_subtree(&root_pid, 0, max_level));
 
-        println!("\n----- PRINT TREE STRUCTURE END   -----\n");
+        depiction.push_str(&format!(
+            "\n\n----- PRINT TREE STRUCTURE END   -----\n\n"
+        ));
+
+        debug!("{}", depiction);
     }
 
-    fn draw_subtree(&self, pid: &BTreePageID, level: usize, max_level: i32) {
+    fn draw_subtree(
+        &self,
+        pid: &BTreePageID,
+        level: usize,
+        max_level: i32,
+    ) -> String {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
@@ -1393,41 +1404,50 @@ impl BTreeTable {
         }
     }
 
-    fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) {
+    fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) -> String {
+        let mut depiction = "".to_string();
+
         let print_sibling = false;
 
         let mut prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        let lock_state = lock_state(page_rc.clone());
 
         let mut it = BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc));
         let first_tuple = it.next().unwrap();
 
         let page = page_rc.rl();
-        let mut rit = BTreeLeafPageIterator::new(&page);
-        let last_tuple = rit.next_back().unwrap();
+        let mut it = BTreeLeafPageIterator::new(&page);
+        let last_tuple = it.next_back().unwrap();
 
         if print_sibling {
-            println!(
-                "{}├── leaf: {} ({} tuples) (left: {:?}, right: {:?})",
+            depiction.push_str(&format!(
+                "{}├── leaf: {} ({} tuples) (left: {:?}, right: {:?}) (lock state: {})\n",
                 prefix,
                 page.get_pid(),
                 page.tuples_count(),
                 page.get_left_pid(),
                 page.get_right_pid(),
-            );
+                lock_state,
+            ));
         } else {
-            println!(
-                "{}├── leaf: {} ({}/{} tuples)",
+            depiction.push_str(&format!(
+                "{}├── leaf: {} ({}/{} tuples) (lock state: {}\n",
                 prefix,
                 page.get_pid(),
                 page.tuples_count(),
                 page.slot_count,
-            );
+                lock_state,
+            ));
         }
 
         prefix = "│   ".repeat(level + 1);
-        println!("{}├── first tuple: {}", prefix, first_tuple);
-        println!("{}└── last tuple:  {}", prefix, last_tuple);
+        depiction
+            .push_str(&format!("{}├── first tuple: {}\n", prefix, first_tuple));
+        depiction
+            .push_str(&format!("{}└── last tuple:  {}\n", prefix, last_tuple));
+
+        return depiction;
     }
 
     fn draw_internal_node(
@@ -1435,29 +1455,40 @@ impl BTreeTable {
         pid: &BTreePageID,
         level: usize,
         max_level: i32,
-    ) {
+    ) -> String {
+        let mut depiction = "".to_string();
+
         let prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global().get_internal_page(&pid).unwrap();
+        let lock_state = lock_state(page_rc.clone());
 
         // borrow of page_rc start here
         {
             let page = page_rc.rl();
-            println!(
-                "{}├── internal: {} ({}/{} entries)",
+            depiction.push_str(&format!(
+                "{}├── internal: {} ({}/{} entries) (lock state: {})\n",
                 prefix,
                 pid,
                 page.entries_count(),
                 page.get_max_capacity(),
-            );
+                lock_state,
+            ));
             if max_level != -1 && level as i32 == max_level {
-                return;
+                return depiction;
             }
             let it = BTreeInternalPageIterator::new(&page);
             for (i, entry) in it.enumerate() {
-                self.draw_entry(i, &entry, level + 1, max_level);
+                depiction.push_str(&self.draw_entry(
+                    i,
+                    &entry,
+                    level + 1,
+                    max_level,
+                ));
             }
         }
         // borrow of page_rc end here
+
+        return depiction;
     }
 
     fn draw_entry(
@@ -1466,13 +1497,29 @@ impl BTreeTable {
         entry: &Entry,
         level: usize,
         max_level: i32,
-    ) {
+    ) -> String {
+        let mut depiction = "".to_string();
+
         let prefix = "│   ".repeat(level);
         if id == 0 {
-            self.draw_subtree(&entry.get_left_child(), level + 1, max_level);
+            depiction.push_str(&self.draw_subtree(
+                &entry.get_left_child(),
+                level + 1,
+                max_level,
+            ));
         }
-        println!("{}├── key: {}", prefix, entry.get_key());
-        self.draw_subtree(&entry.get_right_child(), level + 1, max_level);
+        depiction.push_str(&format!(
+            "{}├── key: {}\n",
+            prefix,
+            entry.get_key()
+        ));
+        depiction.push_str(&self.draw_subtree(
+            &entry.get_right_child(),
+            level + 1,
+            max_level,
+        ));
+
+        return depiction;
     }
 
     /// checks the integrity of the tree:
@@ -1815,8 +1862,7 @@ impl Iterator for BTreeTableSearchIterator {
                 },
                 None => {
                     // init iterator on next page and continue search
-                    let right =
-                        (*self.current_page_rc).rl().get_right_pid();
+                    let right = (*self.current_page_rc).rl().get_right_pid();
                     match right {
                         Some(pid) => {
                             let rc = BufferPool::global()

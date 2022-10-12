@@ -1,11 +1,12 @@
 mod common;
-use rand::prelude::*;
-use std::{thread, time::Duration};
+use std::thread;
 
 use common::TreeLayout;
-use log::{debug, info};
-use simple_db_rust::utils::HandyRwLock;
-use simple_db_rust::{btree::buffer_pool::BufferPool, Tuple};
+use log::debug;
+use rand::prelude::*;
+use simple_db_rust::{
+    btree::buffer_pool::BufferPool, utils::HandyRwLock, Tuple,
+};
 
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
@@ -35,13 +36,16 @@ fn test_big_table() {
 
     debug!("Start insertion in multiple threads...");
     let mut threads = vec![];
-    for _ in 0..10 {
+    for _ in 0..5 {
         let table_rc = table_rc.clone();
         let handle = thread::spawn(move || {
             let mut rng = rand::thread_rng();
             let insert_value = rng.gen_range(i32::MIN, i32::MAX);
             let tuple = Tuple::new_btree_tuple(insert_value, columns);
-            table_rc.rl().insert_tuple(&tuple);
+            if let Err(e) = table_rc.rl().insert_tuple(&tuple) {
+                table_rc.rl().draw_tree(-1);
+                panic!("Error inserting tuple: {}", e);
+            }
         });
         threads.push(handle);
     }
