@@ -31,7 +31,7 @@ fn test_redistribute_leaf_pages() {
     let mut count = 0;
     let page_rc = table.get_first_page();
     for tuple in it.by_ref() {
-        assert_eq!(202 + count, page_rc.borrow().empty_slots_count());
+        assert_eq!(202 + count, page_rc.rl().empty_slots_count());
 
         let _ = table.delete_tuple(&tuple);
 
@@ -45,14 +45,14 @@ fn test_redistribute_leaf_pages() {
     // cause the tuples to be redistributed
     let t = it.next().unwrap();
     let page_rc = BufferPool::global().get_leaf_page(&t.get_pid()).unwrap();
-    assert_eq!(page_rc.borrow().empty_slots_count(), 251);
+    assert_eq!(page_rc.rl().empty_slots_count(), 251);
     let _ = table.delete_tuple(&t);
-    assert!(page_rc.borrow().empty_slots_count() <= 251);
+    assert!(page_rc.rl().empty_slots_count() <= 251);
 
-    let right_pid = page_rc.borrow().get_right_pid().unwrap();
+    let right_pid = page_rc.rl().get_right_pid().unwrap();
     let right_rc = BufferPool::global().get_leaf_page(&right_pid).unwrap();
     // assert some tuples of the right page were stolen
-    assert!(right_rc.borrow().empty_slots_count() > 202);
+    assert!(right_rc.rl().empty_slots_count() > 202);
 
     table.draw_tree(-1);
     table.check_integrity(true);
@@ -115,7 +115,7 @@ fn test_delete_root_page() {
     let root_pid = table.get_root_pid();
     assert!(root_pid.category == PageCategory::Leaf);
     let root_rc = BufferPool::global().get_leaf_page(&root_pid).unwrap();
-    assert_eq!(root_rc.borrow().empty_slots_count(), 1);
+    assert_eq!(root_rc.rl().empty_slots_count(), 1);
 }
 
 #[test]
@@ -231,7 +231,7 @@ fn test_delete_internal_pages() {
 
     let root_pid = table.get_root_pid();
     let root_rc = BufferPool::global().get_internal_page(&root_pid).unwrap();
-    assert_eq!(122, root_rc.borrow().empty_slots_count());
+    assert_eq!(122, root_rc.rl().empty_slots_count());
 
     // Delete tuples causing leaf pages to merge until the first internal page
     // gets to minimum occupancy

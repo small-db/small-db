@@ -3,13 +3,15 @@ use rand::prelude::*;
 use std::{thread, time::Duration};
 
 use common::TreeLayout;
-use log::debug;
+use log::{debug, info};
 use simple_db_rust::utils::HandyRwLock;
 use simple_db_rust::{btree::buffer_pool::BufferPool, Tuple};
 
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
 fn test_big_table() {
+    common::setup();
+
     // For this test we will decrease the size of the Buffer Pool pages.
     BufferPool::set_page_size(1024);
 
@@ -31,16 +33,24 @@ fn test_big_table() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
 
-    let handle = thread::spawn(|| {
-        let mut rng = rand::thread_rng();
-        let insert_value = rng.gen_range(i32::MIN, i32::MAX);
-        let tuple = Tuple::new_btree_tuple(insert_value, columns);
-        table_rc.rl().insert_tuple(&tuple);
-        for i in 1..10 {
-            println!("hi number {} from the spawned thread!", i);
-            thread::sleep(Duration::from_millis(1));
-        }
-    });
+    debug!("Start insertion in multiple threads...");
+    let mut threads = vec![];
+    for _ in 0..10 {
+        let table_rc = table_rc.clone();
+        let handle = thread::spawn(move || {
+            let mut rng = rand::thread_rng();
+            let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+            let tuple = Tuple::new_btree_tuple(insert_value, columns);
+            table_rc.rl().insert_tuple(&tuple);
+        });
+        threads.push(handle);
+    }
+
+    for handle in threads {
+        handle.join().unwrap();
+    }
+
+    // handle.join().unwrap();
 
     // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
     // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.

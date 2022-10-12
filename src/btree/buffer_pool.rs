@@ -7,9 +7,11 @@ use std::{
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Once,
+        Arc, Once, RwLock,
     },
 };
+
+use log::debug;
 
 use super::{
     catalog::Catalog,
@@ -28,11 +30,11 @@ pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
-    roop_pointer_buffer:
-        HashMap<BTreePageID, Rc<RefCell<BTreeRootPointerPage>>>,
-    pub internal_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeInternalPage>>>,
-    pub leaf_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeLeafPage>>>,
-    pub header_buffer: HashMap<BTreePageID, Rc<RefCell<BTreeHeaderPage>>>,
+    root_pointer_buffer:
+        HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
+    pub internal_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
+    pub leaf_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
+    pub header_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
 }
 
 type Key = BTreePageID;
@@ -40,7 +42,7 @@ type Key = BTreePageID;
 impl BufferPool {
     fn new() -> BufferPool {
         BufferPool {
-            roop_pointer_buffer: HashMap::new(),
+            root_pointer_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
             header_buffer: HashMap::new(),
@@ -71,10 +73,24 @@ impl BufferPool {
     }
 
     pub fn clear(&mut self) {
-        self.roop_pointer_buffer.clear();
+        self.root_pointer_buffer.clear();
         self.internal_buffer.clear();
         self.leaf_buffer.clear();
     }
+
+    /// Retrieve the specified page with the associated permissions.
+    /// Will acquire a lock and may block if that lock is held by another
+    /// transaction.
+    ///
+    /// The retrieved page should be looked up in the buffer pool.  If it
+    /// is present, it should be returned.  If it is not present, it should
+    /// be added to the buffer pool and returned.  If there is insufficient
+    /// space in the buffer pool, a page should be evicted and the new page
+    /// should be added in its place.
+    ///
+    /// reference:
+    /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
+    pub fn get_page() {}
 
     fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
         let page_size = Self::get_page_size();
@@ -90,9 +106,11 @@ impl BufferPool {
     pub fn get_internal_page(
         &mut self,
         key: &Key,
-    ) -> Result<Rc<RefCell<BTreeInternalPage>>> {
+    ) -> Result<Arc<RwLock<BTreeInternalPage>>> {
         match self.internal_buffer.get(key) {
-            Some(_) => {}
+            Some(v) => {
+                return Ok(v.clone());
+            }
             None => {
                 // 1. get table
                 let v =
@@ -111,18 +129,17 @@ impl BufferPool {
                 );
 
                 // 4. put page into buffer pool
-                self.internal_buffer
-                    .insert(*key, Rc::new(RefCell::new(page)));
+                let v = Arc::new(RwLock::new(page));
+                self.internal_buffer.insert(*key, v.clone());
+                return Ok(v.clone());
             }
         }
-
-        Ok(Rc::clone(self.internal_buffer.get(key).unwrap()))
     }
 
     pub fn get_leaf_page(
         &mut self,
         key: &Key,
-    ) -> Result<Rc<RefCell<BTreeLeafPage>>> {
+    ) -> Result<Arc<RwLock<BTreeLeafPage>>> {
         match self.leaf_buffer.get(key) {
             Some(_) => {}
             None => {
@@ -143,17 +160,17 @@ impl BufferPool {
                 );
 
                 // 4. put page into buffer pool
-                self.leaf_buffer.insert(*key, Rc::new(RefCell::new(page)));
+                self.leaf_buffer.insert(*key, Arc::new(RwLock::new(page)));
             }
         }
 
-        Ok(Rc::clone(self.leaf_buffer.get(key).unwrap()))
+        Ok(Arc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
     pub fn get_header_page(
         &mut self,
         key: &Key,
-    ) -> Result<Rc<RefCell<BTreeHeaderPage>>> {
+    ) -> Result<Arc<RwLock<BTreeHeaderPage>>> {
         match self.header_buffer.get(key) {
             Some(_) => {}
             None => {
@@ -169,18 +186,18 @@ impl BufferPool {
                 let page = BTreeHeaderPage::new(key);
 
                 // 4. put page into buffer pool
-                self.header_buffer.insert(*key, Rc::new(RefCell::new(page)));
+                self.header_buffer.insert(*key, Arc::new(RwLock::new(page)));
             }
         }
 
-        Ok(Rc::clone(self.header_buffer.get(key).unwrap()))
+        Ok(Arc::clone(self.header_buffer.get(key).unwrap()))
     }
 
     pub fn get_root_pointer_page(
         &mut self,
         key: &Key,
-    ) -> Result<Rc<RefCell<BTreeRootPointerPage>>> {
-        match self.roop_pointer_buffer.get(key) {
+    ) -> Result<Arc<RwLock<BTreeRootPointerPage>>> {
+        match self.root_pointer_buffer.get(key) {
             Some(_) => {}
             None => {
                 // 1. get table
@@ -200,12 +217,12 @@ impl BufferPool {
                 let page = BTreeRootPointerPage::new(&pid, buf.to_vec());
 
                 // 4. put page into buffer pool
-                self.roop_pointer_buffer
-                    .insert(*key, Rc::new(RefCell::new(page)));
+                self.root_pointer_buffer
+                    .insert(*key, Arc::new(RwLock::new(page)));
             }
         }
 
-        Ok(Rc::clone(self.roop_pointer_buffer.get(key).unwrap()))
+        Ok(Arc::clone(self.root_pointer_buffer.get(key).unwrap()))
     }
 
     /// Remove the specific page id from the buffer pool.
@@ -224,7 +241,7 @@ impl BufferPool {
                 self.leaf_buffer.remove(pid);
             }
             PageCategory::RootPointer => {
-                self.roop_pointer_buffer.remove(pid);
+                self.root_pointer_buffer.remove(pid);
             }
             PageCategory::Header => todo!(),
         }
@@ -233,17 +250,17 @@ impl BufferPool {
     pub fn set_page_size(page_size: usize) {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
 
-        // info!("set page size to {}", page_size);
-        let _scheme = simple_int_tuple_scheme(2, "");
-        // info!(
-        //     "leaf page slot count: {}",
-        //     BTreeLeafPage::calculate_slots_count(&scheme)
-        // );
-        // info!(
-        //     "internal page entries count: {}, children count: {}",
-        //     BTreeInternalPage::get_max_entries(4),
-        //     BTreeInternalPage::get_max_entries(4) + 1,
-        // );
+        debug!("set page size to {}", page_size);
+        let scheme = simple_int_tuple_scheme(2, "");
+        debug!(
+            "leaf page slot count: {}",
+            BTreeLeafPage::calculate_slots_count(&scheme)
+        );
+        debug!(
+            "internal page entries count: {}, children count: {}",
+            BTreeInternalPage::get_max_entries(4),
+            BTreeInternalPage::get_max_entries(4) + 1,
+        );
     }
 
     pub fn rows_per_page(scheme: &TupleScheme) -> usize {

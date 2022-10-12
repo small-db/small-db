@@ -8,6 +8,7 @@ use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
     error::MyError,
     field::{get_type_length, IntField},
+    utils::HandyRwLock,
 };
 
 pub struct BTreeInternalPage {
@@ -313,7 +314,7 @@ impl BTreeInternalPage {
         let parent_pid = self.get_parent_pid();
         let parent_rc =
             BufferPool::global().get_internal_page(&parent_pid).unwrap();
-        let parent = parent_rc.borrow();
+        let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
             if e.get_right_child() == self.get_pid() {
@@ -327,7 +328,7 @@ impl BTreeInternalPage {
         let parent_pid = self.get_parent_pid();
         let parent_rc =
             BufferPool::global().get_internal_page(&parent_pid).unwrap();
-        let parent = parent_rc.borrow();
+        let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
             if e.get_left_child() == self.get_pid() {

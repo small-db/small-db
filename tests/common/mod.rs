@@ -181,7 +181,7 @@ fn sequential_insert_into_table(
         leaves.push(leaf_rc.clone());
         // borrow of leaf_rc start here
         {
-            let mut leaf = leaf_rc.borrow_mut();
+            let mut leaf = leaf_rc.wl();
 
             for _ in 0..*tuple_count {
                 if let Some(t) = tuples.get(tuple_index) {
@@ -221,7 +221,7 @@ fn sequential_insert_into_table(
             return page_index;
         }
         1 => {
-            let leaf = leaves[0].borrow();
+            let leaf = leaves[0].rl();
             table.set_root_pid(&leaf.get_pid());
             return page_index;
         }
@@ -260,21 +260,21 @@ fn sequential_insert_into_table(
                 let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
                 let key = it.next().unwrap().get_field(table.key_field);
 
-                let mut internal = internal_rc.borrow_mut();
+                let mut internal = internal_rc.wl();
                 let mut e = Entry::new(
                     key,
-                    &left_rc.borrow().get_pid(),
-                    &right_rc.borrow().get_pid(),
+                    &left_rc.rl().get_pid(),
+                    &right_rc.rl().get_pid(),
                 );
                 internal.insert_entry(&mut e);
 
                 leaf_index += 1;
 
                 // set parent for all left children
-                left_rc.borrow_mut().set_parent_pid(&pid);
+                left_rc.wl().set_parent_pid(&pid);
                 // set parent for the last right child
                 if j == entries_count - 1 {
-                    right_rc.borrow_mut().set_parent_pid(&pid);
+                    right_rc.wl().set_parent_pid(&pid);
                 }
             }
             // borrow of internal_rc ends here
@@ -289,12 +289,12 @@ fn sequential_insert_into_table(
 
 fn write_internal_pages(
     table: &BTreeTable,
-    internals: Vec<Rc<RefCell<BTreeInternalPage>>>,
+    internals: Vec<Arc<RwLock<BTreeInternalPage>>>,
     page_index: &mut usize,
 ) -> usize {
     let childrent_per_internal_page = BufferPool::children_per_page();
     if internals.len() <= 1 {
-        let internal = internals[0].borrow();
+        let internal = internals[0].rl();
         table.set_root_pid(&internal.get_pid());
         return *page_index;
     } else if internals.len() <= childrent_per_internal_page {
@@ -319,24 +319,24 @@ fn write_internal_pages(
 
                 // borrow of right_rc start here
                 let key = table
-                    .get_last_tuple(&left_rc.borrow().get_pid())
+                    .get_last_tuple(&left_rc.rl().get_pid())
                     .unwrap()
                     .get_field(table.key_field);
                 // borrow of right_rc ends here
 
-                let mut root = root_rc.borrow_mut();
+                let mut root = root_rc.wl();
                 let mut e = Entry::new(
                     key,
-                    &left_rc.borrow().get_pid(),
-                    &right_rc.borrow().get_pid(),
+                    &left_rc.rl().get_pid(),
+                    &right_rc.rl().get_pid(),
                 );
                 root.insert_entry(&mut e);
 
                 // set parent for all left children
-                left_rc.borrow_mut().set_parent_pid(&pid);
+                left_rc.wl().set_parent_pid(&pid);
                 // set parent for the last right child
                 if i == entries_count - 1 {
-                    right_rc.borrow_mut().set_parent_pid(&pid);
+                    right_rc.wl().set_parent_pid(&pid);
                 }
             }
             // borrow of root_rc ends here

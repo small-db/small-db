@@ -124,7 +124,7 @@ fn test_split_leaf_page() {
 
     let root_pid = table.get_root_pid();
     let root_ref = BufferPool::global().get_internal_page(&root_pid).unwrap();
-    let root = root_ref.borrow();
+    let root = root_ref.rl();
     assert_eq!(502, root.empty_slots_count());
 
     // each child should have half of the records
@@ -133,12 +133,12 @@ fn test_split_leaf_page() {
     let left_ref = BufferPool::global()
         .get_leaf_page(&entry.get_left_child())
         .unwrap();
-    assert!(left_ref.borrow().empty_slots_count() <= 251);
+    assert!(left_ref.rl().empty_slots_count() <= 251);
 
     let right_ref = BufferPool::global()
         .get_leaf_page(&entry.get_right_child())
         .unwrap();
-    assert!(right_ref.borrow().empty_slots_count() <= 251);
+    assert!(right_ref.rl().empty_slots_count() <= 251);
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn test_split_root_page() {
         let root_pid = table.get_root_pid();
         let root_ref =
             BufferPool::global().get_internal_page(&root_pid).unwrap();
-        let root = root_ref.borrow();
+        let root = root_ref.rl();
         debug!("root empty slot count: {}", root.empty_slots_count());
         let it = BTreeInternalPageIterator::new(&root);
         debug!("root entries count: {}", it.count());
@@ -192,7 +192,7 @@ fn test_split_root_page() {
 
         let root_page_rc =
             BufferPool::global().get_internal_page(&root_pid).unwrap();
-        let root_page = root_page_rc.borrow();
+        let root_page = root_page_rc.rl();
         assert_eq!(root_page.empty_slots_count(), 502);
 
         // each child should have half of the entries
@@ -201,14 +201,14 @@ fn test_split_root_page() {
         let left_pid = entry.get_left_child();
         let left_rc =
             BufferPool::global().get_internal_page(&left_pid).unwrap();
-        let left = left_rc.borrow();
+        let left = left_rc.rl();
         debug!("left entries count: {}", left.entries_count());
         assert!(left.empty_slots_count() <= 252);
 
         let right_pid = entry.get_right_child();
         let right_rc =
             BufferPool::global().get_internal_page(&right_pid).unwrap();
-        let right = right_rc.borrow();
+        let right = right_rc.rl();
         debug!("right entries count: {}", right.entries_count());
         assert!(right.empty_slots_count() <= 252);
     }

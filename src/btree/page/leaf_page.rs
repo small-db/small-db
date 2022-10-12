@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::{Arc, RwLock}};
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
@@ -13,7 +13,7 @@ use crate::{
         tuple::{TupleScheme, WrappedTuple},
     },
     field::IntField,
-    Catalog, Tuple,
+    Catalog, Tuple, utils::HandyRwLock,
 };
 
 pub struct BTreeLeafPage {
@@ -309,7 +309,7 @@ impl BTreeLeafPage {
     }
 }
 
-impl From<BTreeVirtualPage> for Rc<RefCell<BTreeLeafPage>> {
+impl From<BTreeVirtualPage> for Arc<RwLock<BTreeLeafPage>> {
     fn from(v: BTreeVirtualPage) -> Self {
         let scheme = Catalog::global()
             .get_tuple_scheme(&v.get_pid().get_table_id())
@@ -327,14 +327,14 @@ impl From<BTreeVirtualPage> for Rc<RefCell<BTreeLeafPage>> {
 }
 
 pub struct BTreeLeafPageIteratorRc {
-    page: Rc<RefCell<BTreeLeafPage>>,
+    page: Arc<RwLock<BTreeLeafPage>>,
     cursor: i32,
     reverse_cursor: i32,
 }
 
 impl BTreeLeafPageIteratorRc {
-    pub fn new(page: Rc<RefCell<BTreeLeafPage>>) -> Self {
-        let slot_count = page.borrow().get_slots_count();
+    pub fn new(page: Arc<RwLock<BTreeLeafPage>>) -> Self {
+        let slot_count = page.rl().get_slots_count();
         Self {
             page,
             cursor: -1,
@@ -347,7 +347,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let page = self.page.borrow();
+        let page = self.page.rl();
         loop {
             self.cursor += 1;
             let cursor = self.cursor as usize;
@@ -368,7 +368,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
 
 impl DoubleEndedIterator for BTreeLeafPageIteratorRc {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let page = self.page.borrow();
+        let page = self.page.rl();
         loop {
             self.reverse_cursor -= 1;
             if self.reverse_cursor < 0 {
