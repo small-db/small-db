@@ -5,11 +5,12 @@ use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use simple_db_rust::{
-    btree::buffer_pool::BufferPool, utils::HandyRwLock, Tuple,
+    btree::buffer_pool::BufferPool, transaction::Transaction,
+    utils::HandyRwLock, Tuple,
 };
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
+#[test]
 fn test_big_table() {
     common::setup();
 
@@ -42,10 +43,15 @@ fn test_big_table() {
             let mut rng = rand::thread_rng();
             let insert_value = rng.gen_range(i32::MIN, i32::MAX);
             let tuple = Tuple::new_btree_tuple(insert_value, columns);
+
+            let tx = Transaction::new();
+
             if let Err(e) = table_rc.rl().insert_tuple(&tuple) {
                 table_rc.rl().draw_tree(-1);
                 panic!("Error inserting tuple: {}", e);
             }
+
+            tx.commit();
         });
         threads.push(handle);
     }
