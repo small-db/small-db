@@ -10,6 +10,7 @@ use simple_db_rust::{
         page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },
+    transaction::Transaction,
     utils::HandyRwLock,
     *,
 };
@@ -31,7 +32,7 @@ fn test_insert_tuple() {
     debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&tuple);
+        table.insert_tuple_auto_tx(&tuple).unwrap();
         insert_value += 1;
         assert_eq!(1, table.pages_count());
     }
@@ -42,7 +43,7 @@ fn test_insert_tuple() {
     debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&tuple);
+        table.insert_tuple_auto_tx(&tuple).unwrap();
         insert_value += 1;
 
         // there are 3 pages: 1 root page + 2 leaf pages
@@ -52,7 +53,7 @@ fn test_insert_tuple() {
     // one more insert greater than 502 should cause page 2 to split
     debug!("start insert, count: {}", 1);
     let tuple = Tuple::new_btree_tuple(insert_value, 2);
-    table.insert_tuple(&tuple);
+    table.insert_tuple_auto_tx(&tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
     assert_eq!(4, table.pages_count());
@@ -79,7 +80,7 @@ fn test_insert_duplicate_tuples() {
     for i in 0..5 {
         for _ in 0..repetition_count {
             let tuple = Tuple::new_btree_tuple(i, 2);
-            table.insert_tuple(&tuple);
+            table.insert_tuple_auto_tx(&tuple).unwrap();
         }
     }
 
@@ -117,7 +118,8 @@ fn test_split_leaf_page() {
 
     // now insert a tuple
     BufferPool::global()
-        .insert_tuple(table.get_id(), Tuple::new_btree_tuple(5000, 2));
+        .insert_tuple_auto_tx(table.get_id(), &Tuple::new_btree_tuple(5000, 2))
+        .unwrap();
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
@@ -177,7 +179,8 @@ fn test_split_root_page() {
 
     // now insert a tuple
     BufferPool::global()
-        .insert_tuple(table.get_id(), Tuple::new_btree_tuple(10, 2));
+        .insert_tuple_auto_tx(table.get_id(), &Tuple::new_btree_tuple(10, 2))
+        .unwrap();
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
@@ -218,7 +221,9 @@ fn test_split_root_page() {
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        BufferPool::global().insert_tuple(table.get_id(), tuple.clone());
+        BufferPool::global()
+            .insert_tuple_auto_tx(table.get_id(), &tuple.clone())
+            .unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
@@ -288,7 +293,7 @@ fn test_split_internal_page() {
     for _i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&tuple);
+        table.insert_tuple_auto_tx(&tuple).unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);

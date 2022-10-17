@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{prelude::*, Result, Seek, SeekFrom},
+    io::{self, prelude::*, Seek, SeekFrom},
     mem,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -20,6 +20,8 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
+    error::MyError,
+    transaction::Transaction,
     utils::{simple_int_tuple_scheme, HandyRwLock},
     Tuple,
 };
@@ -90,7 +92,7 @@ impl BufferPool {
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
     pub fn get_page() {}
 
-    fn read_page(&self, file: &mut File, key: &Key) -> Result<Vec<u8>> {
+    fn read_page(&self, file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
         let page_size = Self::get_page_size();
         let start_pos = key.page_index * page_size;
         file.seek(SeekFrom::Start(start_pos as u64))
@@ -104,7 +106,7 @@ impl BufferPool {
     pub fn get_internal_page(
         &mut self,
         key: &Key,
-    ) -> Result<Arc<RwLock<BTreeInternalPage>>> {
+    ) -> io::Result<Arc<RwLock<BTreeInternalPage>>> {
         match self.internal_buffer.get(key) {
             Some(v) => {
                 return Ok(v.clone());
@@ -137,7 +139,7 @@ impl BufferPool {
     pub fn get_leaf_page(
         &mut self,
         key: &Key,
-    ) -> Result<Arc<RwLock<BTreeLeafPage>>> {
+    ) -> io::Result<Arc<RwLock<BTreeLeafPage>>> {
         match self.leaf_buffer.get(key) {
             Some(_) => {}
             None => {
@@ -168,7 +170,7 @@ impl BufferPool {
     pub fn get_header_page(
         &mut self,
         key: &Key,
-    ) -> Result<Arc<RwLock<BTreeHeaderPage>>> {
+    ) -> io::Result<Arc<RwLock<BTreeHeaderPage>>> {
         match self.header_buffer.get(key) {
             Some(_) => {}
             None => {
@@ -194,7 +196,7 @@ impl BufferPool {
     pub fn get_root_pointer_page(
         &mut self,
         key: &Key,
-    ) -> Result<Arc<RwLock<BTreeRootPointerPage>>> {
+    ) -> io::Result<Arc<RwLock<BTreeRootPointerPage>>> {
         match self.root_pointer_buffer.get(key) {
             Some(_) => {}
             None => {
@@ -282,9 +284,26 @@ impl BufferPool {
     /// their markDirty bit, and adds versions of any pages that have
     /// been dirtied to the cache (replacing any existing versions of those
     /// pages) so that future requests see up-to-date pages.
-    pub fn insert_tuple(&mut self, table_id: i32, t: Tuple) {
+    pub fn insert_tuple(
+        &mut self,
+        table_id: i32,
+        tx: &Transaction,
+        t: &Tuple,
+    ) -> Result<(), MyError> {
         let v = Catalog::global().get_table(&table_id).unwrap().rl();
-        v.insert_tuple(&t);
+        v.insert_tuple(tx, t)?;
+        return Ok(());
+    }
+
+    pub fn insert_tuple_auto_tx(
+        &mut self,
+        table_id: i32,
+        tuple: &Tuple,
+    ) -> Result<(), MyError> {
+        let tx = Transaction::new();
+        self.insert_tuple(table_id, &tx, tuple)?;
+        tx.commit();
+        return Ok(());
     }
 }
 

@@ -33,6 +33,7 @@ use crate::{
     },
     error::MyError,
     field::IntField,
+    transaction::Transaction,
     utils::{lock_state, HandyRwLock},
 };
 
@@ -131,9 +132,20 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
+    pub fn insert_tuple_auto_tx(&self, tuple: &Tuple) -> Result<(), MyError> {
+        let tx = Transaction::new();
+        self.insert_tuple(&tx, &tuple)?;
+        tx.commit();
+        return Ok(());
+    }
+
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
-    pub fn insert_tuple(&self, tuple: &Tuple) -> Result<(), MyError> {
+    pub fn insert_tuple(
+        &self,
+        tx: &Transaction,
+        tuple: &Tuple,
+    ) -> Result<(), MyError> {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();

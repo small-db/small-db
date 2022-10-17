@@ -5,6 +5,7 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
     },
+    transaction::Transaction,
     utils::HandyRwLock,
     Tuple,
 };
@@ -147,10 +148,12 @@ fn test_reuse_deleted_pages() {
     assert_eq!(5, table.pages_count());
 
     // insert enough tuples to ensure one of the leaf pages splits
+    let tx = Transaction::new();
     for value in 0..502 {
         let tuple = Tuple::new_btree_tuple(value, 2);
-        table.insert_tuple(&tuple);
+        table.insert_tuple(&tx, &tuple).unwrap();
     }
+    tx.commit();
 
     // now there should be 3 leaf pages, 1 internal page, and 1 header page
     assert_eq!(5, table.pages_count());

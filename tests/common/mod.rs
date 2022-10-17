@@ -11,6 +11,7 @@ use simple_db_rust::{
         },
         tuple::TupleScheme,
     },
+    transaction::Transaction,
     utils::{simple_int_tuple_scheme, HandyRwLock},
     *,
 };
@@ -82,13 +83,15 @@ pub fn create_random_btree_table(
         }
     }
 
+    let tx = Transaction::new();
+
     // borrow of table_rc start here
     {
         let table = table_rc.rl();
         match tree_layout {
             TreeLayout::Naturally => {
                 for t in tuples.iter() {
-                    table.insert_tuple(t);
+                    table.insert_tuple(&tx, t).unwrap();
                 }
             }
             TreeLayout::EvenlyDistributed
@@ -105,6 +108,7 @@ pub fn create_random_btree_table(
     }
     // borrow of table_rc ends here
 
+    tx.commit();
     debug!("table construction finished, insert {} rows in total", rows,);
 
     return table_rc;
