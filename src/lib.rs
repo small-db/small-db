@@ -1,11 +1,11 @@
 pub mod btree;
 pub mod field;
-pub mod utils;
 pub mod transaction;
+pub mod utils;
 
+mod concurrent_status;
 mod error;
 mod log;
-mod concurrent_status;
 
 pub use btree::{
     catalog::Catalog,

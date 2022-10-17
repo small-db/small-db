@@ -5,8 +5,7 @@ use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use simple_db_rust::{
-    btree::buffer_pool::BufferPool, transaction::Transaction,
-    utils::HandyRwLock, Tuple,
+    btree::buffer_pool::BufferPool, utils::HandyRwLock, Tuple,
 };
 
 // Test that doing lots of inserts and deletes in multiple threads works.

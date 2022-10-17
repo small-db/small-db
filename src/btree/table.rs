@@ -143,7 +143,7 @@ impl BTreeTable {
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(
         &self,
-        tx: &Transaction,
+        _tx: &Transaction,
         tuple: &Tuple,
     ) -> Result<(), MyError> {
         // a read lock on the root pointer page and

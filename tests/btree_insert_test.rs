@@ -10,7 +10,6 @@ use simple_db_rust::{
         page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },
-    transaction::Transaction,
     utils::HandyRwLock,
     *,
 };
