@@ -19,9 +19,9 @@ pub enum LockType {
 
 impl ConcurrentStatus {
     pub fn acquire_lock(
-        tx: &Transaction,
-        page_id: BTreePageID,
-        lock_type: LockType,
+        _tx: &Transaction,
+        _page_id: BTreePageID,
+        _lock_type: LockType,
     ) -> Result<(), MyError> {
         unimplemented!()
     }
