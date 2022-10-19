@@ -67,7 +67,6 @@ impl BufferPool {
         unsafe {
             // Now we give out a copy of the data that is safe to use
             // concurrently. (*SINGLETON).clone()
-            // SINGLETON.as_ref().unwrap()
             SINGLETON.as_mut().unwrap()
         }
     }
