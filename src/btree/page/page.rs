@@ -1,6 +1,5 @@
-use crate::btree::tuple::TupleScheme;
-
 use super::BTreePageID;
+use crate::btree::tuple::TupleScheme;
 
 pub trait BTreePage {
     fn new(

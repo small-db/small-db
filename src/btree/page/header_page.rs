@@ -1,8 +1,7 @@
 use bit_vec::BitVec;
 
-use crate::btree::tuple::TupleScheme;
-
 use super::{BTreeBasePage, BTreePage, BTreePageID};
+use crate::btree::tuple::TupleScheme;
 
 pub struct BTreeHeaderPage {
     base: BTreeBasePage,
@@ -49,9 +48,9 @@ impl BTreeHeaderPage {
 impl BTreePage for BTreeHeaderPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
-        tuple_scheme: &TupleScheme,
-        key_field: usize,
+        _bytes: Vec<u8>,
+        _tuple_scheme: &TupleScheme,
+        _key_field: usize,
     ) -> Self {
         Self::new(pid)
     }

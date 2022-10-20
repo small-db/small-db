@@ -1,10 +1,9 @@
 use std::convert::TryInto;
 
-use crate::btree::tuple::TupleScheme;
-
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
+use crate::btree::tuple::TupleScheme;
 
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,
@@ -64,8 +63,8 @@ impl BTreePage for BTreeRootPointerPage {
     fn new(
         pid: &BTreePageID,
         bytes: Vec<u8>,
-        tuple_scheme: &TupleScheme,
-        key_field: usize,
+        _tuple_scheme: &TupleScheme,
+        _key_field: usize,
     ) -> Self {
         Self::new(pid, bytes)
     }

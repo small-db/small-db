@@ -136,10 +136,7 @@ impl BufferPool {
         }
     }
 
-    pub fn get_leaf_page(
-        &mut self,
-        key: &Key,
-    ) -> ResultPod<BTreeLeafPage> {
+    pub fn get_leaf_page(&mut self, key: &Key) -> ResultPod<BTreeLeafPage> {
         match self.leaf_buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
@@ -150,10 +147,7 @@ impl BufferPool {
         }
     }
 
-    pub fn get_header_page(
-        &mut self,
-        key: &Key,
-    ) -> ResultPod<BTreeHeaderPage> {
+    pub fn get_header_page(&mut self, key: &Key) -> ResultPod<BTreeHeaderPage> {
         match self.header_buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
