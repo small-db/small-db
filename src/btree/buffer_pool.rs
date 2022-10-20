@@ -14,14 +14,15 @@ use log::debug;
 use super::{
     catalog::Catalog,
     page::{
-        BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePageID,
-        BTreeRootPointerPage, PageCategory,
+        BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
+        BTreePageID, BTreeRootPointerPage, PageCategory,
     },
     tuple::TupleScheme,
 };
 use crate::{
-    error::MyError,
+    error::SimpleError,
     transaction::Transaction,
+    types::{Pod, ResultPod},
     utils::{simple_int_tuple_scheme, HandyRwLock},
     Tuple,
 };
@@ -89,7 +90,26 @@ impl BufferPool {
     ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
-    pub fn get_page() {}
+    fn load_page<PAGE: BTreePage>(
+        &mut self,
+        key: &Key,
+    ) -> Result<Pod<PAGE>, SimpleError> {
+        // stage 1: get table
+        let v = Catalog::global().get_table(&key.get_table_id()).unwrap();
+        let table = v.read().unwrap();
+
+        // stage 2: read page content from disk
+        let buf = self
+            .read_page(&mut table.get_file(), key)
+            .or(Err(SimpleError::new("read page content failed")))?;
+
+        // stage 3: page instantiation
+        let page =
+            PAGE::new(key, buf.to_vec(), &table.tuple_scheme, table.key_field);
+
+        // stage 4: return
+        return Ok(Arc::new(RwLock::new(page)));
+    }
 
     fn read_page(&self, file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
         let page_size = Self::get_page_size();
@@ -105,32 +125,13 @@ impl BufferPool {
     pub fn get_internal_page(
         &mut self,
         key: &Key,
-    ) -> io::Result<Arc<RwLock<BTreeInternalPage>>> {
+    ) -> Result<Pod<BTreeInternalPage>, SimpleError> {
         match self.internal_buffer.get(key) {
-            Some(v) => {
-                return Ok(v.clone());
-            }
+            Some(v) => Ok(v.clone()),
             None => {
-                // 1. get table
-                let v =
-                    Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.read().unwrap();
-
-                // 2. read page content
-                let buf = self.read_page(&mut table.get_file(), key)?;
-
-                // 3. instantiate page
-                let page = BTreeInternalPage::new(
-                    key,
-                    buf.to_vec(),
-                    &table.tuple_scheme,
-                    table.key_field,
-                );
-
-                // 4. put page into buffer pool
-                let v = Arc::new(RwLock::new(page));
-                self.internal_buffer.insert(*key, v.clone());
-                return Ok(v.clone());
+                let page = self.load_page(key)?;
+                self.internal_buffer.insert(*key, page.clone());
+                Ok(page.clone())
             }
         }
     }
@@ -138,90 +139,43 @@ impl BufferPool {
     pub fn get_leaf_page(
         &mut self,
         key: &Key,
-    ) -> io::Result<Arc<RwLock<BTreeLeafPage>>> {
+    ) -> ResultPod<BTreeLeafPage> {
         match self.leaf_buffer.get(key) {
-            Some(_) => {}
+            Some(v) => Ok(v.clone()),
             None => {
-                // 1. get table
-                let v =
-                    Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.rl();
-
-                // 2. read page content
-                let buf = self.read_page(&mut table.get_file(), key)?;
-
-                // 3. instantiate page
-                let page = BTreeLeafPage::new(
-                    key,
-                    buf.to_vec(),
-                    &table.tuple_scheme,
-                    table.key_field,
-                );
-
-                // 4. put page into buffer pool
-                self.leaf_buffer.insert(*key, Arc::new(RwLock::new(page)));
+                let page = self.load_page(key)?;
+                self.leaf_buffer.insert(*key, page.clone());
+                Ok(page.clone())
             }
         }
-
-        Ok(Arc::clone(self.leaf_buffer.get(key).unwrap()))
     }
 
     pub fn get_header_page(
         &mut self,
         key: &Key,
-    ) -> io::Result<Arc<RwLock<BTreeHeaderPage>>> {
+    ) -> ResultPod<BTreeHeaderPage> {
         match self.header_buffer.get(key) {
-            Some(_) => {}
+            Some(v) => Ok(v.clone()),
             None => {
-                // 1. get table
-                let v =
-                    Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.rl();
-
-                // 2. read page content
-                let _buf = self.read_page(&mut table.get_file(), key)?;
-
-                // 3. instantiate page
-                let page = BTreeHeaderPage::new(key);
-
-                // 4. put page into buffer pool
-                self.header_buffer.insert(*key, Arc::new(RwLock::new(page)));
+                let page = self.load_page(key)?;
+                self.header_buffer.insert(*key, page.clone());
+                Ok(page.clone())
             }
         }
-
-        Ok(Arc::clone(self.header_buffer.get(key).unwrap()))
     }
 
     pub fn get_root_pointer_page(
         &mut self,
         key: &Key,
-    ) -> io::Result<Arc<RwLock<BTreeRootPointerPage>>> {
+    ) -> ResultPod<BTreeRootPointerPage> {
         match self.root_pointer_buffer.get(key) {
-            Some(_) => {}
+            Some(v) => Ok(v.clone()),
             None => {
-                // 1. get table
-                let v =
-                    Catalog::global().get_table(&key.get_table_id()).unwrap();
-                let table = v.rl();
-
-                // 2. read page content
-                let buf = self.read_page(&mut table.get_file(), key)?;
-
-                // 3. instantiate page
-                let pid = BTreePageID::new(
-                    PageCategory::RootPointer,
-                    table.get_id(),
-                    0,
-                );
-                let page = BTreeRootPointerPage::new(&pid, buf.to_vec());
-
-                // 4. put page into buffer pool
-                self.root_pointer_buffer
-                    .insert(*key, Arc::new(RwLock::new(page)));
+                let page = self.load_page(key)?;
+                self.root_pointer_buffer.insert(*key, page.clone());
+                Ok(page.clone())
             }
         }
-
-        Ok(Arc::clone(self.root_pointer_buffer.get(key).unwrap()))
     }
 
     /// Remove the specific page id from the buffer pool.
@@ -288,7 +242,7 @@ impl BufferPool {
         table_id: i32,
         tx: &Transaction,
         t: &Tuple,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         let v = Catalog::global().get_table(&table_id).unwrap().rl();
         v.insert_tuple(tx, t)?;
         return Ok(());
@@ -298,7 +252,7 @@ impl BufferPool {
         &mut self,
         table_id: i32,
         tuple: &Tuple,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         let tx = Transaction::new();
         self.insert_tuple(table_id, &tx, tuple)?;
         tx.commit();

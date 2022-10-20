@@ -1,5 +1,5 @@
 use super::{BTreePage, BTreePageID, PageCategory};
-use crate::btree::buffer_pool::BufferPool;
+use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
 pub struct BTreeBasePage {
     pid: BTreePageID,
@@ -21,6 +21,15 @@ impl BTreeBasePage {
 }
 
 impl BTreePage for BTreeBasePage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        unimplemented!()
+    }
+
     fn get_pid(&self) -> BTreePageID {
         self.pid
     }

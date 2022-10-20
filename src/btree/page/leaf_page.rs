@@ -18,7 +18,7 @@ use crate::{
 };
 
 pub struct BTreeLeafPage {
-    page: BTreeBasePage,
+    base: BTreeBasePage,
 
     pub slot_count: usize,
 
@@ -37,50 +37,7 @@ pub struct BTreeLeafPage {
     key_field: usize,
 }
 
-impl std::ops::Deref for BTreeLeafPage {
-    type Target = dyn BTreePage;
-    fn deref(&self) -> &Self::Target {
-        &self.page
-    }
-}
-
-impl std::ops::DerefMut for BTreeLeafPage {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.page
-    }
-}
-
 impl BTreeLeafPage {
-    pub fn new(
-        pid: &BTreePageID,
-        bytes: Vec<u8>,
-        tuple_scheme: &TupleScheme,
-        key_field: usize,
-    ) -> Self {
-        let slot_count = Self::calculate_slots_count(&tuple_scheme);
-        let header_size = Self::calculate_header_size(slot_count) as usize;
-
-        // init tuples
-        let mut tuples = Vec::new();
-        for i in 0..slot_count {
-            let start = header_size + i * tuple_scheme.get_size();
-            let end = start + tuple_scheme.get_size();
-            let t = Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
-            tuples.push(t);
-        }
-
-        Self {
-            page: BTreeBasePage::new(pid),
-            slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
-            tuples,
-            tuple_scheme: tuple_scheme.clone(),
-            right_sibling_id: EMPTY_PAGE_ID,
-            left_sibling_id: EMPTY_PAGE_ID,
-            key_field,
-        }
-    }
-
     pub fn set_right_pid(&mut self, pid: Option<BTreePageID>) {
         match pid {
             Some(pid) => {
@@ -307,6 +264,50 @@ impl BTreeLeafPage {
         if check_occupancy && depth > 0 {
             assert!(self.tuples_count() >= self.get_slots_count() / 2);
         }
+    }
+}
+
+impl BTreePage for BTreeLeafPage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+        let header_size = Self::calculate_header_size(slot_count) as usize;
+
+        // init tuples
+        let mut tuples = Vec::new();
+        for i in 0..slot_count {
+            let start = header_size + i * tuple_scheme.get_size();
+            let end = start + tuple_scheme.get_size();
+            let t = Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
+            tuples.push(t);
+        }
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            slot_count,
+            header: BitVec::from_bytes(&bytes[..header_size]),
+            tuples,
+            tuple_scheme: tuple_scheme.clone(),
+            right_sibling_id: EMPTY_PAGE_ID,
+            left_sibling_id: EMPTY_PAGE_ID,
+            key_field,
+        }
+    }
+
+    fn get_pid(&self) -> BTreePageID {
+        self.base.get_pid()
+    }
+
+    fn get_parent_pid(&self) -> BTreePageID {
+        self.base.get_parent_pid()
+    }
+
+    fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        self.base.set_parent_pid(pid)
     }
 }
 

@@ -6,13 +6,13 @@ use log::error;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
-    error::MyError,
+    error::SimpleError,
     field::{get_type_length, IntField},
     utils::HandyRwLock,
 };
 
 pub struct BTreeInternalPage {
-    page: BTreeBasePage,
+    base: BTreeBasePage,
 
     pub keys: Vec<IntField>,
 
@@ -31,47 +31,7 @@ pub struct BTreeInternalPage {
     key_field: usize,
 }
 
-impl std::ops::Deref for BTreeInternalPage {
-    type Target = dyn BTreePage;
-    fn deref(&self) -> &Self::Target {
-        &self.page
-    }
-}
-
-impl std::ops::DerefMut for BTreeInternalPage {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.page
-    }
-}
-
 impl BTreeInternalPage {
-    pub fn new(
-        pid: &BTreePageID,
-        bytes: Vec<u8>,
-        tuple_scheme: &TupleScheme,
-        key_field: usize,
-    ) -> Self {
-        let key_size =
-            get_type_length(tuple_scheme.fields[key_field].field_type);
-        let slot_count = Self::get_max_entries(key_size) + 1;
-        let header_size = Self::get_header_size(slot_count) as usize;
-
-        let mut keys: Vec<IntField> = Vec::new();
-        let mut children: Vec<BTreePageID> = Vec::new();
-        keys.resize(slot_count, IntField::new(0));
-        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
-
-        Self {
-            page: BTreeBasePage::new(pid),
-            keys,
-            children,
-            slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
-            tuple_scheme: tuple_scheme.clone(),
-            key_field,
-        }
-    }
-
     pub fn get_coresponding_entry(
         &self,
         left_pid: Option<&BTreePageID>,
@@ -198,9 +158,9 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) -> Result<(), MyError> {
+    pub fn insert_entry(&mut self, e: &Entry) -> Result<(), SimpleError> {
         if self.empty_slots_count() == 0 {
-            return Err(MyError::new("No empty slots on this page."));
+            return Err(SimpleError::new("No empty slots on this page."));
         }
 
         // if this is the first entry, add it and return
@@ -249,7 +209,7 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
-            let e = MyError::new(&format!(
+            let e = SimpleError::new(&format!(
                 "No slot found for entry {}, pid: {}, entries count: {}",
                 e,
                 self.get_pid(),
@@ -398,6 +358,47 @@ impl BTreeInternalPage {
                 self.get_pid(),
             );
         }
+    }
+}
+
+impl BTreePage for BTreeInternalPage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let key_size =
+            get_type_length(tuple_scheme.fields[key_field].field_type);
+        let slot_count = Self::get_max_entries(key_size) + 1;
+        let header_size = Self::get_header_size(slot_count) as usize;
+
+        let mut keys: Vec<IntField> = Vec::new();
+        let mut children: Vec<BTreePageID> = Vec::new();
+        keys.resize(slot_count, IntField::new(0));
+        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            keys,
+            children,
+            slot_count,
+            header: BitVec::from_bytes(&bytes[..header_size]),
+            tuple_scheme: tuple_scheme.clone(),
+            key_field,
+        }
+    }
+
+    fn get_pid(&self) -> BTreePageID {
+        self.base.get_pid()
+    }
+
+    fn get_parent_pid(&self) -> BTreePageID {
+        self.base.get_parent_pid()
+    }
+
+    fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        self.base.set_parent_pid(pid)
     }
 }
 

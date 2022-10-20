@@ -6,6 +6,7 @@ pub mod utils;
 mod concurrent_status;
 mod error;
 mod log;
+mod types;
 
 pub use btree::{
     catalog::Catalog,

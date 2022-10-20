@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    btree::page::BTreePageID, error::MyError, transaction::Transaction,
+    btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
 };
 
 /// reference:
@@ -22,7 +22,7 @@ impl ConcurrentStatus {
         _tx: &Transaction,
         _page_id: BTreePageID,
         _lock_type: LockType,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         unimplemented!()
     }
 }

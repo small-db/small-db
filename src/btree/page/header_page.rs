@@ -1,6 +1,8 @@
 use bit_vec::BitVec;
 
-use super::{BTreeBasePage, BTreePageID};
+use crate::btree::tuple::TupleScheme;
+
+use super::{BTreeBasePage, BTreePage, BTreePageID};
 
 pub struct BTreeHeaderPage {
     base: BTreeBasePage,
@@ -44,15 +46,25 @@ impl BTreeHeaderPage {
     }
 }
 
-impl std::ops::Deref for BTreeHeaderPage {
-    type Target = BTreeBasePage;
-    fn deref(&self) -> &Self::Target {
-        &self.base
+impl BTreePage for BTreeHeaderPage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        Self::new(pid)
     }
-}
 
-impl std::ops::DerefMut for BTreeHeaderPage {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
+    fn get_pid(&self) -> BTreePageID {
+        self.base.get_pid()
+    }
+
+    fn get_parent_pid(&self) -> BTreePageID {
+        self.base.get_parent_pid()
+    }
+
+    fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        self.base.set_parent_pid(pid)
     }
 }

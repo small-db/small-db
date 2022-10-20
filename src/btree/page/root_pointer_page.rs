@@ -1,5 +1,7 @@
 use std::convert::TryInto;
 
+use crate::btree::tuple::TupleScheme;
+
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
@@ -11,19 +13,6 @@ pub struct BTreeRootPointerPage {
     root_pid: BTreePageID,
 
     header_page_index: usize,
-}
-
-impl std::ops::Deref for BTreeRootPointerPage {
-    type Target = BTreeBasePage;
-    fn deref(&self) -> &Self::Target {
-        &self.base
-    }
-}
-
-impl std::ops::DerefMut for BTreeRootPointerPage {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.base
-    }
 }
 
 impl BTreeRootPointerPage {
@@ -68,5 +57,28 @@ impl BTreeRootPointerPage {
     /// Set the page id of the first header page
     pub fn set_header_pid(&mut self, pid: &BTreePageID) {
         self.header_page_index = pid.page_index;
+    }
+}
+
+impl BTreePage for BTreeRootPointerPage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        Self::new(pid, bytes)
+    }
+
+    fn get_pid(&self) -> BTreePageID {
+        self.base.get_pid()
+    }
+
+    fn get_parent_pid(&self) -> BTreePageID {
+        self.base.get_parent_pid()
+    }
+
+    fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        self.base.set_parent_pid(pid)
     }
 }

@@ -31,9 +31,10 @@ use crate::{
     btree::page::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
-    error::MyError,
+    error::SimpleError,
     field::IntField,
     transaction::Transaction,
+    types::ResultPod,
     utils::{lock_state, HandyRwLock},
 };
 
@@ -132,7 +133,10 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    pub fn insert_tuple_auto_tx(&self, tuple: &Tuple) -> Result<(), MyError> {
+    pub fn insert_tuple_auto_tx(
+        &self,
+        tuple: &Tuple,
+    ) -> Result<(), SimpleError> {
         let tx = Transaction::new();
         self.insert_tuple(&tx, &tuple)?;
         tx.commit();
@@ -145,7 +149,7 @@ impl BTreeTable {
         &self,
         _tx: &Transaction,
         tuple: &Tuple,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -184,7 +188,7 @@ impl BTreeTable {
         &self,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
         field: IntField,
-    ) -> Result<Arc<RwLock<BTreeLeafPage>>, MyError> {
+    ) -> ResultPod<BTreeLeafPage> {
         let new_sibling_rc = self.get_empty_leaf_page();
         let parent_pid: BTreePageID;
         let key: IntField;
@@ -483,7 +487,10 @@ impl BTreeTable {
     ///
     /// May cause pages to merge or redistribute entries/tuples if the pages
     /// become less than half full.
-    pub fn delete_tuple(&self, tuple: &WrappedTuple) -> Result<(), MyError> {
+    pub fn delete_tuple(
+        &self,
+        tuple: &WrappedTuple,
+    ) -> Result<(), SimpleError> {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
 
@@ -509,7 +516,7 @@ impl BTreeTable {
     fn handle_erratic_leaf_page(
         &self,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -526,7 +533,7 @@ impl BTreeTable {
                 BufferPool::global().get_leaf_page(&right_pid).unwrap();
             self.balancing_two_leaf_pages(page_rc, right_rc)?;
         } else {
-            return Err(MyError::new(
+            return Err(SimpleError::new(
                 "BTreeTable::handle_erratic_leaf_page no left or right sibling",
             ));
         };
@@ -546,7 +553,7 @@ impl BTreeTable {
     fn handle_erratic_internal_page(
         &self,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -598,7 +605,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_entry: &Entry,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         // hold left_rc and right_rc
         {
             let mut left = left_rc.wl();
@@ -648,7 +655,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeLeafPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         // hold the left and right page
         {
             let mut left = left_rc.wl();
@@ -706,15 +713,12 @@ impl BTreeTable {
     /// - page              - the parent containing the entry to be deleted
     /// - entry             - the entry to be deleted
     /// - delete_left_child - which child of the entry should be deleted
-    fn delete_parent_entry<T>(
+    fn delete_parent_entry<PAGE: BTreePage>(
         &self,
-        left_rc: Arc<RwLock<T>>,
+        left_rc: Arc<RwLock<PAGE>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> Result<(), MyError>
-    where
-        T: DerefMut<Target = dyn BTreePage>,
-    {
+    ) -> Result<(), SimpleError> {
         // hold the parent and left page
         {
             let mut parent = parent_rc.wl();
@@ -803,7 +807,7 @@ impl BTreeTable {
         &self,
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         let parent_rc = BufferPool::global()
             .get_internal_page(&left_rc.rl().get_parent_pid())
             .unwrap();
@@ -922,7 +926,7 @@ impl BTreeTable {
         fn_get_edge_left_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
         fn_get_edge_right_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
         fn_get_moved_child: impl Fn(&Entry) -> BTreePageID,
-    ) -> Result<Vec<usize>, MyError> {
+    ) -> Result<Vec<usize>, SimpleError> {
         // Remember the entries for deletion later (cause we can't
         // modify the page while iterating though it)
         let mut moved_records = Vec::new();
@@ -965,7 +969,7 @@ impl BTreeTable {
         &self,
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> Result<(), MyError> {
+    ) -> Result<(), SimpleError> {
         let parent_rc = BufferPool::global()
             .get_internal_page(&left_rc.rl().get_parent_pid())
             .unwrap();
