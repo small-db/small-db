@@ -22,12 +22,12 @@ impl BTreeBasePage {
 
 impl BTreePage for BTreeBasePage {
     fn new(
-        _pid: &BTreePageID,
+        pid: &BTreePageID,
         _bytes: Vec<u8>,
         _tuple_scheme: &TupleScheme,
         _key_field: usize,
     ) -> Self {
-        unimplemented!()
+        Self::new(pid)
     }
 
     fn get_pid(&self) -> BTreePageID {
