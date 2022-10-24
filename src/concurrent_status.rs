@@ -2,6 +2,8 @@ use std::{
     collections::{HashMap, HashSet},
     mem,
     sync::Once,
+    thread::sleep,
+    time::Instant,
 };
 
 use crate::{
@@ -73,7 +75,69 @@ impl ConcurrentStatus {
         lock: Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SimpleError> {
-        // unimplemented!()
-        Ok(())
+        return Ok(());
+
+        let start_time = Instant::now();
+        while Instant::now().duration_since(start_time).as_secs() < 10 {
+            match lock {
+                Lock::SLock => match self.x_lock_map.get(page_id) {
+                    None => {
+                        return self.add_lock(tx, lock, page_id);
+                    }
+                    Some(v) => {
+                        if v.contains(tx) {
+                            return Ok(());
+                        }
+                    }
+                },
+                Lock::XLock => {
+                    if self.s_lock_map.contains_key(page_id) {
+                        continue;
+                    }
+                    if let Some(v) = self.x_lock_map.get(page_id) {
+                        if v.contains(tx) {
+                            return Ok(());
+                        }
+                        continue;
+                    }
+                    return self.add_lock(tx, lock, page_id);
+                }
+            }
+
+            sleep(std::time::Duration::from_millis(10));
+        }
+
+        unimplemented!()
+    }
+
+    fn add_lock(
+        &mut self,
+        tx: &Transaction,
+        lock: Lock,
+        page_id: &BTreePageID,
+    ) -> Result<(), SimpleError> {
+        match lock {
+            Lock::SLock => {
+                self.s_lock_map.insert(*page_id, *tx);
+            }
+            Lock::XLock => {
+                let mut set = HashSet::new();
+                set.insert(*tx);
+                self.x_lock_map.insert(*page_id, set);
+            }
+        }
+
+        self.hold_pages
+            .entry(*tx)
+            .and_modify(|v| {
+                v.insert(*page_id);
+            })
+            .or_insert_with(|| {
+                let mut set = HashSet::new();
+                set.insert(*page_id);
+                set
+            });
+
+        return Ok(());
     }
 }

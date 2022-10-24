@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
+#[derive(Eq, Hash, PartialEq, Clone, Copy)]
 pub struct Transaction {
     // increase monotonically by 1
     uuid: u64,
