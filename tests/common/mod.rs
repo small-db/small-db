@@ -11,6 +11,7 @@ use simple_db_rust::{
         },
         tuple::TupleScheme,
     },
+    concurrent_status::Permission,
     transaction::Transaction,
     utils::{simple_int_tuple_scheme, HandyRwLock},
     *,
@@ -18,15 +19,22 @@ use simple_db_rust::{
 
 pub const DB_FILE: &str = "./btree.db";
 
+pub struct TestContext {
+    pub tx: Transaction,
+}
+
 /// # Conduct the initialization
 ///
 /// - Setting up log configurations.
 /// - Clear buffer pool.
 /// - Reset page size.
-pub fn setup() {
+pub fn setup() -> TestContext {
     utils::init_log();
     BufferPool::global().clear();
     BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
+
+    let tx = Transaction::new();
+    return TestContext { tx };
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -178,7 +186,9 @@ fn sequential_insert_into_table(
         );
         table.write_page_to_disk(&pid);
 
-        let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        let leaf_rc = BufferPool::global()
+            .get_leaf_page(&Transaction::new(), Permission::ReadWrite, &pid)
+            .unwrap();
         leaves.push(leaf_rc.clone());
         // borrow of leaf_rc start here
         {
@@ -320,7 +330,10 @@ fn write_internal_pages(
 
                 // borrow of right_rc start here
                 let key = table
-                    .get_last_tuple(&left_rc.rl().get_pid())
+                    .get_last_tuple(
+                        &Transaction::new(),
+                        &left_rc.rl().get_pid(),
+                    )
                     .unwrap()
                     .get_field(table.key_field);
                 // borrow of right_rc ends here

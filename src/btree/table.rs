@@ -31,6 +31,7 @@ use crate::{
     btree::page::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
+    concurrent_status::{Lock, Permission},
     error::SimpleError,
     field::IntField,
     transaction::Transaction,
@@ -147,7 +148,7 @@ impl BTreeTable {
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(
         &self,
-        _tx: &Transaction,
+        tx: &Transaction,
         tuple: &Tuple,
     ) -> Result<(), SimpleError> {
         // a read lock on the root pointer page and
@@ -158,12 +159,19 @@ impl BTreeTable {
         // the key field, and split the leaf page if there are no
         // more slots available
         let field = tuple.get_field(self.key_field);
-        let mut leaf_rc =
-            self.find_leaf_page(root_pid, SearchFor::IntField(field));
+        let mut leaf_rc = self.find_leaf_page(
+            tx,
+            Permission::ReadWrite,
+            root_pid,
+            SearchFor::IntField(field),
+        );
 
         if leaf_rc.rl().empty_slots_count() == 0 {
-            leaf_rc =
-                self.split_leaf_page(leaf_rc, tuple.get_field(self.key_field))?;
+            leaf_rc = self.split_leaf_page(
+                tx,
+                leaf_rc,
+                tuple.get_field(self.key_field),
+            )?;
         }
         leaf_rc.wl().insert_tuple(&tuple);
         return Ok(());
@@ -186,6 +194,7 @@ impl BTreeTable {
     /// complete. Necessary to know which of the two pages to return.
     pub fn split_leaf_page(
         &self,
+        tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
         field: IntField,
     ) -> ResultPod<BTreeLeafPage> {
@@ -230,7 +239,7 @@ impl BTreeTable {
         // We put this method outside all the borrow blocks since
         // once the parent page is split, a lot of children will
         // been borrowed. (may including the current leaf page)
-        let parent_rc = self.get_parent_with_empty_slots(parent_pid, field);
+        let parent_rc = self.get_parent_with_empty_slots(tx, parent_pid, field);
 
         // borrow of parent_rc start here
         // borrow of page_rc start here
@@ -256,8 +265,9 @@ impl BTreeTable {
 
             // set left pointer for the old right sibling
             if let Some(old_right_pid) = page.get_right_pid() {
-                let old_right_rc =
-                    BufferPool::global().get_leaf_page(&old_right_pid).unwrap();
+                let old_right_rc = BufferPool::global()
+                    .get_leaf_page(tx, Permission::ReadWrite, &old_right_pid)
+                    .unwrap();
                 old_right_rc.wl().set_left_pid(Some(new_sibling.get_pid()));
             }
 
@@ -320,6 +330,7 @@ impl BTreeTable {
     /// page
     fn get_parent_with_empty_slots(
         &self,
+        tx: &Transaction,
         parent_id: BTreePageID,
         field: IntField,
     ) -> Arc<RwLock<BTreeInternalPage>> {
@@ -364,7 +375,7 @@ impl BTreeTable {
                     return parent_rc;
                 } else {
                     // split upper parent
-                    return self.split_internal_page(parent_rc, field);
+                    return self.split_internal_page(tx, parent_rc, field);
                 }
             }
             _ => {
@@ -393,6 +404,7 @@ impl BTreeTable {
     /// complete. Necessary to know which of the two pages to return.
     fn split_internal_page(
         &self,
+        tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
         field: IntField,
     ) -> Arc<RwLock<BTreeInternalPage>> {
@@ -438,7 +450,7 @@ impl BTreeTable {
 
                 // set parent id for right child
                 let right_pid = e.get_right_child();
-                Self::set_parent(&right_pid, &sibling.get_pid());
+                Self::set_parent(tx, &right_pid, &sibling.get_pid());
             }
 
             let middle_entry = it.next_back().unwrap();
@@ -451,6 +463,7 @@ impl BTreeTable {
 
             // set parent id for right child to the middle entry
             Self::set_parent(
+                tx,
                 &middle_entry.get_right_child(),
                 &sibling.get_pid(),
             );
@@ -461,7 +474,7 @@ impl BTreeTable {
         // borrow of sibling_rc end here
         // borrow of page_rc end here
 
-        let parent_rc = self.get_parent_with_empty_slots(parent_pid, field);
+        let parent_rc = self.get_parent_with_empty_slots(tx, parent_pid, field);
         parent_pid = parent_rc.rl().get_pid();
         page_rc.wl().set_parent_pid(&parent_pid);
         sibling_rc.wl().set_parent_pid(&parent_pid);
@@ -483,16 +496,29 @@ impl BTreeTable {
 
 /// delete implementation
 impl BTreeTable {
+    pub fn delete_tuple_auto_tx(
+        &self,
+        tuple: &WrappedTuple,
+    ) -> Result<(), SimpleError> {
+        let tx = Transaction::new();
+        self.delete_tuple(&tx, &tuple)?;
+        tx.commit();
+        return Ok(());
+    }
+
     /// Delete a tuple from this BTreeFile.
     ///
     /// May cause pages to merge or redistribute entries/tuples if the pages
     /// become less than half full.
     pub fn delete_tuple(
         &self,
+        tx: &Transaction,
         tuple: &WrappedTuple,
     ) -> Result<(), SimpleError> {
         let pid = tuple.get_pid();
-        let leaf_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        let leaf_rc = BufferPool::global()
+            .get_leaf_page(tx, Permission::ReadWrite, &pid)
+            .unwrap();
 
         // hold the leaf page
         {
@@ -504,7 +530,7 @@ impl BTreeTable {
         if leaf_rc.rl().stable() {
             return Ok(());
         } else {
-            return self.handle_erratic_leaf_page(leaf_rc);
+            return self.handle_erratic_leaf_page(tx, leaf_rc);
         }
     }
 
@@ -515,6 +541,7 @@ impl BTreeTable {
     /// Otherwise merge with one of the siblings. Update pointers as needed.
     fn handle_erratic_leaf_page(
         &self,
+        tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> Result<(), SimpleError> {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
@@ -525,13 +552,15 @@ impl BTreeTable {
         let right_pid = page_rc.rl().get_right_pid();
 
         if let Some(left_pid) = left_pid {
-            let left_rc =
-                BufferPool::global().get_leaf_page(&left_pid).unwrap();
-            self.balancing_two_leaf_pages(left_rc, page_rc)?;
+            let left_rc = BufferPool::global()
+                .get_leaf_page(tx, Permission::ReadWrite, &left_pid)
+                .unwrap();
+            self.balancing_two_leaf_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc =
-                BufferPool::global().get_leaf_page(&right_pid).unwrap();
-            self.balancing_two_leaf_pages(page_rc, right_rc)?;
+            let right_rc = BufferPool::global()
+                .get_leaf_page(tx, Permission::ReadWrite, &right_pid)
+                .unwrap();
+            self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
             return Err(SimpleError::new(
                 "BTreeTable::handle_erratic_leaf_page no left or right sibling",
@@ -552,6 +581,7 @@ impl BTreeTable {
     /// - page_rc - the erratic internal page to be handled
     fn handle_erratic_internal_page(
         &self,
+        tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> Result<(), SimpleError> {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
@@ -563,11 +593,11 @@ impl BTreeTable {
         if let Some(left_pid) = left_pid {
             let left_rc =
                 BufferPool::global().get_internal_page(&left_pid).unwrap();
-            self.balancing_two_internal_pages(left_rc, page_rc)?;
+            self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
             let right_rc =
                 BufferPool::global().get_internal_page(&right_pid).unwrap();
-            self.balancing_two_internal_pages(page_rc, right_rc)?;
+            self.balancing_two_internal_pages(tx, page_rc, right_rc)?;
         } else {
             panic!("Cannot find the left/right sibling of the page");
         }
@@ -577,13 +607,15 @@ impl BTreeTable {
 
     fn set_parent_pid(
         &self,
+        tx: &Transaction,
         child_pid: &BTreePageID,
         parent_pid: &BTreePageID,
     ) {
         match child_pid.category {
             PageCategory::Leaf => {
-                let child_rc =
-                    BufferPool::global().get_leaf_page(child_pid).unwrap();
+                let child_rc = BufferPool::global()
+                    .get_leaf_page(tx, Permission::ReadWrite, child_pid)
+                    .unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             PageCategory::Internal => {
@@ -601,6 +633,7 @@ impl BTreeTable {
     ///   right
     fn merge_internal_page(
         &self,
+        tx: &Transaction,
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
@@ -618,7 +651,11 @@ impl BTreeTable {
                 &left.get_last_child_pid(),
                 &right.get_first_child_pid(),
             );
-            self.set_parent_pid(&right.get_first_child_pid(), &left.get_pid());
+            self.set_parent_pid(
+                tx,
+                &right.get_first_child_pid(),
+                &left.get_pid(),
+            );
             left.insert_entry(&edge_entry)?;
 
             // stage 2: move the entries from the one page to the other
@@ -626,7 +663,7 @@ impl BTreeTable {
             let iter = BTreeInternalPageIterator::new(&right);
             for e in iter {
                 left.insert_entry(&e)?;
-                self.set_parent_pid(&e.get_right_child(), &left.get_pid());
+                self.set_parent_pid(tx, &e.get_right_child(), &left.get_pid());
                 deleted_indexes.push(e.get_record_id());
             }
             for i in deleted_indexes {
@@ -640,7 +677,7 @@ impl BTreeTable {
 
         // stage 4: update the entry in parent which points to the left and
         // right
-        self.delete_parent_entry(left_rc, parent_rc, parent_entry)?;
+        self.delete_parent_entry(tx, left_rc, parent_rc, parent_entry)?;
 
         Ok(())
     }
@@ -651,6 +688,7 @@ impl BTreeTable {
     ///   right_child
     fn merge_leaf_page(
         &self,
+        tx: &Transaction,
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
@@ -681,7 +719,7 @@ impl BTreeTable {
             // set the left pointer for the newer right page
             if let Some(newer_right_pid) = right.get_right_pid() {
                 let newer_right_rc = BufferPool::global()
-                    .get_leaf_page(&newer_right_pid)
+                    .get_leaf_page(tx, Permission::ReadWrite, &newer_right_pid)
                     .unwrap();
                 newer_right_rc.wl().set_left_pid(Some(left.get_pid()));
             }
@@ -691,7 +729,7 @@ impl BTreeTable {
         }
 
         // stage 5: release the left and right page
-        self.delete_parent_entry(left_rc, parent_rc, entry)?;
+        self.delete_parent_entry(tx, left_rc, parent_rc, entry)?;
 
         Ok(())
     }
@@ -715,6 +753,7 @@ impl BTreeTable {
     /// - delete_left_child - which child of the entry should be deleted
     fn delete_parent_entry<PAGE: BTreePage>(
         &self,
+        tx: &Transaction,
         left_rc: Arc<RwLock<PAGE>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
@@ -753,7 +792,7 @@ impl BTreeTable {
         // release the parent and left page
 
         // case 3: parent is unstable (erratic), handle it
-        self.handle_erratic_internal_page(parent_rc)?;
+        self.handle_erratic_internal_page(tx, parent_rc)?;
         Ok(())
     }
 
@@ -805,6 +844,7 @@ impl BTreeTable {
     /// the parent.  Update parent pointers as needed.
     fn balancing_two_internal_pages(
         &self,
+        tx: &Transaction,
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> Result<(), SimpleError> {
@@ -824,6 +864,7 @@ impl BTreeTable {
         if left_entries + right_entries < left_rc.rl().get_max_capacity() {
             // if the two pages can be merged, merge them
             return self.merge_internal_page(
+                tx,
                 left_rc,
                 right_rc,
                 parent_rc,
@@ -852,6 +893,7 @@ impl BTreeTable {
                 let right_iter = BTreeInternalPageIterator::new(&right);
 
                 let moved_records = self.move_entries(
+                    tx,
                     right_iter,
                     left,
                     move_count,
@@ -872,6 +914,7 @@ impl BTreeTable {
                 let left_iter = BTreeInternalPageIterator::new(&left).rev();
 
                 let moved_records = self.move_entries(
+                    tx,
                     left_iter,
                     right,
                     move_count,
@@ -918,6 +961,7 @@ impl BTreeTable {
     /// * The index of the moved entries in the source page.
     fn move_entries(
         &self,
+        tx: &Transaction,
         src_iter: impl Iterator<Item = Entry>,
         mut dest: impl DerefMut<Target = BTreeInternalPage>,
         move_count: usize,
@@ -944,7 +988,7 @@ impl BTreeTable {
             dest.insert_entry(&new_entry)?;
 
             // 3. update parent id for the moved child
-            self.set_parent_pid(&fn_get_moved_child(&e), &dest.get_pid());
+            self.set_parent_pid(tx, &fn_get_moved_child(&e), &dest.get_pid());
 
             // 4. update key and edge child for the next iteration
             *middle_key = e.get_key();
@@ -967,6 +1011,7 @@ impl BTreeTable {
     /// - is_right_sibling - whether the sibling is a right-sibling
     fn balancing_two_leaf_pages(
         &self,
+        tx: &Transaction,
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> Result<(), SimpleError> {
@@ -985,13 +1030,15 @@ impl BTreeTable {
         let right_tuples = right_rc.rl().tuples_count();
         if left_tuples + right_tuples <= left_rc.rl().get_slots_count() {
             // if the two pages can be merged, merge them
-            return self.merge_leaf_page(left_rc, right_rc, parent_rc, &entry);
+            return self
+                .merge_leaf_page(tx, left_rc, right_rc, parent_rc, &entry);
         }
 
         let move_count = (left_tuples + right_tuples) / 2
             - cmp::min(left_tuples, right_tuples);
         if move_count == 0 {
-            return self.merge_leaf_page(left_rc, right_rc, parent_rc, &entry);
+            return self
+                .merge_leaf_page(tx, left_rc, right_rc, parent_rc, &entry);
         }
 
         let mut key = entry.get_key();
@@ -1060,7 +1107,11 @@ impl BTreeTable {
         root_pointer_rc.wl().set_root_pid(root_pid);
     }
 
-    fn set_parent(child_pid: &BTreePageID, parent_pid: &BTreePageID) {
+    fn set_parent(
+        tx: &Transaction,
+        child_pid: &BTreePageID,
+        parent_pid: &BTreePageID,
+    ) {
         match child_pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
@@ -1075,8 +1126,9 @@ impl BTreeTable {
                 // borrow of left_rc end here
             }
             PageCategory::Leaf => {
-                let child_rc =
-                    BufferPool::global().get_leaf_page(&child_pid).unwrap();
+                let child_rc = BufferPool::global()
+                    .get_leaf_page(tx, Permission::ReadWrite, &child_pid)
+                    .unwrap();
 
                 // borrow of left_rc start here
                 {
@@ -1107,13 +1159,17 @@ impl BTreeTable {
     /// the left-most leaf page possibly containing the key field f
     fn find_leaf_page(
         &self,
+        tx: &Transaction,
+        perm: Permission,
         page_id: BTreePageID,
         search: SearchFor,
     ) -> Arc<RwLock<BTreeLeafPage>> {
         match page_id.category {
             PageCategory::Leaf => {
                 // get page and return directly
-                return BufferPool::global().get_leaf_page(&page_id).unwrap();
+                return BufferPool::global()
+                    .get_leaf_page(tx, perm, &page_id)
+                    .unwrap();
             }
             PageCategory::Internal => {
                 let page_rc =
@@ -1166,7 +1222,12 @@ impl BTreeTable {
                 // search child page recursively
                 match child_pid {
                     Some(child_pid) => {
-                        return self.find_leaf_page(child_pid, search);
+                        return self.find_leaf_page(
+                            tx,
+                            Permission::ReadWrite,
+                            child_pid,
+                            search,
+                        );
                     }
                     None => todo!(),
                 }
@@ -1285,12 +1346,24 @@ impl BTreeTable {
 
     pub fn get_first_page(&self) -> Arc<RwLock<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
-        return self.find_leaf_page(page_id, SearchFor::LeftMost);
+        let tx = Transaction::new();
+        return self.find_leaf_page(
+            &tx,
+            Permission::ReadWrite,
+            page_id,
+            SearchFor::LeftMost,
+        );
     }
 
     pub fn get_last_page(&self) -> Arc<RwLock<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
-        return self.find_leaf_page(page_id, SearchFor::RightMost);
+        let tx = Transaction::new();
+        return self.find_leaf_page(
+            &tx,
+            Permission::ReadWrite,
+            page_id,
+            SearchFor::RightMost,
+        );
     }
 
     /// Get the root page pid.
@@ -1335,7 +1408,11 @@ impl BTreeTable {
     }
 
     // get the last tuple under the internal/leaf page
-    pub fn get_last_tuple(&self, pid: &BTreePageID) -> Option<WrappedTuple> {
+    pub fn get_last_tuple(
+        &self,
+        tx: &Transaction,
+        pid: &BTreePageID,
+    ) -> Option<WrappedTuple> {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
@@ -1350,10 +1427,12 @@ impl BTreeTable {
                     child_pid = it.next_back().unwrap().get_right_child();
                 }
                 // borrow of page_rc end here
-                self.get_last_tuple(&child_pid)
+                self.get_last_tuple(tx, &child_pid)
             }
             PageCategory::Leaf => {
-                let page_rc = BufferPool::global().get_leaf_page(pid).unwrap();
+                let page_rc = BufferPool::global()
+                    .get_leaf_page(tx, Permission::ReadWrite, pid)
+                    .unwrap();
 
                 let page = page_rc.rl();
                 let mut it = BTreeLeafPageIterator::new(&page);
@@ -1426,7 +1505,9 @@ impl BTreeTable {
         let print_sibling = false;
 
         let mut prefix = "│   ".repeat(level);
-        let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+        let page_rc = BufferPool::global()
+            .get_leaf_page(&Transaction::new(), Permission::ReadOnly, &pid)
+            .unwrap();
         let lock_state = lock_state(page_rc.clone());
 
         let mut it = BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc));
@@ -1581,7 +1662,13 @@ impl BTreeTable {
     ) -> SubtreeSummary {
         match pid.category {
             PageCategory::Leaf => {
-                let page_rc = BufferPool::global().get_leaf_page(&pid).unwrap();
+                let page_rc = BufferPool::global()
+                    .get_leaf_page(
+                        &Transaction::new(),
+                        Permission::ReadOnly,
+                        &pid,
+                    )
+                    .unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,
@@ -1694,19 +1781,22 @@ impl SubtreeSummary {
     }
 }
 
-pub struct BTreeTableIterator {
+pub struct BTreeTableIterator<'t> {
+    tx: &'t Transaction,
+
     page_rc: Arc<RwLock<BTreeLeafPage>>,
     last_page_rc: Arc<RwLock<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
     last_page_it: BTreeLeafPageIteratorRc,
 }
 
-impl BTreeTableIterator {
-    pub fn new(table: &BTreeTable) -> Self {
+impl<'t> BTreeTableIterator<'t> {
+    pub fn new(tx: &'t Transaction, table: &BTreeTable) -> Self {
         let page_rc = table.get_first_page();
         let last_page_rc = table.get_last_page();
 
         Self {
+            tx,
             page_rc: Arc::clone(&page_rc),
             last_page_rc: Arc::clone(&last_page_rc),
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc)),
@@ -1717,7 +1807,7 @@ impl BTreeTableIterator {
     }
 }
 
-impl Iterator for BTreeTableIterator {
+impl Iterator for BTreeTableIterator<'_> {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1729,8 +1819,9 @@ impl Iterator for BTreeTableIterator {
         let right = self.page_rc.rl().get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc =
-                    BufferPool::global().get_leaf_page(&right).unwrap();
+                let sibling_rc = BufferPool::global()
+                    .get_leaf_page(&self.tx, Permission::ReadOnly, &right)
+                    .unwrap();
                 let page_it =
                     BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
 
@@ -1745,7 +1836,7 @@ impl Iterator for BTreeTableIterator {
     }
 }
 
-impl DoubleEndedIterator for BTreeTableIterator {
+impl DoubleEndedIterator for BTreeTableIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let v = self.last_page_it.next_back();
         if !v.is_none() {
@@ -1755,8 +1846,9 @@ impl DoubleEndedIterator for BTreeTableIterator {
         let left = self.last_page_rc.rl().get_left_pid();
         match left {
             Some(left) => {
-                let sibling_rc =
-                    BufferPool::global().get_leaf_page(&left).unwrap();
+                let sibling_rc = BufferPool::global()
+                    .get_leaf_page(self.tx, Permission::ReadOnly, &left)
+                    .unwrap();
                 let page_it =
                     BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
 
@@ -1792,34 +1884,47 @@ impl Predicate {
     }
 }
 
-pub struct BTreeTableSearchIterator {
+pub struct BTreeTableSearchIterator<'t> {
+    tx: &'t Transaction,
+
     current_page_rc: Arc<RwLock<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
     predicate: Predicate,
     key_field: usize,
 }
 
-impl<'t> BTreeTableSearchIterator {
-    pub fn new(table: &BTreeTable, index_predicate: Predicate) -> Self {
+impl<'t> BTreeTableSearchIterator<'t> {
+    pub fn new(
+        tx: &'t Transaction,
+        table: &BTreeTable,
+        index_predicate: Predicate,
+    ) -> Self {
         let start_rc: Arc<RwLock<BTreeLeafPage>>;
-
         let root_pid = table.get_root_pid();
 
         match index_predicate.op {
             Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {
                 start_rc = table.find_leaf_page(
+                    &tx,
+                    Permission::ReadOnly,
                     root_pid,
                     SearchFor::IntField(index_predicate.field),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
-                start_rc = table.find_leaf_page(root_pid, SearchFor::LeftMost)
+                start_rc = table.find_leaf_page(
+                    &tx,
+                    Permission::ReadOnly,
+                    root_pid,
+                    SearchFor::LeftMost,
+                )
             }
             Op::Like => todo!(),
             Op::NotEquals => todo!(),
         }
 
         Self {
+            tx,
             current_page_rc: Arc::clone(&start_rc),
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_rc)),
             predicate: index_predicate,
@@ -1828,7 +1933,7 @@ impl<'t> BTreeTableSearchIterator {
     }
 }
 
-impl Iterator for BTreeTableSearchIterator {
+impl Iterator for BTreeTableSearchIterator<'_> {
     type Item = WrappedTuple;
 
     // TODO: Short circuit on some conditions.
@@ -1882,7 +1987,11 @@ impl Iterator for BTreeTableSearchIterator {
                     match right {
                         Some(pid) => {
                             let rc = BufferPool::global()
-                                .get_leaf_page(&pid)
+                                .get_leaf_page(
+                                    self.tx,
+                                    Permission::ReadOnly,
+                                    &pid,
+                                )
                                 .unwrap();
                             self.current_page_rc = Arc::clone(&rc);
                             self.page_it =

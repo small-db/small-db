@@ -1,9 +1,9 @@
 pub mod btree;
+pub mod concurrent_status;
 pub mod field;
 pub mod transaction;
 pub mod utils;
 
-mod concurrent_status;
 mod error;
 mod log;
 mod types;

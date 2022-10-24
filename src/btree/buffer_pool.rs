@@ -20,6 +20,7 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
+    concurrent_status::{self, ConcurrentStatus, Lock, Permission},
     error::SimpleError,
     transaction::Transaction,
     types::{Pod, ResultPod},
@@ -41,8 +42,8 @@ pub struct BufferPool {
 type Key = BTreePageID;
 
 impl BufferPool {
-    fn new() -> BufferPool {
-        BufferPool {
+    fn new() -> Self {
+        Self {
             root_pointer_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
@@ -136,7 +137,14 @@ impl BufferPool {
         }
     }
 
-    pub fn get_leaf_page(&mut self, key: &Key) -> ResultPod<BTreeLeafPage> {
+    pub fn get_leaf_page(
+        &mut self,
+        tx: &Transaction,
+        perm: Permission,
+        key: &Key,
+    ) -> ResultPod<BTreeLeafPage> {
+        ConcurrentStatus::global().acquire_lock(tx, perm.to_lock(), key)?;
+
         match self.leaf_buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {

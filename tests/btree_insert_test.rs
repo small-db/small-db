@@ -8,15 +8,17 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPageIterator, PageCategory},
-        table::BTreeTableIterator,
+        table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
+    concurrent_status::Permission,
+    transaction::Transaction,
     utils::HandyRwLock,
     *,
 };
 
 #[test]
 fn test_insert_tuple() {
-    common::setup();
+    let ctx = common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let table_rc =
@@ -58,7 +60,7 @@ fn test_insert_tuple() {
     assert_eq!(4, table.pages_count());
 
     // now make sure the records are sorted on the key field
-    let it = BTreeTableIterator::new(&table);
+    let it = BTreeTableIterator::new(&ctx.tx, &table);
     for (i, tuple) in it.enumerate() {
         assert_eq!(i, tuple.get_field(0).value as usize);
     }
@@ -66,7 +68,7 @@ fn test_insert_tuple() {
 
 #[test]
 fn test_insert_duplicate_tuples() {
-    common::setup();
+    let ctx = common::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let table_rc =
@@ -85,22 +87,28 @@ fn test_insert_duplicate_tuples() {
 
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(Op::Equals, field::IntField::new(1));
-    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+    let it =
+        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
         Predicate::new(Op::GreaterThanOrEq, field::IntField::new(2));
-    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+    let it =
+        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
     let predicate = Predicate::new(Op::LessThan, field::IntField::new(2));
-    let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+    let it = btree::table::BTreeTableSearchIterator::new(
+        &ctx.tx,
+        &table,
+        predicate,
+    );
     assert_eq!(it.count(), repetition_count * 2);
 }
 
 #[test]
 fn test_split_leaf_page() {
-    common::setup();
+    let ctx = common::setup();
 
     // This should create a B+ tree with one full page
     let table_rc = common::create_random_btree_table(
@@ -132,19 +140,27 @@ fn test_split_leaf_page() {
     let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
     let left_ref = BufferPool::global()
-        .get_leaf_page(&entry.get_left_child())
+        .get_leaf_page(
+            &ctx.tx,
+            Permission::ReadOnly,
+            &entry.get_left_child(),
+        )
         .unwrap();
     assert!(left_ref.rl().empty_slots_count() <= 251);
 
     let right_ref = BufferPool::global()
-        .get_leaf_page(&entry.get_right_child())
+        .get_leaf_page(
+            &ctx.tx,
+            Permission::ReadOnly,
+            &entry.get_right_child(),
+        )
         .unwrap();
     assert!(right_ref.rl().empty_slots_count() <= 251);
 }
 
 #[test]
 fn test_split_root_page() {
-    common::setup();
+    let ctx = common::setup();
 
     // This should create a packed B+ tree with no empty slots
     // There are 503 keys per internal page (504 children) and 502 tuples per
@@ -164,7 +180,7 @@ fn test_split_root_page() {
 
     // TODO: remove this check block.
     {
-        let it = BTreeTableIterator::new(&table);
+        let it = BTreeTableIterator::new(&ctx.tx, &table);
         assert_eq!(it.count(), rows as usize);
 
         let root_pid = table.get_root_pid();
@@ -225,7 +241,11 @@ fn test_split_root_page() {
             .unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
-        let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+        let it = btree::table::BTreeTableSearchIterator::new(
+            &ctx.tx,
+            &table,
+            predicate,
+        );
         let mut found = false;
         for t in it {
             if *t == tuple {
@@ -240,7 +260,7 @@ fn test_split_root_page() {
 
 #[test]
 fn test_split_internal_page() {
-    common::setup();
+    let ctx = common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages
     BufferPool::set_page_size(1024);
@@ -267,7 +287,7 @@ fn test_split_internal_page() {
     assert_eq!(253, table.pages_count());
 
     // now make sure we have 31100 records and they are all in sorted order
-    let it = BTreeTableIterator::new(&table);
+    let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
@@ -295,7 +315,11 @@ fn test_split_internal_page() {
         table.insert_tuple_auto_tx(&tuple).unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
-        let it = btree::table::BTreeTableSearchIterator::new(&table, predicate);
+        let it = btree::table::BTreeTableSearchIterator::new(
+            &ctx.tx,
+            &table,
+            predicate,
+        );
         let mut found = false;
         for t in it {
             if *t == tuple {
@@ -308,7 +332,7 @@ fn test_split_internal_page() {
     }
 
     // now make sure we have 31100 records and they are all in sorted order
-    let it = BTreeTableIterator::new(&table);
+    let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
