@@ -31,7 +31,7 @@ fn test_redistribute_leaf_pages() {
     // Delete some tuples from the first page until it gets to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
-    let page_rc = table.get_first_page();
+    let page_rc = table.get_first_page(&ctx.tx, Permission::ReadWrite);
     for tuple in it.by_ref() {
         assert_eq!(202 + count, page_rc.rl().empty_slots_count());
 

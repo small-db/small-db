@@ -4,7 +4,7 @@ use crate::btree::buffer_pool::BufferPool;
 
 pub const EMPTY_PAGE_ID: usize = 0;
 
-#[derive(PartialEq, Copy, Clone, Eq, Hash)]
+#[derive(PartialEq, Copy, Clone, Eq, Hash, Debug)]
 pub enum PageCategory {
     RootPointer,
     Internal,
@@ -12,34 +12,34 @@ pub enum PageCategory {
     Header,
 }
 
-impl fmt::Display for PageCategory {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PageCategory::RootPointer => {
-                write!(f, "ROOT_POINTER")
-            }
-            PageCategory::Internal => {
-                write!(f, "INTERNAL")
-            }
-            PageCategory::Leaf => {
-                write!(f, "LEAF")
-            }
-            PageCategory::Header => {
-                write!(f, "HEADER")
-            }
-        }
-    }
-}
+// impl fmt::Display for PageCategory {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match self {
+//             PageCategory::RootPointer => {
+//                 write!(f, "ROOT_POINTER")
+//             }
+//             PageCategory::Internal => {
+//                 write!(f, "INTERNAL")
+//             }
+//             PageCategory::Leaf => {
+//                 write!(f, "LEAF")
+//             }
+//             PageCategory::Header => {
+//                 write!(f, "HEADER")
+//             }
+//         }
+//     }
+// }
 
-impl fmt::Debug for PageCategory {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
+// impl fmt::Debug for PageCategory {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "{}", self)
+//     }
+// }
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct BTreePageID {
     // category indicates the category of the page
     pub category: PageCategory,
@@ -55,17 +55,17 @@ impl fmt::Display for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "<BTreePageID, catagory: {}, page_index: {}, table_id: {}>",
+            "<BTreePageID, catagory: {:?}, page_index: {}, table_id: {}>",
             self.category, self.page_index, self.table_id,
         )
     }
 }
 
-impl fmt::Debug for BTreePageID {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
+// impl fmt::Debug for BTreePageID {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "{}", self)
+//     }
+// }
 
 impl BTreePageID {
     pub fn new(

@@ -352,7 +352,7 @@ impl BTreeInternalPage {
             let minimal_stable = Self::get_max_entries(4) / 2 - 1;
             assert!(
                 self.entries_count() >= minimal_stable,
-                "entries count: {}, max entries: {}, pid: {}",
+                "entries count: {}, max entries: {}, pid: {:?}",
                 self.entries_count(),
                 Self::get_max_entries(4),
                 self.get_pid(),

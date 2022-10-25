@@ -6,10 +6,13 @@ use std::{
     time::Instant,
 };
 
+use log::debug;
+
 use crate::{
     btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
 };
 
+#[derive(Debug)]
 pub enum Lock {
     XLock,
     SLock,
@@ -31,6 +34,7 @@ impl Permission {
 
 /// reference:
 /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/ConcurrentStatus.java?L12:14&subtree=true
+#[derive(Debug)]
 pub struct ConcurrentStatus {
     x_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
     s_lock_map: HashMap<BTreePageID, Transaction>,
@@ -78,7 +82,7 @@ impl ConcurrentStatus {
         return Ok(());
 
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < 10 {
+        while Instant::now().duration_since(start_time).as_secs() < 3 {
             match lock {
                 Lock::SLock => match self.x_lock_map.get(page_id) {
                     None => {
@@ -104,10 +108,17 @@ impl ConcurrentStatus {
                 }
             }
 
+            panic!("try to acquire lock, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", lock, page_id, self);
+
             sleep(std::time::Duration::from_millis(10));
         }
 
-        unimplemented!()
+        debug!(
+            "acquire_lock timeout, lock: {:?}, page_id: {:?}",
+            lock, page_id
+        );
+
+        return Err(SimpleError::new("acquire lock timeout"));
     }
 
     fn add_lock(

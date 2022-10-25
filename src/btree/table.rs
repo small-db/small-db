@@ -1344,26 +1344,22 @@ impl BTreeTable {
         self.get_file().flush().expect("io error");
     }
 
-    pub fn get_first_page(&self) -> Arc<RwLock<BTreeLeafPage>> {
+    pub fn get_first_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
+    ) -> Arc<RwLock<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
-        let tx = Transaction::new();
-        return self.find_leaf_page(
-            &tx,
-            Permission::ReadWrite,
-            page_id,
-            SearchFor::LeftMost,
-        );
+        return self.find_leaf_page(tx, perm, page_id, SearchFor::LeftMost);
     }
 
-    pub fn get_last_page(&self) -> Arc<RwLock<BTreeLeafPage>> {
+    pub fn get_last_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
+    ) -> Arc<RwLock<BTreeLeafPage>> {
         let page_id = self.get_root_pid();
-        let tx = Transaction::new();
-        return self.find_leaf_page(
-            &tx,
-            Permission::ReadWrite,
-            page_id,
-            SearchFor::RightMost,
-        );
+        return self.find_leaf_page(tx, perm, page_id, SearchFor::RightMost);
     }
 
     /// Get the root page pid.
@@ -1792,8 +1788,8 @@ pub struct BTreeTableIterator<'t> {
 
 impl<'t> BTreeTableIterator<'t> {
     pub fn new(tx: &'t Transaction, table: &BTreeTable) -> Self {
-        let page_rc = table.get_first_page();
-        let last_page_rc = table.get_last_page();
+        let page_rc = table.get_first_page(tx, Permission::ReadOnly);
+        let last_page_rc = table.get_last_page(tx, Permission::ReadOnly);
 
         Self {
             tx,
