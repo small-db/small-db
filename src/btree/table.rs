@@ -1222,12 +1222,8 @@ impl BTreeTable {
                 // search child page recursively
                 match child_pid {
                     Some(child_pid) => {
-                        return self.find_leaf_page(
-                            tx,
-                            Permission::ReadWrite,
-                            child_pid,
-                            search,
-                        );
+                        return self
+                            .find_leaf_page(tx, perm, child_pid, search);
                     }
                     None => todo!(),
                 }

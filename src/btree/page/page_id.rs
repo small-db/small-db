@@ -61,12 +61,6 @@ impl fmt::Display for BTreePageID {
     }
 }
 
-// impl fmt::Debug for BTreePageID {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "{}", self)
-//     }
-// }
-
 impl BTreePageID {
     pub fn new(
         category: PageCategory,
@@ -90,6 +84,10 @@ impl BTreePageID {
 
     pub fn get_table_id(&self) -> i32 {
         self.table_id
+    }
+
+    pub fn get_short_repr(&self) -> String {
+        format!("{:?}_{}", self.category, self.page_index)
     }
 }
 

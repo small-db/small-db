@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
     mem,
@@ -34,18 +35,17 @@ impl Permission {
 
 /// reference:
 /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/ConcurrentStatus.java?L12:14&subtree=true
-#[derive(Debug)]
 pub struct ConcurrentStatus {
-    x_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
-    s_lock_map: HashMap<BTreePageID, Transaction>,
+    s_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
+    x_lock_map: HashMap<BTreePageID, Transaction>,
     hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 }
 
 impl ConcurrentStatus {
     fn new() -> Self {
         Self {
-            x_lock_map: HashMap::new(),
             s_lock_map: HashMap::new(),
+            x_lock_map: HashMap::new(),
             hold_pages: HashMap::new(),
         }
     }
@@ -79,12 +79,12 @@ impl ConcurrentStatus {
         lock: Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SimpleError> {
-        return Ok(());
+        // return Ok(());
 
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3 {
             match lock {
-                Lock::SLock => match self.x_lock_map.get(page_id) {
+                Lock::SLock => match self.s_lock_map.get(page_id) {
                     None => {
                         return self.add_lock(tx, lock, page_id);
                     }
@@ -94,28 +94,35 @@ impl ConcurrentStatus {
                         }
                     }
                 },
-                Lock::XLock => {
-                    if self.s_lock_map.contains_key(page_id) {
-                        continue;
-                    }
-                    if let Some(v) = self.x_lock_map.get(page_id) {
-                        if v.contains(tx) {
+                Lock::XLock => match self.x_lock_map.get(page_id) {
+                    None => match self.s_lock_map.get(page_id) {
+                        None => {
+                            return self.add_lock(tx, lock, page_id);
+                        }
+                        Some(v) => {
+                            if v.contains(tx) {
+                                return self.add_lock(tx, lock, page_id);
+                            }
+                        }
+                    },
+                    Some(v) => {
+                        if v == tx {
                             return Ok(());
                         }
-                        continue;
                     }
-                    return self.add_lock(tx, lock, page_id);
-                }
+                },
             }
 
-            panic!("try to acquire lock, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", lock, page_id, self);
+            debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", tx, lock, page_id, self);
+
+            panic!("not implemented");
 
             sleep(std::time::Duration::from_millis(10));
         }
 
         debug!(
-            "acquire_lock timeout, lock: {:?}, page_id: {:?}",
-            lock, page_id
+            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}",
+            tx, lock, page_id, self,
         );
 
         return Err(SimpleError::new("acquire lock timeout"));
@@ -129,12 +136,12 @@ impl ConcurrentStatus {
     ) -> Result<(), SimpleError> {
         match lock {
             Lock::SLock => {
-                self.s_lock_map.insert(*page_id, *tx);
-            }
-            Lock::XLock => {
                 let mut set = HashSet::new();
                 set.insert(*tx);
-                self.x_lock_map.insert(*page_id, set);
+                self.s_lock_map.insert(*page_id, set);
+            }
+            Lock::XLock => {
+                self.x_lock_map.insert(*page_id, *tx);
             }
         }
 
@@ -150,5 +157,60 @@ impl ConcurrentStatus {
             });
 
         return Ok(());
+    }
+
+    pub fn clear(&mut self) {
+        self.s_lock_map.clear();
+        self.x_lock_map.clear();
+        self.hold_pages.clear();
+    }
+}
+
+impl fmt::Display for ConcurrentStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut depiction = "\n".to_string();
+
+        // s_lock_map
+        depiction.push_str("s_lock_map: {");
+        for (k, v) in &self.s_lock_map {
+            depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
+            for tx in v {
+                depiction.push_str(&format!("\n\t\t{:?}, ", tx));
+            }
+            depiction.push_str("\n\t]");
+        }
+        depiction.push_str("\n}\n");
+
+        // x_lock_map
+        depiction.push_str("x_lock_map: {");
+        for (k, v) in &self.x_lock_map {
+            depiction.push_str(&format!(
+                "\n\t{:?} -> {:?}, ",
+                k.get_short_repr(),
+                v
+            ));
+        }
+        depiction.push_str("\n}\n");
+
+        // hold_pages
+        depiction.push_str("hold_pages: {");
+        for (k, v) in &self.hold_pages {
+            depiction.push_str(&format!("\n\t{:?} -> [", k));
+            for page_id in v {
+                depiction.push_str(&format!(
+                    "\n\t\t{:?}, ",
+                    page_id.get_short_repr()
+                ));
+            }
+            depiction.push_str("\n\t]\n");
+        }
+
+        return write!(f, "{}", depiction);
+    }
+}
+
+impl fmt::Debug for ConcurrentStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(f, "{}", self);
     }
 }
