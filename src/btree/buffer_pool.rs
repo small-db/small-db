@@ -23,7 +23,7 @@ use crate::{
     concurrent_status::{self, ConcurrentStatus, Lock, Permission},
     error::SimpleError,
     transaction::Transaction,
-    types::{Pod, ResultPod},
+    types::{Pod, ResultPod, SimpleResult},
     utils::{simple_int_tuple_scheme, HandyRwLock},
     Tuple,
 };
@@ -244,7 +244,7 @@ impl BufferPool {
         table_id: i32,
         tx: &Transaction,
         t: &Tuple,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         let v = Catalog::global().get_table(&table_id).unwrap().rl();
         v.insert_tuple(tx, t)?;
         return Ok(());
@@ -254,7 +254,7 @@ impl BufferPool {
         &mut self,
         table_id: i32,
         tuple: &Tuple,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         let tx = Transaction::new();
         self.insert_tuple(table_id, &tx, tuple)?;
         tx.commit();

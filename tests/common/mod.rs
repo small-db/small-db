@@ -91,7 +91,7 @@ pub fn create_random_btree_table(
         }
     }
 
-    let tx = Transaction::new();
+    let write_tx = Transaction::new();
 
     // borrow of table_rc start here
     {
@@ -99,12 +99,13 @@ pub fn create_random_btree_table(
         match tree_layout {
             TreeLayout::Naturally => {
                 for t in tuples.iter() {
-                    table.insert_tuple(&tx, t).unwrap();
+                    table.insert_tuple(&write_tx, t).unwrap();
                 }
             }
             TreeLayout::EvenlyDistributed
             | TreeLayout::LastTwoEvenlyDistributed => {
                 let page_index = sequential_insert_into_table(
+                    &write_tx,
                     &table,
                     &tuples,
                     &row_scheme,
@@ -116,58 +117,21 @@ pub fn create_random_btree_table(
     }
     // borrow of table_rc ends here
 
-    tx.commit();
+    write_tx.commit();
     debug!("table construction finished, insert {} rows in total", rows,);
 
     return table_rc;
 }
 
 fn sequential_insert_into_table(
+    tx: &Transaction,
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
     tuple_scheme: &TupleScheme,
     tree_layout: TreeLayout,
 ) -> usize {
     // stage 1: write leaf pages
-
-    // let mut leaf_page_count;
     let mut leaves = Vec::new();
-    // let mut rows_counts = Vec::new();
-    // match tree_layout {
-    //     TreeLayout::Naturally => {
-    //         panic!("TreeLayout::Naturally not supported");
-    //     }
-    //     TreeLayout::EvenlyDistributed => {
-    //         let mut rows_per_page: usize =
-    //             BufferPool::rows_per_page(tuple_scheme);
-    //         leaf_page_count = tuples.len() / rows_per_page;
-    //         if tuples.len() % rows_per_page > 0 {
-    //             leaf_page_count += 1;
-    //             rows_per_page = tuples.len() / leaf_page_count;
-    //         }
-    //         for _ in 0..leaf_page_count {
-    //             rows_counts.push(rows_per_page);
-    //         }
-    //     }
-    //     TreeLayout::LastTwoEvenlyDistributed => {
-    //         let rows_per_page: usize =
-    // BufferPool::rows_per_page(tuple_scheme);         leaf_page_count =
-    // tuples.len() / rows_per_page;         let remainder = tuples.len() %
-    // rows_per_page;         if remainder > 0 {
-    //             leaf_page_count += 1;
-    //             let last_tuples_count = remainder + rows_per_page;
-    //             for _ in 0..leaf_page_count - 2 {
-    //                 rows_counts.push(rows_per_page);
-    //             }
-    //             rows_counts.push(last_tuples_count / 2);
-    //             rows_counts.push(last_tuples_count - last_tuples_count / 2);
-    //         } else {
-    //             for _ in 0..leaf_page_count {
-    //                 rows_counts.push(rows_per_page);
-    //             }
-    //         }
-    //     }
-    // }
 
     let leaf_buckets = get_buckets(
         tuples.len(),
@@ -187,7 +151,7 @@ fn sequential_insert_into_table(
         table.write_page_to_disk(&pid);
 
         let leaf_rc = BufferPool::global()
-            .get_leaf_page(&Transaction::new(), Permission::ReadWrite, &pid)
+            .get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         leaves.push(leaf_rc.clone());
         // borrow of leaf_rc start here
@@ -295,10 +259,11 @@ fn sequential_insert_into_table(
         leaf_index += 1;
     }
 
-    return write_internal_pages(table, internals, &mut page_index);
+    return write_internal_pages(tx, table, internals, &mut page_index);
 }
 
 fn write_internal_pages(
+    tx: &Transaction,
     table: &BTreeTable,
     internals: Vec<Arc<RwLock<BTreeInternalPage>>>,
     page_index: &mut usize,
@@ -330,10 +295,7 @@ fn write_internal_pages(
 
                 // borrow of right_rc start here
                 let key = table
-                    .get_last_tuple(
-                        &Transaction::new(),
-                        &left_rc.rl().get_pid(),
-                    )
+                    .get_last_tuple(tx, &left_rc.rl().get_pid())
                     .unwrap()
                     .get_field(table.key_field);
                 // borrow of right_rc ends here

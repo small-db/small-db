@@ -35,7 +35,7 @@ use crate::{
     error::SimpleError,
     field::IntField,
     transaction::Transaction,
-    types::ResultPod,
+    types::{ResultPod, SimpleResult},
     utils::{lock_state, HandyRwLock},
 };
 
@@ -134,13 +134,10 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    pub fn insert_tuple_auto_tx(
-        &self,
-        tuple: &Tuple,
-    ) -> Result<(), SimpleError> {
+    pub fn insert_tuple_auto_tx(&self, tuple: &Tuple) -> SimpleResult {
         let tx = Transaction::new();
         self.insert_tuple(&tx, &tuple)?;
-        tx.commit();
+        tx.commit()?;
         return Ok(());
     }
 
@@ -150,7 +147,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         tuple: &Tuple,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid();
@@ -496,13 +493,10 @@ impl BTreeTable {
 
 /// delete implementation
 impl BTreeTable {
-    pub fn delete_tuple_auto_tx(
-        &self,
-        tuple: &WrappedTuple,
-    ) -> Result<(), SimpleError> {
+    pub fn delete_tuple_auto_tx(&self, tuple: &WrappedTuple) -> SimpleResult {
         let tx = Transaction::new();
         self.delete_tuple(&tx, &tuple)?;
-        tx.commit();
+        tx.commit()?;
         return Ok(());
     }
 
@@ -514,7 +508,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         tuple: &WrappedTuple,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::global()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
@@ -543,7 +537,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -583,7 +577,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -638,7 +632,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_entry: &Entry,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         // hold left_rc and right_rc
         {
             let mut left = left_rc.wl();
@@ -693,7 +687,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeLeafPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         // hold the left and right page
         {
             let mut left = left_rc.wl();
@@ -757,7 +751,7 @@ impl BTreeTable {
         left_rc: Arc<RwLock<PAGE>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         // hold the parent and left page
         {
             let mut parent = parent_rc.wl();
@@ -847,7 +841,7 @@ impl BTreeTable {
         tx: &Transaction,
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         let parent_rc = BufferPool::global()
             .get_internal_page(&left_rc.rl().get_parent_pid())
             .unwrap();
@@ -1014,7 +1008,7 @@ impl BTreeTable {
         tx: &Transaction,
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         let parent_rc = BufferPool::global()
             .get_internal_page(&left_rc.rl().get_parent_pid())
             .unwrap();
@@ -1466,7 +1460,10 @@ impl BTreeTable {
         depiction.push_str(&format!("root pointer: {}\n", root_pointer_pid));
 
         let root_pid = self.get_root_pid();
-        depiction.push_str(&self.draw_subtree(&root_pid, 0, max_level));
+        let read_tx = Transaction::new();
+        depiction
+            .push_str(&self.draw_subtree(&read_tx, &root_pid, 0, max_level));
+        read_tx.commit().unwrap();
 
         depiction.push_str(&format!(
             "\n\n----- PRINT TREE STRUCTURE END   -----\n\n"
@@ -1477,6 +1474,7 @@ impl BTreeTable {
 
     fn draw_subtree(
         &self,
+        tx: &Transaction,
         pid: &BTreePageID,
         level: usize,
         max_level: i32,
@@ -1484,14 +1482,19 @@ impl BTreeTable {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
-                self.draw_internal_node(pid, level, max_level)
+                self.draw_internal_node(tx, pid, level, max_level)
             }
-            PageCategory::Leaf => self.draw_leaf_node(pid, level),
+            PageCategory::Leaf => self.draw_leaf_node(tx, pid, level),
             PageCategory::Header => todo!(),
         }
     }
 
-    fn draw_leaf_node(&self, pid: &BTreePageID, level: usize) -> String {
+    fn draw_leaf_node(
+        &self,
+        tx: &Transaction,
+        pid: &BTreePageID,
+        level: usize,
+    ) -> String {
         let mut depiction = "".to_string();
 
         let print_sibling = false;
@@ -1541,6 +1544,7 @@ impl BTreeTable {
 
     fn draw_internal_node(
         &self,
+        tx: &Transaction,
         pid: &BTreePageID,
         level: usize,
         max_level: i32,
@@ -1568,6 +1572,7 @@ impl BTreeTable {
             let it = BTreeInternalPageIterator::new(&page);
             for (i, entry) in it.enumerate() {
                 depiction.push_str(&self.draw_entry(
+                    tx,
                     i,
                     &entry,
                     level + 1,
@@ -1582,6 +1587,7 @@ impl BTreeTable {
 
     fn draw_entry(
         &self,
+        tx: &Transaction,
         id: usize,
         entry: &Entry,
         level: usize,
@@ -1592,6 +1598,7 @@ impl BTreeTable {
         let prefix = "│   ".repeat(level);
         if id == 0 {
             depiction.push_str(&self.draw_subtree(
+                tx,
                 &entry.get_left_child(),
                 level + 1,
                 max_level,
@@ -1603,6 +1610,7 @@ impl BTreeTable {
             entry.get_key()
         ));
         depiction.push_str(&self.draw_subtree(
+            tx,
             &entry.get_right_child(),
             level + 1,
             max_level,

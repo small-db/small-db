@@ -11,6 +11,7 @@ use log::debug;
 
 use crate::{
     btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
+    types::SimpleResult,
 };
 
 #[derive(Debug)]
@@ -78,22 +79,28 @@ impl ConcurrentStatus {
         tx: &Transaction,
         lock: Lock,
         page_id: &BTreePageID,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         // return Ok(());
 
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3 {
             match lock {
-                Lock::SLock => match self.s_lock_map.get(page_id) {
-                    None => {
-                        return self.add_lock(tx, lock, page_id);
-                    }
-                    Some(v) => {
-                        if v.contains(tx) {
-                            return Ok(());
+                Lock::SLock => {
+                    if !self.x_lock_map.contains_key(page_id) {
+                        match self.s_lock_map.get(page_id) {
+                            None => {
+                                return self.add_lock(tx, lock, page_id);
+                            }
+                            Some(v) => {
+                                if v.contains(tx) {
+                                    return Ok(());
+                                } else {
+                                    return self.add_lock(tx, lock, page_id);
+                                }
+                            }
                         }
                     }
-                },
+                }
                 Lock::XLock => match self.x_lock_map.get(page_id) {
                     None => match self.s_lock_map.get(page_id) {
                         None => {
@@ -133,7 +140,7 @@ impl ConcurrentStatus {
         tx: &Transaction,
         lock: Lock,
         page_id: &BTreePageID,
-    ) -> Result<(), SimpleError> {
+    ) -> SimpleResult {
         match lock {
             Lock::SLock => {
                 let mut set = HashSet::new();
@@ -155,6 +162,49 @@ impl ConcurrentStatus {
                 set.insert(*page_id);
                 set
             });
+
+        return Ok(());
+    }
+
+    pub fn release_lock_by_tx(&mut self, tx: &Transaction) -> SimpleResult {
+        if !self.hold_pages.contains_key(tx) {
+            return Ok(());
+        }
+
+        let hold_pages = self.hold_pages.get(tx).unwrap().clone();
+        for page_id in hold_pages {
+            self.release_lock(tx, &page_id)?;
+        }
+
+        self.hold_pages.remove(tx);
+
+        return Ok(());
+    }
+
+    fn release_lock(
+        &mut self,
+        tx: &Transaction,
+        page_id: &BTreePageID,
+    ) -> SimpleResult {
+        match self.x_lock_map.get(page_id) {
+            None => {
+                return Ok(());
+            }
+            Some(v) => {
+                if v == tx {
+                    self.x_lock_map.remove(page_id);
+                }
+            }
+        }
+
+        match self.s_lock_map.get_mut(page_id) {
+            None => {
+                return Ok(());
+            }
+            Some(v) => {
+                v.remove(tx);
+            }
+        }
 
         return Ok(());
     }

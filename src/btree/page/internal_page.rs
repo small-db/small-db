@@ -8,6 +8,7 @@ use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
     error::SimpleError,
     field::{get_type_length, IntField},
+    types::SimpleResult,
     utils::HandyRwLock,
 };
 
@@ -158,7 +159,7 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) -> Result<(), SimpleError> {
+    pub fn insert_entry(&mut self, e: &Entry) -> SimpleResult {
         if self.empty_slots_count() == 0 {
             return Err(SimpleError::new("No empty slots on this page."));
         }
