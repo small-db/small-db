@@ -42,7 +42,7 @@ pub struct BufferPool {
 type Key = BTreePageID;
 
 impl BufferPool {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             root_pointer_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
@@ -248,7 +248,7 @@ impl BufferPool {
     /// been dirtied to the cache (replacing any existing versions of those
     /// pages) so that future requests see up-to-date pages.
     pub fn insert_tuple(
-        &mut self,
+        &self,
         tx: &Transaction,
         table_id: i32,
         t: &Tuple,
@@ -266,11 +266,12 @@ mod tests {
     use super::*;
     use crate::{
         btree::page::PageCategory, utils::simple_int_tuple_scheme, BTreeTable,
+        Unique,
     };
 
     #[test]
     fn test_buffer_pool() {
-        let bp = BufferPool::global();
+        let mut bp = Unique::get_buffer_pool().rl();
 
         // add table to catalog
         let table = BTreeTable::new(

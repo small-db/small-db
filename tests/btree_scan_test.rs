@@ -6,6 +6,7 @@ use simple_db_rust::{
     concurrent_status::ConcurrentStatus,
     transaction::Transaction,
     utils::HandyRwLock,
+    Unique,
 };
 
 fn test_scan(rows: usize, columns: usize) {
@@ -25,7 +26,7 @@ fn test_scan(rows: usize, columns: usize) {
     validate_scan(&mut it, &int_tuples);
 
     // TODO: find a better solution
-    BufferPool::global().clear();
+    Unique::get_buffer_pool().rl().clear();
     ConcurrentStatus::global().clear();
 }
 
