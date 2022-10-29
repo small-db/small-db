@@ -125,7 +125,7 @@ fn test_split_leaf_page() {
 
     // now insert a tuple
     BufferPool::global()
-        .insert_tuple_auto_tx(table.get_id(), &Tuple::new_btree_tuple(5000, 2))
+        .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
 
     // there should now be 2 leaf pages + 1 internal node
@@ -194,7 +194,7 @@ fn test_split_root_page() {
 
     // now insert a tuple
     BufferPool::global()
-        .insert_tuple_auto_tx(table.get_id(), &Tuple::new_btree_tuple(10, 2))
+        .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10, 2))
         .unwrap();
 
     // there should now be 505 leaf pages + 3 internal nodes
@@ -237,7 +237,7 @@ fn test_split_root_page() {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         BufferPool::global()
-            .insert_tuple_auto_tx(table.get_id(), &tuple.clone())
+            .insert_tuple(&ctx.tx, table.get_id(), &tuple.clone())
             .unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));

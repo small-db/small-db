@@ -241,23 +241,12 @@ impl BufferPool {
     /// pages) so that future requests see up-to-date pages.
     pub fn insert_tuple(
         &mut self,
-        table_id: i32,
         tx: &Transaction,
+        table_id: i32,
         t: &Tuple,
     ) -> SimpleResult {
         let v = Catalog::global().get_table(&table_id).unwrap().rl();
         v.insert_tuple(tx, t)?;
-        return Ok(());
-    }
-
-    pub fn insert_tuple_auto_tx(
-        &mut self,
-        table_id: i32,
-        tuple: &Tuple,
-    ) -> SimpleResult {
-        let tx = Transaction::new();
-        self.insert_tuple(table_id, &tx, tuple)?;
-        tx.commit();
         return Ok(());
     }
 }
