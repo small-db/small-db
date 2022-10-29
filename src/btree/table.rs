@@ -1441,7 +1441,7 @@ impl BTreeTable {
     ///       leaf)
     ///     - ...
     ///     - -1: print all pages
-    pub fn draw_tree(&self, max_level: i32) {
+    pub fn draw_tree(&self, tx: &Transaction, max_level: i32) {
         // return if the log level is not debug
         if env::var("RUST_LOG").unwrap_or_default() != "debug" {
             return;
@@ -1460,10 +1460,7 @@ impl BTreeTable {
         depiction.push_str(&format!("root pointer: {}\n", root_pointer_pid));
 
         let root_pid = self.get_root_pid();
-        let read_tx = Transaction::new();
-        depiction
-            .push_str(&self.draw_subtree(&read_tx, &root_pid, 0, max_level));
-        read_tx.commit().unwrap();
+        depiction.push_str(&self.draw_subtree(&tx, &root_pid, 0, max_level));
 
         depiction.push_str(&format!(
             "\n\n----- PRINT TREE STRUCTURE END   -----\n\n"
@@ -1501,7 +1498,7 @@ impl BTreeTable {
 
         let mut prefix = "│   ".repeat(level);
         let page_rc = BufferPool::global()
-            .get_leaf_page(&Transaction::new(), Permission::ReadOnly, &pid)
+            .get_leaf_page(tx, Permission::ReadOnly, &pid)
             .unwrap();
         let lock_state = lock_state(page_rc.clone());
 
@@ -1627,10 +1624,11 @@ impl BTreeTable {
     /// - occupancy invariants. (if enabled)
     ///
     /// panic on any error found.
-    pub fn check_integrity(&self, check_occupancy: bool) {
+    pub fn check_integrity(&self, tx: &Transaction, check_occupancy: bool) {
         let root_ptr_page = self.get_root_ptr_page();
         let root_pid = root_ptr_page.rl().get_root_pid();
         let root_summary = self.check_sub_tree(
+            tx,
             &root_pid,
             &root_ptr_page.rl().get_pid(),
             None,
@@ -1653,6 +1651,7 @@ impl BTreeTable {
     /// panic on any error found.
     fn check_sub_tree(
         &self,
+        tx: &Transaction,
         pid: &BTreePageID,
         parent_pid: &BTreePageID,
         mut lower_bound: Option<IntField>,
@@ -1663,11 +1662,7 @@ impl BTreeTable {
         match pid.category {
             PageCategory::Leaf => {
                 let page_rc = BufferPool::global()
-                    .get_leaf_page(
-                        &Transaction::new(),
-                        Permission::ReadOnly,
-                        &pid,
-                    )
+                    .get_leaf_page(tx, Permission::ReadOnly, &pid)
                     .unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
@@ -1704,6 +1699,7 @@ impl BTreeTable {
                 let mut it = BTreeInternalPageIterator::new(&page);
                 let current = it.next().unwrap();
                 let mut accumulation = self.check_sub_tree(
+                    tx,
                     &current.get_left_child(),
                     pid,
                     lower_bound,
@@ -1715,6 +1711,7 @@ impl BTreeTable {
                 let mut last_entry = current;
                 for entry in it {
                     let current_summary = self.check_sub_tree(
+                        tx,
                         &entry.get_left_child(),
                         pid,
                         lower_bound,
@@ -1731,6 +1728,7 @@ impl BTreeTable {
                 }
 
                 let last_right_summary = self.check_sub_tree(
+                    tx,
                     &last_entry.get_right_child(),
                     pid,
                     lower_bound,

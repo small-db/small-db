@@ -5,7 +5,7 @@ use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
     },
-    concurrent_status::Permission,
+    concurrent_status::{ConcurrentStatus, Permission},
     transaction::Transaction,
     utils::HandyRwLock,
     Tuple,
@@ -25,8 +25,8 @@ fn test_redistribute_leaf_pages() {
     );
     let table = table_rc.rl();
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 
     // Delete some tuples from the first page until it gets to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -60,8 +60,8 @@ fn test_redistribute_leaf_pages() {
     // assert some tuples of the right page were stolen
     assert!(right_rc.rl().empty_slots_count() > 202);
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 }
 
 #[test]
@@ -78,16 +78,16 @@ fn test_merge_leaf_pages() {
     );
     let table = table_rc.rl();
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 
     // delete the last two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let _ = table.delete_tuple_auto_tx(&it.next_back().unwrap());
     let _ = table.delete_tuple_auto_tx(&it.next_back().unwrap());
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 }
 
 #[test]
@@ -103,20 +103,19 @@ fn test_delete_root_page() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
     // there should be one internal node and 2 leaf nodes
     assert_eq!(3, table.pages_count());
-    // return;
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     table.delete_tuple_auto_tx(&it.next().unwrap()).unwrap();
-    table.check_integrity(true);
+    table.check_integrity(&ctx.tx, true);
     table.delete_tuple_auto_tx(&it.next().unwrap()).unwrap();
-    table.check_integrity(true);
+    table.check_integrity(&ctx.tx, true);
 
-    table.draw_tree(-1);
+    table.draw_tree(&ctx.tx, -1);
 
     let root_pid = table.get_root_pid();
     assert!(root_pid.category == PageCategory::Leaf);
@@ -139,7 +138,7 @@ fn test_reuse_deleted_pages() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.check_integrity(true);
+    table.check_integrity(&ctx.tx, true);
 
     // 3 leaf pages, 1 internal page
     assert_eq!(4, table.pages_count());
@@ -184,8 +183,8 @@ fn test_redistribute_internal_pages() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.check_integrity(true);
-    table.draw_tree(-1);
+    table.check_integrity(&ctx.tx, true);
+    table.draw_tree(&ctx.tx, -1);
 
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -193,21 +192,21 @@ fn test_redistribute_internal_pages() {
         table.delete_tuple_auto_tx(&t).unwrap();
     }
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
         if let Err(e) = table.delete_tuple_auto_tx(&t) {
             error!("Error: {:?}", e);
-            table.draw_tree(-1);
-            table.check_integrity(true);
+            table.draw_tree(&ctx.tx, -1);
+            table.check_integrity(&ctx.tx, true);
         }
     }
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, -1);
+    table.check_integrity(&ctx.tx, true);
 }
 
 #[test]
@@ -234,10 +233,11 @@ fn test_delete_internal_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
+    let status = ConcurrentStatus::global();
 
     let table = table_rc.rl();
-    table.draw_tree(2);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, 2);
+    table.check_integrity(&ctx.tx, true);
 
     let root_pid = table.get_root_pid();
     let root_rc = BufferPool::global().get_internal_page(&root_pid).unwrap();
@@ -248,11 +248,11 @@ fn test_delete_internal_pages() {
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     let delete_target = 1 + 62 * 124;
     for t in it.rev().take(delete_target) {
-        table.delete_tuple_auto_tx(&t).unwrap();
+        table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
-    table.draw_tree(2);
-    table.check_integrity(true);
+    table.draw_tree(&ctx.tx, 2);
+    table.check_integrity(&ctx.tx, true);
 }
 
 // public void testDeleteInternalPages() throws Exception {

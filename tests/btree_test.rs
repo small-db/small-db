@@ -5,7 +5,8 @@ use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use simple_db_rust::{
-    btree::buffer_pool::BufferPool, utils::HandyRwLock, Tuple,
+    btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod,
+    utils::HandyRwLock, BTreeTable, Tuple,
 };
 
 // Test that doing lots of inserts and deletes in multiple threads works.
@@ -26,7 +27,7 @@ fn test_big_table() {
     // 3rd tier: 250 leaf pages (250 * 124 = 31,000 entries)
     debug!("Creating large random B+ tree...");
     let columns = 2;
-    let table_rc = common::create_random_btree_table(
+    let table_pod = common::create_random_btree_table(
         columns,
         31000,
         None,
@@ -35,27 +36,28 @@ fn test_big_table() {
     );
 
     debug!("Start insertion in multiple threads...");
-    let mut threads = vec![];
-    for _ in 0..5 {
-        let table_rc = table_rc.clone();
-        let handle = thread::spawn(move || {
-            let mut rng = rand::thread_rng();
-            let insert_value = rng.gen_range(i32::MIN, i32::MAX);
-            let tuple = Tuple::new_btree_tuple(insert_value, columns);
 
-            if let Err(e) = table_rc.rl().insert_tuple_auto_tx(&tuple) {
-                table_rc.rl().draw_tree(-1);
-                panic!("Error inserting tuple: {}", e);
-            }
-        });
-        threads.push(handle);
-    }
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for _ in 0..5 {
+            let handle = s.spawn(|| {
+                let mut rng = rand::thread_rng();
+                let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+                let tuple = Tuple::new_btree_tuple(insert_value, columns);
 
-    for handle in threads {
-        handle.join().unwrap();
-    }
+                let tx = Transaction::new();
+                if let Err(e) = table_pod.rl().insert_tuple_auto_tx(&tuple) {
+                    table_pod.rl().draw_tree(&tx, -1);
+                    panic!("Error inserting tuple: {}", e);
+                }
+            });
+            threads.push(handle);
+        }
 
-    // handle.join().unwrap();
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
 
     // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
     // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.

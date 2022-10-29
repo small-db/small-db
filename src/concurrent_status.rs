@@ -85,22 +85,25 @@ impl ConcurrentStatus {
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3 {
             match lock {
-                Lock::SLock => {
-                    if !self.x_lock_map.contains_key(page_id) {
-                        match self.s_lock_map.get(page_id) {
-                            None => {
-                                return self.add_lock(tx, lock, page_id);
-                            }
-                            Some(v) => {
-                                if v.contains(tx) {
-                                    return Ok(());
-                                } else {
-                                    return self.add_lock(tx, lock, page_id);
-                                }
-                            }
+                Lock::SLock => match self.x_lock_map.get(page_id) {
+                    Some(x_lock_tx) => {
+                        if x_lock_tx == tx {
+                            return Ok(());
                         }
                     }
-                }
+                    None => match self.s_lock_map.get(page_id) {
+                        None => {
+                            return self.add_lock(tx, lock, page_id);
+                        }
+                        Some(v) => {
+                            if v.contains(tx) {
+                                return Ok(());
+                            } else {
+                                return self.add_lock(tx, lock, page_id);
+                            }
+                        }
+                    },
+                },
                 Lock::XLock => match self.x_lock_map.get(page_id) {
                     None => match self.s_lock_map.get(page_id) {
                         None => {
@@ -186,24 +189,15 @@ impl ConcurrentStatus {
         tx: &Transaction,
         page_id: &BTreePageID,
     ) -> SimpleResult {
-        match self.x_lock_map.get(page_id) {
-            None => {
-                return Ok(());
-            }
-            Some(v) => {
-                if v == tx {
-                    self.x_lock_map.remove(page_id);
-                }
+        if let Some(v) = self.s_lock_map.get_mut(page_id) {
+            v.remove(tx);
+            if v.len() == 0 {
+                self.s_lock_map.remove(page_id);
             }
         }
 
-        match self.s_lock_map.get_mut(page_id) {
-            None => {
-                return Ok(());
-            }
-            Some(v) => {
-                v.remove(tx);
-            }
+        if let Some(_) = self.x_lock_map.get_mut(page_id) {
+            self.x_lock_map.remove(page_id);
         }
 
         return Ok(());
