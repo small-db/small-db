@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use crate::Predicate;
+use crate::{Op, Predicate};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
@@ -33,15 +33,15 @@ impl IntField {
         4
     }
 
-    pub fn satisfy(&self, predicate: &Predicate) -> bool {
-        match predicate.op {
-            crate::Op::Equals => self.value == predicate.field.value,
-            crate::Op::GreaterThan => self.value > predicate.field.value,
-            crate::Op::LessThan => self.value < predicate.field.value,
-            crate::Op::LessThanOrEq => self.value <= predicate.field.value,
-            crate::Op::GreaterThanOrEq => self.value >= predicate.field.value,
+    pub fn compare(&self, op: Op, field: IntField) -> bool {
+        match op {
+            crate::Op::Equals => self.value == field.value,
+            crate::Op::GreaterThan => self.value > field.value,
+            crate::Op::LessThan => self.value < field.value,
+            crate::Op::LessThanOrEq => self.value <= field.value,
+            crate::Op::GreaterThanOrEq => self.value >= field.value,
             crate::Op::Like => todo!(),
-            crate::Op::NotEquals => self.value != predicate.field.value,
+            crate::Op::NotEquals => self.value != field.value,
         }
     }
 }

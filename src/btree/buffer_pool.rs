@@ -126,7 +126,7 @@ impl BufferPool {
     pub fn get_internal_page(
         &mut self,
         key: &Key,
-    ) -> Result<Pod<BTreeInternalPage>, SimpleError> {
+    ) -> ResultPod<BTreeInternalPage> {
         match self.internal_buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {

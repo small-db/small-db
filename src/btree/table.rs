@@ -37,6 +37,7 @@ use crate::{
     transaction::Transaction,
     types::{ResultPod, SimpleResult},
     utils::{lock_state, HandyRwLock},
+    Op, Predicate,
 };
 
 enum SearchFor {
@@ -841,7 +842,7 @@ impl BTreeTable {
 
         let left_entries = left_rc.rl().entries_count();
         let right_entries = right_rc.rl().entries_count();
-        if left_entries + right_entries < left_rc.rl().get_max_capacity() {
+        if left_entries + right_entries < left_rc.rl().get_entry_capacity() {
             // if the two pages can be merged, merge them
             return self.merge_internal_page(
                 tx,
@@ -1546,7 +1547,7 @@ impl BTreeTable {
                 prefix,
                 pid,
                 page.entries_count(),
-                page.get_max_capacity(),
+                page.get_entry_capacity(),
                 lock_state,
             ));
             if max_level != -1 && level as i32 == max_level {
@@ -1844,27 +1845,6 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
                 return None;
             }
         }
-    }
-}
-
-pub enum Op {
-    Equals,
-    GreaterThan,
-    GreaterThanOrEq,
-    LessThan,
-    LessThanOrEq,
-    Like,
-    NotEquals,
-}
-
-pub struct Predicate {
-    pub op: Op,
-    pub field: IntField,
-}
-
-impl Predicate {
-    pub fn new(op: Op, field: IntField) -> Self {
-        Self { op, field }
     }
 }
 

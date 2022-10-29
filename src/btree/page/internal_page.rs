@@ -66,7 +66,8 @@ impl BTreeInternalPage {
             return true;
         }
 
-        let max_empty_slots = self.slot_count - self.slot_count / 2; // ceiling
+        let max_empty_slots =
+            self.get_entry_capacity() - self.get_entry_capacity() / 2; // ceiling
         return self.empty_slots_count() <= max_empty_slots;
     }
 
@@ -90,8 +91,7 @@ impl BTreeInternalPage {
         return entries_per_page;
     }
 
-    // TODO: rename
-    pub fn get_max_capacity(&self) -> usize {
+    pub fn get_entry_capacity(&self) -> usize {
         self.slot_count - 1
     }
 
@@ -260,6 +260,15 @@ impl BTreeInternalPage {
 
     fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
+    }
+
+    // Get pid of the ith child. If there is no ith child, return None.
+    //
+    // # Arguments
+    //
+    // * `index` - the index of the child, -1 means the rightmost child
+    pub fn get_child_pid(&self, index: usize) -> Option<BTreePageID> {
+        unimplemented!()
     }
 
     pub fn get_first_child_pid(&self) -> BTreePageID {

@@ -7,9 +7,8 @@ pub mod utils;
 
 mod error;
 mod log;
+mod operator;
 
-pub use btree::{
-    catalog::Catalog,
-    table::{BTreeTable, Op, Predicate},
-    tuple::Tuple,
-};
+pub use btree::{catalog::Catalog, table::BTreeTable, tuple::Tuple};
+
+pub use operator::{Op, Predicate};
