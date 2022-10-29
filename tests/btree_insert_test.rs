@@ -11,7 +11,6 @@ use simple_db_rust::{
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
     concurrent_status::Permission,
-    transaction::Transaction,
     utils::HandyRwLock,
     *,
 };
@@ -87,22 +86,17 @@ fn test_insert_duplicate_tuples() {
 
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(Op::Equals, field::IntField::new(1));
-    let it =
-        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let it = BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
         Predicate::new(Op::GreaterThanOrEq, field::IntField::new(2));
-    let it =
-        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let it = BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
     let predicate = Predicate::new(Op::LessThan, field::IntField::new(2));
-    let it = btree::table::BTreeTableSearchIterator::new(
-        &ctx.tx,
-        &table,
-        predicate,
-    );
+    let it =
+        btree::table::BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 2);
 }
 
@@ -140,20 +134,12 @@ fn test_split_leaf_page() {
     let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
     let left_ref = BufferPool::global()
-        .get_leaf_page(
-            &ctx.tx,
-            Permission::ReadOnly,
-            &entry.get_left_child(),
-        )
+        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_left_child())
         .unwrap();
     assert!(left_ref.rl().empty_slots_count() <= 251);
 
     let right_ref = BufferPool::global()
-        .get_leaf_page(
-            &ctx.tx,
-            Permission::ReadOnly,
-            &entry.get_right_child(),
-        )
+        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_right_child())
         .unwrap();
     assert!(right_ref.rl().empty_slots_count() <= 251);
 }
@@ -242,9 +228,7 @@ fn test_split_root_page() {
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(
-            &ctx.tx,
-            &table,
-            predicate,
+            &ctx.tx, &table, predicate,
         );
         let mut found = false;
         for t in it {
@@ -316,9 +300,7 @@ fn test_split_internal_page() {
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(
-            &ctx.tx,
-            &table,
-            predicate,
+            &ctx.tx, &table, predicate,
         );
         let mut found = false;
         for t in it {

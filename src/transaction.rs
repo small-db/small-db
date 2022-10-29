@@ -1,10 +1,7 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{
-    concurrent_status::ConcurrentStatus, error::SimpleError,
-    types::SimpleResult,
-};
+use crate::{concurrent_status::ConcurrentStatus, types::SimpleResult};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 

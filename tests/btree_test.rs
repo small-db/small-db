@@ -5,14 +5,14 @@ use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use simple_db_rust::{
-    btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod,
-    utils::HandyRwLock, BTreeTable, Tuple,
+    btree::buffer_pool::BufferPool, transaction::Transaction,
+    utils::HandyRwLock, Tuple,
 };
 
 // Test that doing lots of inserts and deletes in multiple threads works.
 // #[test]
 fn test_big_table() {
-    let ctx = common::setup();
+    let _ctx = common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages.
     BufferPool::set_page_size(1024);

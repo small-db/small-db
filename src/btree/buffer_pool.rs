@@ -20,7 +20,7 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
-    concurrent_status::{self, ConcurrentStatus, Lock, Permission},
+    concurrent_status::{ConcurrentStatus, Permission},
     error::SimpleError,
     transaction::Transaction,
     types::{Pod, ResultPod, SimpleResult},

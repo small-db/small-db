@@ -6,7 +6,6 @@ use simple_db_rust::{
         buffer_pool::BufferPool, page::PageCategory, table::BTreeTableIterator,
     },
     concurrent_status::{ConcurrentStatus, Permission},
-    transaction::Transaction,
     utils::HandyRwLock,
     Tuple,
 };
@@ -53,7 +52,7 @@ fn test_redistribute_leaf_pages() {
     let _ = table.delete_tuple(&ctx.tx, &t);
     assert!(page_rc.rl().empty_slots_count() <= 251);
 
-    let right_pid = page_rc.rl().get_right_pid().unwrap();
+    let _right_pid = page_rc.rl().get_right_pid().unwrap();
     let right_rc = BufferPool::global()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
         .unwrap();
@@ -233,7 +232,7 @@ fn test_delete_internal_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let status = ConcurrentStatus::global();
+    let _status = ConcurrentStatus::global();
 
     let table = table_rc.rl();
     table.draw_tree(&ctx.tx, 2);

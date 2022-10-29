@@ -31,7 +31,7 @@ use crate::{
     btree::page::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
-    concurrent_status::{Lock, Permission},
+    concurrent_status::Permission,
     error::SimpleError,
     field::IntField,
     transaction::Transaction,
