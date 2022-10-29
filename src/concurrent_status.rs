@@ -2,7 +2,7 @@ use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
     mem,
-    sync::Once,
+    sync::{Arc, Once, RwLock},
     thread::sleep,
     time::Instant,
 };
@@ -10,8 +10,10 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
-    types::SimpleResult,
+    btree::page::BTreePageID,
+    error::SimpleError,
+    transaction::Transaction,
+    types::{Pod, SimpleResult},
 };
 
 #[derive(Debug)]
@@ -20,6 +22,7 @@ pub enum Lock {
     SLock,
 }
 
+#[derive(Debug)]
 pub enum Permission {
     ReadOnly,
     ReadWrite,
@@ -69,7 +72,7 @@ impl ConcurrentStatus {
 
         unsafe {
             // Now we give out a copy of the data that is safe to use
-            // concurrently. (*SINGLETON).clone()
+            // concurrently.
             SINGLETON.as_mut().unwrap()
         }
     }
@@ -123,9 +126,9 @@ impl ConcurrentStatus {
                 },
             }
 
-            debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", tx, lock, page_id, self);
+            // debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", tx, lock, page_id, self);
 
-            panic!("not implemented");
+            // panic!("not implemented");
 
             sleep(std::time::Duration::from_millis(10));
         }
@@ -134,6 +137,8 @@ impl ConcurrentStatus {
             "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}",
             tx, lock, page_id, self,
         );
+
+        panic!("acquire_lock timeout");
 
         return Err(SimpleError::new("acquire lock timeout"));
     }

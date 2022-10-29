@@ -1,7 +1,8 @@
 use std::{
     io::prelude::*,
+    mem,
     ops::Deref,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 /// copy from https://github.com/tikv/tikv/blob/b15ea3b1cd766375cb52019e35c195ed797124df/components/tikv_util/src/lib.rs#L171-L186
@@ -30,4 +31,34 @@ pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
     let is_write: bool = lock.try_write().is_err();
     let is_poisoned: bool = lock.is_poisoned();
     format!("[r: {}, w: {}, p: {}]", is_read, is_write, is_poisoned)
+}
+
+pub struct Unique {}
+
+impl Unique {
+    fn new() -> Self {
+        unimplemented!()
+    }
+
+    pub fn global() -> &'static mut Self {
+        // Initialize it to a null value
+        static mut SINGLETON: *mut Unique = 0 as *mut Unique;
+        static ONCE: Once = Once::new();
+
+        ONCE.call_once(|| {
+            // Make it
+            let singleton = Self::new();
+
+            unsafe {
+                // Put it in the heap so it can outlive this call
+                SINGLETON = mem::transmute(Box::new(singleton));
+            }
+        });
+
+        unsafe {
+            // Now we give out a copy of the data that is safe to use
+            // concurrently. (*SINGLETON).clone()
+            SINGLETON.as_mut().unwrap()
+        }
+    }
 }

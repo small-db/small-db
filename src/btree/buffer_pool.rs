@@ -143,7 +143,15 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
+        debug!(
+            "try to get leaf page, tx: {}, perm: {:?}, key: {}",
+            tx, perm, key
+        );
         ConcurrentStatus::global().acquire_lock(tx, perm.to_lock(), key)?;
+        debug!(
+            "acquire lock success, tx: {}, perm: {:?}, key: {}",
+            tx, perm, key
+        );
 
         match self.leaf_buffer.get(key) {
             Some(v) => Ok(v.clone()),

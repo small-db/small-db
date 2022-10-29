@@ -12,7 +12,7 @@ use simple_db_rust::{
 // Test that doing lots of inserts and deletes in multiple threads works.
 // #[test]
 fn test_big_table() {
-    let _ctx = common::setup();
+    let _ = common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages.
     BufferPool::set_page_size(1024);
@@ -39,7 +39,7 @@ fn test_big_table() {
 
     thread::scope(|s| {
         let mut threads = vec![];
-        for _ in 0..5 {
+        for _ in 0..2 {
             let handle = s.spawn(|| {
                 let mut rng = rand::thread_rng();
                 let insert_value = rng.gen_range(i32::MIN, i32::MAX);
@@ -50,6 +50,7 @@ fn test_big_table() {
                     table_pod.rl().draw_tree(&tx, -1);
                     panic!("Error inserting tuple: {}", e);
                 }
+                tx.commit().unwrap();
             });
             threads.push(handle);
         }
