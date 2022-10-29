@@ -284,10 +284,10 @@ impl BTreeInternalPage {
 
     pub fn get_left_pid(&self) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::get_buffer_pool().rl()
+        let parent_rc = Unique::mut_buffer_pool()
             .get_internal_page(&parent_pid)
             .unwrap();
-        // Unique::get_buffer_pool().rl().get_internal_page(&parent_pid).unwrap();
+        // Unique::get_buffer_pool().get_internal_page(&parent_pid).unwrap();
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
@@ -301,7 +301,7 @@ impl BTreeInternalPage {
     pub fn get_right_pid(&self) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
         let parent_rc =
-            Unique::get_buffer_pool().rl().get_internal_page(&parent_pid).unwrap();
+            Unique::mut_buffer_pool().get_internal_page(&parent_pid).unwrap();
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {

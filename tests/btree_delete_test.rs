@@ -47,7 +47,7 @@ fn test_redistribute_leaf_pages() {
     // deleting a tuple now should bring the page below minimum occupancy and
     // cause the tuples to be redistributed
     let t = it.next().unwrap();
-    let page_rc = Unique::get_buffer_pool().rl()
+    let page_rc = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
         .unwrap();
     assert_eq!(page_rc.rl().empty_slots_count(), 251);
@@ -55,7 +55,7 @@ fn test_redistribute_leaf_pages() {
     assert!(page_rc.rl().empty_slots_count() <= 251);
 
     let _right_pid = page_rc.rl().get_right_pid().unwrap();
-    let right_rc = Unique::get_buffer_pool().rl()
+    let right_rc = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
         .unwrap();
     // assert some tuples of the right page were stolen
@@ -120,7 +120,7 @@ fn test_delete_root_page() {
 
     let root_pid = table.get_root_pid();
     assert!(root_pid.category == PageCategory::Leaf);
-    let root_rc = Unique::get_buffer_pool().rl()
+    let root_rc = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &root_pid)
         .unwrap();
     assert_eq!(root_rc.rl().empty_slots_count(), 1);
@@ -240,7 +240,7 @@ fn test_delete_internal_pages() {
     table.check_integrity(&ctx.tx, true);
 
     let root_pid = table.get_root_pid();
-    let root_rc = Unique::get_buffer_pool().rl()
+    let root_rc = Unique::mut_buffer_pool()
         .get_internal_page(&root_pid)
         .unwrap();
     assert_eq!(122, root_rc.rl().empty_slots_count());
@@ -250,10 +250,10 @@ fn test_delete_internal_pages() {
     let e = BTreeInternalPageIterator::new(&root_rc.rl())
         .next()
         .unwrap();
-    let left_child_rc = Unique::get_buffer_pool().rl()
+    let left_child_rc = Unique::mut_buffer_pool()
         .get_internal_page(&e.get_left_child())
         .unwrap();
-    let right_child_rc = Unique::get_buffer_pool().rl()
+    let right_child_rc = Unique::mut_buffer_pool()
         .get_internal_page(&e.get_right_child())
         .unwrap();
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -294,10 +294,10 @@ fn test_delete_internal_pages() {
     let e = BTreeInternalPageIterator::new(&root_rc.rl())
         .next()
         .unwrap();
-    let left_child_rc = Unique::get_buffer_pool().rl()
+    let left_child_rc = Unique::mut_buffer_pool()
         .get_internal_page(&e.get_left_child())
         .unwrap();
-    let right_child_rc = Unique::get_buffer_pool().rl()
+    let right_child_rc = Unique::mut_buffer_pool()
         .get_internal_page(&e.get_right_child())
         .unwrap();
     assert_eq!(0, left_child_rc.rl().empty_slots_count());
@@ -332,7 +332,7 @@ fn test_delete_internal_pages() {
     // confirm that the last two internal pages have merged successfully and
     // replaced the root
     let root_pid = table.get_root_pid();
-    let root_rc = Unique::get_buffer_pool().rl()
+    let root_rc = Unique::mut_buffer_pool()
         .get_internal_page(&root_pid)
         .unwrap();
     assert_eq!(0, root_rc.rl().empty_slots_count());

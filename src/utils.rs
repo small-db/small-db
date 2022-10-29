@@ -45,8 +45,12 @@ impl Unique {
         }
     }
 
-    pub fn get_buffer_pool() -> Pod<BufferPool> {
-        Self::global().buffer_pool
+    pub fn buffer_pool() -> RwLockReadGuard<'static, BufferPool> {
+        Self::global().buffer_pool.rl()
+    }
+
+    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
+        Self::global().buffer_pool.wl()
     }
 
     pub fn global() -> &'static Self {

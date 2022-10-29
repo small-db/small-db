@@ -91,10 +91,7 @@ impl BufferPool {
     ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
-    fn load_page<PAGE: BTreePage>(
-        &mut self,
-        key: &Key,
-    ) -> Result<Pod<PAGE>, SimpleError> {
+    fn load_page<PAGE: BTreePage>(&mut self, key: &Key) -> ResultPod<PAGE> {
         // stage 1: get table
         let v = Catalog::global().get_table(&key.get_table_id()).unwrap();
         let table = v.read().unwrap();
@@ -271,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_buffer_pool() {
-        let mut bp = Unique::get_buffer_pool().rl();
+        let mut bp = Unique::mut_buffer_pool();
 
         // add table to catalog
         let table = BTreeTable::new(

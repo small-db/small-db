@@ -118,7 +118,7 @@ fn test_split_leaf_page() {
     assert_eq!(1, table.pages_count());
 
     // now insert a tuple
-    Unique::get_buffer_pool().rl()
+    Unique::buffer_pool()
         .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
 
@@ -126,19 +126,21 @@ fn test_split_leaf_page() {
     assert_eq!(3, table.pages_count());
 
     let root_pid = table.get_root_pid();
-    let root_ref = Unique::get_buffer_pool().rl().get_internal_page(&root_pid).unwrap();
+    let root_ref = Unique::mut_buffer_pool()
+        .get_internal_page(&root_pid)
+        .unwrap();
     let root = root_ref.rl();
     assert_eq!(502, root.empty_slots_count());
 
     // each child should have half of the records
     let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
-    let left_ref = Unique::get_buffer_pool().rl()
+    let left_ref = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_left_child())
         .unwrap();
     assert!(left_ref.rl().empty_slots_count() <= 251);
 
-    let right_ref = Unique::get_buffer_pool().rl()
+    let right_ref = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_right_child())
         .unwrap();
     assert!(right_ref.rl().empty_slots_count() <= 251);
@@ -170,8 +172,9 @@ fn test_split_root_page() {
         assert_eq!(it.count(), rows as usize);
 
         let root_pid = table.get_root_pid();
-        let root_ref =
-            Unique::get_buffer_pool().rl().get_internal_page(&root_pid).unwrap();
+        let root_ref = Unique::mut_buffer_pool()
+            .get_internal_page(&root_pid)
+            .unwrap();
         let root = root_ref.rl();
         debug!("root empty slot count: {}", root.empty_slots_count());
         let it = BTreeInternalPageIterator::new(&root);
@@ -179,7 +182,7 @@ fn test_split_root_page() {
     }
 
     // now insert a tuple
-    Unique::get_buffer_pool().rl()
+    Unique::buffer_pool()
         .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10, 2))
         .unwrap();
 
@@ -194,8 +197,9 @@ fn test_split_root_page() {
         let root_pid = table.get_root_pid();
         assert_eq!(root_pid.category, PageCategory::Internal);
 
-        let root_page_rc =
-            Unique::get_buffer_pool().rl().get_internal_page(&root_pid).unwrap();
+        let root_page_rc = Unique::mut_buffer_pool()
+            .get_internal_page(&root_pid)
+            .unwrap();
         let root_page = root_page_rc.rl();
         assert_eq!(root_page.empty_slots_count(), 502);
 
@@ -203,15 +207,17 @@ fn test_split_root_page() {
         let mut it = BTreeInternalPageIterator::new(&root_page);
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
-        let left_rc =
-            Unique::get_buffer_pool().rl().get_internal_page(&left_pid).unwrap();
+        let left_rc = Unique::mut_buffer_pool()
+            .get_internal_page(&left_pid)
+            .unwrap();
         let left = left_rc.rl();
         debug!("left entries count: {}", left.entries_count());
         assert!(left.empty_slots_count() <= 252);
 
         let right_pid = entry.get_right_child();
-        let right_rc =
-            Unique::get_buffer_pool().rl().get_internal_page(&right_pid).unwrap();
+        let right_rc = Unique::mut_buffer_pool()
+            .get_internal_page(&right_pid)
+            .unwrap();
         let right = right_rc.rl();
         debug!("right entries count: {}", right.entries_count());
         assert!(right.empty_slots_count() <= 252);
@@ -222,7 +228,7 @@ fn test_split_root_page() {
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        Unique::get_buffer_pool().rl()
+        Unique::buffer_pool()
             .insert_tuple(&ctx.tx, table.get_id(), &tuple.clone())
             .unwrap();
 
