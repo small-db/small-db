@@ -134,13 +134,6 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    pub fn insert_tuple_auto_tx(&self, tuple: &Tuple) -> SimpleResult {
-        let tx = Transaction::new();
-        self.insert_tuple(&tx, &tuple)?;
-        tx.commit()?;
-        return Ok(());
-    }
-
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(
@@ -493,13 +486,6 @@ impl BTreeTable {
 
 /// delete implementation
 impl BTreeTable {
-    pub fn delete_tuple_auto_tx(&self, tuple: &WrappedTuple) -> SimpleResult {
-        let tx = Transaction::new();
-        self.delete_tuple(&tx, &tuple)?;
-        tx.commit()?;
-        return Ok(());
-    }
-
     /// Delete a tuple from this BTreeFile.
     ///
     /// May cause pages to merge or redistribute entries/tuples if the pages

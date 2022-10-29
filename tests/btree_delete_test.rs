@@ -35,7 +35,7 @@ fn test_redistribute_leaf_pages() {
     for tuple in it.by_ref() {
         assert_eq!(202 + count, page_rc.rl().empty_slots_count());
 
-        let _ = table.delete_tuple_auto_tx(&tuple);
+        let _ = table.delete_tuple(&ctx.tx, &tuple);
 
         count += 1;
         if count >= 49 {
@@ -50,7 +50,7 @@ fn test_redistribute_leaf_pages() {
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
         .unwrap();
     assert_eq!(page_rc.rl().empty_slots_count(), 251);
-    let _ = table.delete_tuple_auto_tx(&t);
+    let _ = table.delete_tuple(&ctx.tx, &t);
     assert!(page_rc.rl().empty_slots_count() <= 251);
 
     let right_pid = page_rc.rl().get_right_pid().unwrap();
@@ -83,8 +83,8 @@ fn test_merge_leaf_pages() {
 
     // delete the last two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    let _ = table.delete_tuple_auto_tx(&it.next_back().unwrap());
-    let _ = table.delete_tuple_auto_tx(&it.next_back().unwrap());
+    let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
+    let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
 
     table.draw_tree(&ctx.tx, -1);
     table.check_integrity(&ctx.tx, true);
@@ -110,9 +110,9 @@ fn test_delete_root_page() {
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    table.delete_tuple_auto_tx(&it.next().unwrap()).unwrap();
+    table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
     table.check_integrity(&ctx.tx, true);
-    table.delete_tuple_auto_tx(&it.next().unwrap()).unwrap();
+    table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
     table.check_integrity(&ctx.tx, true);
 
     table.draw_tree(&ctx.tx, -1);
@@ -146,7 +146,7 @@ fn test_reuse_deleted_pages() {
     // delete enough tuples to ensure one page gets deleted
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     for t in it.take(502) {
-        table.delete_tuple_auto_tx(&t).unwrap();
+        table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
     // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page, 1
@@ -189,7 +189,7 @@ fn test_redistribute_internal_pages() {
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     for t in it.by_ref().take(49 * 502 + 1) {
-        table.delete_tuple_auto_tx(&t).unwrap();
+        table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
     table.draw_tree(&ctx.tx, -1);
@@ -198,7 +198,7 @@ fn test_redistribute_internal_pages() {
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
-        if let Err(e) = table.delete_tuple_auto_tx(&t) {
+        if let Err(e) = table.delete_tuple(&ctx.tx, &t) {
             error!("Error: {:?}", e);
             table.draw_tree(&ctx.tx, -1);
             table.check_integrity(&ctx.tx, true);

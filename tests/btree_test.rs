@@ -46,7 +46,7 @@ fn test_big_table() {
                 let tuple = Tuple::new_btree_tuple(insert_value, columns);
 
                 let tx = Transaction::new();
-                if let Err(e) = table_pod.rl().insert_tuple_auto_tx(&tuple) {
+                if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
                     table_pod.rl().draw_tree(&tx, -1);
                     panic!("Error inserting tuple: {}", e);
                 }
