@@ -10,5 +10,4 @@ mod log;
 mod operator;
 
 pub use btree::{catalog::Catalog, table::BTreeTable, tuple::Tuple};
-
 pub use operator::{Op, Predicate};

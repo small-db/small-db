@@ -267,7 +267,7 @@ impl BTreeInternalPage {
     // # Arguments
     //
     // * `index` - the index of the child, -1 means the rightmost child
-    pub fn get_child_pid(&self, index: usize) -> Option<BTreePageID> {
+    pub fn get_child_pid(&self, _index: usize) -> Option<BTreePageID> {
         unimplemented!()
     }
 

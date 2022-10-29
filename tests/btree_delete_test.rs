@@ -4,13 +4,12 @@ use log::error;
 use simple_db_rust::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeInternalPage, BTreeInternalPageIterator, PageCategory},
+        page::{BTreeInternalPageIterator, PageCategory},
         table::BTreeTableIterator,
     },
-    concurrent_status::{ConcurrentStatus, Permission},
-    types::Pod,
+    concurrent_status::Permission,
     utils::HandyRwLock,
-    Op, Predicate, Tuple,
+    Op, Tuple,
 };
 
 #[test]
@@ -235,7 +234,6 @@ fn test_delete_internal_pages() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let _status = ConcurrentStatus::global();
 
     let table = table_rc.rl();
     table.draw_tree(&ctx.tx, 2);
@@ -309,7 +307,8 @@ fn test_delete_internal_pages() {
             .get_key()
     ));
 
-    // Delete tuples causing leaf pages to merge until the first internal page gets below minimum occupancy and causes the entries to be redistributed
+    // Delete tuples causing leaf pages to merge until the first internal page
+    // gets below minimum occupancy and causes the entries to be redistributed
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
     for _ in 0..62 {
@@ -320,7 +319,9 @@ fn test_delete_internal_pages() {
         count += 1;
     }
 
-    // deleting another page of tuples should bring the page below minimum occupancy and cause it to merge with the right sibling to replace the root
+    // deleting another page of tuples should bring the page below minimum
+    // occupancy and cause it to merge with the right sibling to replace the
+    // root
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     for _ in 0..124 {
         table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();

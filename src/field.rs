@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use crate::{Op, Predicate};
+use crate::Op;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
