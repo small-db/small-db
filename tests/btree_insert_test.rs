@@ -22,7 +22,7 @@ fn test_insert_tuple() {
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let table_rc =
         common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
-    Catalog::global().add_table(Arc::clone(&table_rc));
+    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
     let mut insert_value = 0;
@@ -72,7 +72,7 @@ fn test_insert_duplicate_tuples() {
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
     let table_rc =
         common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
-    Catalog::global().add_table(Arc::clone(&table_rc));
+    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
     // add a bunch of identical tuples

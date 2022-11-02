@@ -27,7 +27,7 @@ fn test_scan(rows: usize, columns: usize) {
 
     // TODO: find a better solution
     Unique::mut_buffer_pool().clear();
-    ConcurrentStatus::global().clear();
+    Unique::mut_concurrent_status().clear();
 }
 
 fn validate_scan(it: &mut BTreeTableIterator, int_tuples: &Vec<Vec<i32>>) {

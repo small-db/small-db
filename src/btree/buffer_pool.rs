@@ -25,7 +25,7 @@ use crate::{
     transaction::Transaction,
     types::{Pod, ResultPod, SimpleResult},
     utils::{simple_int_tuple_scheme, HandyRwLock},
-    Tuple,
+    Tuple, Unique,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -93,7 +93,8 @@ impl BufferPool {
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
     fn load_page<PAGE: BTreePage>(&mut self, key: &Key) -> ResultPod<PAGE> {
         // stage 1: get table
-        let v = Catalog::global().get_table(&key.get_table_id()).unwrap();
+        let catalog = Unique::catalog();
+        let v = catalog.get_table(&key.get_table_id()).unwrap();
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
@@ -144,7 +145,11 @@ impl BufferPool {
             "try to get leaf page, tx: {}, perm: {:?}, key: {}",
             tx, perm, key
         );
-        ConcurrentStatus::global().acquire_lock(tx, perm.to_lock(), key)?;
+        Unique::mut_concurrent_status().acquire_lock(
+            tx,
+            perm.to_lock(),
+            key,
+        )?;
         debug!(
             "acquire lock success, tx: {}, perm: {:?}, key: {}",
             tx, perm, key
@@ -250,7 +255,7 @@ impl BufferPool {
     //     table_id: i32,
     //     t: &Tuple,
     // ) -> SimpleResult {
-    //     let v = Catalog::global().get_table(&table_id).unwrap().rl();
+    //     let v = Unique::catalog().get_table(&table_id).unwrap().rl();
     //     v.insert_tuple(tx, t)?;
     //     return Ok(());
     // }
@@ -277,7 +282,7 @@ mod tests {
             &simple_int_tuple_scheme(3, ""),
         );
         let table_id = table.get_id();
-        Catalog::global().add_table(Arc::new(RwLock::new(table)));
+        Unique::mut_catalog().add_table(Arc::new(RwLock::new(table)));
 
         // write page to disk
 

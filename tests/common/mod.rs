@@ -69,7 +69,7 @@ pub fn create_random_btree_table(
         key_field,
         &row_scheme,
     )));
-    Catalog::global().add_table(Arc::clone(&table_rc));
+    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
@@ -223,7 +223,8 @@ fn sequential_insert_into_table(
         );
         table.write_page_to_disk(&pid);
 
-        let internal_rc = Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+        let internal_rc =
+            Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
         internals.push(internal_rc.clone());
 
         let entries_count = children_count - 1;
@@ -283,7 +284,8 @@ fn write_internal_pages(
         );
         table.write_page_to_disk(&pid);
 
-        let root_rc = Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+        let root_rc =
+            Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
 
         // insert entries
         let entries_count = internals.len() - 1;

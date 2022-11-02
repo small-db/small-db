@@ -14,7 +14,7 @@ use crate::{
     },
     field::IntField,
     utils::HandyRwLock,
-    Catalog, Tuple,
+    Catalog, Tuple, Unique,
 };
 
 pub struct BTreeLeafPage {
@@ -313,7 +313,7 @@ impl BTreePage for BTreeLeafPage {
 
 impl From<BTreeVirtualPage> for Arc<RwLock<BTreeLeafPage>> {
     fn from(v: BTreeVirtualPage) -> Self {
-        let scheme = Catalog::global()
+        let scheme = Unique::catalog()
             .get_tuple_scheme(&v.get_pid().get_table_id())
             .unwrap();
 

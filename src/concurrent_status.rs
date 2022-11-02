@@ -46,34 +46,11 @@ pub struct ConcurrentStatus {
 }
 
 impl ConcurrentStatus {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             s_lock_map: HashMap::new(),
             x_lock_map: HashMap::new(),
             hold_pages: HashMap::new(),
-        }
-    }
-
-    pub fn global() -> &'static mut Self {
-        // Initialize it to a null value
-        static mut SINGLETON: *mut ConcurrentStatus =
-            0 as *mut ConcurrentStatus;
-        static ONCE: Once = Once::new();
-
-        ONCE.call_once(|| {
-            // Make it
-            let singleton = Self::new();
-
-            unsafe {
-                // Put it in the heap so it can outlive this call
-                SINGLETON = mem::transmute(Box::new(singleton));
-            }
-        });
-
-        unsafe {
-            // Now we give out a copy of the data that is safe to use
-            // concurrently.
-            SINGLETON.as_mut().unwrap()
         }
     }
 

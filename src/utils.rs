@@ -24,7 +24,10 @@ impl<T> HandyRwLock<T> for RwLock<T> {
     }
 }
 
-use crate::{btree::buffer_pool::BufferPool, types::Pod};
+use crate::{
+    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus,
+    types::Pod, Catalog,
+};
 pub use crate::{btree::tuple::simple_int_tuple_scheme, log::init_log};
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
@@ -35,13 +38,17 @@ pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
 }
 
 pub struct Unique {
-    pub buffer_pool: Pod<BufferPool>,
+    buffer_pool: Pod<BufferPool>,
+    catalog: Pod<Catalog>,
+    concurrent_status: Pod<ConcurrentStatus>,
 }
 
 impl Unique {
     fn new() -> Self {
         Self {
             buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
+            catalog: Arc::new(RwLock::new(Catalog::new())),
+            concurrent_status: Arc::new(RwLock::new(ConcurrentStatus::new())),
         }
     }
 
@@ -51,6 +58,23 @@ impl Unique {
 
     pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
         Self::global().buffer_pool.wl()
+    }
+
+    pub fn catalog() -> RwLockReadGuard<'static, Catalog> {
+        Self::global().catalog.rl()
+    }
+
+    pub fn mut_catalog() -> RwLockWriteGuard<'static, Catalog> {
+        Self::global().catalog.wl()
+    }
+
+    pub fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
+        Self::global().concurrent_status.rl()
+    }
+
+    pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus>
+    {
+        Self::global().concurrent_status.wl()
     }
 
     pub fn global() -> &'static Self {
