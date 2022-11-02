@@ -10,7 +10,7 @@ use std::{
     str,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex, MutexGuard, RwLock, RwLockWriteGuard,
+        Arc, Mutex, MutexGuard, RwLock,
     },
     time::SystemTime,
     usize,

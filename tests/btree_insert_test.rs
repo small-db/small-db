@@ -122,8 +122,8 @@ fn test_split_leaf_page() {
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
     // Unique::mut_buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000, 2))
-    //     .unwrap();
+    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000,
+    // 2))     .unwrap();
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
@@ -189,8 +189,8 @@ fn test_split_root_page() {
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(10, 2))
         .unwrap();
     // Unique::mut_buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10, 2))
-    //     .unwrap();
+    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10,
+    // 2))     .unwrap();
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());

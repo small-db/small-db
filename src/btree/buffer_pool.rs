@@ -2,17 +2,15 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{self, prelude::*, Seek, SeekFrom},
-    mem,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Once, RwLock,
+        Arc, RwLock,
     },
 };
 
 use log::debug;
 
 use super::{
-    catalog::Catalog,
     page::{
         BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
         BTreePageID, BTreeRootPointerPage, PageCategory,
@@ -20,12 +18,9 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
-    concurrent_status::{ConcurrentStatus, Permission},
-    error::SimpleError,
-    transaction::Transaction,
-    types::{Pod, ResultPod, SimpleResult},
-    utils::{simple_int_tuple_scheme, HandyRwLock},
-    Tuple, Unique,
+    concurrent_status::Permission, error::SimpleError,
+    transaction::Transaction, types::ResultPod, utils::simple_int_tuple_scheme,
+    Unique,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -240,15 +235,15 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    // /// Add a tuple to the specified table on behalf of transaction tid.  Will
-    // /// acquire a write lock on the page the tuple is added to and any other
-    // /// pages that are updated (Lock acquisition is not needed for lab2).
-    // /// May block if the lock(s) cannot be acquired.
+    // /// Add a tuple to the specified table on behalf of transaction tid.
+    // Will /// acquire a write lock on the page the tuple is added to and
+    // any other /// pages that are updated (Lock acquisition is not needed
+    // for lab2). /// May block if the lock(s) cannot be acquired.
     // ///
-    // /// Marks any pages that were dirtied by the operation as dirty by calling
-    // /// their markDirty bit, and adds versions of any pages that have
-    // /// been dirtied to the cache (replacing any existing versions of those
-    // /// pages) so that future requests see up-to-date pages.
+    // /// Marks any pages that were dirtied by the operation as dirty by
+    // calling /// their markDirty bit, and adds versions of any pages that
+    // have /// been dirtied to the cache (replacing any existing versions
+    // of those /// pages) so that future requests see up-to-date pages.
     // pub fn insert_tuple(
     //     &mut self,
     //     tx: &Transaction,

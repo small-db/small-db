@@ -1,8 +1,6 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
-    mem,
-    sync::{Arc, Once, RwLock},
     thread::sleep,
     time::Instant,
 };
@@ -10,10 +8,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePageID,
-    error::SimpleError,
-    transaction::Transaction,
-    types::{Pod, SimpleResult},
+    btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
+    types::SimpleResult,
 };
 
 #[derive(Debug)]
@@ -103,7 +99,8 @@ impl ConcurrentStatus {
                 },
             }
 
-            // debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}", tx, lock, page_id, self);
+            // debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?},
+            // concurrent_status: {:?}", tx, lock, page_id, self);
 
             // panic!("not implemented");
 

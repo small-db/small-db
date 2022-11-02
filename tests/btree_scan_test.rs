@@ -2,11 +2,8 @@ mod common;
 use common::TreeLayout;
 use rand::Rng;
 use simple_db_rust::{
-    btree::{buffer_pool::BufferPool, table::BTreeTableIterator},
-    concurrent_status::ConcurrentStatus,
-    transaction::Transaction,
-    utils::HandyRwLock,
-    Unique,
+    btree::table::BTreeTableIterator, transaction::Transaction,
+    utils::HandyRwLock, Unique,
 };
 
 fn test_scan(rows: usize, columns: usize) {

@@ -14,7 +14,7 @@ use crate::{
     },
     field::IntField,
     utils::HandyRwLock,
-    Catalog, Tuple, Unique,
+    Tuple, Unique,
 };
 
 pub struct BTreeLeafPage {

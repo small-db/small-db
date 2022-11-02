@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
-    mem,
-    sync::{Arc, Once, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use super::{table::BTreeTable, tuple::TupleScheme};
