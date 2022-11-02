@@ -10,7 +10,7 @@ use std::{
     str,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex, MutexGuard, RwLock,
+        Arc, Mutex, MutexGuard, RwLock, RwLockWriteGuard,
     },
     time::SystemTime,
     usize,
@@ -140,6 +140,7 @@ impl BTreeTable {
     pub fn insert_tuple(
         &self,
         tx: &Transaction,
+        // buffer_pool: &mut BufferPool,
         tuple: &Tuple,
     ) -> SimpleResult {
         // a read lock on the root pointer page and
@@ -1355,7 +1356,10 @@ impl BTreeTable {
         root_pid
     }
 
-    pub fn get_root_ptr_page(&self) -> Arc<RwLock<BTreeRootPointerPage>> {
+    pub fn get_root_ptr_page(
+        &self,
+        // buffer_pool: &mut BufferPool,
+    ) -> Arc<RwLock<BTreeRootPointerPage>> {
         let root_ptr_pid = BTreePageID {
             category: PageCategory::RootPointer,
             page_index: 0,
@@ -1364,6 +1368,7 @@ impl BTreeTable {
         Unique::mut_buffer_pool()
             .get_root_pointer_page(&root_ptr_pid)
             .unwrap()
+        // buffer_pool.get_root_pointer_page(&root_ptr_pid).unwrap()
     }
 
     /// The count of pages in this BTreeFile

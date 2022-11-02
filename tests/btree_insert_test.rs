@@ -118,9 +118,12 @@ fn test_split_leaf_page() {
     assert_eq!(1, table.pages_count());
 
     // now insert a tuple
-    Unique::buffer_pool()
-        .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000, 2))
+    table
+        .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
+    // Unique::mut_buffer_pool()
+    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000, 2))
+    //     .unwrap();
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
@@ -182,9 +185,12 @@ fn test_split_root_page() {
     }
 
     // now insert a tuple
-    Unique::buffer_pool()
-        .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10, 2))
+    table
+        .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(10, 2))
         .unwrap();
+    // Unique::mut_buffer_pool()
+    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10, 2))
+    //     .unwrap();
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
@@ -228,9 +234,7 @@ fn test_split_root_page() {
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        Unique::buffer_pool()
-            .insert_tuple(&ctx.tx, table.get_id(), &tuple.clone())
-            .unwrap();
+        table.insert_tuple(&ctx.tx, &tuple).unwrap();
 
         let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(

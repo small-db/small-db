@@ -51,27 +51,27 @@ impl BufferPool {
         }
     }
 
-    pub fn global() -> &'static mut Self {
-        // Initialize it to a null value
-        static mut SINGLETON: *mut BufferPool = 0 as *mut BufferPool;
-        static ONCE: Once = Once::new();
+    // pub fn global() -> &'static mut Self {
+    //     // Initialize it to a null value
+    //     static mut SINGLETON: *mut BufferPool = 0 as *mut BufferPool;
+    //     static ONCE: Once = Once::new();
 
-        ONCE.call_once(|| {
-            // Make it
-            let singleton = Self::new();
+    //     ONCE.call_once(|| {
+    //         // Make it
+    //         let singleton = Self::new();
 
-            unsafe {
-                // Put it in the heap so it can outlive this call
-                SINGLETON = mem::transmute(Box::new(singleton));
-            }
-        });
+    //         unsafe {
+    //             // Put it in the heap so it can outlive this call
+    //             SINGLETON = mem::transmute(Box::new(singleton));
+    //         }
+    //     });
 
-        unsafe {
-            // Now we give out a copy of the data that is safe to use
-            // concurrently. (*SINGLETON).clone()
-            SINGLETON.as_mut().unwrap()
-        }
-    }
+    //     unsafe {
+    //         // Now we give out a copy of the data that is safe to use
+    //         // concurrently. (*SINGLETON).clone()
+    //         SINGLETON.as_mut().unwrap()
+    //     }
+    // }
 
     pub fn clear(&mut self) {
         self.root_pointer_buffer.clear();
@@ -235,25 +235,25 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    /// Add a tuple to the specified table on behalf of transaction tid.  Will
-    /// acquire a write lock on the page the tuple is added to and any other
-    /// pages that are updated (Lock acquisition is not needed for lab2).
-    /// May block if the lock(s) cannot be acquired.
-    ///
-    /// Marks any pages that were dirtied by the operation as dirty by calling
-    /// their markDirty bit, and adds versions of any pages that have
-    /// been dirtied to the cache (replacing any existing versions of those
-    /// pages) so that future requests see up-to-date pages.
-    pub fn insert_tuple(
-        &self,
-        tx: &Transaction,
-        table_id: i32,
-        t: &Tuple,
-    ) -> SimpleResult {
-        let v = Catalog::global().get_table(&table_id).unwrap().rl();
-        v.insert_tuple(tx, t)?;
-        return Ok(());
-    }
+    // /// Add a tuple to the specified table on behalf of transaction tid.  Will
+    // /// acquire a write lock on the page the tuple is added to and any other
+    // /// pages that are updated (Lock acquisition is not needed for lab2).
+    // /// May block if the lock(s) cannot be acquired.
+    // ///
+    // /// Marks any pages that were dirtied by the operation as dirty by calling
+    // /// their markDirty bit, and adds versions of any pages that have
+    // /// been dirtied to the cache (replacing any existing versions of those
+    // /// pages) so that future requests see up-to-date pages.
+    // pub fn insert_tuple(
+    //     &mut self,
+    //     tx: &Transaction,
+    //     table_id: i32,
+    //     t: &Tuple,
+    // ) -> SimpleResult {
+    //     let v = Catalog::global().get_table(&table_id).unwrap().rl();
+    //     v.insert_tuple(tx, t)?;
+    //     return Ok(());
+    // }
 }
 
 #[cfg(test)]

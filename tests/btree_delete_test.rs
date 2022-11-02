@@ -155,7 +155,6 @@ fn test_reuse_deleted_pages() {
     assert_eq!(5, table.pages_count());
 
     // insert enough tuples to ensure one of the leaf pages splits
-
     for value in 0..502 {
         let tuple = Tuple::new_btree_tuple(value, 2);
         table.insert_tuple(&ctx.tx, &tuple).unwrap();
