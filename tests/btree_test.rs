@@ -10,7 +10,7 @@ use simple_db_rust::{
 };
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
+#[test]
 fn test_big_table() {
     let _ = common::setup();
 
