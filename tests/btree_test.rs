@@ -1,13 +1,29 @@
 mod common;
-use std::thread;
+use std::{
+    thread::{self, sleep, Scope},
+    time::Duration,
+};
 
 use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use simple_db_rust::{
-    btree::buffer_pool::BufferPool, transaction::Transaction,
-    utils::HandyRwLock, Tuple,
+    btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod,
+    utils::HandyRwLock, BTreeTable, Tuple,
 };
+
+fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
+    let mut rng = rand::thread_rng();
+    let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+    let tuple = Tuple::new_btree_tuple(insert_value, column_count);
+
+    let tx = Transaction::new();
+    if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
+        table_pod.rl().draw_tree(&tx, -1);
+        panic!("Error inserting tuple: {}", e);
+    }
+    tx.commit().unwrap();
+}
 
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
@@ -37,25 +53,22 @@ fn test_big_table() {
 
     debug!("Start insertion in multiple threads...");
 
+    // now insert some random tuples
     thread::scope(|s| {
-        let mut threads = vec![];
-        for _ in 0..2 {
-            let handle = s.spawn(|| {
-                let mut rng = rand::thread_rng();
-                let insert_value = rng.gen_range(i32::MIN, i32::MAX);
-                let tuple = Tuple::new_btree_tuple(insert_value, columns);
-
-                let tx = Transaction::new();
-                if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
-                    table_pod.rl().draw_tree(&tx, -1);
-                    panic!("Error inserting tuple: {}", e);
-                }
-                tx.commit().unwrap();
-            });
-            threads.push(handle);
+        let mut insert_threads = vec![];
+        for _ in 0..200 {
+            let handle = s.spawn(|| inserter(columns, &table_pod));
+            // The first few inserts will cause pages to split so give them a little more time to avoid too many deadlock situations.
+            sleep(Duration::from_millis(10));
+            insert_threads.push(handle);
         }
 
-        for handle in threads {
+        for _ in 0..800 {
+            let handle = s.spawn(|| inserter(columns, &table_pod));
+            insert_threads.push(handle);
+        }
+
+        for handle in insert_threads {
             handle.join().unwrap();
         }
     });
