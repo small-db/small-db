@@ -1,6 +1,9 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
-use crate::error::SimpleError;
+use crate::{error::SimpleError, utils::HandyRwLock};
 
 // Type alias, not a new type, cannot define methods on it
 pub type Pod<T> = Arc<RwLock<T>>;
@@ -11,3 +14,53 @@ pub type Pod<T> = Arc<RwLock<T>>;
 
 pub type ResultPod<T> = Result<Pod<T>, SimpleError>;
 pub type SimpleResult = Result<(), SimpleError>;
+
+pub struct ConcurrentHashMap<K, V> {
+    map: Arc<RwLock<HashMap<K, V>>>,
+}
+
+impl<K, V> ConcurrentHashMap<K, V> {
+    pub fn new() -> Self {
+        Self {
+            map: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    pub fn get_or_insert(
+        &self,
+        key: &K,
+        value_gen_fn: impl Fn(&K) -> Result<V, SimpleError>,
+    ) -> Result<V, SimpleError>
+    where
+        K: std::cmp::Eq + std::hash::Hash + Clone,
+        V: Clone,
+    {
+        let mut buffer = self.map.wl();
+        match buffer.get(&key) {
+            Some(v) => Ok(v.clone()),
+            None => {
+                let v = value_gen_fn(key)?;
+                buffer.insert(key.clone(), v.clone());
+                Ok(v)
+            }
+        }
+    }
+
+    pub fn clear(&self) {
+        self.map.wl().clear();
+    }
+
+    pub fn remove(&self, key: &K) -> Option<V>
+    where
+        K: std::cmp::Eq + std::hash::Hash,
+    {
+        self.map.wl().remove(key)
+    }
+
+    pub fn insert(&self, key: K, value: V) -> Option<V>
+    where
+        K: std::cmp::Eq + std::hash::Hash,
+    {
+        self.map.wl().insert(key, value)
+    }
+}

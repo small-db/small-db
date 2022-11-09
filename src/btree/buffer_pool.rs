@@ -21,7 +21,7 @@ use crate::{
     concurrent_status::Permission,
     error::SimpleError,
     transaction::Transaction,
-    types::ResultPod,
+    types::{ConcurrentHashMap, ResultPod},
     utils::{simple_int_tuple_scheme, HandyRwLock},
     Unique,
 };
@@ -31,13 +31,12 @@ static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
     root_pointer_buffer:
-        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>>>,
+        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
     pub internal_buffer:
-        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>>>,
-    pub leaf_buffer:
-        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>>>,
+        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
+    pub leaf_buffer: ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer:
-        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>>>,
+        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
 }
 
 type Key = BTreePageID;
@@ -45,18 +44,18 @@ type Key = BTreePageID;
 impl BufferPool {
     pub fn new() -> Self {
         Self {
-            root_pointer_buffer: Arc::new(RwLock::new(HashMap::new())),
-            header_buffer: Arc::new(RwLock::new(HashMap::new())),
-            internal_buffer: Arc::new(RwLock::new(HashMap::new())),
-            leaf_buffer: Arc::new(RwLock::new(HashMap::new())),
+            root_pointer_buffer: ConcurrentHashMap::new(),
+            header_buffer: ConcurrentHashMap::new(),
+            internal_buffer: ConcurrentHashMap::new(),
+            leaf_buffer: ConcurrentHashMap::new(),
         }
     }
 
     pub fn clear(&self) {
-        self.root_pointer_buffer.wl().clear();
-        self.header_buffer.wl().clear();
-        self.internal_buffer.wl().clear();
-        self.leaf_buffer.wl().clear();
+        self.root_pointer_buffer.clear();
+        self.header_buffer.clear();
+        self.internal_buffer.clear();
+        self.leaf_buffer.clear();
     }
 
     /// Retrieve the specified page with the associated permissions.
@@ -101,48 +100,21 @@ impl BufferPool {
         Ok(buf)
     }
 
-    pub fn get_internal_page(
+    pub fn get_root_ptr_page(
         &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
-    ) -> ResultPod<BTreeInternalPage> {
+    ) -> ResultPod<BTreeRootPointerPage> {
         Unique::mut_concurrent_status().acquire_lock(
             tx,
             perm.to_lock(),
             key,
         )?;
-        let mut buffer = self.internal_buffer.wl();
-        match buffer.get(key) {
-            Some(v) => Ok(v.clone()),
-            None => {
-                let page = self.load_page(key)?;
-                buffer.insert(*key, page.clone());
-                Ok(page.clone())
-            }
-        }
-    }
-
-    pub fn get_leaf_page(
-        &self,
-        tx: &Transaction,
-        perm: Permission,
-        key: &Key,
-    ) -> ResultPod<BTreeLeafPage> {
-        Unique::mut_concurrent_status().acquire_lock(
-            tx,
-            perm.to_lock(),
-            key,
-        )?;
-        let mut buffer = self.leaf_buffer.wl();
-        match buffer.get(key) {
-            Some(v) => Ok(v.clone()),
-            None => {
-                let page = self.load_page(key)?;
-                buffer.insert(*key, page.clone());
-                Ok(page.clone())
-            }
-        }
+        self.root_pointer_buffer.get_or_insert(key, |key| {
+            let page = self.load_page(key)?;
+            Ok(page.clone())
+        })
     }
 
     pub fn get_header_page(
@@ -156,37 +128,44 @@ impl BufferPool {
             perm.to_lock(),
             key,
         )?;
-        let mut buffer = self.header_buffer.wl();
-        match buffer.get(key) {
-            Some(v) => Ok(v.clone()),
-            None => {
-                let page = self.load_page(key)?;
-                buffer.insert(*key, page.clone());
-                Ok(page.clone())
-            }
-        }
+        self.header_buffer.get_or_insert(key, |key| {
+            let page = self.load_page(key)?;
+            Ok(page.clone())
+        })
     }
 
-    pub fn get_root_ptr_page(
+    pub fn get_internal_page(
         &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
-    ) -> ResultPod<BTreeRootPointerPage> {
+    ) -> ResultPod<BTreeInternalPage> {
         Unique::mut_concurrent_status().acquire_lock(
             tx,
             perm.to_lock(),
             key,
         )?;
-        let mut buffer = self.root_pointer_buffer.wl();
-        match buffer.get(key) {
-            Some(v) => Ok(v.clone()),
-            None => {
-                let page = self.load_page(key)?;
-                buffer.insert(*key, page.clone());
-                Ok(page.clone())
-            }
-        }
+        self.internal_buffer.get_or_insert(key, |key| {
+            let page = self.load_page(key)?;
+            Ok(page.clone())
+        })
+    }
+
+    pub fn get_leaf_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
+        key: &Key,
+    ) -> ResultPod<BTreeLeafPage> {
+        Unique::mut_concurrent_status().acquire_lock(
+            tx,
+            perm.to_lock(),
+            key,
+        )?;
+        self.leaf_buffer.get_or_insert(key, |key| {
+            let page = self.load_page(key)?;
+            Ok(page.clone())
+        })
     }
 
     /// Remove the specific page id from the buffer pool.
@@ -199,15 +178,17 @@ impl BufferPool {
     pub fn discard_page(&self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
-                self.internal_buffer.wl().remove(pid);
+                self.internal_buffer.remove(pid);
             }
             PageCategory::Leaf => {
-                self.leaf_buffer.wl().remove(pid);
+                self.leaf_buffer.remove(pid);
             }
             PageCategory::RootPointer => {
-                self.root_pointer_buffer.wl().remove(pid);
+                self.root_pointer_buffer.remove(pid);
             }
-            PageCategory::Header => todo!(),
+            PageCategory::Header => {
+                self.header_buffer.remove(pid);
+            }
         }
     }
 

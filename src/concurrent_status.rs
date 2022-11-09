@@ -56,7 +56,10 @@ impl ConcurrentStatus {
         lock: Lock,
         page_id: &BTreePageID,
     ) -> SimpleResult {
-        // return Ok(());
+        debug!(
+            "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
+            tx, lock, page_id
+        );
 
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3 {
@@ -145,6 +148,10 @@ impl ConcurrentStatus {
                 set
             });
 
+        debug!(
+            "lock_acquired, tx: {}, lock: {:?}, page_id: {:?}",
+            tx, lock, page_id
+        );
         return Ok(());
     }
 

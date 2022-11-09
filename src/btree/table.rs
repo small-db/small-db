@@ -1253,7 +1253,6 @@ impl BTreeTable {
         // insert to buffer pool because it's a dirty page at this time
         Unique::buffer_pool()
             .leaf_buffer
-            .wl()
             .insert(page_id, page_rc.clone());
         page_rc
     }
@@ -1279,7 +1278,6 @@ impl BTreeTable {
         // insert to buffer pool because it's a dirty page at this time
         Unique::buffer_pool()
             .internal_buffer
-            .wl()
             .insert(page_id, page_rc.clone());
         page_rc
     }
@@ -1300,7 +1298,6 @@ impl BTreeTable {
         // insert to buffer pool because it's a dirty page at this time
         Unique::buffer_pool()
             .header_buffer
-            .wl()
             .insert(page_id, page_rc.clone());
         page_rc
     }
