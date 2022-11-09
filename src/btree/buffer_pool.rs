@@ -21,7 +21,7 @@ use crate::{
     concurrent_status::Permission,
     error::SimpleError,
     transaction::Transaction,
-    types::{Pod, ResultPod},
+    types::ResultPod,
     utils::{simple_int_tuple_scheme, HandyRwLock},
     Unique,
 };

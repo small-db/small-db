@@ -1,6 +1,6 @@
 mod common;
 use std::{
-    thread::{self, sleep, Scope},
+    thread::{self, sleep},
     time::Duration,
 };
 
@@ -60,7 +60,8 @@ fn test_big_table() {
         let mut insert_threads = vec![];
         for _ in 0..200 {
             let handle = s.spawn(|| inserter(columns, &table_pod));
-            // The first few inserts will cause pages to split so give them a little more time to avoid too many deadlock situations.
+            // The first few inserts will cause pages to split so give them a
+            // little more time to avoid too many deadlock situations.
             sleep(Duration::from_millis(10));
             insert_threads.push(handle);
         }
