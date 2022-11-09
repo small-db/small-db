@@ -56,8 +56,8 @@ impl Unique {
         Self::global().buffer_pool.rl()
     }
 
-    // We should not request for a writeable buffer pool for ever, for the buffer pool
-    // is a concurrent data structure.
+    // We should not request for a writeable buffer pool for ever, for the
+    // buffer pool is a concurrent data structure.
     // pub fn buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
     //     Self::global().buffer_pool.wl()
     // }
