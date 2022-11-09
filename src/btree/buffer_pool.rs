@@ -52,7 +52,7 @@ impl BufferPool {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         self.root_pointer_buffer.wl().clear();
         self.header_buffer.wl().clear();
         self.internal_buffer.wl().clear();
@@ -196,7 +196,7 @@ impl BufferPool {
     ///
     /// Also used by B+ tree files to ensure that deleted pages
     /// are removed from the cache so they can be reused safely
-    pub fn discard_page(&mut self, pid: &BTreePageID) {
+    pub fn discard_page(&self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
                 self.internal_buffer.wl().remove(pid);

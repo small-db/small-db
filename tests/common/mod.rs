@@ -30,7 +30,7 @@ pub struct TestContext {
 /// - Reset page size.
 pub fn setup() -> TestContext {
     utils::init_log();
-    Unique::mut_buffer_pool().clear();
+    Unique::buffer_pool().clear();
     BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 
     let tx = Transaction::new();
@@ -150,7 +150,7 @@ fn sequential_insert_into_table(
         );
         table.write_page_to_disk(&pid);
 
-        let leaf_rc = Unique::mut_buffer_pool()
+        let leaf_rc = Unique::buffer_pool()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         leaves.push(leaf_rc.clone());
@@ -223,7 +223,7 @@ fn sequential_insert_into_table(
         );
         table.write_page_to_disk(&pid);
 
-        let internal_rc = Unique::mut_buffer_pool()
+        let internal_rc = Unique::buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         internals.push(internal_rc.clone());
@@ -285,7 +285,7 @@ fn write_internal_pages(
         );
         table.write_page_to_disk(&pid);
 
-        let root_rc = Unique::mut_buffer_pool()
+        let root_rc = Unique::buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
 

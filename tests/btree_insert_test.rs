@@ -121,7 +121,7 @@ fn test_split_leaf_page() {
     table
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
-    // Unique::mut_buffer_pool()
+    // Unique::buffer_pool()
     //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000,
     // 2))     .unwrap();
 
@@ -129,7 +129,7 @@ fn test_split_leaf_page() {
     assert_eq!(3, table.pages_count());
 
     let root_pid = table.get_root_pid(&ctx.tx);
-    let root_ref = Unique::mut_buffer_pool()
+    let root_ref = Unique::buffer_pool()
         .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     let root = root_ref.rl();
@@ -138,12 +138,12 @@ fn test_split_leaf_page() {
     // each child should have half of the records
     let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
-    let left_ref = Unique::mut_buffer_pool()
+    let left_ref = Unique::buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_left_child())
         .unwrap();
     assert!(left_ref.rl().empty_slots_count() <= 251);
 
-    let right_ref = Unique::mut_buffer_pool()
+    let right_ref = Unique::buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_right_child())
         .unwrap();
     assert!(right_ref.rl().empty_slots_count() <= 251);
@@ -175,7 +175,7 @@ fn test_split_root_page() {
         assert_eq!(it.count(), rows as usize);
 
         let root_pid = table.get_root_pid(&ctx.tx);
-        let root_ref = Unique::mut_buffer_pool()
+        let root_ref = Unique::buffer_pool()
             .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
             .unwrap();
         let root = root_ref.rl();
@@ -188,7 +188,7 @@ fn test_split_root_page() {
     table
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(10, 2))
         .unwrap();
-    // Unique::mut_buffer_pool()
+    // Unique::buffer_pool()
     //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10,
     // 2))     .unwrap();
 
@@ -203,7 +203,7 @@ fn test_split_root_page() {
         let root_pid = table.get_root_pid(&ctx.tx);
         assert_eq!(root_pid.category, PageCategory::Internal);
 
-        let root_page_rc = Unique::mut_buffer_pool()
+        let root_page_rc = Unique::buffer_pool()
             .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
             .unwrap();
         let root_page = root_page_rc.rl();
@@ -213,7 +213,7 @@ fn test_split_root_page() {
         let mut it = BTreeInternalPageIterator::new(&root_page);
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
-        let left_rc = Unique::mut_buffer_pool()
+        let left_rc = Unique::buffer_pool()
             .get_internal_page(&ctx.tx, Permission::ReadWrite, &left_pid)
             .unwrap();
         let left = left_rc.rl();
@@ -221,7 +221,7 @@ fn test_split_root_page() {
         assert!(left.empty_slots_count() <= 252);
 
         let right_pid = entry.get_right_child();
-        let right_rc = Unique::mut_buffer_pool()
+        let right_rc = Unique::buffer_pool()
             .get_internal_page(&ctx.tx, Permission::ReadWrite, &right_pid)
             .unwrap();
         let right = right_rc.rl();

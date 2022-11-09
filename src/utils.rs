@@ -56,9 +56,11 @@ impl Unique {
         Self::global().buffer_pool.rl()
     }
 
-    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
-        Self::global().buffer_pool.wl()
-    }
+    // We should not request for a writeable buffer pool for ever, for the buffer pool
+    // is a concurrent data structure.
+    // pub fn buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
+    //     Self::global().buffer_pool.wl()
+    // }
 
     pub fn catalog() -> RwLockReadGuard<'static, Catalog> {
         Self::global().catalog.rl()
