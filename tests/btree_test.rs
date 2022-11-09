@@ -63,10 +63,10 @@ fn test_big_table() {
             insert_threads.push(handle);
         }
 
-        for _ in 0..800 {
-            let handle = s.spawn(|| inserter(columns, &table_pod));
-            insert_threads.push(handle);
-        }
+        // for _ in 0..800 {
+        //     let handle = s.spawn(|| inserter(columns, &table_pod));
+        //     insert_threads.push(handle);
+        // }
 
         for handle in insert_threads {
             handle.join().unwrap();
