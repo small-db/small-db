@@ -128,9 +128,9 @@ fn test_split_leaf_page() {
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
 
-    let root_pid = table.get_root_pid();
+    let root_pid = table.get_root_pid(&ctx.tx);
     let root_ref = Unique::mut_buffer_pool()
-        .get_internal_page(&root_pid)
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     let root = root_ref.rl();
     assert_eq!(502, root.empty_slots_count());
@@ -174,9 +174,9 @@ fn test_split_root_page() {
         let it = BTreeTableIterator::new(&ctx.tx, &table);
         assert_eq!(it.count(), rows as usize);
 
-        let root_pid = table.get_root_pid();
+        let root_pid = table.get_root_pid(&ctx.tx);
         let root_ref = Unique::mut_buffer_pool()
-            .get_internal_page(&root_pid)
+            .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
             .unwrap();
         let root = root_ref.rl();
         debug!("root empty slot count: {}", root.empty_slots_count());
@@ -200,11 +200,11 @@ fn test_split_root_page() {
     {
         // the root node should be an internal node and have 2 children (1
         // entry)
-        let root_pid = table.get_root_pid();
+        let root_pid = table.get_root_pid(&ctx.tx);
         assert_eq!(root_pid.category, PageCategory::Internal);
 
         let root_page_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&root_pid)
+            .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
             .unwrap();
         let root_page = root_page_rc.rl();
         assert_eq!(root_page.empty_slots_count(), 502);
@@ -214,7 +214,7 @@ fn test_split_root_page() {
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
         let left_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&left_pid)
+            .get_internal_page(&ctx.tx, Permission::ReadWrite, &left_pid)
             .unwrap();
         let left = left_rc.rl();
         debug!("left entries count: {}", left.entries_count());
@@ -222,7 +222,7 @@ fn test_split_root_page() {
 
         let right_pid = entry.get_right_child();
         let right_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&right_pid)
+            .get_internal_page(&ctx.tx, Permission::ReadWrite, &right_pid)
             .unwrap();
         let right = right_rc.rl();
         debug!("right entries count: {}", right.entries_count());

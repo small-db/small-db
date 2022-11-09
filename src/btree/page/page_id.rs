@@ -12,34 +12,9 @@ pub enum PageCategory {
     Header,
 }
 
-// impl fmt::Display for PageCategory {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             PageCategory::RootPointer => {
-//                 write!(f, "ROOT_POINTER")
-//             }
-//             PageCategory::Internal => {
-//                 write!(f, "INTERNAL")
-//             }
-//             PageCategory::Leaf => {
-//                 write!(f, "LEAF")
-//             }
-//             PageCategory::Header => {
-//                 write!(f, "HEADER")
-//             }
-//         }
-//     }
-// }
-
-// impl fmt::Debug for PageCategory {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "{}", self)
-//     }
-// }
-
 // PageID identifies a unique page, and contains the
 // necessary metadata
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BTreePageID {
     // category indicates the category of the page
     pub category: PageCategory,
@@ -53,11 +28,13 @@ pub struct BTreePageID {
 
 impl fmt::Display for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "<BTreePageID, catagory: {:?}, page_index: {}, table_id: {}>",
-            self.category, self.page_index, self.table_id,
-        )
+        write!(f, "{:?}_{}", self.category, self.page_index,)
+    }
+}
+
+impl fmt::Debug for BTreePageID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
     }
 }
 

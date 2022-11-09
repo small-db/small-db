@@ -118,7 +118,7 @@ fn test_delete_root_page() {
 
     table.draw_tree(&ctx.tx, -1);
 
-    let root_pid = table.get_root_pid();
+    let root_pid = table.get_root_pid(&ctx.tx);
     assert!(root_pid.category == PageCategory::Leaf);
     let root_rc = Unique::mut_buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &root_pid)
@@ -238,9 +238,9 @@ fn test_delete_internal_pages() {
     table.draw_tree(&ctx.tx, 2);
     table.check_integrity(&ctx.tx, true);
 
-    let root_pid = table.get_root_pid();
+    let root_pid = table.get_root_pid(&ctx.tx);
     let root_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&root_pid)
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     assert_eq!(122, root_rc.rl().empty_slots_count());
 
@@ -250,10 +250,10 @@ fn test_delete_internal_pages() {
         .next()
         .unwrap();
     let left_child_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&e.get_left_child())
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_left_child())
         .unwrap();
     let right_child_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&e.get_right_child())
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_right_child())
         .unwrap();
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
@@ -294,10 +294,10 @@ fn test_delete_internal_pages() {
         .next()
         .unwrap();
     let left_child_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&e.get_left_child())
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_left_child())
         .unwrap();
     let right_child_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&e.get_right_child())
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_right_child())
         .unwrap();
     assert_eq!(0, left_child_rc.rl().empty_slots_count());
     assert!(e.get_key().compare(
@@ -330,9 +330,9 @@ fn test_delete_internal_pages() {
 
     // confirm that the last two internal pages have merged successfully and
     // replaced the root
-    let root_pid = table.get_root_pid();
+    let root_pid = table.get_root_pid(&ctx.tx);
     let root_rc = Unique::mut_buffer_pool()
-        .get_internal_page(&root_pid)
+        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     assert_eq!(0, root_rc.rl().empty_slots_count());
     table.draw_tree(&ctx.tx, 2);

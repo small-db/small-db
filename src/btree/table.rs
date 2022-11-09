@@ -145,7 +145,7 @@ impl BTreeTable {
     ) -> SimpleResult {
         // a read lock on the root pointer page and
         // use it to locate the root page
-        let root_pid = self.get_root_pid();
+        let root_pid = self.get_root_pid(tx);
 
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
@@ -190,7 +190,7 @@ impl BTreeTable {
         page_rc: Arc<RwLock<BTreeLeafPage>>,
         field: IntField,
     ) -> ResultPod<BTreeLeafPage> {
-        let new_sibling_rc = self.get_empty_leaf_page();
+        let new_sibling_rc = self.get_empty_leaf_page(tx);
         let parent_pid: BTreePageID;
         let key: IntField;
 
@@ -283,15 +283,15 @@ impl BTreeTable {
         }
     }
 
-    pub fn get_empty_page_index(&self) -> usize {
-        let root_ptr_rc = self.get_root_ptr_page();
+    pub fn get_empty_page_index(&self, tx: &Transaction) -> usize {
+        let root_ptr_rc = self.get_root_ptr_page(tx);
         // borrow of root_ptr_rc start here
         {
             let root_ptr = root_ptr_rc.rl();
             let header_pid = root_ptr.get_header_pid();
             if let Some(header_pid) = header_pid {
                 let header_rc = Unique::mut_buffer_pool()
-                    .get_header_page(&header_pid)
+                    .get_header_page(tx, Permission::ReadOnly, &header_pid)
                     .unwrap();
                 // borrow of header_rc start here
                 {
@@ -331,31 +331,16 @@ impl BTreeTable {
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {
-                let new_parent_rc = self.get_empty_interanl_page();
+                let new_parent_rc = self.get_empty_interanl_page(tx);
 
-                // borrow of new_parent_rc start here
-                {
-                    let new_parent = new_parent_rc.wl();
-
-                    // update the root pointer
-                    let page_id = BTreePageID::new(
-                        PageCategory::RootPointer,
-                        self.table_id,
-                        0,
-                    );
-                    let root_pointer_page = Unique::mut_buffer_pool()
-                        .get_root_pointer_page(&page_id)
-                        .unwrap();
-
-                    root_pointer_page.wl().set_root_pid(&new_parent.get_pid());
-                }
-                // borrow of new_parent_rc end here
+                // update the root pointer
+                self.set_root_pid(tx, &new_parent_rc.wl().get_pid());
 
                 new_parent_rc
             }
             PageCategory::Internal => {
                 let parent_rc = Unique::mut_buffer_pool()
-                    .get_internal_page(&parent_id)
+                    .get_internal_page(tx, Permission::ReadWrite, &parent_id)
                     .unwrap();
                 let empty_slots_count: usize;
 
@@ -402,7 +387,7 @@ impl BTreeTable {
         page_rc: Arc<RwLock<BTreeInternalPage>>,
         field: IntField,
     ) -> Arc<RwLock<BTreeInternalPage>> {
-        let sibling_rc = self.get_empty_interanl_page();
+        let sibling_rc = self.get_empty_interanl_page(tx);
         let key: IntField;
         let mut parent_pid: BTreePageID;
         let mut new_entry: Entry;
@@ -418,19 +403,11 @@ impl BTreeTable {
             if parent_pid.category == PageCategory::RootPointer {
                 // create new parent page if the parent page is root pointer
                 // page.
-                let parent_rc = self.get_empty_interanl_page();
+                let parent_rc = self.get_empty_interanl_page(tx);
                 parent_pid = parent_rc.rl().get_pid();
 
                 // update the root pointer
-                let root_pointer_pid = BTreePageID::new(
-                    PageCategory::RootPointer,
-                    self.table_id,
-                    0,
-                );
-                let root_pointer_page = Unique::mut_buffer_pool()
-                    .get_root_pointer_page(&root_pointer_pid)
-                    .unwrap();
-                root_pointer_page.wl().set_root_pid(&parent_pid);
+                self.set_root_pid(tx, &parent_pid);
             }
 
             let enties_count = page.entries_count();
@@ -572,16 +549,16 @@ impl BTreeTable {
             return Ok(());
         }
 
-        let left_pid = page_rc.rl().get_left_pid();
-        let right_pid = page_rc.rl().get_right_pid();
+        let left_pid = page_rc.rl().get_left_sibling_pid(tx);
+        let right_pid = page_rc.rl().get_right_sibling_pid(tx);
         if let Some(left_pid) = left_pid {
             let left_rc = Unique::mut_buffer_pool()
-                .get_internal_page(&left_pid)
+                .get_internal_page(tx, Permission::ReadWrite, &left_pid)
                 .unwrap();
             self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
             let right_rc = Unique::mut_buffer_pool()
-                .get_internal_page(&right_pid)
+                .get_internal_page(tx, Permission::ReadWrite, &right_pid)
                 .unwrap();
             self.balancing_two_internal_pages(tx, page_rc, right_rc)?;
         } else {
@@ -606,7 +583,7 @@ impl BTreeTable {
             }
             PageCategory::Internal => {
                 let child_rc = Unique::mut_buffer_pool()
-                    .get_internal_page(child_pid)
+                    .get_internal_page(tx, Permission::ReadOnly, child_pid)
                     .unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
@@ -658,7 +635,7 @@ impl BTreeTable {
             }
 
             // stage 3: set the right as empty
-            self.set_empty_page(&right.get_pid());
+            self.set_empty_page(tx, &right.get_pid());
         }
         // release left_rc and right_rc
 
@@ -712,7 +689,7 @@ impl BTreeTable {
             }
 
             // stage 4: set the right page as empty
-            self.set_empty_page(&right.get_pid());
+            self.set_empty_page(tx, &right.get_pid());
         }
 
         // stage 5: release the left and right page
@@ -756,7 +733,7 @@ impl BTreeTable {
             // stage 2: handle the parent page according to the following cases
             // case 1: parent is empty, then the left child is now the new root
             if parent.entries_count() == 0 {
-                let root_ptr_page_rc = self.get_root_ptr_page();
+                let root_ptr_page_rc = self.get_root_ptr_page(tx);
 
                 // hold the root pointer page
                 {
@@ -767,7 +744,7 @@ impl BTreeTable {
                 // release the root pointer page
 
                 // release the page for reuse
-                self.set_empty_page(&parent.get_pid());
+                self.set_empty_page(tx, &parent.get_pid());
                 return Ok(());
             }
 
@@ -786,24 +763,24 @@ impl BTreeTable {
     /// Mark a page in this BTreeTable as empty. Find the corresponding header
     /// page (create it if needed), and mark the corresponding slot in the
     /// header page as empty.
-    fn set_empty_page(&self, pid: &BTreePageID) {
+    fn set_empty_page(&self, tx: &Transaction, pid: &BTreePageID) {
         Unique::mut_buffer_pool().discard_page(pid);
 
-        let root_ptr_rc = self.get_root_ptr_page();
+        let root_ptr_rc = self.get_root_ptr_page(tx);
         let header_rc: Arc<RwLock<BTreeHeaderPage>>;
 
         // let mut root_ptr = root_ptr_rc.wl();
         match root_ptr_rc.rl().get_header_pid() {
             Some(header_pid) => {
                 header_rc = Unique::mut_buffer_pool()
-                    .get_header_page(&header_pid)
+                    .get_header_page(tx, Permission::ReadWrite, &header_pid)
                     .unwrap();
             }
             None => {
                 // if there are no header pages, create the first header
                 // page and update the header pointer
                 // in the BTreeRootPtrPage
-                header_rc = self.get_empty_header_page();
+                header_rc = self.get_empty_header_page(tx);
             }
         }
 
@@ -837,7 +814,11 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> SimpleResult {
         let parent_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&left_rc.rl().get_parent_pid())
+            .get_internal_page(
+                tx,
+                Permission::ReadWrite,
+                &left_rc.rl().get_parent_pid(),
+            )
             .unwrap();
         let mut parent_entry = parent_rc
             .rl()
@@ -1004,7 +985,11 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SimpleResult {
         let parent_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&left_rc.rl().get_parent_pid())
+            .get_internal_page(
+                tx,
+                Permission::ReadWrite,
+                &left_rc.rl().get_parent_pid(),
+            )
             .unwrap();
         let mut entry = parent_rc
             .rl()
@@ -1086,12 +1071,8 @@ impl BTreeTable {
 }
 
 impl BTreeTable {
-    pub fn set_root_pid(&self, root_pid: &BTreePageID) {
-        let root_pointer_pid =
-            BTreePageID::new(PageCategory::RootPointer, self.table_id, 0);
-        let root_pointer_rc = Unique::mut_buffer_pool()
-            .get_root_pointer_page(&root_pointer_pid)
-            .unwrap();
+    pub fn set_root_pid(&self, tx: &Transaction, root_pid: &BTreePageID) {
+        let root_pointer_rc = self.get_root_ptr_page(tx);
         root_pointer_rc.wl().set_root_pid(root_pid);
     }
 
@@ -1104,7 +1085,7 @@ impl BTreeTable {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
                 let left_rc = Unique::mut_buffer_pool()
-                    .get_internal_page(&child_pid)
+                    .get_internal_page(tx, Permission::ReadWrite, &child_pid)
                     .unwrap();
 
                 // borrow of left_rc start here
@@ -1162,7 +1143,7 @@ impl BTreeTable {
             }
             PageCategory::Internal => {
                 let page_rc = Unique::mut_buffer_pool()
-                    .get_internal_page(&page_id)
+                    .get_internal_page(tx, Permission::ReadWrite, &page_id)
                     .unwrap();
                 let mut child_pid: Option<BTreePageID> = None;
 
@@ -1255,9 +1236,12 @@ impl BTreeTable {
         todo!()
     }
 
-    fn get_empty_leaf_page(&self) -> Arc<RwLock<BTreeLeafPage>> {
+    fn get_empty_leaf_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeLeafPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index();
+        let page_index = self.get_empty_page_index(tx);
         let page_id =
             BTreePageID::new(PageCategory::Leaf, self.table_id, page_index);
         let page = BTreeLeafPage::new(
@@ -1268,19 +1252,15 @@ impl BTreeTable {
         );
 
         self.write_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-
-        Unique::mut_buffer_pool()
-            .leaf_buffer
-            .insert(page_id, page_rc.clone());
-
-        page_rc
+        Arc::new(RwLock::new(page))
     }
 
-    fn get_empty_interanl_page(&self) -> Arc<RwLock<BTreeInternalPage>> {
+    fn get_empty_interanl_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeInternalPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index();
+        let page_index = self.get_empty_page_index(tx);
         let page_id =
             BTreePageID::new(PageCategory::Internal, self.table_id, page_index);
         let page = BTreeInternalPage::new(
@@ -1291,32 +1271,21 @@ impl BTreeTable {
         );
 
         self.write_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-
-        Unique::mut_buffer_pool()
-            .internal_buffer
-            .insert(page_id, page_rc.clone());
-
-        page_rc
+        Arc::new(RwLock::new(page))
     }
 
-    fn get_empty_header_page(&self) -> Arc<RwLock<BTreeHeaderPage>> {
+    fn get_empty_header_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeHeaderPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index();
+        let page_index = self.get_empty_page_index(tx);
         let page_id =
             BTreePageID::new(PageCategory::Header, self.table_id, page_index);
         let page = BTreeHeaderPage::new(&page_id);
 
         self.write_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-
-        Unique::mut_buffer_pool()
-            .header_buffer
-            .insert(page_id, page_rc.clone());
-
-        page_rc
+        Arc::new(RwLock::new(page))
     }
 
     pub fn write_page_to_disk(&self, page_id: &BTreePageID) {
@@ -1335,7 +1304,7 @@ impl BTreeTable {
         tx: &Transaction,
         perm: Permission,
     ) -> Arc<RwLock<BTreeLeafPage>> {
-        let page_id = self.get_root_pid();
+        let page_id = self.get_root_pid(tx);
         return self.find_leaf_page(tx, perm, page_id, SearchFor::LeftMost);
     }
 
@@ -1344,13 +1313,13 @@ impl BTreeTable {
         tx: &Transaction,
         perm: Permission,
     ) -> Arc<RwLock<BTreeLeafPage>> {
-        let page_id = self.get_root_pid();
+        let page_id = self.get_root_pid(tx);
         return self.find_leaf_page(tx, perm, page_id, SearchFor::RightMost);
     }
 
     /// Get the root page pid.
-    pub fn get_root_pid(&self) -> BTreePageID {
-        let root_ptr_rc = self.get_root_ptr_page();
+    pub fn get_root_pid(&self, tx: &Transaction) -> BTreePageID {
+        let root_ptr_rc = self.get_root_ptr_page(tx);
         let mut root_pid = root_ptr_rc.rl().get_root_pid();
         root_pid.table_id = self.get_id();
         root_pid
@@ -1358,7 +1327,7 @@ impl BTreeTable {
 
     pub fn get_root_ptr_page(
         &self,
-        // buffer_pool: &mut BufferPool,
+        tx: &Transaction,
     ) -> Arc<RwLock<BTreeRootPointerPage>> {
         let root_ptr_pid = BTreePageID {
             category: PageCategory::RootPointer,
@@ -1366,9 +1335,8 @@ impl BTreeTable {
             table_id: self.table_id,
         };
         Unique::mut_buffer_pool()
-            .get_root_pointer_page(&root_ptr_pid)
+            .get_root_ptr_page(tx, Permission::ReadWrite, &root_ptr_pid)
             .unwrap()
-        // buffer_pool.get_root_pointer_page(&root_ptr_pid).unwrap()
     }
 
     /// The count of pages in this BTreeFile
@@ -1402,8 +1370,9 @@ impl BTreeTable {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
-                let page_rc =
-                    Unique::mut_buffer_pool().get_internal_page(pid).unwrap();
+                let page_rc = Unique::mut_buffer_pool()
+                    .get_internal_page(tx, Permission::ReadOnly, pid)
+                    .unwrap();
 
                 // borrow of page_rc start here
                 let child_pid: BTreePageID;
@@ -1459,7 +1428,7 @@ impl BTreeTable {
         };
         depiction.push_str(&format!("root pointer: {}\n", root_pointer_pid));
 
-        let root_pid = self.get_root_pid();
+        let root_pid = self.get_root_pid(tx);
         depiction.push_str(&self.draw_subtree(&tx, &root_pid, 0, max_level));
 
         depiction.push_str(&format!(
@@ -1549,8 +1518,9 @@ impl BTreeTable {
         let mut depiction = "".to_string();
 
         let prefix = "│   ".repeat(level);
-        let page_rc =
-            Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+        let page_rc = Unique::mut_buffer_pool()
+            .get_internal_page(tx, Permission::ReadWrite, &pid)
+            .unwrap();
         let lock_state = lock_state(page_rc.clone());
 
         // borrow of page_rc start here
@@ -1626,7 +1596,7 @@ impl BTreeTable {
     ///
     /// panic on any error found.
     pub fn check_integrity(&self, tx: &Transaction, check_occupancy: bool) {
-        let root_ptr_page = self.get_root_ptr_page();
+        let root_ptr_page = self.get_root_ptr_page(tx);
         let root_pid = root_ptr_page.rl().get_root_pid();
         let root_summary = self.check_sub_tree(
             tx,
@@ -1686,8 +1656,9 @@ impl BTreeTable {
             }
 
             PageCategory::Internal => {
-                let page_rc =
-                    Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+                let page_rc = Unique::mut_buffer_pool()
+                    .get_internal_page(tx, Permission::ReadWrite, &pid)
+                    .unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,
@@ -1878,7 +1849,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
         index_predicate: Predicate,
     ) -> Self {
         let start_rc: Arc<RwLock<BTreeLeafPage>>;
-        let root_pid = table.get_root_pid();
+        let root_pid = table.get_root_pid(tx);
 
         match index_predicate.op {
             Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {

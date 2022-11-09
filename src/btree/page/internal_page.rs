@@ -6,8 +6,10 @@ use log::error;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
+    concurrent_status::Permission,
     error::SimpleError,
     field::{get_type_length, IntField},
+    transaction::Transaction,
     types::SimpleResult,
     utils::HandyRwLock,
     Unique,
@@ -282,12 +284,14 @@ impl BTreeInternalPage {
         return it.next_back().unwrap().get_right_child();
     }
 
-    pub fn get_left_pid(&self) -> Option<BTreePageID> {
+    pub fn get_left_sibling_pid(
+        &self,
+        tx: &Transaction,
+    ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
         let parent_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&parent_pid)
+            .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
-        // Unique::get_buffer_pool().get_internal_page(&parent_pid).unwrap();
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
@@ -298,10 +302,13 @@ impl BTreeInternalPage {
         return None;
     }
 
-    pub fn get_right_pid(&self) -> Option<BTreePageID> {
+    pub fn get_right_sibling_pid(
+        &self,
+        tx: &Transaction,
+    ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
         let parent_rc = Unique::mut_buffer_pool()
-            .get_internal_page(&parent_pid)
+            .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);

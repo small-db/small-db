@@ -18,8 +18,11 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
-    concurrent_status::Permission, error::SimpleError,
-    transaction::Transaction, types::ResultPod, utils::simple_int_tuple_scheme,
+    concurrent_status::Permission,
+    error::SimpleError,
+    transaction::Transaction,
+    types::{Pod, ResultPod},
+    utils::{simple_int_tuple_scheme, HandyRwLock},
     Unique,
 };
 
@@ -28,10 +31,13 @@ static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
     root_pointer_buffer:
-        HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
-    pub internal_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
-    pub leaf_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
-    pub header_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
+        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>>>,
+    pub internal_buffer:
+        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>>>,
+    pub leaf_buffer:
+        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>>>,
+    pub header_buffer:
+        Arc<RwLock<HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>>>,
 }
 
 type Key = BTreePageID;
@@ -39,39 +45,18 @@ type Key = BTreePageID;
 impl BufferPool {
     pub fn new() -> Self {
         Self {
-            root_pointer_buffer: HashMap::new(),
-            internal_buffer: HashMap::new(),
-            leaf_buffer: HashMap::new(),
-            header_buffer: HashMap::new(),
+            root_pointer_buffer: Arc::new(RwLock::new(HashMap::new())),
+            header_buffer: Arc::new(RwLock::new(HashMap::new())),
+            internal_buffer: Arc::new(RwLock::new(HashMap::new())),
+            leaf_buffer: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    // pub fn global() -> &'static mut Self {
-    //     // Initialize it to a null value
-    //     static mut SINGLETON: *mut BufferPool = 0 as *mut BufferPool;
-    //     static ONCE: Once = Once::new();
-
-    //     ONCE.call_once(|| {
-    //         // Make it
-    //         let singleton = Self::new();
-
-    //         unsafe {
-    //             // Put it in the heap so it can outlive this call
-    //             SINGLETON = mem::transmute(Box::new(singleton));
-    //         }
-    //     });
-
-    //     unsafe {
-    //         // Now we give out a copy of the data that is safe to use
-    //         // concurrently. (*SINGLETON).clone()
-    //         SINGLETON.as_mut().unwrap()
-    //     }
-    // }
-
     pub fn clear(&mut self) {
-        self.root_pointer_buffer.clear();
-        self.internal_buffer.clear();
-        self.leaf_buffer.clear();
+        self.root_pointer_buffer.wl().clear();
+        self.header_buffer.wl().clear();
+        self.internal_buffer.wl().clear();
+        self.leaf_buffer.wl().clear();
     }
 
     /// Retrieve the specified page with the associated permissions.
@@ -86,7 +71,7 @@ impl BufferPool {
     ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
-    fn load_page<PAGE: BTreePage>(&mut self, key: &Key) -> ResultPod<PAGE> {
+    fn load_page<PAGE: BTreePage>(&self, key: &Key) -> ResultPod<PAGE> {
         // stage 1: get table
         let catalog = Unique::catalog();
         let v = catalog.get_table(&key.get_table_id()).unwrap();
@@ -117,69 +102,88 @@ impl BufferPool {
     }
 
     pub fn get_internal_page(
-        &mut self,
+        &self,
+        tx: &Transaction,
+        perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        match self.internal_buffer.get(key) {
+        Unique::mut_concurrent_status().acquire_lock(
+            tx,
+            perm.to_lock(),
+            key,
+        )?;
+        let mut buffer = self.internal_buffer.wl();
+        match buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
                 let page = self.load_page(key)?;
-                self.internal_buffer.insert(*key, page.clone());
+                buffer.insert(*key, page.clone());
                 Ok(page.clone())
             }
         }
     }
 
     pub fn get_leaf_page(
-        &mut self,
+        &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        debug!(
-            "try to get leaf page, tx: {}, perm: {:?}, key: {}",
-            tx, perm, key
-        );
         Unique::mut_concurrent_status().acquire_lock(
             tx,
             perm.to_lock(),
             key,
         )?;
-        debug!(
-            "acquire lock success, tx: {}, perm: {:?}, key: {}",
-            tx, perm, key
-        );
-
-        match self.leaf_buffer.get(key) {
+        let mut buffer = self.leaf_buffer.wl();
+        match buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
                 let page = self.load_page(key)?;
-                self.leaf_buffer.insert(*key, page.clone());
+                buffer.insert(*key, page.clone());
                 Ok(page.clone())
             }
         }
     }
 
-    pub fn get_header_page(&mut self, key: &Key) -> ResultPod<BTreeHeaderPage> {
-        match self.header_buffer.get(key) {
+    pub fn get_header_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
+        key: &Key,
+    ) -> ResultPod<BTreeHeaderPage> {
+        Unique::mut_concurrent_status().acquire_lock(
+            tx,
+            perm.to_lock(),
+            key,
+        )?;
+        let mut buffer = self.header_buffer.wl();
+        match buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
                 let page = self.load_page(key)?;
-                self.header_buffer.insert(*key, page.clone());
+                buffer.insert(*key, page.clone());
                 Ok(page.clone())
             }
         }
     }
 
-    pub fn get_root_pointer_page(
-        &mut self,
+    pub fn get_root_ptr_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        match self.root_pointer_buffer.get(key) {
+        Unique::mut_concurrent_status().acquire_lock(
+            tx,
+            perm.to_lock(),
+            key,
+        )?;
+        let mut buffer = self.root_pointer_buffer.wl();
+        match buffer.get(key) {
             Some(v) => Ok(v.clone()),
             None => {
                 let page = self.load_page(key)?;
-                self.root_pointer_buffer.insert(*key, page.clone());
+                buffer.insert(*key, page.clone());
                 Ok(page.clone())
             }
         }
@@ -195,13 +199,13 @@ impl BufferPool {
     pub fn discard_page(&mut self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
-                self.internal_buffer.remove(pid);
+                self.internal_buffer.wl().remove(pid);
             }
             PageCategory::Leaf => {
-                self.leaf_buffer.remove(pid);
+                self.leaf_buffer.wl().remove(pid);
             }
             PageCategory::RootPointer => {
-                self.root_pointer_buffer.remove(pid);
+                self.root_pointer_buffer.wl().remove(pid);
             }
             PageCategory::Header => todo!(),
         }
@@ -254,56 +258,4 @@ impl BufferPool {
     //     v.insert_tuple(tx, t)?;
     //     return Ok(());
     // }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::{Arc, RwLock};
-
-    use super::*;
-    use crate::{
-        btree::page::PageCategory, utils::simple_int_tuple_scheme, BTreeTable,
-        Unique,
-    };
-
-    #[test]
-    fn test_buffer_pool() {
-        let mut bp = Unique::mut_buffer_pool();
-
-        // add table to catalog
-        let table = BTreeTable::new(
-            "test_buffer_pool.db",
-            0,
-            &simple_int_tuple_scheme(3, ""),
-        );
-        let table_id = table.get_id();
-        Unique::mut_catalog().add_table(Arc::new(RwLock::new(table)));
-
-        // write page to disk
-
-        // get page
-        let page_id = BTreePageID::new(PageCategory::RootPointer, table_id, 0);
-        match bp.get_root_pointer_page(&page_id) {
-            Ok(_) => {}
-            Err(e) => {
-                panic!("err: {}", e)
-            }
-        }
-
-        let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
-        match bp.get_root_pointer_page(&page_id) {
-            Ok(_) => {}
-            Err(e) => {
-                panic!("err: {}", e)
-            }
-        }
-
-        let page_id = BTreePageID::new(PageCategory::Leaf, table_id, 1);
-        match bp.get_root_pointer_page(&page_id) {
-            Ok(_) => {}
-            Err(e) => {
-                panic!("err: {}", e)
-            }
-        }
-    }
 }

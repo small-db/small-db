@@ -18,10 +18,12 @@ fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
     let tuple = Tuple::new_btree_tuple(insert_value, column_count);
 
     let tx = Transaction::new();
+    debug!("{} prepare to insert", tx);
     if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
         table_pod.rl().draw_tree(&tx, -1);
         panic!("Error inserting tuple: {}", e);
     }
+    debug!("{} insert done", tx);
     tx.commit().unwrap();
 }
 
@@ -63,10 +65,10 @@ fn test_big_table() {
             insert_threads.push(handle);
         }
 
-        // for _ in 0..800 {
-        //     let handle = s.spawn(|| inserter(columns, &table_pod));
-        //     insert_threads.push(handle);
-        // }
+        for _ in 0..800 {
+            let handle = s.spawn(|| inserter(columns, &table_pod));
+            insert_threads.push(handle);
+        }
 
         for handle in insert_threads {
             handle.join().unwrap();

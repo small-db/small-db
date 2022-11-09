@@ -197,7 +197,7 @@ fn sequential_insert_into_table(
         }
         1 => {
             let leaf = leaves[0].rl();
-            table.set_root_pid(&leaf.get_pid());
+            table.set_root_pid(tx, &leaf.get_pid());
             return page_index;
         }
         _ => {}
@@ -223,8 +223,9 @@ fn sequential_insert_into_table(
         );
         table.write_page_to_disk(&pid);
 
-        let internal_rc =
-            Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+        let internal_rc = Unique::mut_buffer_pool()
+            .get_internal_page(tx, Permission::ReadWrite, &pid)
+            .unwrap();
         internals.push(internal_rc.clone());
 
         let entries_count = children_count - 1;
@@ -272,7 +273,7 @@ fn write_internal_pages(
     let childrent_per_internal_page = BufferPool::children_per_page();
     if internals.len() <= 1 {
         let internal = internals[0].rl();
-        table.set_root_pid(&internal.get_pid());
+        table.set_root_pid(tx, &internal.get_pid());
         return *page_index;
     } else if internals.len() <= childrent_per_internal_page {
         // write a new internal page (the root page)
@@ -284,8 +285,9 @@ fn write_internal_pages(
         );
         table.write_page_to_disk(&pid);
 
-        let root_rc =
-            Unique::mut_buffer_pool().get_internal_page(&pid).unwrap();
+        let root_rc = Unique::mut_buffer_pool()
+            .get_internal_page(tx, Permission::ReadWrite, &pid)
+            .unwrap();
 
         // insert entries
         let entries_count = internals.len() - 1;
@@ -321,7 +323,7 @@ fn write_internal_pages(
         }
 
         // update root pointer
-        table.set_root_pid(&pid);
+        table.set_root_pid(tx, &pid);
         return *page_index;
     } else {
         todo!()

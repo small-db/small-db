@@ -108,7 +108,7 @@ impl ConcurrentStatus {
         }
 
         debug!(
-            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status: {:?}",
+            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status_map: {:?}",
             tx, lock, page_id, self,
         );
 
@@ -169,6 +169,7 @@ impl ConcurrentStatus {
         page_id: &BTreePageID,
     ) -> SimpleResult {
         if let Some(v) = self.s_lock_map.get_mut(page_id) {
+            debug!("release_lock_shared, tx: {}, page_id: {:?}", tx, page_id);
             v.remove(tx);
             if v.len() == 0 {
                 self.s_lock_map.remove(page_id);
@@ -176,6 +177,10 @@ impl ConcurrentStatus {
         }
 
         if let Some(_) = self.x_lock_map.get_mut(page_id) {
+            debug!(
+                "release_lock_exclusive, tx: {}, page_id: {:?}",
+                tx, page_id
+            );
             self.x_lock_map.remove(page_id);
         }
 
