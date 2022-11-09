@@ -1248,7 +1248,14 @@ impl BTreeTable {
         );
 
         self.write_page_to_disk(&page_id);
-        Arc::new(RwLock::new(page))
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this time
+        Unique::mut_buffer_pool()
+            .leaf_buffer
+            .wl()
+            .insert(page_id, page_rc.clone());
+        page_rc
     }
 
     fn get_empty_interanl_page(
@@ -1267,7 +1274,14 @@ impl BTreeTable {
         );
 
         self.write_page_to_disk(&page_id);
-        Arc::new(RwLock::new(page))
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this time
+        Unique::mut_buffer_pool()
+            .internal_buffer
+            .wl()
+            .insert(page_id, page_rc.clone());
+        page_rc
     }
 
     fn get_empty_header_page(
@@ -1281,7 +1295,14 @@ impl BTreeTable {
         let page = BTreeHeaderPage::new(&page_id);
 
         self.write_page_to_disk(&page_id);
-        Arc::new(RwLock::new(page))
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this time
+        Unique::mut_buffer_pool()
+            .header_buffer
+            .wl()
+            .insert(page_id, page_rc.clone());
+        page_rc
     }
 
     pub fn write_page_to_disk(&self, page_id: &BTreePageID) {

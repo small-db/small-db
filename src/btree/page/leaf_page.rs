@@ -4,8 +4,7 @@ use backtrace::Backtrace;
 use bit_vec::BitVec;
 
 use super::{
-    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
-    EMPTY_PAGE_ID,
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
 use crate::{
     btree::{
@@ -14,7 +13,7 @@ use crate::{
     },
     field::IntField,
     utils::HandyRwLock,
-    Tuple, Unique,
+    Tuple,
 };
 
 pub struct BTreeLeafPage {
