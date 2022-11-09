@@ -4,7 +4,7 @@ use backtrace::Backtrace;
 use bit_vec::BitVec;
 
 use super::{
-    BTreeBasePage, BTreePage, BTreePageID, BTreeVirtualPage, PageCategory,
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
     EMPTY_PAGE_ID,
 };
 use crate::{
@@ -308,23 +308,6 @@ impl BTreePage for BTreeLeafPage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.base.set_parent_pid(pid)
-    }
-}
-
-impl From<BTreeVirtualPage> for Arc<RwLock<BTreeLeafPage>> {
-    fn from(v: BTreeVirtualPage) -> Self {
-        let scheme = Unique::catalog()
-            .get_tuple_scheme(&v.get_pid().get_table_id())
-            .unwrap();
-
-        let _page = BTreeLeafPage::new(
-            &v.get_pid(),
-            v.get_bytes(),
-            &scheme,
-            v.get_key_field(),
-        );
-
-        todo!()
     }
 }
 

@@ -23,7 +23,7 @@ use super::{
     page::{
         empty_page_data, BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
         BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
-        BTreeRootPointerPage, BTreeVirtualPage, Entry,
+        BTreeRootPointerPage, Entry,
     },
     tuple::{Tuple, TupleScheme, WrappedTuple},
 };
@@ -1230,10 +1230,6 @@ impl BTreeTable {
                 file.write(&data).unwrap();
             }
         }
-    }
-
-    fn read_page(&self, _page_id: &BTreePageID) -> BTreeVirtualPage {
-        todo!()
     }
 
     fn get_empty_leaf_page(
