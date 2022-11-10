@@ -33,6 +33,11 @@ impl Permission {
     }
 }
 
+pub enum AcquireResult {
+    Acquired,
+    Granted,
+}
+
 /// reference:
 /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/ConcurrentStatus.java?L12:14&subtree=true
 pub struct ConcurrentStatus {
@@ -51,11 +56,11 @@ impl ConcurrentStatus {
     }
 
     pub fn acquire_lock(
-        &mut self,
+        &self,
         tx: &Transaction,
         lock: Lock,
         page_id: &BTreePageID,
-    ) -> SimpleResult {
+    ) -> Result<AcquireResult, SimpleError> {
         debug!(
             "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
             tx, lock, page_id
@@ -67,18 +72,18 @@ impl ConcurrentStatus {
                 Lock::SLock => match self.x_lock_map.get(page_id) {
                     Some(x_lock_tx) => {
                         if x_lock_tx == tx {
-                            return Ok(());
+                            return Ok(AcquireResult::Acquired);
                         }
                     }
                     None => match self.s_lock_map.get(page_id) {
                         None => {
-                            return self.add_lock(tx, lock, page_id);
+                            return Ok(AcquireResult::Granted);
                         }
                         Some(v) => {
                             if v.contains(tx) {
-                                return Ok(());
+                                return Ok(AcquireResult::Acquired);
                             } else {
-                                return self.add_lock(tx, lock, page_id);
+                                return Ok(AcquireResult::Granted);
                             }
                         }
                     },
@@ -86,17 +91,17 @@ impl ConcurrentStatus {
                 Lock::XLock => match self.x_lock_map.get(page_id) {
                     None => match self.s_lock_map.get(page_id) {
                         None => {
-                            return self.add_lock(tx, lock, page_id);
+                            return Ok(AcquireResult::Granted);
                         }
                         Some(v) => {
                             if v.contains(tx) {
-                                return self.add_lock(tx, lock, page_id);
+                                return Ok(AcquireResult::Granted);
                             }
                         }
                     },
                     Some(v) => {
                         if v == tx {
-                            return Ok(());
+                            return Ok(AcquireResult::Acquired);
                         }
                     }
                 },
