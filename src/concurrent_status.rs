@@ -9,7 +9,7 @@ use log::debug;
 
 use crate::{
     btree::page::BTreePageID, error::SmallError, transaction::Transaction,
-    types::SmallResult,
+    types::SmallResult, Unique,
 };
 
 #[derive(Debug)]
@@ -56,9 +56,26 @@ impl ConcurrentStatus {
     }
 
     pub fn acquire_lock(
+        tx: &Transaction,
+        lock: &Lock,
+        page_id: &BTreePageID,
+    ) -> Result<(), SmallError> {
+        if let Ok(x) =
+            Unique::concurrent_status().request_lock(tx, lock, page_id)
+        {
+            match x {
+                AcquireResult::Acquired => Ok(()),
+                AcquireResult::Granted => {
+                    Unique::mut_concurrent_status().add_lock(tx, lock, page_id)
+                }
+            }
+        }
+    }
+
+    fn request_lock(
         &self,
         tx: &Transaction,
-        lock: Lock,
+        lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<AcquireResult, SmallError> {
         debug!(
@@ -128,7 +145,7 @@ impl ConcurrentStatus {
     fn add_lock(
         &mut self,
         tx: &Transaction,
-        lock: Lock,
+        lock: &Lock,
         page_id: &BTreePageID,
     ) -> SmallResult {
         match lock {

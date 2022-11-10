@@ -4,6 +4,7 @@
         "alefragnani.bookmarks",
         "rust-lang.rust-analyzer",
         "vscodevim.vim",
-        "GitHub.copilot"
+        "github.copilot",
+        "vadimcn.vscode-lldb"
     ]
 }

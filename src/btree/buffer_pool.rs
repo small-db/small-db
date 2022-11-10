@@ -18,7 +18,7 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
-    concurrent_status::Permission,
+    concurrent_status::{ConcurrentStatus, Permission},
     error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
@@ -106,11 +106,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        Unique::mut_concurrent_status().acquire_lock(
-            tx,
-            perm.to_lock(),
-            key,
-        )?;
+        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
         self.root_pointer_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -123,11 +119,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeHeaderPage> {
-        Unique::mut_concurrent_status().acquire_lock(
-            tx,
-            perm.to_lock(),
-            key,
-        )?;
+        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
         self.header_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -140,11 +132,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        Unique::mut_concurrent_status().acquire_lock(
-            tx,
-            perm.to_lock(),
-            key,
-        )?;
+        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
         self.internal_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -157,11 +145,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        Unique::mut_concurrent_status().acquire_lock(
-            tx,
-            perm.to_lock(),
-            key,
-        )?;
+        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
         self.leaf_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
