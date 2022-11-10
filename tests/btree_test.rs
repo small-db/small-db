@@ -1,12 +1,10 @@
 mod common;
 use std::{
-    collections::VecDeque,
     thread::{self, sleep},
     time::Duration,
 };
 
 use common::TreeLayout;
-use crossbeam::channel::Receiver;
 use log::debug;
 use rand::prelude::*;
 use small_db::{

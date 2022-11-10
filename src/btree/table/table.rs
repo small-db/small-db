@@ -1,6 +1,5 @@
 use core::fmt;
 use std::{
-    cmp,
     collections::hash_map::DefaultHasher,
     env,
     fs::{File, OpenOptions},
@@ -18,21 +17,18 @@ use std::{
 
 use log::debug;
 
-use crate::btree::{
-    buffer_pool::BufferPool,
-    page::{
-        empty_page_data, BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
-        BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
-        BTreeRootPointerPage, Entry,
-    },
-    tuple::{Tuple, TupleScheme, WrappedTuple},
-};
 use crate::{
-    btree::page::{
-        BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
+    btree::{
+        buffer_pool::BufferPool,
+        page::{
+            empty_page_data, BTreeBasePage, BTreeHeaderPage, BTreeInternalPage,
+            BTreeInternalPageIterator, BTreeLeafPage, BTreeLeafPageIterator,
+            BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
+            BTreeRootPointerPage, Entry, PageCategory,
+        },
+        tuple::{Tuple, TupleScheme, WrappedTuple},
     },
     concurrent_status::Permission,
-    error::SmallError,
     field::IntField,
     transaction::Transaction,
     types::{ResultPod, SmallResult},
@@ -143,7 +139,7 @@ impl BTreeTable {
         BTreeTableIterator::new(tx, self).count()
     }
 
-    pub fn get_random_tuple(&self, tx: &Transaction) -> Tuple {
+    pub fn get_random_tuple(&self, _tx: &Transaction) -> Tuple {
         unimplemented!()
     }
 }

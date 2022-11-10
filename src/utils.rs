@@ -75,8 +75,8 @@ impl Unique {
     }
 
     // Remove for the same reason as mut_buffer_pool
-    // pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus>
-    // {
+    // pub fn mut_concurrent_status() -> RwLockWriteGuard<'static,
+    // ConcurrentStatus> {
     //     Self::global().concurrent_status.wl()
     // }
 

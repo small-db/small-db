@@ -1,46 +1,27 @@
-use core::fmt;
 use std::{
     cmp,
-    collections::hash_map::DefaultHasher,
-    env,
-    fs::{File, OpenOptions},
-    hash::{Hash, Hasher},
-    io::{Seek, SeekFrom, Write},
+    io::Write,
     ops::DerefMut,
-    str,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc, Mutex, MutexGuard, RwLock,
-    },
-    time::SystemTime,
+    sync::{Arc, RwLock},
     usize,
 };
 
-use log::debug;
-
 use crate::{
-    btree::page::{
-        BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
+    btree::{
+        page::{
+            BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeLeafPage, BTreeLeafPageIterator, BTreePage, BTreePageID,
+            Entry, PageCategory,
+        },
+        tuple::WrappedTuple,
     },
     concurrent_status::Permission,
     error::SmallError,
     field::IntField,
     transaction::Transaction,
-    types::{ResultPod, SmallResult},
-    utils::{lock_state, HandyRwLock},
-    Op, Predicate, Unique,
-};
-use crate::{
-    btree::{
-        buffer_pool::BufferPool,
-        page::{
-            empty_page_data, BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
-            BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePageID,
-            BTreeRootPointerPage, Entry,
-        },
-        tuple::{Tuple, TupleScheme, WrappedTuple},
-    },
-    BTreeTable,
+    types::SmallResult,
+    utils::HandyRwLock,
+    BTreeTable, Unique,
 };
 
 /// delete-related methods

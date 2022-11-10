@@ -17,7 +17,7 @@ use super::{
     tuple::TupleScheme,
 };
 use crate::{
-    concurrent_status::{ConcurrentStatus, Permission},
+    concurrent_status::Permission,
     error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
