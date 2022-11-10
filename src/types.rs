@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use crate::{error::SmallError, utils::HandyRwLock};
@@ -58,6 +58,39 @@ impl<K, V> ConcurrentHashMap<K, V> {
         }
     }
 
+    pub fn alter_value(
+        &self,
+        key: &K,
+        alter_fn: impl Fn(&mut V) -> Result<(), SmallError>,
+    ) -> Result<(), SmallError>
+    where
+        K: std::cmp::Eq + std::hash::Hash + Clone,
+        V: Clone + std::default::Default,
+    {
+        let mut map = self.map.wl();
+
+        if let Some(v) = map.get_mut(key) {
+            alter_fn(v)
+        } else {
+            let mut new_v = Default::default();
+            alter_fn(&mut new_v)?;
+            map.insert(key.clone(), new_v);
+            Ok(())
+        }
+    }
+
+    /// Return true if `map[&k] == v`, or `map[&k]` is not exist.
+    ///
+    /// Return false if `map[&k] != v`.
+    pub fn exact_or_empty(&self, k: &K, v: &V) -> bool
+    where
+        K: std::cmp::Eq + std::hash::Hash,
+        V: std::cmp::Eq,
+    {
+        let map = self.map.rl();
+        map.get(k).map_or(true, |v2| v == v2)
+    }
+
     pub fn clear(&self) {
         self.map.wl().clear();
     }
@@ -74,5 +107,76 @@ impl<K, V> ConcurrentHashMap<K, V> {
         K: std::cmp::Eq + std::hash::Hash,
     {
         self.map.wl().insert(key, value)
+    }
+}
+
+pub struct SmallLock {
+    name: String,
+    lock: Arc<Mutex<()>>,
+}
+
+impl SmallLock {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            lock: Arc::new(Mutex::new(())),
+        }
+    }
+
+    pub fn lock(&self) -> std::sync::MutexGuard<()> {
+        self.lock.lock().unwrap()
+    }
+}
+
+impl Drop for SmallLock {
+    fn drop(&mut self) {
+        println!("> Dropping {}", self.name);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::thread::{self, sleep};
+
+    use log::debug;
+
+    use crate::utils::init_log;
+
+    #[test]
+    fn test_small_lock() {
+        init_log();
+        {
+            let lock = super::SmallLock::new("test");
+            let _guard = lock.lock();
+            debug!("Locking");
+        }
+        debug!("Dropped");
+
+        let global_lock = super::SmallLock::new("global");
+        thread::scope(|s| {
+            let mut threads = vec![];
+            for _ in 0..5 {
+                let handle = s.spawn(|| {
+                    let thread_name =
+                        format!("thread-{:?}", thread::current().id());
+                    debug!("{}: start", thread_name);
+                    {
+                        // We have to give the guard a name, otherwise it will
+                        // be dropped immediately. (i.e, this block of code will
+                        // be protected by the lock)
+                        let _guard = global_lock.lock();
+                        sleep(std::time::Duration::from_millis(10));
+                        debug!("{}: lock acquired", thread_name);
+                        sleep(std::time::Duration::from_millis(1000));
+                    }
+                    debug!("{}: end", thread_name);
+                });
+                threads.push(handle);
+            }
+
+            for handle in threads {
+                handle.join().unwrap();
+            }
+        });
     }
 }

@@ -9,7 +9,8 @@ pub fn init_log() {
         .format(|buf, record| {
             writeln!(
                 buf,
-                "[{}] [{}:{}] {}",
+                "[{}] [{}] [{}:{}] {}",
+                buf.timestamp(),
                 record.level(),
                 record.file().unwrap(),
                 record.line().unwrap(),

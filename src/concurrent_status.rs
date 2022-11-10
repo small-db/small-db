@@ -1,5 +1,10 @@
 use core::fmt;
-use std::{collections::HashSet, thread::sleep, time::Instant};
+use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex, RwLock},
+    thread::sleep,
+    time::Instant,
+};
 
 use log::debug;
 
@@ -44,6 +49,7 @@ pub struct ConcurrentStatus {
     s_lock_map: ConcurrentHashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: ConcurrentHashMap<BTreePageID, Transaction>,
     hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
+    modification_lock: Arc<Mutex<()>>,
 }
 
 impl ConcurrentStatus {
@@ -52,6 +58,7 @@ impl ConcurrentStatus {
             s_lock_map: ConcurrentHashMap::new(),
             x_lock_map: ConcurrentHashMap::new(),
             hold_pages: ConcurrentHashMap::new(),
+            modification_lock: Arc::new(Mutex::new(())),
         }
     }
 
@@ -60,15 +67,14 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
-        let request_result =
-            Unique::concurrent_status().request_lock(tx, lock, page_id)?;
+        Unique::concurrent_status().request_lock(tx, lock, page_id)
 
-        match request_result {
-            AcquireResult::Acquired => Ok(()),
-            AcquireResult::Granted => {
-                Unique::concurrent_status().add_lock(tx, lock, page_id)
-            }
-        }
+        // match request_result {
+        //     AcquireResult::Acquired => Ok(()),
+        //     AcquireResult::Granted => {
+        //         Unique::concurrent_status().add_lock(tx, lock, page_id)
+        //     }
+        // }
     }
 
     fn request_lock(
@@ -76,7 +82,7 @@ impl ConcurrentStatus {
         tx: &Transaction,
         lock: &Lock,
         page_id: &BTreePageID,
-    ) -> Result<AcquireResult, SmallError> {
+    ) -> Result<(), SmallError> {
         debug!(
             "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
             tx, lock, page_id
@@ -84,59 +90,9 @@ impl ConcurrentStatus {
 
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3 {
-            match lock {
-                Lock::SLock => {
-                    match self.x_lock_map.get_inner().rl().get(page_id) {
-                        Some(x_lock_tx) => {
-                            if x_lock_tx == tx {
-                                return Ok(AcquireResult::Acquired);
-                            }
-                        }
-                        None => {
-                            match self.s_lock_map.get_inner().rl().get(page_id)
-                            {
-                                None => {
-                                    return Ok(AcquireResult::Granted);
-                                }
-                                Some(v) => {
-                                    if v.contains(tx) {
-                                        return Ok(AcquireResult::Acquired);
-                                    } else {
-                                        return Ok(AcquireResult::Granted);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                Lock::XLock => {
-                    match self.x_lock_map.get_inner().rl().get(page_id) {
-                        None => {
-                            match self.s_lock_map.get_inner().rl().get(page_id)
-                            {
-                                None => {
-                                    return Ok(AcquireResult::Granted);
-                                }
-                                Some(v) => {
-                                    if v.contains(tx) {
-                                        return Ok(AcquireResult::Granted);
-                                    }
-                                }
-                            }
-                        }
-                        Some(v) => {
-                            if v == tx {
-                                return Ok(AcquireResult::Acquired);
-                            }
-                        }
-                    }
-                }
+            if Unique::concurrent_status().add_lock(tx, lock, page_id)? {
+                return Ok(());
             }
-
-            // debug!("try to acquire lock, tx: {}, lock: {:?}, page_id: {:?},
-            // concurrent_status: {:?}", tx, lock, page_id, self);
-
-            // panic!("not implemented");
 
             sleep(std::time::Duration::from_millis(10));
         }
@@ -151,7 +107,7 @@ impl ConcurrentStatus {
         return Err(SmallError::new("acquire lock timeout"));
     }
 
-    // Add a lock to the given page.
+    // Add a lock to the given page. This api is idempotent.
     //
     // Given the conditions that:
     // 1. This method could only have at most one runner at a time, because it
@@ -162,41 +118,44 @@ impl ConcurrentStatus {
     //
     // So, we use a unique lock to prevent this method from being called by
     // multiple threads at the same time.
+    //
+    // # Return
+    //
+    // Return a bool value to indicate whether the lock is added successfully.
     fn add_lock(
         &self,
         tx: &Transaction,
         lock: &Lock,
         page_id: &BTreePageID,
-    ) -> SmallResult {
+    ) -> Result<bool, SmallError> {
+        let _guard = self.modification_lock.lock().unwrap();
+
+        if !self.x_lock_map.exact_or_empty(page_id, tx) {
+            return Ok(false);
+        }
+
         match lock {
             Lock::SLock => {
-                let mut set = HashSet::new();
-                set.insert(*tx);
-                self.s_lock_map.get_inner().wl().insert(*page_id, set);
+                self.s_lock_map.alter_value(page_id, |s_lock_set| {
+                    s_lock_set.insert(tx.clone());
+                    Ok(())
+                })?;
             }
             Lock::XLock => {
                 self.x_lock_map.get_inner().wl().insert(*page_id, *tx);
             }
         }
 
-        self.hold_pages
-            .get_inner()
-            .wl()
-            .entry(*tx)
-            .and_modify(|v| {
-                v.insert(*page_id);
-            })
-            .or_insert_with(|| {
-                let mut set = HashSet::new();
-                set.insert(*page_id);
-                set
-            });
+        self.hold_pages.alter_value(tx, |hold_pages_set| {
+            hold_pages_set.insert(*page_id);
+            Ok(())
+        })?;
 
         debug!(
             "lock_acquired, tx: {}, lock: {:?}, page_id: {:?}",
             tx, lock, page_id
         );
-        return Ok(());
+        return Ok(true);
     }
 
     pub fn release_lock_by_tx(&self, tx: &Transaction) -> SmallResult {
@@ -220,11 +179,12 @@ impl ConcurrentStatus {
         tx: &Transaction,
         page_id: &BTreePageID,
     ) -> SmallResult {
-        if let Some(v) = self.s_lock_map.get_inner().wl().get_mut(page_id) {
+        let mut s_lock_map = self.s_lock_map.get_inner_wl();
+        if let Some(v) = s_lock_map.get_mut(page_id) {
             debug!("release_lock_shared, tx: {}, page_id: {:?}", tx, page_id);
             v.remove(tx);
             if v.len() == 0 {
-                self.s_lock_map.get_inner().wl().remove(page_id);
+                s_lock_map.remove(page_id);
             }
         }
 
