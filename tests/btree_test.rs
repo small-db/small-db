@@ -12,7 +12,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Predicate, Tuple,
+    BTreeTable, Predicate, Tuple, Unique,
 };
 
 // Insert one tuple into the table
@@ -41,11 +41,15 @@ fn deleter(
     table_pod: &Pod<BTreeTable>,
     r: &crossbeam::channel::Receiver<Tuple>,
 ) {
+    let cs = Unique::concurrent_status();
+    debug!("concurrent_status: {:?}", cs);
+
     let tuple = r.recv().unwrap();
     let predicate = Predicate::new(small_db::Op::Equals, tuple.get_field(0));
     let tx = Transaction::new();
     let table = table_pod.rl();
 
+    debug!("{} prepare to delete", tx);
     let mut it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     let target = it.next().unwrap();
     table.delete_tuple(&tx, &target).unwrap();
@@ -54,7 +58,7 @@ fn deleter(
 }
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
+#[test]
 fn test_big_table() {
     let ctx = common::setup();
 
@@ -78,6 +82,9 @@ fn test_big_table() {
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
+
+    let cs = Unique::concurrent_status();
+    debug!("Concurrent status: {:?}", cs);
 
     debug!("Start insertion in multiple threads...");
 
@@ -104,7 +111,9 @@ fn test_big_table() {
         }
     });
 
-    assert_eq!(table_pod.rl().tuples_count(&ctx.tx), 31000 + 1000);
+    debug!("Concurrent status: {:?}", cs);
+
+    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
@@ -122,7 +131,7 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
-    assert_eq!(table_pod.rl().tuples_count(&ctx.tx), 31000 + 1000);
+    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
 
     // System.out.println("Inserting and deleting tuples...");
     // ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();

@@ -82,10 +82,11 @@ impl ConcurrentStatus {
             sleep(std::time::Duration::from_millis(10));
         }
 
-        // debug!(
-        //     "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?},
-        // concurrent_status_map: {:?}",     tx, lock, page_id, self,
-        // );
+        debug!(
+            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?},
+        concurrent_status_map: {:?}",
+            tx, lock, page_id, self,
+        );
 
         panic!("acquire_lock timeout");
 

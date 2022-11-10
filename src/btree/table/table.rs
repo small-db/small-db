@@ -135,8 +135,12 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    pub fn tuples_count(&self, tx: &Transaction) -> usize {
-        BTreeTableIterator::new(tx, self).count()
+    // Calculate the number of tuples in the table. Require S_LOCK on all pages.
+    pub fn tuples_count(&self) -> usize {
+        let tx = Transaction::new();
+        let count = BTreeTableIterator::new(&tx, self).count();
+        tx.commit().unwrap();
+        count
     }
 
     pub fn get_random_tuple(&self, _tx: &Transaction) -> Tuple {
