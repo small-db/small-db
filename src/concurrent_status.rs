@@ -62,22 +62,7 @@ impl ConcurrentStatus {
         }
     }
 
-    pub fn acquire_lock(
-        tx: &Transaction,
-        lock: &Lock,
-        page_id: &BTreePageID,
-    ) -> Result<(), SmallError> {
-        Unique::concurrent_status().request_lock(tx, lock, page_id)
-
-        // match request_result {
-        //     AcquireResult::Acquired => Ok(()),
-        //     AcquireResult::Granted => {
-        //         Unique::concurrent_status().add_lock(tx, lock, page_id)
-        //     }
-        // }
-    }
-
-    fn request_lock(
+    pub fn request_lock(
         &self,
         tx: &Transaction,
         lock: &Lock,
@@ -97,10 +82,10 @@ impl ConcurrentStatus {
             sleep(std::time::Duration::from_millis(10));
         }
 
-        debug!(
-            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status_map: {:?}",
-            tx, lock, page_id, self,
-        );
+        // debug!(
+        //     "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?}, concurrent_status_map: {:?}",
+        //     tx, lock, page_id, self,
+        // );
 
         panic!("acquire_lock timeout");
 

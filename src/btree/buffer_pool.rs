@@ -105,7 +105,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         self.root_pointer_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -118,7 +118,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeHeaderPage> {
-        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         self.header_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -131,7 +131,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         self.internal_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -144,7 +144,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        ConcurrentStatus::acquire_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         self.leaf_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
