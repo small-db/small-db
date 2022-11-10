@@ -10,8 +10,11 @@ use crossbeam::channel::Receiver;
 use log::debug;
 use rand::prelude::*;
 use small_db::{
-    btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod,
-    utils::HandyRwLock, BTreeTable, Tuple,
+    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
+    transaction::Transaction,
+    types::Pod,
+    utils::HandyRwLock,
+    BTreeTable, Predicate, Tuple,
 };
 
 // Insert one tuple into the table
@@ -37,14 +40,23 @@ fn inserter(
 
 // Delete a random tuple from the table
 fn deleter(
-    column_count: usize,
     table_pod: &Pod<BTreeTable>,
     r: &crossbeam::channel::Receiver<Tuple>,
 ) {
+    let tuple = r.recv().unwrap();
+    let predicate = Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+    let tx = Transaction::new();
+    let table = table_pod.rl();
+
+    let mut it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+    let target = it.next().unwrap();
+    table.delete_tuple(&tx, &target).unwrap();
+
+    tx.commit().unwrap();
 }
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-#[test]
+// #[test]
 fn test_big_table() {
     let ctx = common::setup();
 
@@ -103,7 +115,7 @@ fn test_big_table() {
             let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
             threads.push(handle);
 
-            let handle = s.spawn(|| deleter(columns, &table_pod, &receiver));
+            let handle = s.spawn(|| deleter(&table_pod, &receiver));
             threads.push(handle);
         }
 
@@ -112,6 +124,7 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
+    assert_eq!(table_pod.rl().tuples_count(&ctx.tx), 31000 + 1000);
 
     // System.out.println("Inserting and deleting tuples...");
     // ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();

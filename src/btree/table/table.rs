@@ -142,6 +142,10 @@ impl BTreeTable {
     pub fn tuples_count(&self, tx: &Transaction) -> usize {
         BTreeTableIterator::new(tx, self).count()
     }
+
+    pub fn get_random_tuple(&self, tx: &Transaction) -> Tuple {
+        unimplemented!()
+    }
 }
 
 // insert-related functions
