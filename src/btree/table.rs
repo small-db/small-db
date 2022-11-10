@@ -85,6 +85,7 @@ impl fmt::Display for BTreeTable {
     }
 }
 
+// init functions
 impl BTreeTable {
     pub fn new(
         file_path: &str,
@@ -126,7 +127,10 @@ impl BTreeTable {
             page_index: AtomicUsize::new(1),
         }
     }
+}
 
+// normal read-only functions
+impl BTreeTable {
     pub fn get_id(&self) -> i32 {
         self.table_id
     }
@@ -135,6 +139,12 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
+    pub fn tuples_count(&self) -> usize {
+        unimplemented!()
+    }
+}
+
+impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(
