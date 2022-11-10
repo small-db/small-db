@@ -18,7 +18,7 @@ use std::{
 
 use log::debug;
 
-use super::{
+use crate::btree::{
     buffer_pool::BufferPool,
     page::{
         empty_page_data, BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
@@ -144,6 +144,7 @@ impl BTreeTable {
     }
 }
 
+// insert-related functions
 impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
@@ -475,7 +476,7 @@ impl BTreeTable {
     }
 }
 
-/// delete implementation
+/// delete-related methods
 impl BTreeTable {
     /// Delete a tuple from this BTreeFile.
     ///

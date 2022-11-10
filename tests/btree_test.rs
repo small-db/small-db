@@ -1,10 +1,12 @@
 mod common;
 use std::{
+    collections::VecDeque,
     thread::{self, sleep},
     time::Duration,
 };
 
 use common::TreeLayout;
+use crossbeam::channel::Receiver;
 use log::debug;
 use rand::prelude::*;
 use small_db::{
@@ -12,7 +14,12 @@ use small_db::{
     utils::HandyRwLock, BTreeTable, Tuple,
 };
 
-fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
+// Insert one tuple into the table
+fn inserter(
+    column_count: usize,
+    table_pod: &Pod<BTreeTable>,
+    s: &crossbeam::channel::Sender<Tuple>,
+) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i32::MIN, i32::MAX);
     let tuple = Tuple::new_btree_tuple(insert_value, column_count);
@@ -24,7 +31,16 @@ fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
         panic!("Error inserting tuple: {}", e);
     }
     debug!("{} insert done", tx);
+    s.send(tuple).unwrap();
     tx.commit().unwrap();
+}
+
+// Delete a random tuple from the table
+fn deleter(
+    column_count: usize,
+    table_pod: &Pod<BTreeTable>,
+    r: &crossbeam::channel::Receiver<Tuple>,
+) {
 }
 
 // Test that doing lots of inserts and deletes in multiple threads works.
@@ -56,10 +72,11 @@ fn test_big_table() {
     debug!("Start insertion in multiple threads...");
 
     // now insert some random tuples
+    let (sender, receiver) = crossbeam::channel::unbounded();
     thread::scope(|s| {
         let mut insert_threads = vec![];
         for _ in 0..200 {
-            let handle = s.spawn(|| inserter(columns, &table_pod));
+            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
             // The first few inserts will cause pages to split so give them a
             // little more time to avoid too many deadlock situations.
             sleep(Duration::from_millis(10));
@@ -67,10 +84,11 @@ fn test_big_table() {
         }
 
         for _ in 0..800 {
-            let handle = s.spawn(|| inserter(columns, &table_pod));
+            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
             insert_threads.push(handle);
         }
 
+        // wait for all threads to finish
         for handle in insert_threads {
             handle.join().unwrap();
         }
@@ -78,30 +96,36 @@ fn test_big_table() {
 
     assert_eq!(table_pod.rl().tuples_count(&ctx.tx), 31000 + 1000);
 
-    // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
-    // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.
-    // addAll(tuples); assertEquals(31000, insertedTuples.size());
-    // int size = insertedTuples.size();
+    // now insert and delete tuples at the same time
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for _ in 0..1000 {
+            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
+            threads.push(handle);
 
-    // // now insert some random tuples
-    // System.out.println("Inserting tuples...");
-    // ArrayList<BTreeInserter> insertThreads = new ArrayList<BTreeInserter>();
-    // for(int i = 0; i < 200; i++) {
-    //     BTreeInserter bi = startInserter(bf, getRandomTupleData(),
-    // insertedTuples);     insertThreads.add(bi);
-    //     // The first few inserts will cause pages to split so give them a
-    // little     // more time to avoid too many deadlock situations
-    //     Thread.sleep(r.nextInt(POLL_INTERVAL));
-    // }
+            let handle = s.spawn(|| deleter(columns, &table_pod, &receiver));
+            threads.push(handle);
+        }
 
-    // for(int i = 0; i < 800; i++) {
-    //     BTreeInserter bi = startInserter(bf, getRandomTupleData(),
-    // insertedTuples);     insertThreads.add(bi);
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
+
+    // System.out.println("Inserting and deleting tuples...");
+    // ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();
+    // for(BTreeInserter thread : insertThreads) {
+    //     thread.rerun(bf, getRandomTupleData(), insertedTuples);
+    //     BTreeDeleter bd = startDeleter(bf, insertedTuples);
+    //     deleteThreads.add(bd);
     // }
 
     // // wait for all threads to finish
     // waitForInserterThreads(insertThreads);
-    // assertTrue(insertedTuples.size() > size);
+    // waitForDeleterThreads(deleteThreads);
+    // int numPages = bf.numPages();
+    // size = insertedTuples.size();
 
     // // now insert and delete tuples at the same time
     // System.out.println("Inserting and deleting tuples...");
