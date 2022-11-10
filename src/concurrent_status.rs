@@ -69,6 +69,8 @@ impl ConcurrentStatus {
                     Unique::mut_concurrent_status().add_lock(tx, lock, page_id)
                 }
             }
+        } else {
+            Err(SmallError::new("acquire lock failed"))
         }
     }
 
