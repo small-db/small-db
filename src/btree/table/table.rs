@@ -851,6 +851,8 @@ impl BTreeTable {
     ///     - ...
     ///     - -1: print all pages
     pub fn draw_tree(&self, max_level: i32) {
+        Unique::concurrent_status().clear();
+
         let tx = Transaction::new();
 
         // return if the log level is not debug
@@ -1042,6 +1044,8 @@ impl BTreeTable {
     ///
     /// panic on any error found.
     pub fn check_integrity(&self, check_occupancy: bool) {
+        Unique::concurrent_status().clear();
+
         let tx = Transaction::new();
 
         let root_ptr_page = self.get_root_ptr_page(&tx);
