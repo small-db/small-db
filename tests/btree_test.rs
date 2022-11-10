@@ -132,111 +132,49 @@ fn test_big_table() {
         }
     });
     assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+    let page_count_marker = table_pod.rl().pages_count();
 
-    // System.out.println("Inserting and deleting tuples...");
-    // ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();
-    // for(BTreeInserter thread : insertThreads) {
-    //     thread.rerun(bf, getRandomTupleData(), insertedTuples);
-    //     BTreeDeleter bd = startDeleter(bf, insertedTuples);
-    //     deleteThreads.add(bd);
-    // }
+    // now delete a bunch of tuples
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for _ in 0..10 {
+            let handle = s.spawn(|| deleter(&table_pod, &receiver));
+            threads.push(handle);
+        }
 
-    // // wait for all threads to finish
-    // waitForInserterThreads(insertThreads);
-    // waitForDeleterThreads(deleteThreads);
-    // int numPages = bf.numPages();
-    // size = insertedTuples.size();
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
+    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000 - 10);
 
-    // // now insert and delete tuples at the same time
-    // System.out.println("Inserting and deleting tuples...");
-    // ArrayList<BTreeDeleter> deleteThreads = new ArrayList<BTreeDeleter>();
-    // for(BTreeInserter thread : insertThreads) {
-    //     thread.rerun(bf, getRandomTupleData(), insertedTuples);
-    //     BTreeDeleter bd = startDeleter(bf, insertedTuples);
-    //     deleteThreads.add(bd);
-    // }
+    // now insert a bunch of random tuples again
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for _ in 0..10 {
+            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
+            threads.push(handle);
+        }
 
-    // // wait for all threads to finish
-    // waitForInserterThreads(insertThreads);
-    // waitForDeleterThreads(deleteThreads);
-    // int numPages = bf.numPages();
-    // size = insertedTuples.size();
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
+    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+    assert!(table_pod.rl().pages_count() < page_count_marker + 20);
 
-    // // now delete a bunch of tuples
-    // System.out.println("Deleting tuples...");
-    // for(int i = 0; i < 10; i++) {
-    //     for(BTreeDeleter thread : deleteThreads) {
-    //         thread.rerun(bf, insertedTuples);
-    //     }
+    drop(sender);
 
-    //     // wait for all threads to finish
-    //     waitForDeleterThreads(deleteThreads);
-    // }
-    // assertTrue(insertedTuples.size() < size);
-    // size = insertedTuples.size();
-
-    // // now insert a bunch of random tuples again
-    // System.out.println("Inserting tuples...");
-    // for(int i = 0; i < 10; i++) {
-    //     for(BTreeInserter thread : insertThreads) {
-    //         thread.rerun(bf, getRandomTupleData(), insertedTuples);
-    //     }
-
-    //     // wait for all threads to finish
-    //     waitForInserterThreads(insertThreads);
-    // }
-    // assertTrue(insertedTuples.size() > size);
-    // size = insertedTuples.size();
-    // // we should be reusing the deleted pages
-    // assertTrue(bf.numPages() < numPages + 20);
-
-    // // kill all the threads
-    // insertThreads = null;
-    // deleteThreads = null;
-
-    // ArrayList<ArrayList<Integer>> tuplesList = new
-    // ArrayList<ArrayList<Integer>>(); tuplesList.addAll(insertedTuples);
-    // TransactionId tid = new TransactionId();
-
-    // // First look for random tuples and make sure we can find them
-    // System.out.println("Searching for tuples...");
-    // for(int i = 0; i < 10000; i++) {
-    //     int rand = r.nextInt(insertedTuples.size());
-    //     ArrayList<Integer> tuple = tuplesList.get(rand);
-    //     IntField randKey = new IntField(tuple.get(bf.keyField()));
-    //     IndexPredicate ipred = new IndexPredicate(Op.EQUALS, randKey);
-    //     DbFileIterator it = bf.indexIterator(tid, ipred);
-    //     it.open();
-    //     boolean found = false;
-    //     while(it.hasNext()) {
-    //         Tuple t = it.next();
-    //         if(tuple.equals(SystemTestUtil.tupleToList(t))) {
-    //             found = true;
-    //             break;
-    //         }
-    //     }
-    //     assertTrue(found);
-    //     it.close();
-    // }
-
-    // // now make sure all the tuples are in order and we have the right number
-    // System.out.println("Performing sanity checks...");
-    // DbFileIterator it = bf.iterator(tid);
-    // Field prev = null;
-    // it.open();
-    // int count = 0;
-    // while(it.hasNext()) {
-    //     Tuple t = it.next();
-    //     if(prev != null) {
-    //         assertTrue(t.getField(bf.keyField()).compare(Op.
-    // GREATER_THAN_OR_EQ, prev));     }
-    //     prev = t.getField(bf.keyField());
-    //     count++;
-    // }
-    // it.close();
-    // assertEquals(count, tuplesList.size());
-    // Database.getBufferPool().transactionComplete(tid);
-
-    // // set the page size back
-    // BufferPool.resetPageSize();
+    // look for all tuples and make sure we can find them
+    let tx = Transaction::new();
+    for tuple in receiver.iter() {
+        let predicate =
+            Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+        let mut it =
+            BTreeTableSearchIterator::new(&tx, &table_pod.rl(), predicate);
+        assert!(it.next().is_some());
+    }
+    table_pod.rl().check_integrity(true);
 }

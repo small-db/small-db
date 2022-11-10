@@ -135,7 +135,7 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    // Calculate the number of tuples in the table. Require S_LOCK on all pages.
+    /// Calculate the number of tuples in the table. Require S_LOCK on all pages.
     pub fn tuples_count(&self) -> usize {
         let tx = Transaction::new();
         let count = BTreeTableIterator::new(&tx, self).count();
@@ -1034,12 +1034,16 @@ impl BTreeTable {
     /// - record to page pointers.
     /// - occupancy invariants. (if enabled)
     ///
+    /// require s_lock on all pages.
+    ///
     /// panic on any error found.
-    pub fn check_integrity(&self, tx: &Transaction, check_occupancy: bool) {
-        let root_ptr_page = self.get_root_ptr_page(tx);
+    pub fn check_integrity(&self, check_occupancy: bool) {
+        let tx = Transaction::new();
+
+        let root_ptr_page = self.get_root_ptr_page(&tx);
         let root_pid = root_ptr_page.rl().get_root_pid();
         let root_summary = self.check_sub_tree(
-            tx,
+            &tx,
             &root_pid,
             &root_ptr_page.rl().get_pid(),
             None,
@@ -1057,6 +1061,8 @@ impl BTreeTable {
             "right pointer is not none: {:?}",
             root_summary.right_ptr,
         );
+
+        tx.commit();
     }
 
     /// panic on any error found.

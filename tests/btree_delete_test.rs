@@ -27,7 +27,7 @@ fn test_redistribute_leaf_pages() {
     let table = table_rc.rl();
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     // Delete some tuples from the first page until it gets to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -62,7 +62,7 @@ fn test_redistribute_leaf_pages() {
     assert!(right_rc.rl().empty_slots_count() > 202);
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn test_merge_leaf_pages() {
     let table = table_rc.rl();
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     // delete the last two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -88,7 +88,7 @@ fn test_merge_leaf_pages() {
     let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 }
 
 #[test]
@@ -105,16 +105,16 @@ fn test_delete_root_page() {
     );
     let table = table_rc.rl();
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
     // there should be one internal node and 2 leaf nodes
     assert_eq!(3, table.pages_count());
 
     // delete the first two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
     table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     table.draw_tree(&ctx.tx, -1);
 
@@ -139,7 +139,7 @@ fn test_reuse_deleted_pages() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     // 3 leaf pages, 1 internal page
     assert_eq!(4, table.pages_count());
@@ -183,7 +183,7 @@ fn test_redistribute_internal_pages() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
     table.draw_tree(&ctx.tx, -1);
 
     // bring the left internal page to minimum occupancy
@@ -193,7 +193,7 @@ fn test_redistribute_internal_pages() {
     }
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     // deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed
@@ -201,12 +201,12 @@ fn test_redistribute_internal_pages() {
         if let Err(e) = table.delete_tuple(&ctx.tx, &t) {
             error!("Error: {:?}", e);
             table.draw_tree(&ctx.tx, -1);
-            table.check_integrity(&ctx.tx, true);
+            table.check_integrity(true);
         }
     }
 
     table.draw_tree(&ctx.tx, -1);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn test_delete_internal_pages() {
 
     let table = table_rc.rl();
     table.draw_tree(&ctx.tx, 2);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     let root_pid = table.get_root_pid(&ctx.tx);
     let root_rc = Unique::buffer_pool()
@@ -267,7 +267,7 @@ fn test_delete_internal_pages() {
     }
 
     table.draw_tree(&ctx.tx, 2);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 
     // Deleting a page of tuples should bring the internal page below minimum
     // occupancy and cause the entries to be redistributed.
@@ -277,7 +277,7 @@ fn test_delete_internal_pages() {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
     table.draw_tree(&ctx.tx, 2);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
     assert_eq!(62, left_child_rc.rl().empty_slots_count());
     assert_eq!(62, right_child_rc.rl().empty_slots_count());
 
@@ -336,5 +336,5 @@ fn test_delete_internal_pages() {
         .unwrap();
     assert_eq!(0, root_rc.rl().empty_slots_count());
     table.draw_tree(&ctx.tx, 2);
-    table.check_integrity(&ctx.tx, true);
+    table.check_integrity(true);
 }
