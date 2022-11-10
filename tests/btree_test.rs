@@ -30,7 +30,7 @@ fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
 fn test_big_table() {
-    let _ = common::setup();
+    let ctx = common::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages.
     BufferPool::set_page_size(1024);
@@ -76,7 +76,7 @@ fn test_big_table() {
         }
     });
 
-    // assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+    assert_eq!(table_pod.rl().tuples_count(&ctx.tx), 31000 + 1000);
 
     // ArrayBlockingQueue<ArrayList<Integer>> insertedTuples = new
     // ArrayBlockingQueue<ArrayList<Integer>>(100000); insertedTuples.

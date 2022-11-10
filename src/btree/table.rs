@@ -139,8 +139,8 @@ impl BTreeTable {
         self.tuple_scheme.clone()
     }
 
-    pub fn tuples_count(&self) -> usize {
-        unimplemented!()
+    pub fn tuples_count(&self, tx: &Transaction) -> usize {
+        BTreeTableIterator::new(tx, self).count()
     }
 }
 
