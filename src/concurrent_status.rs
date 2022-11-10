@@ -66,7 +66,7 @@ impl ConcurrentStatus {
         match request_result {
             AcquireResult::Acquired => Ok(()),
             AcquireResult::Granted => {
-                Unique::mut_concurrent_status().add_lock(tx, lock, page_id)
+                Unique::concurrent_status().add_lock(tx, lock, page_id)
             }
         }
     }
@@ -199,7 +199,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn release_lock_by_tx(&mut self, tx: &Transaction) -> SmallResult {
+    pub fn release_lock_by_tx(&self, tx: &Transaction) -> SmallResult {
         if !self.hold_pages.get_inner().rl().contains_key(tx) {
             return Ok(());
         }
@@ -216,7 +216,7 @@ impl ConcurrentStatus {
     }
 
     fn release_lock(
-        &mut self,
+        &self,
         tx: &Transaction,
         page_id: &BTreePageID,
     ) -> SmallResult {
@@ -240,7 +240,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         self.s_lock_map.get_inner().wl().clear();
         self.x_lock_map.get_inner().wl().clear();
         self.hold_pages.clear();

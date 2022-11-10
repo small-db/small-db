@@ -19,7 +19,7 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        Unique::mut_concurrent_status().release_lock_by_tx(self)
+        Unique::concurrent_status().release_lock_by_tx(self)
     }
 
     pub fn abort(&self) {

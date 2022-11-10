@@ -74,10 +74,11 @@ impl Unique {
         Self::global().concurrent_status.rl()
     }
 
-    pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus>
-    {
-        Self::global().concurrent_status.wl()
-    }
+    // Remove for the same reason as mut_buffer_pool
+    // pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus>
+    // {
+    //     Self::global().concurrent_status.wl()
+    // }
 
     pub fn global() -> &'static Self {
         // Initialize it to a null value
