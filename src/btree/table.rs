@@ -32,10 +32,10 @@ use crate::{
         BTreeBasePage, BTreeInternalPageIterator, BTreePage, PageCategory,
     },
     concurrent_status::Permission,
-    error::SimpleError,
+    error::SmallError,
     field::IntField,
     transaction::Transaction,
-    types::{ResultPod, SimpleResult},
+    types::{ResultPod, SmallResult},
     utils::{lock_state, HandyRwLock},
     Op, Predicate, Unique,
 };
@@ -142,7 +142,7 @@ impl BTreeTable {
         tx: &Transaction,
         // buffer_pool: &mut BufferPool,
         tuple: &Tuple,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid(tx);
@@ -475,7 +475,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         tuple: &WrappedTuple,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         let pid = tuple.get_pid();
         let leaf_rc = Unique::buffer_pool()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
@@ -504,7 +504,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -523,7 +523,7 @@ impl BTreeTable {
                 .unwrap();
             self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
-            return Err(SimpleError::new(
+            return Err(SmallError::new(
                 "BTreeTable::handle_erratic_leaf_page no left or right sibling",
             ));
         };
@@ -544,7 +544,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
@@ -602,7 +602,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         parent_entry: &Entry,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         // hold left_rc and right_rc
         {
             let mut left = left_rc.wl();
@@ -657,7 +657,7 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeLeafPage>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         // hold the left and right page
         {
             let mut left = left_rc.wl();
@@ -721,7 +721,7 @@ impl BTreeTable {
         left_rc: Arc<RwLock<PAGE>>,
         parent_rc: Arc<RwLock<BTreeInternalPage>>,
         entry: &Entry,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         // hold the parent and left page
         {
             let mut parent = parent_rc.wl();
@@ -812,7 +812,7 @@ impl BTreeTable {
         tx: &Transaction,
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         let parent_rc = Unique::buffer_pool()
             .get_internal_page(
                 tx,
@@ -939,7 +939,7 @@ impl BTreeTable {
         fn_get_edge_left_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
         fn_get_edge_right_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
         fn_get_moved_child: impl Fn(&Entry) -> BTreePageID,
-    ) -> Result<Vec<usize>, SimpleError> {
+    ) -> Result<Vec<usize>, SmallError> {
         // Remember the entries for deletion later (cause we can't
         // modify the page while iterating though it)
         let mut moved_records = Vec::new();
@@ -983,7 +983,7 @@ impl BTreeTable {
         tx: &Transaction,
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         let parent_rc = Unique::buffer_pool()
             .get_internal_page(
                 tx,
@@ -1066,7 +1066,7 @@ impl BTreeTable {
     /// same pages are accessed multiple times.
     ///
     /// reference:
-    /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BTreeFile.java?L551&subtree=true
+    /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BTreeFile.java?L551&subtree=true
     pub fn get_page(&self) {}
 }
 

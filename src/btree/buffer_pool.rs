@@ -19,10 +19,10 @@ use super::{
 };
 use crate::{
     concurrent_status::Permission,
-    error::SimpleError,
+    error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
-    utils::{simple_int_tuple_scheme, HandyRwLock},
+    utils::{small_int_tuple_scheme, HandyRwLock},
     Unique,
 };
 
@@ -69,7 +69,7 @@ impl BufferPool {
     /// should be added in its place.
     ///
     /// reference:
-    /// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/BufferPool.java?L88:17&subtree=true
+    /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BufferPool.java?L88:17&subtree=true
     fn load_page<PAGE: BTreePage>(&self, key: &Key) -> ResultPod<PAGE> {
         // stage 1: get table
         let catalog = Unique::catalog();
@@ -79,7 +79,7 @@ impl BufferPool {
         // stage 2: read page content from disk
         let buf = self
             .read_page(&mut table.get_file(), key)
-            .or(Err(SimpleError::new("read page content failed")))?;
+            .or(Err(SmallError::new("read page content failed")))?;
 
         // stage 3: page instantiation
         let page =
@@ -196,7 +196,7 @@ impl BufferPool {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
 
         debug!("set page size to {}", page_size);
-        let scheme = simple_int_tuple_scheme(2, "");
+        let scheme = small_int_tuple_scheme(2, "");
         debug!(
             "leaf page slot count: {}",
             BTreeLeafPage::calculate_slots_count(&scheme)
@@ -234,7 +234,7 @@ impl BufferPool {
     //     tx: &Transaction,
     //     table_id: i32,
     //     t: &Tuple,
-    // ) -> SimpleResult {
+    // ) -> SmallResult {
     //     let v = Unique::catalog().get_table(&table_id).unwrap().rl();
     //     v.insert_tuple(tx, t)?;
     //     return Ok(());

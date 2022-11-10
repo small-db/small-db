@@ -7,7 +7,7 @@ use std::{
 use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
-use simple_db_rust::{
+use small_db_rust::{
     btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod,
     utils::HandyRwLock, BTreeTable, Tuple,
 };

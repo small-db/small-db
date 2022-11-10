@@ -1,7 +1,7 @@
 mod common;
 use common::TreeLayout;
 use log::error;
-use simple_db_rust::{
+use small_db_rust::{
     btree::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPageIterator, PageCategory},

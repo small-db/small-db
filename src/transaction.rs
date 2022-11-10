@@ -1,7 +1,7 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{types::SimpleResult, Unique};
+use crate::{types::SmallResult, Unique};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -18,7 +18,7 @@ impl Transaction {
         }
     }
 
-    pub fn commit(&self) -> SimpleResult {
+    pub fn commit(&self) -> SmallResult {
         Unique::mut_concurrent_status().release_lock_by_tx(self)
     }
 

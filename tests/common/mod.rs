@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use log::debug;
 use rand::prelude::*;
-use simple_db_rust::{
+use small_db_rust::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
@@ -13,7 +13,7 @@ use simple_db_rust::{
     },
     concurrent_status::Permission,
     transaction::Transaction,
-    utils::{simple_int_tuple_scheme, HandyRwLock},
+    utils::{small_int_tuple_scheme, HandyRwLock},
     *,
 };
 
@@ -63,7 +63,7 @@ pub fn create_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = simple_int_tuple_scheme(columns, "");
+    let row_scheme = small_int_tuple_scheme(columns, "");
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         DB_FILE,
         key_field,

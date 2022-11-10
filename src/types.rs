@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::{error::SimpleError, utils::HandyRwLock};
+use crate::{error::SmallError, utils::HandyRwLock};
 
 // Type alias, not a new type, cannot define methods on it
 pub type Pod<T> = Arc<RwLock<T>>;
@@ -12,8 +12,8 @@ pub type Pod<T> = Arc<RwLock<T>>;
 // underlying type, so the original methods cannot be used
 // pub struct Pod<T>(Arc<RwLock<T>>);
 
-pub type ResultPod<T> = Result<Pod<T>, SimpleError>;
-pub type SimpleResult = Result<(), SimpleError>;
+pub type ResultPod<T> = Result<Pod<T>, SmallError>;
+pub type SmallResult = Result<(), SmallError>;
 
 pub struct ConcurrentHashMap<K, V> {
     map: Arc<RwLock<HashMap<K, V>>>,
@@ -29,8 +29,8 @@ impl<K, V> ConcurrentHashMap<K, V> {
     pub fn get_or_insert(
         &self,
         key: &K,
-        value_gen_fn: impl Fn(&K) -> Result<V, SimpleError>,
-    ) -> Result<V, SimpleError>
+        value_gen_fn: impl Fn(&K) -> Result<V, SmallError>,
+    ) -> Result<V, SmallError>
     where
         K: std::cmp::Eq + std::hash::Hash + Clone,
         V: Clone,

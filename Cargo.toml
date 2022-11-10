@@ -1,13 +1,13 @@
 [package]
 authors = ["XiaochenCui <jcnlcxc.new@gmail.com>"]
-description = "A simple database writing in rust, inspired from mit 6.830"
-documentation = "https://docs.rs/simple-db-rust"
+description = "A small database writing in rust, inspired from mit 6.830"
+documentation = "https://docs.rs/small-db-rust"
 edition = "2018"
-homepage = "https://crates.io/crates/simple-db-rust"
+homepage = "https://crates.io/crates/small-db-rust"
 license = "BSD-3-Clause"
-name = "simple-db-rust"
+name = "small-db-rust"
 readme = "README.md"
-repository = "https://github.com/XiaochenCui/simple-db-rust/"
+repository = "https://github.com/XiaochenCui/small-db-rust/"
 version = "0.2.52"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

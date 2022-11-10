@@ -7,10 +7,10 @@ use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
     concurrent_status::Permission,
-    error::SimpleError,
+    error::SmallError,
     field::{get_type_length, IntField},
     transaction::Transaction,
-    types::SimpleResult,
+    types::SmallResult,
     utils::HandyRwLock,
     Unique,
 };
@@ -162,9 +162,9 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) -> SimpleResult {
+    pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
         if self.empty_slots_count() == 0 {
-            return Err(SimpleError::new("No empty slots on this page."));
+            return Err(SmallError::new("No empty slots on this page."));
         }
 
         // if this is the first entry, add it and return
@@ -213,7 +213,7 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
-            let e = SimpleError::new(&format!(
+            let e = SmallError::new(&format!(
                 "No slot found for entry {}, pid: {}, entries count: {}",
                 e,
                 self.get_pid(),

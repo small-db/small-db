@@ -1,12 +1,12 @@
-# simple-db-rust
+# small-db-rust
 
-[![docs](https://docs.rs/simple-db-rust/badge.svg)](https://docs.rs/simple-db-rust)
+[![docs](https://docs.rs/small-db-rust/badge.svg)](https://docs.rs/small-db-rust)
 
-[![Rust](https://github.com/XiaochenCui/simple-db-rust/actions/workflows/rust.yml/badge.svg)](https://github.com/XiaochenCui/simple-db-rust/actions/workflows/rust.yml)
-[![codecov](https://codecov.io/gh/XiaochenCui/simple-db-rust/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/simple-db-rust)
+[![Rust](https://github.com/XiaochenCui/small-db-rust/actions/workflows/rust.yml/badge.svg)](https://github.com/XiaochenCui/small-db-rust/actions/workflows/rust.yml)
+[![codecov](https://codecov.io/gh/XiaochenCui/small-db-rust/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/small-db-rust)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
 
-A simple database writing in rust, inspired from mit 6.830
+A small database writing in rust, inspired from mit 6.830
 
 ## Roadmap
 
@@ -36,13 +36,13 @@ A simple database writing in rust, inspired from mit 6.830
 
 ## License
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsimple-db-rust?ref=badge_large)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db-rust?ref=badge_large)
 
 ```
 run test:
 FILE=btree_delete_test
 TEST=test_delete_internal_pages
-export FILE=btree_delete_test TEST=test_delete_internal_pages RUST_LOG=info RUST_BACKTRACE=1 && cargo test --package simple-db-rust --test $FILE --all-features -- $TEST --exact --nocapture 2>&1 | tee out
+export FILE=btree_delete_test TEST=test_delete_internal_pages RUST_LOG=info RUST_BACKTRACE=1 && cargo test --package small-db-rust --test $FILE --all-features -- $TEST --exact --nocapture 2>&1 | tee out
 
 build the test binary:
 cargo test --no-run

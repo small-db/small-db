@@ -28,7 +28,7 @@ use crate::{
     btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus,
     types::Pod, Catalog,
 };
-pub use crate::{btree::tuple::simple_int_tuple_scheme, log::init_log};
+pub use crate::{btree::tuple::small_int_tuple_scheme, log::init_log};
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
     let is_read: bool = lock.try_read().is_err();

@@ -8,8 +8,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePageID, error::SimpleError, transaction::Transaction,
-    types::SimpleResult,
+    btree::page::BTreePageID, error::SmallError, transaction::Transaction,
+    types::SmallResult,
 };
 
 #[derive(Debug)]
@@ -39,7 +39,7 @@ pub enum AcquireResult {
 }
 
 /// reference:
-/// - https://sourcegraph.com/github.com/XiaochenCui/simple-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/simpledb/ConcurrentStatus.java?L12:14&subtree=true
+/// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/ConcurrentStatus.java?L12:14&subtree=true
 pub struct ConcurrentStatus {
     s_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: HashMap<BTreePageID, Transaction>,
@@ -60,7 +60,7 @@ impl ConcurrentStatus {
         tx: &Transaction,
         lock: Lock,
         page_id: &BTreePageID,
-    ) -> Result<AcquireResult, SimpleError> {
+    ) -> Result<AcquireResult, SmallError> {
         debug!(
             "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
             tx, lock, page_id
@@ -122,7 +122,7 @@ impl ConcurrentStatus {
 
         panic!("acquire_lock timeout");
 
-        return Err(SimpleError::new("acquire lock timeout"));
+        return Err(SmallError::new("acquire lock timeout"));
     }
 
     fn add_lock(
@@ -130,7 +130,7 @@ impl ConcurrentStatus {
         tx: &Transaction,
         lock: Lock,
         page_id: &BTreePageID,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         match lock {
             Lock::SLock => {
                 let mut set = HashSet::new();
@@ -160,7 +160,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn release_lock_by_tx(&mut self, tx: &Transaction) -> SimpleResult {
+    pub fn release_lock_by_tx(&mut self, tx: &Transaction) -> SmallResult {
         if !self.hold_pages.contains_key(tx) {
             return Ok(());
         }
@@ -179,7 +179,7 @@ impl ConcurrentStatus {
         &mut self,
         tx: &Transaction,
         page_id: &BTreePageID,
-    ) -> SimpleResult {
+    ) -> SmallResult {
         if let Some(v) = self.s_lock_map.get_mut(page_id) {
             debug!("release_lock_shared, tx: {}, page_id: {:?}", tx, page_id);
             v.remove(tx);

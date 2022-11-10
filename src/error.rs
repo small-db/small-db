@@ -1,25 +1,25 @@
 use std::{error::Error, fmt};
 
 #[derive(Debug)]
-pub struct SimpleError {
+pub struct SmallError {
     details: String,
 }
 
-impl SimpleError {
-    pub fn new(msg: &str) -> SimpleError {
-        SimpleError {
+impl SmallError {
+    pub fn new(msg: &str) -> SmallError {
+        SmallError {
             details: msg.to_string(),
         }
     }
 }
 
-impl fmt::Display for SimpleError {
+impl fmt::Display for SmallError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.details)
     }
 }
 
-impl Error for SimpleError {
+impl Error for SmallError {
     fn description(&self) -> &str {
         &self.details
     }
