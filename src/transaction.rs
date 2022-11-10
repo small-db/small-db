@@ -27,6 +27,14 @@ impl Transaction {
     }
 }
 
+// This function will led to a bug:
+// thread 'main' panicked at 'rwlock write lock would result in deadlock', /rustc/a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52/library/std/src/sys/unix/locks/pthread_rwlock.rs:111:13
+// impl Drop for Transaction {
+//     fn drop(&mut self) {
+//         self.commit().unwrap();
+//     }
+// }
+
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "tx_{}", self.uuid)

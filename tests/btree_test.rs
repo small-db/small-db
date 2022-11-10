@@ -176,5 +176,6 @@ fn test_big_table() {
             BTreeTableSearchIterator::new(&tx, &table_pod.rl(), predicate);
         assert!(it.next().is_some());
     }
+    tx.commit().unwrap();
     table_pod.rl().check_integrity(true);
 }

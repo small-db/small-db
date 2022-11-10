@@ -128,7 +128,10 @@ impl ConcurrentStatus {
                 })?;
             }
             Lock::XLock => {
-                self.x_lock_map.get_inner().wl().insert(*page_id, *tx);
+                self.x_lock_map
+                    .get_inner()
+                    .wl()
+                    .insert(page_id.clone(), tx.clone());
             }
         }
 
