@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use crate::{error::SmallError, utils::HandyRwLock};
@@ -24,6 +24,18 @@ impl<K, V> ConcurrentHashMap<K, V> {
         Self {
             map: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    pub fn get_inner(&self) -> Arc<RwLock<HashMap<K, V>>> {
+        self.map.clone()
+    }
+
+    pub fn get_inner_rl(&self) -> RwLockReadGuard<HashMap<K, V>> {
+        self.map.rl()
+    }
+
+    pub fn get_inner_wl(&self) -> RwLockWriteGuard<HashMap<K, V>> {
+        self.map.wl()
     }
 
     pub fn get_or_insert(

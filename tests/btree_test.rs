@@ -28,7 +28,7 @@ fn inserter(column_count: usize, table_pod: &Pod<BTreeTable>) {
 }
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
+#[test]
 fn test_big_table() {
     let _ = common::setup();
 

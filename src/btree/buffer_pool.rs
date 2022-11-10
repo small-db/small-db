@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fs::File,
     io::{self, prelude::*, Seek, SeekFrom},
     sync::{
@@ -22,7 +21,7 @@ use crate::{
     error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
-    utils::{small_int_tuple_scheme, HandyRwLock},
+    utils::small_int_tuple_scheme,
     Unique,
 };
 
