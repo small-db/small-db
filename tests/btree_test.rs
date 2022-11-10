@@ -28,7 +28,7 @@ fn inserter(
     let tx = Transaction::new();
     debug!("{} prepare to insert", tx);
     if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
-        table_pod.rl().draw_tree(&tx, -1);
+        table_pod.rl().draw_tree(-1);
         panic!("Error inserting tuple: {}", e);
     }
     debug!("{} insert done", tx);

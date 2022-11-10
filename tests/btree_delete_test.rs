@@ -26,7 +26,7 @@ fn test_redistribute_leaf_pages() {
     );
     let table = table_rc.rl();
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // Delete some tuples from the first page until it gets to minimum occupancy
@@ -61,7 +61,7 @@ fn test_redistribute_leaf_pages() {
     // assert some tuples of the right page were stolen
     assert!(right_rc.rl().empty_slots_count() > 202);
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 }
 
@@ -79,7 +79,7 @@ fn test_merge_leaf_pages() {
     );
     let table = table_rc.rl();
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // delete the last two tuples
@@ -87,7 +87,7 @@ fn test_merge_leaf_pages() {
     let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
     let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 }
 
@@ -104,7 +104,7 @@ fn test_delete_root_page() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
     // there should be one internal node and 2 leaf nodes
     assert_eq!(3, table.pages_count());
@@ -116,7 +116,7 @@ fn test_delete_root_page() {
     table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
     table.check_integrity(true);
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
 
     let root_pid = table.get_root_pid(&ctx.tx);
     assert!(root_pid.category == PageCategory::Leaf);
@@ -184,7 +184,7 @@ fn test_redistribute_internal_pages() {
     );
     let table = table_rc.rl();
     table.check_integrity(true);
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
 
     // bring the left internal page to minimum occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -192,7 +192,7 @@ fn test_redistribute_internal_pages() {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // deleting a page of tuples should bring the internal page below minimum
@@ -200,12 +200,12 @@ fn test_redistribute_internal_pages() {
     for t in it.by_ref().take(502) {
         if let Err(e) = table.delete_tuple(&ctx.tx, &t) {
             error!("Error: {:?}", e);
-            table.draw_tree(&ctx.tx, -1);
+            table.draw_tree(-1);
             table.check_integrity(true);
         }
     }
 
-    table.draw_tree(&ctx.tx, -1);
+    table.draw_tree(-1);
     table.check_integrity(true);
 }
 
@@ -235,7 +235,7 @@ fn test_delete_internal_pages() {
     );
 
     let table = table_rc.rl();
-    table.draw_tree(&ctx.tx, 2);
+    table.draw_tree(2);
     table.check_integrity(true);
 
     let root_pid = table.get_root_pid(&ctx.tx);
@@ -266,7 +266,7 @@ fn test_delete_internal_pages() {
         count += 1;
     }
 
-    table.draw_tree(&ctx.tx, 2);
+    table.draw_tree(2);
     table.check_integrity(true);
 
     // Deleting a page of tuples should bring the internal page below minimum
@@ -276,7 +276,7 @@ fn test_delete_internal_pages() {
     for t in it.take(124) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
-    table.draw_tree(&ctx.tx, 2);
+    table.draw_tree(2);
     table.check_integrity(true);
     assert_eq!(62, left_child_rc.rl().empty_slots_count());
     assert_eq!(62, right_child_rc.rl().empty_slots_count());
@@ -335,6 +335,6 @@ fn test_delete_internal_pages() {
         .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     assert_eq!(0, root_rc.rl().empty_slots_count());
-    table.draw_tree(&ctx.tx, 2);
+    table.draw_tree(2);
     table.check_integrity(true);
 }

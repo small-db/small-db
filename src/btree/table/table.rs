@@ -850,9 +850,12 @@ impl BTreeTable {
     ///       leaf)
     ///     - ...
     ///     - -1: print all pages
-    pub fn draw_tree(&self, tx: &Transaction, max_level: i32) {
+    pub fn draw_tree(&self, max_level: i32) {
+        let tx = Transaction::new();
+
         // return if the log level is not debug
         if env::var("RUST_LOG").unwrap_or_default() != "debug" {
+            tx.commit().unwrap();
             return;
         }
 
@@ -868,7 +871,7 @@ impl BTreeTable {
         };
         depiction.push_str(&format!("root pointer: {}\n", root_pointer_pid));
 
-        let root_pid = self.get_root_pid(tx);
+        let root_pid = self.get_root_pid(&tx);
         depiction.push_str(&self.draw_subtree(&tx, &root_pid, 0, max_level));
 
         depiction.push_str(&format!(
@@ -876,6 +879,7 @@ impl BTreeTable {
         ));
 
         debug!("{}", depiction);
+        tx.commit().unwrap();
     }
 
     fn draw_subtree(

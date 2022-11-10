@@ -37,7 +37,7 @@ fn validate_scan(it: &mut BTreeTableIterator, int_tuples: &Vec<Vec<i32>>) {
 
 #[test]
 fn test_small() {
-    let _ = common::setup();
+    let ctx = common::setup();
 
     let column_count_list: Vec<usize> = vec![1, 2, 3, 4, 5];
     let row_count_list: Vec<usize> =
