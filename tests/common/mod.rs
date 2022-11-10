@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use log::debug;
 use rand::prelude::*;
-use small_db_rust::{
+use small_db::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{

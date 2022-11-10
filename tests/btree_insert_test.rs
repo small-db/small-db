@@ -4,7 +4,7 @@ use std::sync::Arc;
 use common::TreeLayout;
 use log::debug;
 use rand::Rng;
-use small_db_rust::{
+use small_db::{
     btree::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPageIterator, PageCategory},

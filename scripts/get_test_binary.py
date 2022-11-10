@@ -1,7 +1,7 @@
 import json
 import subprocess
 
-commond = "cargo test --package small-db-rust --test btree_insert_test --all-features --no-run --message-format=json"
+commond = "cargo test --package small-db --test btree_insert_test --all-features --no-run --message-format=json"
 result = subprocess.run(commond.split(), stdout=subprocess.PIPE)
 s = result.stdout.decode('utf-8')
 lines = s.splitlines()

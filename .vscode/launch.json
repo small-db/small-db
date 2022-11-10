@@ -24,16 +24,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'small-db-rust'",
+            "name": "Debug unit tests in library 'small-db'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=small-db-rust"
+                    "--package=small-db"
                 ],
                 "filter": {
-                    "name": "small-db-rust",
+                    "name": "small-db",
                     "kind": "lib"
                 }
             },
@@ -49,7 +49,7 @@
                     "test",
                     "--no-run",
                     "--test=btree_delete_test",
-                    "--package=small-db-rust"
+                    "--package=small-db"
                 ],
                 "filter": {
                     "name": "btree_delete_test",
@@ -68,7 +68,7 @@
                     "test",
                     "--no-run",
                     "--test=btree_scan_test",
-                    "--package=small-db-rust"
+                    "--package=small-db"
                 ],
                 "filter": {
                     "name": "btree_scan_test",
@@ -87,7 +87,7 @@
                     "test",
                     "--no-run",
                     "--test=btree_test",
-                    "--package=small-db-rust"
+                    "--package=small-db"
                 ],
                 "filter": {
                     "name": "btree_test",
@@ -106,7 +106,7 @@
                     "test",
                     "--no-run",
                     "--test=btree_insert_test",
-                    "--package=small-db-rust"
+                    "--package=small-db"
                 ],
                 "filter": {
                     "name": "btree_insert_test",

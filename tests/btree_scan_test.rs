@@ -1,7 +1,7 @@
 mod common;
 use common::TreeLayout;
 use rand::Rng;
-use small_db_rust::{
+use small_db::{
     btree::table::BTreeTableIterator, transaction::Transaction,
     utils::HandyRwLock, Unique,
 };
