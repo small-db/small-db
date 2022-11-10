@@ -60,17 +60,14 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
-        if let Ok(x) =
-            Unique::concurrent_status().request_lock(tx, lock, page_id)
-        {
-            match x {
-                AcquireResult::Acquired => Ok(()),
-                AcquireResult::Granted => {
-                    Unique::mut_concurrent_status().add_lock(tx, lock, page_id)
-                }
+        let request_result =
+            Unique::concurrent_status().request_lock(tx, lock, page_id)?;
+
+        match request_result {
+            AcquireResult::Acquired => Ok(()),
+            AcquireResult::Granted => {
+                Unique::mut_concurrent_status().add_lock(tx, lock, page_id)
             }
-        } else {
-            Err(SmallError::new("acquire lock failed"))
         }
     }
 
