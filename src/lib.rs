@@ -6,8 +6,8 @@ pub mod types;
 pub mod utils;
 
 mod error;
-mod log;
 mod operator;
+mod tx_log;
 
 pub use btree::{catalog::Catalog, table::BTreeTable, tuple::Tuple};
 pub use operator::{Op, Predicate};

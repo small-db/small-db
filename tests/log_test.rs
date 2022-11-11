@@ -1,5 +1,9 @@
+use small_db::Unique;
+
 #[test]
 fn test_patch() {
+    // Unique::
+
     // *** Test:
     // check that BufferPool.flushPage() calls LogFile.logWrite().
     // doInsert(hf1, 1, 2);
