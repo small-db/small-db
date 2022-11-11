@@ -1,16 +1,13 @@
 use std::{
-    io::prelude::*,
     mem,
-    ops::Deref,
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+use super::HandyRwLock;
 use crate::{
     btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus,
     types::Pod, Catalog,
 };
-
-use super::HandyRwLock;
 
 /// We collect all global variables here.
 ///
