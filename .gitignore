@@ -20,3 +20,6 @@ out
 
 # flamegraph files
 *.svg
+
+# WAL logs
+*.log

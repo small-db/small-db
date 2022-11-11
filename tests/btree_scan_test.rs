@@ -1,17 +1,17 @@
-mod common;
-use common::TreeLayout;
+mod test_utils;
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, transaction::Transaction,
     utils::HandyRwLock, Unique,
 };
+use test_utils::TreeLayout;
 
 fn test_scan(rows: usize, columns: usize) {
     let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     let mut int_tuples: Vec<Vec<i32>> = Vec::new();
     let key_field = rng.gen_range(0, columns);
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         columns,
         rows,
         Some(&mut int_tuples),
@@ -37,7 +37,7 @@ fn validate_scan(it: &mut BTreeTableIterator, int_tuples: &Vec<Vec<i32>>) {
 
 #[test]
 fn test_small() {
-    let _ctx = common::setup();
+    let _ctx = test_utils::setup();
 
     let column_count_list: Vec<usize> = vec![1, 2, 3, 4, 5];
     let row_count_list: Vec<usize> =

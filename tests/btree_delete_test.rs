@@ -1,5 +1,4 @@
-mod common;
-use common::TreeLayout;
+mod test_utils;
 use log::error;
 use small_db::{
     btree::{
@@ -11,13 +10,14 @@ use small_db::{
     utils::HandyRwLock,
     Op, Tuple, Unique,
 };
+use test_utils::TreeLayout;
 
 #[test]
 fn test_redistribute_leaf_pages() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // This should create a B+ tree with two partially full leaf pages
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         600,
         None,
@@ -67,10 +67,10 @@ fn test_redistribute_leaf_pages() {
 
 #[test]
 fn test_merge_leaf_pages() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // This should create a B+ tree with one three half-full leaf pages
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         1005,
         None,
@@ -93,10 +93,10 @@ fn test_merge_leaf_pages() {
 
 #[test]
 fn test_delete_root_page() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // this should create a B+ tree with two half-full leaf pages
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         503,
         None,
@@ -128,10 +128,10 @@ fn test_delete_root_page() {
 
 #[test]
 fn test_reuse_deleted_pages() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // this should create a B+ tree with 3 leaf nodes
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         1005,
         None,
@@ -167,7 +167,7 @@ fn test_reuse_deleted_pages() {
 
 #[test]
 fn test_redistribute_internal_pages() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // This should create a B+ tree with two nodes in the second tier
     // and 602 nodes in the third tier.
@@ -175,7 +175,7 @@ fn test_redistribute_internal_pages() {
     // 302204 = 2 * 301 * 502
     // 2 internal pages
     // 602 leaf pages
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         302204,
         None,
@@ -211,7 +211,7 @@ fn test_redistribute_internal_pages() {
 
 #[test]
 fn test_delete_internal_pages() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     BufferPool::set_page_size(1024);
 
@@ -226,7 +226,7 @@ fn test_delete_internal_pages() {
     // 1st tier: 1 internal page
     // 2nd tier: 3 internal pages (2 * 125 + 2 = 252 children)
     // 3rd tier: 252 leaf pages (251 * 124 + 1 = 31125 entries)
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         31125,
         None,

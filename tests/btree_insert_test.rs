@@ -1,7 +1,6 @@
-mod common;
+mod test_utils;
 use std::sync::Arc;
 
-use common::TreeLayout;
 use log::debug;
 use rand::Rng;
 use small_db::{
@@ -14,14 +13,20 @@ use small_db::{
     utils::HandyRwLock,
     *,
 };
+use test_utils::TreeLayout;
 
 #[test]
 fn test_insert_tuple() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let table_rc =
-        common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_rc = test_utils::create_random_btree_table(
+        2,
+        0,
+        None,
+        1,
+        TreeLayout::Naturally,
+    );
     Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
@@ -67,11 +72,16 @@ fn test_insert_tuple() {
 
 #[test]
 fn test_insert_duplicate_tuples() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // create an empty B+ tree file keyed on the second field of a 2-field tuple
-    let table_rc =
-        common::create_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_rc = test_utils::create_random_btree_table(
+        2,
+        0,
+        None,
+        1,
+        TreeLayout::Naturally,
+    );
     Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
@@ -102,10 +112,10 @@ fn test_insert_duplicate_tuples() {
 
 #[test]
 fn test_split_leaf_page() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // This should create a B+ tree with one full page
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         502,
         None,
@@ -151,13 +161,13 @@ fn test_split_leaf_page() {
 
 #[test]
 fn test_split_root_page() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // This should create a packed B+ tree with no empty slots
     // There are 503 keys per internal page (504 children) and 502 tuples per
     // leaf page 504 * 502 = 253008
     let rows = 504 * 502;
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         rows,
         None,
@@ -254,7 +264,7 @@ fn test_split_root_page() {
 
 #[test]
 fn test_split_internal_page() {
-    let ctx = common::setup();
+    let ctx = test_utils::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages
     BufferPool::set_page_size(1024);
@@ -267,7 +277,7 @@ fn test_split_internal_page() {
     // 125 = 125 children (leaf pages) for each second level internal pages
     // 124 = 124 tuples per leaf page
     let rows = 2 * 125 * 124;
-    let table_rc = common::create_random_btree_table(
+    let table_rc = test_utils::create_random_btree_table(
         2,
         rows,
         None,

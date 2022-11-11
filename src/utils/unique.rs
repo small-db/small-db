@@ -6,7 +6,7 @@ use std::{
 use super::HandyRwLock;
 use crate::{
     btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus,
-    types::Pod, Catalog,
+    tx_log::LogManager, types::Pod, Catalog,
 };
 
 /// We collect all global variables here.
@@ -22,14 +22,16 @@ pub struct Unique {
     buffer_pool: BufferPool,
     catalog: Pod<Catalog>,
     concurrent_status: ConcurrentStatus,
+    log_file: Pod<LogManager>,
 }
 
 impl Unique {
     fn new() -> Self {
         Self {
             buffer_pool: BufferPool::new(),
-            catalog: Arc::new(RwLock::new(Catalog::new())),
             concurrent_status: ConcurrentStatus::new(),
+            catalog: Arc::new(RwLock::new(Catalog::new())),
+            log_file: Arc::new(RwLock::new(LogManager::new("wal.log"))),
         }
     }
 
@@ -47,6 +49,14 @@ impl Unique {
 
     pub fn mut_catalog() -> RwLockWriteGuard<'static, Catalog> {
         Self::global().catalog.wl()
+    }
+
+    pub fn log_file() -> RwLockReadGuard<'static, LogManager> {
+        Self::global().log_file.rl()
+    }
+
+    pub fn mut_log_file() -> RwLockWriteGuard<'static, LogManager> {
+        Self::global().log_file.wl()
     }
 
     pub fn global() -> &'static Self {

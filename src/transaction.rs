@@ -18,12 +18,20 @@ impl Transaction {
         }
     }
 
+    pub fn start(&self) -> SmallResult {
+        Unique::mut_log_file().log_start(self)
+    }
+
     pub fn commit(&self) -> SmallResult {
         Unique::concurrent_status().release_lock_by_tx(self)
     }
 
-    pub fn abort(&self) {
-        // TODO
+    pub fn abort(&self) -> SmallResult {
+        Unique::mut_log_file().log_abort(self)
+    }
+
+    pub fn get_id(&self) -> u64 {
+        self.uuid
     }
 }
 

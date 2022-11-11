@@ -1,10 +1,9 @@
-mod common;
+mod test_utils;
 use std::{
     thread::{self, sleep},
     time::Duration,
 };
 
-use common::TreeLayout;
 use log::debug;
 use rand::prelude::*;
 use small_db::{
@@ -14,6 +13,7 @@ use small_db::{
     utils::HandyRwLock,
     BTreeTable, Predicate, Tuple, Unique,
 };
+use test_utils::TreeLayout;
 
 // Insert one tuple into the table
 fn inserter(
@@ -60,7 +60,7 @@ fn deleter(
 // Test that doing lots of inserts and deletes in multiple threads works.
 #[test]
 fn test_big_table() {
-    let _ctx = common::setup();
+    let _ctx = test_utils::setup();
 
     // For this test we will decrease the size of the Buffer Pool pages.
     BufferPool::set_page_size(1024);
@@ -75,7 +75,7 @@ fn test_big_table() {
     // 3rd tier: 250 leaf pages (250 * 124 = 31,000 entries)
     debug!("Creating large random B+ tree...");
     let columns = 2;
-    let table_pod = common::create_random_btree_table(
+    let table_pod = test_utils::create_random_btree_table(
         columns,
         31000,
         None,
