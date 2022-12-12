@@ -11,7 +11,7 @@ use crate::{
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, bytes_to_u32, HandyRwLock, SimpleWriter},
+    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock, SimpleWriter},
     Unique,
 };
 
@@ -502,7 +502,7 @@ impl BTreePage for BTreeInternalPage {
             if i > 0 {
                 writer.write(&self.keys[i].to_bytes());
             }
-            writer.write(&self.children[i].to_bytes());
+            writer.write(&u32_to_bytes(self.children[i].page_index));
         }
 
         return writer.to_bytes();

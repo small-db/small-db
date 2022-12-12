@@ -85,11 +85,11 @@ impl BTreePageID {
         format!("{:?}_{}", self.category, self.page_index)
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes: Vec<u8> = vec![];
-        bytes.extend_from_slice(&self.page_index.to_le_bytes());
-        bytes
-    }
+    // pub fn to_bytes(&self) -> Vec<u8> {
+    //     let mut bytes: Vec<u8> = vec![];
+    //     bytes.extend_from_slice(&self.page_index.to_le_bytes());
+    //     bytes
+    // }
 }
 
 pub fn empty_page_data() -> Vec<u8> {
