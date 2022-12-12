@@ -11,28 +11,77 @@ use crate::{
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::HandyRwLock,
+    utils::{self, HandyRwLock},
     Unique,
 };
 
 pub struct BTreeInternalPage {
     base: BTreeBasePage,
 
-    pub keys: Vec<IntField>,
+    keys: Vec<IntField>,
 
-    /// note: the left child of the nth `entry` is not always locate in
-    /// the n-1 slot, but the nearest left slot which has been marked
+    ///
+    /// Store the page id of the children.
+    ///
+    /// The size of this vector is always equal to `slot_count`. The
+    /// unused slots will be filled with a dummy value. (The concrete
+    /// value is not important, since it will never be used.)
+    ///
+    /// The right child of the nth entry is stored in the n-th slot.
+    ///
+    /// Note that the left child of the nth entry is not always locate
+    /// in the n-1 slot, but the nearest left slot which has been marked
     /// as used.
-    pub children: Vec<BTreePageID>,
+    ///
+    /// e.g:
+    /// slots:    | 0     | 1     | 2    |
+    /// header:   | true  | false | true |
+    /// keys:     | dummy | dummy | key3 |
+    /// children: | page1 | dummy | page3|
+    ///
+    /// For the above example, there is only one entry in the page, and
+    /// the left child of the entry is page1, the right child is page3.
+    ///
+    /// The `dummy` value is ignored, and the children[0] is only used
+    /// to store the left child of the first entry.
+    children: Vec<BTreePageID>,
 
+    /// The number of slots in the page, including the empty slots.
+    ///
+    /// This filed should never be changed after the page is created.
     slot_count: usize,
 
-    // header bytes
+    /// The header is used to indicate the status of each slot.
+    ///
+    /// The size of `header` is always equal to `slot_count`.
+    ///
+    /// The bytes size of `header` should be `ceiling(slot_count / 8)`.
     header: BitVec<u32>,
+}
 
-    tuple_scheme: TupleScheme,
+// Methods for accessing const attributes.
+impl BTreeInternalPage {
+    fn get_header_bytes_size(max_entries_count: usize) -> usize {
+        utils::div_ceil(max_entries_count, 8)
+    }
 
-    key_field: usize,
+    pub fn get_entry_capacity(&self) -> usize {
+        self.slot_count - 1
+    }
+
+    /// Retrieve the maximum number of entries this page can hold. (The number
+    /// of keys)
+    pub fn get_max_entries(key_size: usize) -> usize {
+        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
+        // extraBits are: one parent pointer, 1 byte for child page category,
+        // one extra child pointer (node with m entries has m+1 pointers to
+        // children),
+        // 1 bit for extra header (why?)
+        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
+        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
+            / bits_per_entry_including_header; // round down
+        return entries_per_page;
+    }
 }
 
 impl BTreeInternalPage {
@@ -72,30 +121,6 @@ impl BTreeInternalPage {
         let max_empty_slots =
             self.get_entry_capacity() - self.get_entry_capacity() / 2; // ceiling
         return self.empty_slots_count() <= max_empty_slots;
-    }
-
-    fn get_header_size(max_entries_count: usize) -> usize {
-        // +1 for children
-        let slots = max_entries_count + 1;
-        slots / 8 + 1
-    }
-
-    /// Retrieve the maximum number of entries this page can hold. (The number
-    /// of keys)
-    pub fn get_max_entries(key_size: usize) -> usize {
-        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
-        // extraBits are: one parent pointer, 1 byte for child page category,
-        // one extra child pointer (node with m entries has m+1 pointers to
-        // children),
-        // 1 bit for extra header (why?)
-        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
-        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
-            / bits_per_entry_including_header; // round down
-        return entries_per_page;
-    }
-
-    pub fn get_entry_capacity(&self) -> usize {
-        self.slot_count - 1
     }
 
     pub fn get_entry(&self, index: usize) -> Option<Entry> {
@@ -392,7 +417,7 @@ impl BTreePage for BTreeInternalPage {
         let key_size =
             get_type_length(tuple_scheme.fields[key_field].field_type);
         let slot_count = Self::get_max_entries(key_size) + 1;
-        let header_size = Self::get_header_size(slot_count) as usize;
+        let header_size = Self::get_header_bytes_size(slot_count) as usize;
 
         let mut keys: Vec<IntField> = Vec::new();
         let mut children: Vec<BTreePageID> = Vec::new();
@@ -405,8 +430,6 @@ impl BTreePage for BTreeInternalPage {
             children,
             slot_count,
             header: BitVec::from_bytes(&bytes[..header_size]),
-            tuple_scheme: tuple_scheme.clone(),
-            key_field,
         }
     }
 
@@ -422,8 +445,26 @@ impl BTreePage for BTreeInternalPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn get_page_data(&self) -> Vec<u8> {
+        let mut data = vec![0; BufferPool::get_page_size()];
+
+        // write header
+        let header_size = Self::get_header_bytes_size(self.slot_count) as usize;
+        let header = self.header.to_bytes();
+        data[..header_size].copy_from_slice(&header);
+
+        // write keys and children
+        let mut offset = header_size;
+        for i in 0..self.slot_count {
+            let key = self.keys[i].to_bytes();
+            let child = self.children[i].to_bytes();
+            data[offset..offset + key.len()].copy_from_slice(&key);
+            offset += key.len();
+            data[offset..offset + child.len()].copy_from_slice(&child);
+            offset += child.len();
+        }
+
+        return data;
     }
 }
 

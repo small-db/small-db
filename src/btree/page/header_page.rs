@@ -69,7 +69,7 @@ impl BTreePage for BTreeHeaderPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn get_page_data(&self) -> Vec<u8> {
+        unimplemented!()
     }
 }

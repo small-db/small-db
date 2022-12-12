@@ -3,7 +3,10 @@ use std::{any::Any, convert::TryInto};
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
-use crate::btree::tuple::TupleScheme;
+use crate::{
+    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    Unique,
+};
 
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,
@@ -81,7 +84,12 @@ impl BTreePage for BTreeRootPointerPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn get_page_data(&self) -> Vec<u8> {
+        let mut data = vec![0; BufferPool::get_page_size()];
+
+        // Write the root page index
+        let root_page_index = self.root_pid.page_index as i32;
+        data[0..4].copy_from_slice(&root_page_index.to_le_bytes());
+        return data;
     }
 }

@@ -54,7 +54,7 @@ impl BTreePage for BTreeBasePage {
         self.parent_page_index = pid.page_index;
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn get_page_data(&self) -> Vec<u8> {
+        unimplemented!()
     }
 }

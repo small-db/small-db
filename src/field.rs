@@ -44,6 +44,10 @@ impl IntField {
             crate::Op::NotEquals => self.value != field.value,
         }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_be_bytes().to_vec()
+    }
 }
 
 impl fmt::Display for IntField {

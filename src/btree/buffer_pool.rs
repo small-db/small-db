@@ -21,8 +21,8 @@ use crate::{
     error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
-    utils::small_int_tuple_scheme,
-    Unique,
+    utils::{small_int_tuple_scheme, HandyRwLock},
+    BTreeTable, Unique,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -221,15 +221,40 @@ impl BufferPool {
         }
     }
 
+    /// Write the content of a specific page to disk.
     fn flush_page(&self, pid: &BTreePageID) {
         // stage 1: get table
         let catalog = Unique::catalog();
-        let v = catalog.get_table(&pid.get_table_id()).unwrap();
-        let table = v.read().unwrap();
+        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
+        let table = table_pod.read().unwrap();
 
-        // table.write_page_to_disk(pid, data)
+        match pid.category {
+            PageCategory::RootPointer => {
+                self.write_and_remove(&table, pid, &self.root_pointer_buffer);
+            }
+            PageCategory::Header => {
+                self.write_and_remove(&table, pid, &self.header_buffer);
+            }
+            PageCategory::Internal => {
+                self.write_and_remove(&table, pid, &self.internal_buffer);
+            }
+            PageCategory::Leaf => {
+                self.write_and_remove(&table, pid, &self.leaf_buffer);
+            }
+        }
+    }
 
-        todo!()
+    fn write_and_remove<PAGE>(
+        &self,
+        table: &BTreeTable,
+        pid: &BTreePageID,
+        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+    ) where
+        PAGE: BTreePage,
+    {
+        let page = buffer.get_inner_wl().remove(pid).unwrap();
+        table.write_page_to_disk(pid, &page.rl().get_page_data());
+        buffer.remove(pid);
     }
 
     fn all_keys(&self) -> Vec<Key> {
@@ -240,24 +265,4 @@ impl BufferPool {
         keys.append(&mut self.internal_buffer.keys());
         keys
     }
-
-    // /// Add a tuple to the specified table on behalf of transaction tid.
-    // Will /// acquire a write lock on the page the tuple is added to and
-    // any other /// pages that are updated (Lock acquisition is not needed
-    // for lab2). /// May block if the lock(s) cannot be acquired.
-    // ///
-    // /// Marks any pages that were dirtied by the operation as dirty by
-    // calling /// their markDirty bit, and adds versions of any pages that
-    // have /// been dirtied to the cache (replacing any existing versions
-    // of those /// pages) so that future requests see up-to-date pages.
-    // pub fn insert_tuple(
-    //     &mut self,
-    //     tx: &Transaction,
-    //     table_id: i32,
-    //     t: &Tuple,
-    // ) -> SmallResult {
-    //     let v = Unique::catalog().get_table(&table_id).unwrap().rl();
-    //     v.insert_tuple(tx, t)?;
-    //     return Ok(());
-    // }
 }
