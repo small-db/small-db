@@ -12,6 +12,28 @@ pub enum PageCategory {
     Header,
 }
 
+impl PageCategory {
+    /// serialize to 4 bytes
+    pub fn to_bytes(&self) -> [u8; 4] {
+        match self {
+            PageCategory::RootPointer => [0, 0, 0, 0],
+            PageCategory::Internal => [0, 0, 0, 1],
+            PageCategory::Leaf => [0, 0, 0, 2],
+            PageCategory::Header => [0, 0, 0, 3],
+        }
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        match bytes {
+            [0, 0, 0, 0] => PageCategory::RootPointer,
+            [0, 0, 0, 1] => PageCategory::Internal,
+            [0, 0, 0, 2] => PageCategory::Leaf,
+            [0, 0, 0, 3] => PageCategory::Header,
+            _ => panic!("invalid page category"),
+        }
+    }
+}
+
 // PageID identifies a unique page, and contains the
 // necessary metadata
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
@@ -28,13 +50,13 @@ pub struct BTreePageID {
 
 impl fmt::Display for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}_{}", self.category, self.page_index,)
+        write!(f, "{}", self)
     }
 }
 
 impl fmt::Debug for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}_{}", self.category, self.page_index,)
     }
 }
 

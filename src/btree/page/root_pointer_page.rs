@@ -1,34 +1,48 @@
 use std::convert::TryInto;
 
+use log::debug;
+
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
+/// # Disk Layout
+///
+/// - [0-4) (4 bytes): root page index
+/// - [4-8) (4 bytes): root page category (leaf/internal)
+/// - [8-12) (4 bytes): header page index
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,
 
-    // The root_pid in mandatory to avoid a bunch of Option & match
+    /// The type of this field is `BTreePageID` instead of
+    /// `Option<BTreePageID>` because the root page is always
+    /// present in the B+ tree.
+    ///
+    /// This decision also simplified the code.
     root_pid: BTreePageID,
 
+    /// TODO: mandatory the presence of a header page?
     header_page_index: u32,
 }
 
 impl BTreeRootPointerPage {
-    pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
+    fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let root_page_index =
             u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let root_pid = BTreePageID {
-            category: PageCategory::Leaf,
-            page_index: root_page_index,
+        let root_page_category = PageCategory::from_bytes(&bytes[4..8]);
+        let header_page_index =
+            u32::from_le_bytes(bytes[8..12].try_into().unwrap());
 
-            // TODO: set table id
-            table_id: 0,
+        let root_pid = BTreePageID {
+            category: root_page_category,
+            page_index: root_page_index,
+            table_id: pid.get_table_id(),
         };
         Self {
             base: BTreeBasePage::new(pid),
             root_pid,
-            header_page_index: EMPTY_PAGE_ID,
+            header_page_index,
         }
     }
 

@@ -79,7 +79,9 @@ impl BufferPool {
     {
         // stage 1: get table
         let catalog = Unique::catalog();
-        let v = catalog.get_table(&key.get_table_id()).unwrap();
+        let v = catalog
+            .get_table(&key.get_table_id())
+            .expect(&format!("table {} not found", key.get_table_id()));
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
