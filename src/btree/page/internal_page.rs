@@ -11,7 +11,7 @@ use crate::{
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock, SimpleWriter},
+    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock, SmallWriter},
     Unique,
 };
 
@@ -82,7 +82,7 @@ impl BTreeInternalPage {
         let slot_count = Self::get_max_entries(key_size) + 1;
         let header_size = Self::get_header_bytes_size(slot_count) as usize;
 
-        let mut reader = utils::SimpleReader::new(&bytes);
+        let mut reader = utils::SmallReader::new(&bytes);
 
         // read children category
         let children_category = PageCategory::from_bytes(reader.read_exact(4));
@@ -489,7 +489,7 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut writer = SimpleWriter::new(BufferPool::get_page_size());
+        let mut writer = SmallWriter::new(BufferPool::get_page_size());
 
         // write children category
         writer.write(&self.children_category.to_bytes());

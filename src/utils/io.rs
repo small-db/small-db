@@ -57,12 +57,12 @@ impl SmallFile {
     }
 }
 
-pub struct SimpleReader<'a> {
+pub struct SmallReader<'a> {
     buf: &'a Vec<u8>,
     cursor: usize,
 }
 
-impl<'a> SimpleReader<'a> {
+impl<'a> SmallReader<'a> {
     pub fn new(buf: &'a Vec<u8>) -> Self {
         Self { buf, cursor: 0 }
     }
@@ -80,12 +80,12 @@ impl<'a> SimpleReader<'a> {
     }
 }
 
-pub struct SimpleWriter {
+pub struct SmallWriter {
     buf: Vec<u8>,
     cap: usize,
 }
 
-impl SimpleWriter {
+impl SmallWriter {
     pub fn new(cap: usize) -> Self {
         let buf = Vec::new();
         Self { buf, cap }
