@@ -50,13 +50,13 @@ pub struct BTreePageID {
 
 impl fmt::Display for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{:?}_{}", self.category, self.page_index,)
     }
 }
 
 impl fmt::Debug for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}_{}", self.category, self.page_index,)
+        write!(f, "{}", self)
     }
 }
 

@@ -7,7 +7,7 @@ use super::{
 };
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
-/// # Disk Layout
+/// # Binary Layout
 ///
 /// - [0-4) (4 bytes): root page index
 /// - [4-8) (4 bytes): root page category (leaf/internal)
@@ -98,9 +98,15 @@ impl BTreePage for BTreeRootPointerPage {
     fn get_page_data(&self) -> Vec<u8> {
         let mut data = vec![0; BufferPool::get_page_size()];
 
-        // Write the root page index
-        let root_page_index = self.root_pid.page_index as i32;
-        data[0..4].copy_from_slice(&root_page_index.to_le_bytes());
+        // Write the root page index.
+        data[0..4].copy_from_slice(&self.root_pid.page_index.to_le_bytes());
+
+        // Write the root page category.
+        data[4..8].copy_from_slice(&self.root_pid.category.to_bytes());
+
+        // Write the header page index.
+        data[8..12].copy_from_slice(&self.header_page_index.to_le_bytes());
+
         return data;
     }
 }

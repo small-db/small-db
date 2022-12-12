@@ -15,6 +15,16 @@ use crate::{
     Unique,
 };
 
+/// The internal page is used to store the keys and the page id of the
+/// children.
+///
+/// # Binary Layout
+///
+/// - 4 bytes: children category (leaf/internal)
+/// - n bytes: header bytes, indicating the slots of the page are used
+/// or not.
+/// - n bytes: keys
+/// - n bytes: children
 pub struct BTreeInternalPage {
     base: BTreeBasePage,
 
@@ -58,32 +68,38 @@ pub struct BTreeInternalPage {
     header: BitVec<u32>,
 }
 
-// Methods for accessing const attributes.
 impl BTreeInternalPage {
-    fn get_header_bytes_size(max_entries_count: usize) -> usize {
-        utils::div_ceil(max_entries_count, 8)
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let key_size =
+            get_type_length(tuple_scheme.fields[key_field].field_type);
+        let slot_count = Self::get_max_entries(key_size) + 1;
+        let header_size = Self::get_header_bytes_size(slot_count) as usize;
+
+        // read children category
+        let children_category = PageCategory::from_bytes(&bytes[0..4]);
+
+        // read header
+        let header = BitVec::from_bytes(&bytes[4..header_size + 4]);
+
+        let mut keys: Vec<IntField> = Vec::new();
+        let mut children: Vec<BTreePageID> = Vec::new();
+        keys.resize(slot_count, IntField::new(0));
+        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            keys,
+            children,
+            slot_count,
+            header: BitVec::from_bytes(&bytes[..header_size]),
+        }
     }
 
-    pub fn get_entry_capacity(&self) -> usize {
-        self.slot_count - 1
-    }
-
-    /// Retrieve the maximum number of entries this page can hold. (The number
-    /// of keys)
-    pub fn get_max_entries(key_size: usize) -> usize {
-        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
-        // extraBits are: one parent pointer, 1 byte for child page category,
-        // one extra child pointer (node with m entries has m+1 pointers to
-        // children),
-        // 1 bit for extra header (why?)
-        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
-        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
-            / bits_per_entry_including_header; // round down
-        return entries_per_page;
-    }
-}
-
-impl BTreeInternalPage {
     pub fn get_coresponding_entry(
         &self,
         left_pid: Option<&BTreePageID>,
@@ -406,6 +422,31 @@ impl BTreeInternalPage {
     }
 }
 
+// Methods for accessing const attributes.
+impl BTreeInternalPage {
+    fn get_header_bytes_size(max_entries_count: usize) -> usize {
+        utils::div_ceil(max_entries_count, 8)
+    }
+
+    pub fn get_entry_capacity(&self) -> usize {
+        self.slot_count - 1
+    }
+
+    /// Retrieve the maximum number of entries this page can hold. (The number
+    /// of keys)
+    pub fn get_max_entries(key_size: usize) -> usize {
+        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
+        // extraBits are: one parent pointer, 1 byte for child page category,
+        // one extra child pointer (node with m entries has m+1 pointers to
+        // children),
+        // 1 bit for extra header (why?)
+        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
+        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
+            / bits_per_entry_including_header; // round down
+        return entries_per_page;
+    }
+}
+
 impl BTreePage for BTreeInternalPage {
     fn new(
         pid: &BTreePageID,
@@ -413,23 +454,7 @@ impl BTreePage for BTreeInternalPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
-        let key_size =
-            get_type_length(tuple_scheme.fields[key_field].field_type);
-        let slot_count = Self::get_max_entries(key_size) + 1;
-        let header_size = Self::get_header_bytes_size(slot_count) as usize;
-
-        let mut keys: Vec<IntField> = Vec::new();
-        let mut children: Vec<BTreePageID> = Vec::new();
-        keys.resize(slot_count, IntField::new(0));
-        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
-
-        Self {
-            base: BTreeBasePage::new(pid),
-            keys,
-            children,
-            slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
-        }
+        Self::new(pid, bytes, tuple_scheme, key_field)
     }
 
     fn get_pid(&self) -> BTreePageID {
