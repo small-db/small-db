@@ -29,7 +29,7 @@ impl PageCategory {
             [0, 0, 0, 1] => PageCategory::Internal,
             [0, 0, 0, 2] => PageCategory::Leaf,
             [0, 0, 0, 3] => PageCategory::Header,
-            _ => panic!("invalid page category"),
+            _ => panic!("invalid page category: {:?}", bytes),
         }
     }
 }
