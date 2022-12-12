@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use super::BTreePageID;
 use crate::btree::tuple::TupleScheme;
 

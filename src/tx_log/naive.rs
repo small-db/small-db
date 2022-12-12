@@ -8,12 +8,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::{BTreePage, BTreePageID},
-    error::SmallError,
-    transaction::Transaction,
-    types::SmallResult,
-    utils::{lock_state, HandyRwLock},
-    Unique,
+    btree::page::BTreePage, error::SmallError, transaction::Transaction,
+    types::SmallResult, Unique,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -23,7 +19,6 @@ static START_RECORD_LEN: u64 = 17;
 ///
 /// TODO: add docs for `repr(u8)`
 /// #[repr(u8)]
-///
 ///
 #[derive(Debug)]
 enum RecordType {
@@ -92,7 +87,7 @@ impl LogManager {
 
     /// Write an UPDATE record to disk for the specified tid and page
     /// (with provided         before and after images.)
-    pub fn log_update(&mut self, tx: &Transaction) -> SmallResult {
+    pub fn log_update(&mut self, _tx: &Transaction) -> SmallResult {
         todo!()
     }
 

@@ -1,7 +1,7 @@
-use std::{any::Any, fmt};
+use std::fmt;
 
 use bit_vec::BitVec;
-use log::{error, debug};
+use log::{debug, error};
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
@@ -20,7 +20,6 @@ pub struct BTreeInternalPage {
 
     keys: Vec<IntField>,
 
-    ///
     /// Store the page id of the children.
     ///
     /// The size of this vector is always equal to `slot_count`. The

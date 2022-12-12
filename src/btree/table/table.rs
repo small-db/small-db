@@ -8,7 +8,7 @@ use std::{
     ops::DerefMut,
     str,
     sync::{
-        atomic::{AtomicU32, AtomicUsize, Ordering},
+        atomic::{AtomicU32, Ordering},
         Arc, Mutex, MutexGuard, RwLock,
     },
     time::SystemTime,

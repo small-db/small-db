@@ -1,12 +1,9 @@
-use std::{any::Any, convert::TryInto};
+use std::convert::TryInto;
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
-use crate::{
-    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
-    Unique,
-};
+use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,
@@ -20,7 +17,7 @@ pub struct BTreeRootPointerPage {
 impl BTreeRootPointerPage {
     pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let root_page_index =
-            u32::from_le_bytes(bytes[0..4].try_into().unwrap()) ;
+            u32::from_le_bytes(bytes[0..4].try_into().unwrap());
         let root_pid = BTreePageID {
             category: PageCategory::Leaf,
             page_index: root_page_index,

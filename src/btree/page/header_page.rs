@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use bit_vec::BitVec;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID};

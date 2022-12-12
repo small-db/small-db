@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use super::{BTreePage, BTreePageID, PageCategory};
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 

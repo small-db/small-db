@@ -39,11 +39,7 @@ impl fmt::Debug for BTreePageID {
 }
 
 impl BTreePageID {
-    pub fn new(
-        category: PageCategory,
-        table_id: u32,
-        page_index: u32,
-    ) -> Self {
+    pub fn new(category: PageCategory, table_id: u32, page_index: u32) -> Self {
         Self {
             category,
             page_index,

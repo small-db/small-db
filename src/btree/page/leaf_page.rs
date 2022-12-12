@@ -1,7 +1,4 @@
-use std::{
-    any::Any,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
