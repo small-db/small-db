@@ -79,3 +79,35 @@ impl<'a> SimpleReader<'a> {
         return &self.buf[start..end];
     }
 }
+
+pub struct SimpleWriter {
+    buf: Vec<u8>,
+    cap: usize,
+}
+
+impl SimpleWriter {
+    pub fn new(cap: usize) -> Self {
+        let buf = Vec::new();
+        Self { buf, cap }
+    }
+
+    pub fn write(&mut self, buf: &[u8]) {
+        // boundary check
+        if self.buf.len() + buf.len() > self.cap {
+            panic!("write out of boundary");
+        }
+
+        self.buf.extend_from_slice(buf);
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        // boundary check
+        if self.buf.len() > self.cap {
+            panic!("write out of boundary");
+        }
+
+        let mut result = self.buf.clone();
+        result.resize(self.cap, 0);
+        result
+    }
+}

@@ -11,7 +11,7 @@ use crate::{
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, bytes_to_u32, HandyRwLock},
+    utils::{self, bytes_to_u32, HandyRwLock, SimpleWriter},
     Unique,
 };
 
@@ -66,6 +66,8 @@ pub struct BTreeInternalPage {
     ///
     /// The bytes size of `header` should be `ceiling(slot_count / 8)`.
     header: BitVec<u32>,
+
+    children_category: PageCategory,
 }
 
 impl BTreeInternalPage {
@@ -81,6 +83,7 @@ impl BTreeInternalPage {
         let header_size = Self::get_header_bytes_size(slot_count) as usize;
 
         let mut reader = utils::SimpleReader::new(&bytes);
+
         // read children category
         let children_category = PageCategory::from_bytes(reader.read_exact(4));
 
@@ -112,6 +115,7 @@ impl BTreeInternalPage {
             children,
             slot_count,
             header,
+            children_category,
         }
     }
 
@@ -485,27 +489,23 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut data = vec![0; BufferPool::get_page_size()];
+        let mut writer = SimpleWriter::new(BufferPool::get_page_size());
 
-        debug!("page size {}", BufferPool::get_page_size());
+        // write children category
+        writer.write(&self.children_category.to_bytes());
 
         // write header
-        let header_size = Self::get_header_bytes_size(self.slot_count) as usize;
-        let header = self.header.to_bytes();
-        data[..header_size].copy_from_slice(&header);
+        writer.write(&self.header.to_bytes());
 
         // write keys and children
-        let mut offset = header_size;
         for i in 0..self.slot_count {
-            let key = self.keys[i].to_bytes();
-            let child = self.children[i].to_bytes();
-            data[offset..offset + key.len()].copy_from_slice(&key);
-            offset += key.len();
-            data[offset..offset + child.len()].copy_from_slice(&child);
-            offset += child.len();
+            if i > 0 {
+                writer.write(&self.keys[i].to_bytes());
+            }
+            writer.write(&self.children[i].to_bytes());
         }
 
-        return data;
+        return writer.to_bytes();
     }
 }
 
