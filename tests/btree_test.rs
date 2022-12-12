@@ -7,7 +7,9 @@ use std::{
 use log::debug;
 use rand::prelude::*;
 use small_db::{
-    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
+    btree::{
+        buffer_pool::BufferPool, table::BTreeTableSearchIterator,
+    },
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
@@ -45,30 +47,35 @@ fn deleter(
     debug!("concurrent_status: {:?}", cs);
 
     let tuple = r.recv().unwrap();
-    let predicate = Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+    let predicate =
+        Predicate::new(small_db::Op::Equals, tuple.get_field(0));
     let tx = Transaction::new();
     let table = table_pod.rl();
 
     debug!("{} prepare to delete", tx);
-    let mut it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+    let mut it =
+        BTreeTableSearchIterator::new(&tx, &table, predicate);
     let target = it.next().unwrap();
     table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
 }
 
-// Test that doing lots of inserts and deletes in multiple threads works.
+// Test that doing lots of inserts and deletes in multiple threads
+// works.
 #[test]
 fn test_big_table() {
     let _ctx = test_utils::setup();
 
-    // For this test we will decrease the size of the Buffer Pool pages.
+    // For this test we will decrease the size of the Buffer Pool
+    // pages.
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with a packed second tier of internal pages
-    // and packed third tier of leaf pages.
+    // This should create a B+ tree with a packed second tier of
+    // internal pages and packed third tier of leaf pages.
     //
-    // (124 entries per internal/leaf page, 125 children per internal page)
+    // (124 entries per internal/leaf page, 125 children per internal
+    // page)
     //
     // 1st tier: 1 internal page
     // 2nd tier: 2 internal pages (2 * 125 = 250 children)
@@ -93,15 +100,18 @@ fn test_big_table() {
     thread::scope(|s| {
         let mut insert_threads = vec![];
         for _ in 0..200 {
-            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
-            // The first few inserts will cause pages to split so give them a
-            // little more time to avoid too many deadlock situations.
+            let handle =
+                s.spawn(|| inserter(columns, &table_pod, &sender));
+            // The first few inserts will cause pages to split so give
+            // them a little more time to avoid too many
+            // deadlock situations.
             sleep(Duration::from_millis(10));
             insert_threads.push(handle);
         }
 
         for _ in 0..800 {
-            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
+            let handle =
+                s.spawn(|| inserter(columns, &table_pod, &sender));
             insert_threads.push(handle);
         }
 
@@ -119,7 +129,8 @@ fn test_big_table() {
     thread::scope(|s| {
         let mut threads = vec![];
         for _ in 0..1000 {
-            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
+            let handle =
+                s.spawn(|| inserter(columns, &table_pod, &sender));
             threads.push(handle);
 
             let handle = s.spawn(|| deleter(&table_pod, &receiver));
@@ -153,7 +164,8 @@ fn test_big_table() {
     thread::scope(|s| {
         let mut threads = vec![];
         for _ in 0..10 {
-            let handle = s.spawn(|| inserter(columns, &table_pod, &sender));
+            let handle =
+                s.spawn(|| inserter(columns, &table_pod, &sender));
             threads.push(handle);
         }
 
@@ -172,8 +184,11 @@ fn test_big_table() {
     for tuple in receiver.iter() {
         let predicate =
             Predicate::new(small_db::Op::Equals, tuple.get_field(0));
-        let mut it =
-            BTreeTableSearchIterator::new(&tx, &table_pod.rl(), predicate);
+        let mut it = BTreeTableSearchIterator::new(
+            &tx,
+            &table_pod.rl(),
+            predicate,
+        );
         assert!(it.next().is_some());
     }
     tx.commit().unwrap();

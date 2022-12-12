@@ -19,7 +19,8 @@ use test_utils::TreeLayout;
 fn test_insert_tuple() {
     let ctx = test_utils::setup();
 
-    // create an empty B+ tree file keyed on the second field of a 2-field tuple
+    // create an empty B+ tree file keyed on the second field of a
+    // 2-field tuple
     let table_rc = test_utils::create_random_btree_table(
         2,
         0,
@@ -42,8 +43,8 @@ fn test_insert_tuple() {
         assert_eq!(1, table.pages_count());
     }
 
-    // the next 251 tuples should live on page 2 since they are greater than
-    // all existing tuples in the file
+    // the next 251 tuples should live on page 2 since they are
+    // greater than all existing tuples in the file
     insert_count = 251;
     debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
@@ -74,7 +75,8 @@ fn test_insert_tuple() {
 fn test_insert_duplicate_tuples() {
     let ctx = test_utils::setup();
 
-    // create an empty B+ tree file keyed on the second field of a 2-field tuple
+    // create an empty B+ tree file keyed on the second field of a
+    // 2-field tuple
     let table_rc = test_utils::create_random_btree_table(
         2,
         0,
@@ -95,18 +97,23 @@ fn test_insert_duplicate_tuples() {
     }
 
     // now search for some ranges and make sure we find all the tuples
-    let predicate = Predicate::new(Op::Equals, field::IntField::new(1));
-    let it = BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let predicate =
+        Predicate::new(Op::Equals, field::IntField::new(1));
+    let it =
+        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
         Predicate::new(Op::GreaterThanOrEq, field::IntField::new(2));
-    let it = BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let it =
+        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
-    let predicate = Predicate::new(Op::LessThan, field::IntField::new(2));
-    let it =
-        btree::table::BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let predicate =
+        Predicate::new(Op::LessThan, field::IntField::new(2));
+    let it = btree::table::BTreeTableSearchIterator::new(
+        &ctx.tx, &table, predicate,
+    );
     assert_eq!(it.count(), repetition_count * 2);
 }
 
@@ -132,8 +139,8 @@ fn test_split_leaf_page() {
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(5000, 2))
         .unwrap();
     // Unique::buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(5000,
-    // 2))     .unwrap();
+    //     .insert_tuple(&ctx.tx, table.get_id(),
+    // &Tuple::new_btree_tuple(5000, 2))     .unwrap();
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
@@ -149,12 +156,20 @@ fn test_split_leaf_page() {
     let mut it = BTreeInternalPageIterator::new(&root);
     let entry = it.next().unwrap();
     let left_ref = Unique::buffer_pool()
-        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_left_child())
+        .get_leaf_page(
+            &ctx.tx,
+            Permission::ReadOnly,
+            &entry.get_left_child(),
+        )
         .unwrap();
     assert!(left_ref.rl().empty_slots_count() <= 251);
 
     let right_ref = Unique::buffer_pool()
-        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &entry.get_right_child())
+        .get_leaf_page(
+            &ctx.tx,
+            Permission::ReadOnly,
+            &entry.get_right_child(),
+        )
         .unwrap();
     assert!(right_ref.rl().empty_slots_count() <= 251);
 }
@@ -164,8 +179,8 @@ fn test_split_root_page() {
     let ctx = test_utils::setup();
 
     // This should create a packed B+ tree with no empty slots
-    // There are 503 keys per internal page (504 children) and 502 tuples per
-    // leaf page 504 * 502 = 253008
+    // There are 503 keys per internal page (504 children) and 502
+    // tuples per leaf page 504 * 502 = 253008
     let rows = 504 * 502;
     let table_rc = test_utils::create_random_btree_table(
         2,
@@ -186,7 +201,11 @@ fn test_split_root_page() {
 
         let root_pid = table.get_root_pid(&ctx.tx);
         let root_ref = Unique::buffer_pool()
-            .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
+            .get_internal_page(
+                &ctx.tx,
+                Permission::ReadWrite,
+                &root_pid,
+            )
             .unwrap();
         let root = root_ref.rl();
         debug!("root empty slot count: {}", root.empty_slots_count());
@@ -199,8 +218,8 @@ fn test_split_root_page() {
         .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(10, 2))
         .unwrap();
     // Unique::buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(), &Tuple::new_btree_tuple(10,
-    // 2))     .unwrap();
+    //     .insert_tuple(&ctx.tx, table.get_id(),
+    // &Tuple::new_btree_tuple(10, 2))     .unwrap();
 
     // there should now be 505 leaf pages + 3 internal nodes
     assert_eq!(508, table.pages_count());
@@ -208,13 +227,17 @@ fn test_split_root_page() {
     // put borrow of pages in a scope so the external process will not
     // be disturbed by the borrow
     {
-        // the root node should be an internal node and have 2 children (1
-        // entry)
+        // the root node should be an internal node and have 2
+        // children (1 entry)
         let root_pid = table.get_root_pid(&ctx.tx);
         assert_eq!(root_pid.category, PageCategory::Internal);
 
         let root_page_rc = Unique::buffer_pool()
-            .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
+            .get_internal_page(
+                &ctx.tx,
+                Permission::ReadWrite,
+                &root_pid,
+            )
             .unwrap();
         let root_page = root_page_rc.rl();
         assert_eq!(root_page.empty_slots_count(), 502);
@@ -224,7 +247,11 @@ fn test_split_root_page() {
         let entry = it.next().unwrap();
         let left_pid = entry.get_left_child();
         let left_rc = Unique::buffer_pool()
-            .get_internal_page(&ctx.tx, Permission::ReadWrite, &left_pid)
+            .get_internal_page(
+                &ctx.tx,
+                Permission::ReadWrite,
+                &left_pid,
+            )
             .unwrap();
         let left = left_rc.rl();
         debug!("left entries count: {}", left.entries_count());
@@ -232,7 +259,11 @@ fn test_split_root_page() {
 
         let right_pid = entry.get_right_child();
         let right_rc = Unique::buffer_pool()
-            .get_internal_page(&ctx.tx, Permission::ReadWrite, &right_pid)
+            .get_internal_page(
+                &ctx.tx,
+                Permission::ReadWrite,
+                &right_pid,
+            )
             .unwrap();
         let right = right_rc.rl();
         debug!("right entries count: {}", right.entries_count());
@@ -246,7 +277,8 @@ fn test_split_root_page() {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&ctx.tx, &tuple).unwrap();
 
-        let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
+        let predicate =
+            Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(
             &ctx.tx, &table, predicate,
         );
@@ -266,16 +298,17 @@ fn test_split_root_page() {
 fn test_split_internal_page() {
     let ctx = test_utils::setup();
 
-    // For this test we will decrease the size of the Buffer Pool pages
+    // For this test we will decrease the size of the Buffer Pool
+    // pages
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with a packed second tier of internal pages
-    // and packed third tier of leaf pages
+    // This should create a B+ tree with a packed second tier of
+    // internal pages and packed third tier of leaf pages
     // (124 tuples per leaf page, 125 children per internal page ->
     // 2 * 125 * 124 = 31000)
     // 2 = 2 children (internal pages) for the top level internal page
-    // 125 = 125 children (leaf pages) for each second level internal pages
-    // 124 = 124 tuples per leaf page
+    // 125 = 125 children (leaf pages) for each second level internal
+    // pages 124 = 124 tuples per leaf page
     let rows = 2 * 125 * 124;
     let table_rc = test_utils::create_random_btree_table(
         2,
@@ -290,7 +323,8 @@ fn test_split_internal_page() {
     // there should be 250 leaf pages + 3 internal nodes
     assert_eq!(253, table.pages_count());
 
-    // now make sure we have 31100 records and they are all in sorted order
+    // now make sure we have 31100 records and they are all in sorted
+    // order
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
@@ -318,7 +352,8 @@ fn test_split_internal_page() {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
         table.insert_tuple(&ctx.tx, &tuple).unwrap();
 
-        let predicate = Predicate::new(Op::Equals, tuple.get_field(0));
+        let predicate =
+            Predicate::new(Op::Equals, tuple.get_field(0));
         let it = btree::table::BTreeTableSearchIterator::new(
             &ctx.tx, &table, predicate,
         );
@@ -333,7 +368,8 @@ fn test_split_internal_page() {
         assert!(found);
     }
 
-    // now make sure we have 31100 records and they are all in sorted order
+    // now make sure we have 31100 records and they are all in sorted
+    // order
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;

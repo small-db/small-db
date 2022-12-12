@@ -29,15 +29,21 @@ pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
-    root_pointer_buffer:
-        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
-    pub internal_buffer:
-        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
-    pub leaf_buffer: ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
+    root_pointer_buffer: ConcurrentHashMap<
+        BTreePageID,
+        Arc<RwLock<BTreeRootPointerPage>>,
+    >,
+    pub internal_buffer: ConcurrentHashMap<
+        BTreePageID,
+        Arc<RwLock<BTreeInternalPage>>,
+    >,
+    pub leaf_buffer:
+        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer:
         ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
 
-    unified_buffer: ConcurrentHashMap<BTreePageID, Arc<RwLock<dyn BTreePage>>>,
+    unified_buffer:
+        ConcurrentHashMap<BTreePageID, Arc<RwLock<dyn BTreePage>>>,
 }
 
 type Key = BTreePageID;
@@ -62,13 +68,14 @@ impl BufferPool {
     }
 
     /// Retrieve the specified page with the associated permissions.
-    /// Will acquire a lock and may block if that lock is held by another
-    /// transaction.
+    /// Will acquire a lock and may block if that lock is held by
+    /// another transaction.
     ///
-    /// The retrieved page should be looked up in the buffer pool.  If it
-    /// is present, it should be returned.  If it is not present, it should
-    /// be added to the buffer pool and returned.  If there is insufficient
-    /// space in the buffer pool, a page should be evicted and the new page
+    /// The retrieved page should be looked up in the buffer pool.  If
+    /// it is present, it should be returned.  If it is not
+    /// present, it should be added to the buffer pool and
+    /// returned.  If there is insufficient space in the buffer
+    /// pool, a page should be evicted and the new page
     /// should be added in its place.
     ///
     /// reference:
@@ -79,9 +86,9 @@ impl BufferPool {
     {
         // stage 1: get table
         let catalog = Unique::catalog();
-        let v = catalog
-            .get_table(&key.get_table_id())
-            .expect(&format!("table {} not found", key.get_table_id()));
+        let v = catalog.get_table(&key.get_table_id()).expect(
+            &format!("table {} not found", key.get_table_id()),
+        );
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
@@ -90,14 +97,22 @@ impl BufferPool {
             .or(Err(SmallError::new("read page content failed")))?;
 
         // stage 3: page instantiation
-        let page =
-            PAGE::new(key, buf.to_vec(), &table.tuple_scheme, table.key_field);
+        let page = PAGE::new(
+            key,
+            buf.to_vec(),
+            &table.tuple_scheme,
+            table.key_field,
+        );
 
         // stage 4: return
         return Ok(Arc::new(RwLock::new(page)));
     }
 
-    fn read_page(&self, file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
+    fn read_page(
+        &self,
+        file: &mut File,
+        key: &Key,
+    ) -> io::Result<Vec<u8>> {
         let page_size = Self::get_page_size();
         let start_pos = key.page_index as usize * page_size;
         file.seek(SeekFrom::Start(start_pos as u64))
@@ -114,7 +129,11 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(
+            tx,
+            &perm.to_lock(),
+            key,
+        )?;
         self.root_pointer_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -127,7 +146,11 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeHeaderPage> {
-        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(
+            tx,
+            &perm.to_lock(),
+            key,
+        )?;
         self.header_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -140,7 +163,11 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(
+            tx,
+            &perm.to_lock(),
+            key,
+        )?;
         self.internal_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -153,7 +180,11 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        Unique::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        Unique::concurrent_status().request_lock(
+            tx,
+            &perm.to_lock(),
+            key,
+        )?;
         self.leaf_buffer.get_or_insert(key, |key| {
             let page = self.load_page(key)?;
             Ok(page.clone())
@@ -227,18 +258,31 @@ impl BufferPool {
     fn flush_page(&self, pid: &BTreePageID) {
         // stage 1: get table
         let catalog = Unique::catalog();
-        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
+        let table_pod =
+            catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
 
         match pid.category {
             PageCategory::RootPointer => {
-                self.write_and_remove(&table, pid, &self.root_pointer_buffer);
+                self.write_and_remove(
+                    &table,
+                    pid,
+                    &self.root_pointer_buffer,
+                );
             }
             PageCategory::Header => {
-                self.write_and_remove(&table, pid, &self.header_buffer);
+                self.write_and_remove(
+                    &table,
+                    pid,
+                    &self.header_buffer,
+                );
             }
             PageCategory::Internal => {
-                self.write_and_remove(&table, pid, &self.internal_buffer);
+                self.write_and_remove(
+                    &table,
+                    pid,
+                    &self.internal_buffer,
+                );
             }
             PageCategory::Leaf => {
                 self.write_and_remove(&table, pid, &self.leaf_buffer);

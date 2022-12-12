@@ -27,7 +27,10 @@ fn test_scan(rows: usize, columns: usize) {
     Unique::concurrent_status().clear();
 }
 
-fn validate_scan(it: &mut BTreeTableIterator, int_tuples: &Vec<Vec<i32>>) {
+fn validate_scan(
+    it: &mut BTreeTableIterator,
+    int_tuples: &Vec<Vec<i32>>,
+) {
     for (i, tuple) in it.enumerate() {
         for (j, f) in tuple.fields.iter().enumerate() {
             assert_eq!(f.value, int_tuples[i][j]);

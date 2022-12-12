@@ -6,8 +6,8 @@ use small_db::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
-            BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
-            Entry,
+            BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePage,
+            BTreePageID, Entry,
         },
         tuple::TupleScheme,
     },
@@ -54,8 +54,8 @@ pub enum TreeLayout {
 ///
 /// # Arguments:
 ///
-/// - int_tuples: This is a reference used to return all inserted data. Only
-///   works when it's not None.
+/// - int_tuples: This is a reference used to return all inserted
+///   data. Only works when it's not None.
 pub fn create_random_btree_table(
     columns: usize,
     rows: usize,
@@ -79,7 +79,9 @@ pub fn create_random_btree_table(
         tuples.push(tuple);
     }
 
-    tuples.sort_by(|a, b| a.get_field(key_field).cmp(&b.get_field(key_field)));
+    tuples.sort_by(|a, b| {
+        a.get_field(key_field).cmp(&b.get_field(key_field))
+    });
 
     if let Some(int_tuples) = int_tuples {
         for t in tuples.iter() {
@@ -118,7 +120,10 @@ pub fn create_random_btree_table(
     // borrow of table_rc ends here
 
     write_tx.commit();
-    debug!("table construction finished, insert {} rows in total", rows,);
+    debug!(
+        "table construction finished, insert {} rows in total",
+        rows,
+    );
 
     return table_rc;
 }
@@ -165,7 +170,8 @@ fn sequential_insert_into_table(
 
                 tuple_index += 1;
 
-                // page index in range of [1, leaf_page_count], inclusive
+                // page index in range of [1, leaf_page_count],
+                // inclusive
 
                 // set sibling for all but the last leaf page
                 if page_index < leaf_buckets.len() as u32 {
@@ -234,8 +240,10 @@ fn sequential_insert_into_table(
             {
                 let left_rc = leaves[leaf_index].clone();
                 let right_rc = leaves[leaf_index + 1].clone();
-                let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
-                let key = it.next().unwrap().get_field(table.key_field);
+                let mut it =
+                    BTreeLeafPageIteratorRc::new(right_rc.clone());
+                let key =
+                    it.next().unwrap().get_field(table.key_field);
 
                 let mut internal = internal_rc.wl();
                 let mut e = Entry::new(
@@ -261,7 +269,12 @@ fn sequential_insert_into_table(
         leaf_index += 1;
     }
 
-    return write_internal_pages(tx, table, internals, &mut page_index);
+    return write_internal_pages(
+        tx,
+        table,
+        internals,
+        &mut page_index,
+    );
 }
 
 fn write_internal_pages(

@@ -4,7 +4,8 @@ use backtrace::Backtrace;
 use bit_vec::BitVec;
 
 use super::{
-    BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
+    EMPTY_PAGE_ID,
 };
 use crate::{
     btree::{
@@ -37,7 +38,8 @@ pub struct BTreeLeafPage {
 
     pub tuple_scheme: TupleScheme,
 
-    // use u32 instead of Option<BTreePageID> to reduce memory footprint
+    // use u32 instead of Option<BTreePageID> to reduce memory
+    // footprint
     right_sibling_id: u32,
     left_sibling_id: u32,
 
@@ -93,9 +95,10 @@ impl BTreeLeafPage {
 
     /// Retrieve the maximum number of tuples this page can hold.
     pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
-        let bits_per_tuple_including_header = scheme.get_size() * 8 + 1;
-        // extraBits are: left sibling pointer, right sibling pointer, parent
-        // pointer
+        let bits_per_tuple_including_header =
+            scheme.get_size() * 8 + 1;
+        // extraBits are: left sibling pointer, right sibling pointer,
+        // parent pointer
         let index_size: usize = 4;
         let extra_bits = 3 * index_size * 8;
         (BufferPool::get_page_size() * 8 - extra_bits)
@@ -108,7 +111,8 @@ impl BTreeLeafPage {
 
     /// stable means at least half of the page is occupied
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer {
+        if self.get_parent_pid().category == PageCategory::RootPointer
+        {
             return true;
         }
 
@@ -138,9 +142,9 @@ impl BTreeLeafPage {
         slot_count / 8 + 1
     }
 
-    /// Adds the specified tuple to the page such that all records remain in
-    /// sorted order; the tuple should be updated to reflect
-    /// that it is now stored on this page.
+    /// Adds the specified tuple to the page such that all records
+    /// remain in sorted order; the tuple should be updated to
+    /// reflect that it is now stored on this page.
     /// tuple: The tuple to add.
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
@@ -152,10 +156,11 @@ impl BTreeLeafPage {
             }
         }
 
-        // Find the last key less than or equal to the key being inserted.
+        // Find the last key less than or equal to the key being
+        // inserted.
         //
-        // -1 indicate there is no such key less than tuple.key, so the tuple
-        // should be inserted in slot 0 (-1 + 1).
+        // -1 indicate there is no such key less than tuple.key, so
+        // the tuple should be inserted in slot 0 (-1 + 1).
         let mut last_less_slot: i32 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
@@ -169,8 +174,9 @@ impl BTreeLeafPage {
             }
         }
 
-        // shift records back or forward to fill empty slot and make room for
-        // new record while keeping records in sorted order
+        // shift records back or forward to fill empty slot and make
+        // room for new record while keeping records in sorted
+        // order
         let good_slot: usize;
         if first_empty_slot < last_less_slot {
             for i in first_empty_slot..last_less_slot {
@@ -189,7 +195,8 @@ impl BTreeLeafPage {
         self.mark_slot_status(good_slot, true);
     }
 
-    // Move a tuple from one slot to another slot, destination must be empty
+    // Move a tuple from one slot to another slot, destination must be
+    // empty
     fn move_tuple(&mut self, from: usize, to: usize) {
         // return if the source slot is empty
         if !self.is_slot_used(from) {
@@ -218,7 +225,11 @@ impl BTreeLeafPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
+    pub fn mark_slot_status(
+        &mut self,
+        slot_index: usize,
+        used: bool,
+    ) {
         self.header.set(slot_index, used);
     }
 
@@ -269,7 +280,9 @@ impl BTreeLeafPage {
         }
 
         if check_occupancy && depth > 0 {
-            assert!(self.tuples_count() >= self.get_slots_count() / 2);
+            assert!(
+                self.tuples_count() >= self.get_slots_count() / 2
+            );
         }
     }
 }
@@ -282,14 +295,16 @@ impl BTreePage for BTreeLeafPage {
         key_field: usize,
     ) -> Self {
         let slot_count = Self::calculate_slots_count(&tuple_scheme);
-        let header_size = Self::calculate_header_size(slot_count) as usize;
+        let header_size =
+            Self::calculate_header_size(slot_count) as usize;
 
         // init tuples
         let mut tuples = Vec::new();
         for i in 0..slot_count {
             let start = header_size + i * tuple_scheme.get_size();
             let end = start + tuple_scheme.get_size();
-            let t = Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
+            let t =
+                Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
             tuples.push(t);
         }
 
@@ -321,13 +336,15 @@ impl BTreePage for BTreeLeafPage {
         let mut data = vec![0; BufferPool::get_page_size()];
 
         // write header
-        let header_size = Self::calculate_header_size(self.slot_count) as usize;
+        let header_size =
+            Self::calculate_header_size(self.slot_count) as usize;
         let header = self.header.to_bytes();
         data[..header_size].copy_from_slice(&header);
 
         // write tuples
         for i in 0..self.slot_count {
-            let start = header_size + i * self.tuple_scheme.get_size();
+            let start =
+                header_size + i * self.tuple_scheme.get_size();
             let end = start + self.tuple_scheme.get_size();
             let tuple = self.tuples[i].to_bytes();
             data[start..end].copy_from_slice(&tuple);

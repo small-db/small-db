@@ -1,7 +1,11 @@
 use std::ops::{Add, Div, Sub};
 
 pub trait Number:
-    Add<Output = Self> + Sub<Output = Self> + Div<Output = Self> + PartialEq + Copy
+    Add<Output = Self>
+    + Sub<Output = Self>
+    + Div<Output = Self>
+    + PartialEq
+    + Copy
 {
     fn one() -> Self;
 }

@@ -41,7 +41,10 @@ impl Tuple {
         }
     }
 
-    pub fn new_default_tuple(scheme: TupleScheme, _width: usize) -> Tuple {
+    pub fn new_default_tuple(
+        scheme: TupleScheme,
+        _width: usize,
+    ) -> Tuple {
         let mut cells: Vec<IntField> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
@@ -197,7 +200,10 @@ impl PartialEq for TupleScheme {
 }
 
 impl TupleScheme {
-    pub fn merge(scheme1: TupleScheme, scheme2: TupleScheme) -> TupleScheme {
+    pub fn merge(
+        scheme1: TupleScheme,
+        scheme2: TupleScheme,
+    ) -> TupleScheme {
         let mut new_scheme = TupleScheme {
             ..Default::default()
         };
@@ -232,7 +238,10 @@ impl Default for TupleScheme {
     }
 }
 
-pub fn small_int_tuple_scheme(width: usize, name_prefix: &str) -> TupleScheme {
+pub fn small_int_tuple_scheme(
+    width: usize,
+    name_prefix: &str,
+) -> TupleScheme {
     let mut fields: Vec<FieldItem> = Vec::new();
     for i in 0..width {
         let field = FieldItem {

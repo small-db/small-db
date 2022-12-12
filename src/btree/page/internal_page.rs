@@ -5,13 +5,18 @@ use log::error;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
-    btree::{buffer_pool::BufferPool, consts::INDEX_SIZE, tuple::TupleScheme},
+    btree::{
+        buffer_pool::BufferPool, consts::INDEX_SIZE,
+        tuple::TupleScheme,
+    },
     concurrent_status::Permission,
     error::SmallError,
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock, SmallWriter},
+    utils::{
+        self, bytes_to_u32, u32_to_bytes, HandyRwLock, SmallWriter,
+    },
     Unique,
 };
 
@@ -21,8 +26,8 @@ use crate::{
 /// # Binary Layout
 ///
 /// - 4 bytes: children category (leaf/internal)
-/// - n bytes: header bytes, indicate whether every slot of the page is used or
-///   not.
+/// - n bytes: header bytes, indicate whether every slot of the page
+///   is used or not.
 /// - n bytes: keys
 /// - n bytes: children
 pub struct BTreeInternalPage {
@@ -38,9 +43,9 @@ pub struct BTreeInternalPage {
     ///
     /// The right child of the nth entry is stored in the n-th slot.
     ///
-    /// Note that the left child of the nth entry is not always locate
-    /// in the n-1 slot, but the nearest left slot which has been marked
-    /// as used.
+    /// Note that the left child of the nth entry is not always
+    /// locate in the n-1 slot, but the nearest left slot which
+    /// has been marked as used.
     ///
     /// e.g:
     /// slots:    | 0     | 1     | 2    |
@@ -48,11 +53,12 @@ pub struct BTreeInternalPage {
     /// keys:     | dummy | dummy | key3 |
     /// children: | page1 | dummy | page3|
     ///
-    /// For the above example, there is only one entry in the page, and
-    /// the left child of the entry is page1, the right child is page3.
+    /// For the above example, there is only one entry in the page,
+    /// and the left child of the entry is page1, the right child
+    /// is page3.
     ///
-    /// The `dummy` value is ignored, and the children[0] is only used
-    /// to store the left child of the first entry.
+    /// The `dummy` value is ignored, and the children[0] is only
+    /// used to store the left child of the first entry.
     children: Vec<BTreePageID>,
 
     /// The number of slots in the page, including the empty slots.
@@ -64,7 +70,8 @@ pub struct BTreeInternalPage {
     ///
     /// The size of `header` is always equal to `slot_count`.
     ///
-    /// The bytes size of `header` should be `ceiling(slot_count / 8)`.
+    /// The bytes size of `header` should be `ceiling(slot_count /
+    /// 8)`.
     header: BitVec<u32>,
 
     children_category: PageCategory,
@@ -77,24 +84,29 @@ impl BTreeInternalPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
-        let key_size =
-            get_type_length(tuple_scheme.fields[key_field].field_type);
+        let key_size = get_type_length(
+            tuple_scheme.fields[key_field].field_type,
+        );
         let slot_count = Self::get_max_entries(key_size) + 1;
-        let header_size = Self::get_header_bytes_size(slot_count) as usize;
+        let header_size =
+            Self::get_header_bytes_size(slot_count) as usize;
 
         let mut reader = utils::SmallReader::new(&bytes);
 
         // read children category
-        let children_category = PageCategory::from_bytes(reader.read_exact(4));
+        let children_category =
+            PageCategory::from_bytes(reader.read_exact(4));
 
         // read header
-        let header = BitVec::from_bytes(reader.read_exact(header_size));
+        let header =
+            BitVec::from_bytes(reader.read_exact(header_size));
 
         // read keys
         let mut keys: Vec<IntField> = Vec::new();
         keys.push(IntField::new(0));
         for _ in 1..slot_count {
-            let key = IntField::from_bytes(reader.read_exact(key_size));
+            let key =
+                IntField::from_bytes(reader.read_exact(key_size));
             keys.push(key);
         }
 
@@ -142,13 +154,14 @@ impl BTreeInternalPage {
             break;
         }
 
-        // not found in the page, maybe it's a edge entry (half of the entry
-        // in the sibling page)
+        // not found in the page, maybe it's a edge entry (half of the
+        // entry in the sibling page)
         entry
     }
 
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer {
+        if self.get_parent_pid().category == PageCategory::RootPointer
+        {
             return true;
         }
 
@@ -225,8 +238,9 @@ impl BTreeInternalPage {
         if self.is_slot_used(from) && !self.is_slot_used(to) {
             self.keys[to] = self.keys[from];
 
-            // note that we don't need to update the left child slot, since the
-            // left child slot is not the nearest left slot, but the nearest
+            // note that we don't need to update the left child slot,
+            // since the left child slot is not the
+            // nearest left slot, but the nearest
             // `used` slot, so it should be kept untouched
             self.children[to] = self.children[from];
 
@@ -241,12 +255,17 @@ impl BTreeInternalPage {
         self.header.set(slot_index, used);
     }
 
-    // Get pid of the ith child. If there is no ith child, return None.
+    // Get pid of the ith child. If there is no ith child, return
+    // None.
     //
     // # Arguments
     //
-    // * `index` - the index of the child, -1 means the rightmost child
-    pub fn get_child_pid(&self, _index: usize) -> Option<BTreePageID> {
+    // * `index` - the index of the child, -1 means the rightmost
+    //   child
+    pub fn get_child_pid(
+        &self,
+        _index: usize,
+    ) -> Option<BTreePageID> {
         unimplemented!()
     }
 
@@ -344,8 +363,8 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            // minus 1 hear since the page may become lower than half full
-            // in the process of splitting
+            // minus 1 hear since the page may become lower than half
+            // full in the process of splitting
             let minimal_stable = Self::get_max_entries(4) / 2 - 1;
             assert!(
                 self.entries_count() >= minimal_stable,
@@ -362,7 +381,9 @@ impl BTreeInternalPage {
 impl BTreeInternalPage {
     pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
         if self.empty_slots_count() == 0 {
-            return Err(SmallError::new("No empty slots on this page."));
+            return Err(SmallError::new(
+                "No empty slots on this page.",
+            ));
         }
 
         // check if this is the first entry
@@ -389,24 +410,25 @@ impl BTreeInternalPage {
             }
         }
 
-        // find the child pointer matching the left or right child in this entry
+        // find the child pointer matching the left or right child in
+        // this entry
         let mut slot_just_ahead: usize = usize::MAX;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
                 continue;
             }
 
-            // circumstances 1: we want to insert a entry just after the current
-            // entry
+            // circumstances 1: we want to insert a entry just after
+            // the current entry
             if self.children[i] == e.get_left_child() {
                 slot_just_ahead = i;
                 break;
             }
 
-            // circumstances 2: we want to insert a entry just inside the
-            // current entry, so the right child of the current
-            // entry should be updated to the left child of the new
-            // entry
+            // circumstances 2: we want to insert a entry just inside
+            // the current entry, so the right child of
+            // the current entry should be updated to the
+            // left child of the new entry
             if self.children[i] == e.get_right_child() {
                 slot_just_ahead = i;
                 // update right child of current entry
@@ -427,8 +449,9 @@ impl BTreeInternalPage {
             return Err(e);
         }
 
-        // shift entries back or forward to fill empty slot and make room for
-        // new entry while keeping entries in sorted order
+        // shift entries back or forward to fill empty slot and make
+        // room for new entry while keeping entries in sorted
+        // order
         let good_slot: usize;
         if empty_slot < slot_just_ahead {
             for i in empty_slot..slot_just_ahead {
@@ -459,16 +482,18 @@ impl BTreeInternalPage {
         self.slot_count - 1
     }
 
-    /// Retrieve the maximum number of entries this page can hold. (The number
-    /// of keys)
+    /// Retrieve the maximum number of entries this page can hold.
+    /// (The number of keys)
     pub fn get_max_entries(key_size: usize) -> usize {
-        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
-        // extraBits are: one parent pointer, 1 byte for child page category,
-        // one extra child pointer (node with m entries has m+1 pointers to
-        // children),
+        let bits_per_entry_including_header =
+            key_size * 8 + INDEX_SIZE * 8 + 1;
+        // extraBits are: one parent pointer, 1 byte for child page
+        // category, one extra child pointer (node with m
+        // entries has m+1 pointers to children),
         // 1 bit for extra header (why?)
         let extra_bits = 2 * INDEX_SIZE * 8 + 8;
-        let entries_per_page = (BufferPool::get_page_size() * 8 - extra_bits)
+        let entries_per_page = (BufferPool::get_page_size() * 8
+            - extra_bits)
             / bits_per_entry_including_header; // round down
         return entries_per_page;
     }
@@ -497,7 +522,8 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut writer = SmallWriter::new(BufferPool::get_page_size());
+        let mut writer =
+            SmallWriter::new(BufferPool::get_page_size());
 
         // write children category
         writer.write(&self.children_category.to_bytes());
@@ -517,9 +543,9 @@ impl BTreePage for BTreeInternalPage {
     }
 }
 
-// All of the entries or tuples in the left child page should be less than or
-// equal to the key, and all of the entries or tuples in the right child page
-// should be greater than or equal to the key.
+// All of the entries or tuples in the left child page should be less
+// than or equal to the key, and all of the entries or tuples in the
+// right child page should be greater than or equal to the key.
 #[derive(Clone, Copy, Debug)]
 pub struct Entry {
     key: IntField,
@@ -531,7 +557,11 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn new(key: IntField, left: &BTreePageID, right: &BTreePageID) -> Self {
+    pub fn new(
+        key: IntField,
+        left: &BTreePageID,
+        right: &BTreePageID,
+    ) -> Self {
         Self {
             key,
             left: *left,
@@ -637,7 +667,9 @@ impl Iterator for BTreeInternalPageIterator<'_> {
 impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(left_index) = self.reverse_cursor.checked_sub(1) {
+            if let Some(left_index) =
+                self.reverse_cursor.checked_sub(1)
+            {
                 self.reverse_cursor = left_index;
                 if !self.page.is_slot_used(left_index) {
                     continue;

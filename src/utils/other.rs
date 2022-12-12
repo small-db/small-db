@@ -6,8 +6,8 @@ use std::{
 
 /// copy from https://github.com/tikv/tikv/blob/b15ea3b1cd766375cb52019e35c195ed797124df/components/tikv_util/src/lib.rs#L171-L186
 ///
-/// A handy shortcut to replace `RwLock` write/read().unwrap() pattern to
-/// shortcut wl and rl.
+/// A handy shortcut to replace `RwLock` write/read().unwrap() pattern
+/// to shortcut wl and rl.
 pub trait HandyRwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T>;
     fn rl(&self) -> RwLockReadGuard<'_, T>;
@@ -23,7 +23,9 @@ impl<T> HandyRwLock<T> for RwLock<T> {
     }
 }
 
-pub use crate::{btree::tuple::small_int_tuple_scheme, utils::init_log};
+pub use crate::{
+    btree::tuple::small_int_tuple_scheme, utils::init_log,
+};
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
     let is_read: bool = lock.try_read().is_err();

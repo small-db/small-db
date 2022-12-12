@@ -27,7 +27,11 @@ impl BTreeHeaderPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
+    pub fn mark_slot_status(
+        &mut self,
+        slot_index: usize,
+        used: bool,
+    ) {
         self.header.set(slot_index, used);
     }
 

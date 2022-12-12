@@ -5,19 +5,21 @@ use std::{
 
 use super::HandyRwLock;
 use crate::{
-    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus,
-    tx_log::LogManager, types::Pod, Catalog,
+    btree::buffer_pool::BufferPool,
+    concurrent_status::ConcurrentStatus, tx_log::LogManager,
+    types::Pod, Catalog,
 };
 
 /// We collect all global variables here.
 ///
-/// These variable cannot be initialized as static variables, because their
-/// initialization function all rely on non-const fn (e.g. `HashMap::new()`).
+/// These variable cannot be initialized as static variables, because
+/// their initialization function all rely on non-const fn (e.g.
+/// `HashMap::new()`).
 ///
-/// In the same time, all these variables should not be wrapped in any kind of
-/// smark pointers / locks (e.g. `Arc`, `RwLock`), because they are used in
-/// concurrent environment, and it's hard, if not impossible, to acquire a
-/// exclusive lock in any context.
+/// In the same time, all these variables should not be wrapped in any
+/// kind of smark pointers / locks (e.g. `Arc`, `RwLock`), because
+/// they are used in concurrent environment, and it's hard, if not
+/// impossible, to acquire a exclusive lock in any context.
 pub struct Unique {
     buffer_pool: BufferPool,
     catalog: Pod<Catalog>,
@@ -31,7 +33,9 @@ impl Unique {
             buffer_pool: BufferPool::new(),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
-            log_file: Arc::new(RwLock::new(LogManager::new("wal.log"))),
+            log_file: Arc::new(RwLock::new(LogManager::new(
+                "wal.log",
+            ))),
         }
     }
 

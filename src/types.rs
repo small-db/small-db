@@ -164,12 +164,15 @@ mod tests {
             let mut threads = vec![];
             for _ in 0..5 {
                 let handle = s.spawn(|| {
-                    let thread_name =
-                        format!("thread-{:?}", thread::current().id());
+                    let thread_name = format!(
+                        "thread-{:?}",
+                        thread::current().id()
+                    );
                     debug!("{}: start", thread_name);
                     {
-                        // We have to give the guard a name, otherwise it will
-                        // be dropped immediately. (i.e, this block of code will
+                        // We have to give the guard a name, otherwise
+                        // it will be dropped
+                        // immediately. (i.e, this block of code will
                         // be protected by the lock)
                         let _guard = global_lock.lock();
                         sleep(std::time::Duration::from_millis(10));

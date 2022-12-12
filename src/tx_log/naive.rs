@@ -8,8 +8,9 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePage, error::SmallError, transaction::Transaction,
-    types::SmallResult, utils::SmallFile, Unique,
+    btree::page::BTreePage, error::SmallError,
+    transaction::Transaction, types::SmallResult, utils::SmallFile,
+    Unique,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -77,8 +78,10 @@ impl LogManager {
         self.file.write_u64(self.current_offset)?;
 
         self.tx_start_position.insert(*tx, self.current_offset);
-        let current_offset =
-            self.get_file().seek(std::io::SeekFrom::Current(0)).unwrap();
+        let current_offset = self
+            .get_file()
+            .seek(std::io::SeekFrom::Current(0))
+            .unwrap();
         self.current_offset = current_offset;
 
         Ok(())
@@ -93,8 +96,8 @@ impl LogManager {
     // pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
     // }
 
-    /// Write an abort record to the log for the specified tid, force the log to
-    /// disk, and perform a rollback
+    /// Write an abort record to the log for the specified tid, force
+    /// the log to disk, and perform a rollback
     pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
         self.rollback(tx)?;
 
@@ -102,8 +105,10 @@ impl LogManager {
         self.file.write_u64(tx.get_id())?;
         self.file.write_u64(self.current_offset)?;
 
-        let current_offset =
-            self.get_file().seek(std::io::SeekFrom::Current(0)).unwrap();
+        let current_offset = self
+            .get_file()
+            .seek(std::io::SeekFrom::Current(0))
+            .unwrap();
         self.current_offset = current_offset;
 
         self.tx_start_position.remove(tx);
@@ -118,19 +123,22 @@ impl LogManager {
     /// be enforced by this method.)
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
         let start = self.tx_start_position.get(tx).unwrap();
-        // seek to the start position of the transaction, skip the START_RECORD
+        // seek to the start position of the transaction, skip the
+        // START_RECORD
         self.get_file()
             .seek(std::io::SeekFrom::Start(*start + START_RECORD_LEN))
             .unwrap();
 
-        let record_type = RecordType::from_u8(self.file.read_u8().unwrap());
+        let record_type =
+            RecordType::from_u8(self.file.read_u8().unwrap());
         debug!("record_type: {:?}", record_type);
 
         match record_type {
             RecordType::UPDATE => {
                 let before_page_rc = self.read_page().unwrap();
                 let before_page = before_page_rc.read().unwrap();
-                Unique::buffer_pool().discard_page(&before_page.get_pid());
+                Unique::buffer_pool()
+                    .discard_page(&before_page.get_pid());
 
                 todo!()
             }
@@ -140,7 +148,9 @@ impl LogManager {
         todo!()
     }
 
-    fn read_page(&mut self) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
+    fn read_page(
+        &mut self,
+    ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
         todo!()
     }
 }

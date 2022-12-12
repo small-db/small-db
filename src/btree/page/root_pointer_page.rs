@@ -1,7 +1,8 @@
 use std::convert::TryInto;
 
 use super::{
-    BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
+    EMPTY_PAGE_ID,
 };
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
@@ -28,7 +29,8 @@ impl BTreeRootPointerPage {
     fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let root_page_index =
             u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let root_page_category = PageCategory::from_bytes(&bytes[4..8]);
+        let root_page_category =
+            PageCategory::from_bytes(&bytes[4..8]);
         let header_page_index =
             u32::from_le_bytes(bytes[8..12].try_into().unwrap());
 
@@ -97,13 +99,16 @@ impl BTreePage for BTreeRootPointerPage {
         let mut data = vec![0; BufferPool::get_page_size()];
 
         // Write the root page index.
-        data[0..4].copy_from_slice(&self.root_pid.page_index.to_le_bytes());
+        data[0..4]
+            .copy_from_slice(&self.root_pid.page_index.to_le_bytes());
 
         // Write the root page category.
-        data[4..8].copy_from_slice(&self.root_pid.category.to_bytes());
+        data[4..8]
+            .copy_from_slice(&self.root_pid.category.to_bytes());
 
         // Write the header page index.
-        data[8..12].copy_from_slice(&self.header_page_index.to_le_bytes());
+        data[8..12]
+            .copy_from_slice(&self.header_page_index.to_le_bytes());
 
         return data;
     }

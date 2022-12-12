@@ -74,8 +74,11 @@ impl ConcurrentStatus {
         );
 
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < 3 {
-            if Unique::concurrent_status().add_lock(tx, lock, page_id)? {
+        while Instant::now().duration_since(start_time).as_secs() < 3
+        {
+            if Unique::concurrent_status()
+                .add_lock(tx, lock, page_id)?
+            {
                 return Ok(());
             }
 
@@ -96,18 +99,20 @@ impl ConcurrentStatus {
     // Add a lock to the given page. This api is idempotent.
     //
     // Given the conditions that:
-    // 1. This method could only have at most one runner at a time, because it
-    // need modification actions on several maps.
-    // 2. This method should not ask for exclusive permission (&mut self) on the
-    // ConcurrentStatus, because we granteed that multiple threads could ask for
-    // lock simultaneously (via request_lock/acquire_lock).
+    // 1. This method could only have at most one runner at a time,
+    // because it need modification actions on several maps.
+    // 2. This method should not ask for exclusive permission (&mut
+    // self) on the ConcurrentStatus, because we granteed that
+    // multiple threads could ask for lock simultaneously (via
+    // request_lock/acquire_lock).
     //
-    // So, we use a unique lock to prevent this method from being called by
-    // multiple threads at the same time.
+    // So, we use a unique lock to prevent this method from being
+    // called by multiple threads at the same time.
     //
     // # Return
     //
-    // Return a bool value to indicate whether the lock is added successfully.
+    // Return a bool value to indicate whether the lock is added
+    // successfully.
     fn add_lock(
         &self,
         tx: &Transaction,
@@ -122,10 +127,13 @@ impl ConcurrentStatus {
 
         match lock {
             Lock::SLock => {
-                self.s_lock_map.alter_value(page_id, |s_lock_set| {
-                    s_lock_set.insert(tx.clone());
-                    Ok(())
-                })?;
+                self.s_lock_map.alter_value(
+                    page_id,
+                    |s_lock_set| {
+                        s_lock_set.insert(tx.clone());
+                        Ok(())
+                    },
+                )?;
             }
             Lock::XLock => {
                 self.x_lock_map
@@ -147,7 +155,10 @@ impl ConcurrentStatus {
         return Ok(true);
     }
 
-    pub fn release_lock_by_tx(&self, tx: &Transaction) -> SmallResult {
+    pub fn release_lock_by_tx(
+        &self,
+        tx: &Transaction,
+    ) -> SmallResult {
         if !self.hold_pages.get_inner().rl().contains_key(tx) {
             return Ok(());
         }
@@ -170,7 +181,10 @@ impl ConcurrentStatus {
     ) -> SmallResult {
         let mut s_lock_map = self.s_lock_map.get_inner_wl();
         if let Some(v) = s_lock_map.get_mut(page_id) {
-            debug!("release_lock_shared, tx: {}, page_id: {:?}", tx, page_id);
+            debug!(
+                "release_lock_shared, tx: {}, page_id: {:?}",
+                tx, page_id
+            );
             v.remove(tx);
             if v.len() == 0 {
                 s_lock_map.remove(page_id);
@@ -189,7 +203,11 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn holds_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> bool {
+    pub fn holds_lock(
+        &self,
+        tx: &Transaction,
+        page_id: &BTreePageID,
+    ) -> bool {
         let s_lock_map = self.s_lock_map.get_inner_rl();
         let x_lock_map = self.x_lock_map.get_inner_rl();
 
@@ -222,7 +240,10 @@ impl fmt::Display for ConcurrentStatus {
         // s_lock_map.get_inner().rl()
         depiction.push_str("s_lock_map.get_inner().rl(): {");
         for (k, v) in self.s_lock_map.get_inner().rl().iter() {
-            depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
+            depiction.push_str(&format!(
+                "\n\t{:?} -> [",
+                k.get_short_repr()
+            ));
             for tx in v {
                 depiction.push_str(&format!("\n\t\t{:?}, ", tx));
             }

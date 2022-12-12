@@ -51,7 +51,9 @@ impl IntField {
 
     pub fn from_bytes(bytes: &[u8]) -> IntField {
         IntField {
-            value: i32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+            value: i32::from_be_bytes([
+                bytes[0], bytes[1], bytes[2], bytes[3],
+            ]),
         }
     }
 }

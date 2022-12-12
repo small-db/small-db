@@ -21,8 +21,8 @@ fn test_patch() {
 
     //     // insert tuples
     //     void doInsert(HeapFile hf, int t1, int t2)
-    //     throws DbException, TransactionAbortedException, IOException {
-    //     Transaction t = new Transaction();
+    //     throws DbException, TransactionAbortedException,
+    // IOException {     Transaction t = new Transaction();
     //     t.start();
     //     if(t1 != -1)
     //         insertRow(hf, t, t1, 0);
@@ -39,7 +39,8 @@ fn test_patch() {
     // if(Database.getLogFile().getTotalRecords() != 4) {
     //     logger.info("total records: " +
     // Database.getLogFile().getTotalRecords());     throw new
-    // RuntimeException("LogTest: wrong # of log records; patch failed?"); }
+    // RuntimeException("LogTest: wrong # of log records; patch
+    // failed?"); }
 }
 
 #[test]
@@ -86,8 +87,8 @@ fn test_abort() {
 
     //     // insert tuples
     //     void doInsert(HeapFile hf, int t1, int t2)
-    //     throws DbException, TransactionAbortedException, IOException {
-    //     Transaction t = new Transaction();
+    //     throws DbException, TransactionAbortedException,
+    // IOException {     Transaction t = new Transaction();
     //     t.start();
     //     if(t1 != -1)
     //         insertRow(hf, t, t1, 0);
@@ -101,8 +102,8 @@ fn test_abort() {
     // // force dirty pages to disk, defeating NO-STEAL
     // // abort
     // void dontInsert(HeapFile hf, int t1, int t2)
-    //     throws DbException, TransactionAbortedException, IOException {
-    //     Transaction t = new Transaction();
+    //     throws DbException, TransactionAbortedException,
+    // IOException {     Transaction t = new Transaction();
     //     t.start();
     //     if(t1 != -1)
     //         insertRow(hf, t, t1, 0);

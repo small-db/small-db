@@ -29,10 +29,12 @@ fn test_redistribute_leaf_pages() {
     table.draw_tree(-1);
     table.check_integrity(true);
 
-    // Delete some tuples from the first page until it gets to minimum occupancy
+    // Delete some tuples from the first page until it gets to minimum
+    // occupancy
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
-    let page_rc = table.get_first_page(&ctx.tx, Permission::ReadWrite);
+    let page_rc =
+        table.get_first_page(&ctx.tx, Permission::ReadWrite);
     for tuple in it.by_ref() {
         assert_eq!(202 + count, page_rc.rl().empty_slots_count());
 
@@ -44,8 +46,8 @@ fn test_redistribute_leaf_pages() {
         }
     }
 
-    // deleting a tuple now should bring the page below minimum occupancy and
-    // cause the tuples to be redistributed
+    // deleting a tuple now should bring the page below minimum
+    // occupancy and cause the tuples to be redistributed
     let t = it.next().unwrap();
     let page_rc = Unique::buffer_pool()
         .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
@@ -69,7 +71,8 @@ fn test_redistribute_leaf_pages() {
 fn test_merge_leaf_pages() {
     let ctx = test_utils::setup();
 
-    // This should create a B+ tree with one three half-full leaf pages
+    // This should create a B+ tree with one three half-full leaf
+    // pages
     let table_rc = test_utils::create_random_btree_table(
         2,
         1005,
@@ -150,8 +153,8 @@ fn test_reuse_deleted_pages() {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
-    // now there should be 2 leaf pages, 1 internal page, 1 unused leaf page, 1
-    // header page
+    // now there should be 2 leaf pages, 1 internal page, 1 unused
+    // leaf page, 1 header page
     assert_eq!(5, table.pages_count());
 
     // insert enough tuples to ensure one of the leaf pages splits
@@ -161,7 +164,8 @@ fn test_reuse_deleted_pages() {
     }
     ctx.tx.commit().unwrap();
 
-    // now there should be 3 leaf pages, 1 internal page, and 1 header page
+    // now there should be 3 leaf pages, 1 internal page, and 1 header
+    // page
     assert_eq!(5, table.pages_count());
 }
 
@@ -195,8 +199,8 @@ fn test_redistribute_internal_pages() {
     table.draw_tree(-1);
     table.check_integrity(true);
 
-    // deleting a page of tuples should bring the internal page below minimum
-    // occupancy and cause the entries to be redistributed
+    // deleting a page of tuples should bring the internal page below
+    // minimum occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
         if let Err(e) = table.delete_tuple(&ctx.tx, &t) {
             error!("Error: {:?}", e);
@@ -215,13 +219,14 @@ fn test_delete_internal_pages() {
 
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with three nodes in the second tier
-    // and 252 nodes in the third tier.
+    // This should create a B+ tree with three nodes in the second
+    // tier and 252 nodes in the third tier.
     //
-    // (124 entries per internal/leaf page, 125 children per internal page) ->
-    // 251*124 + 1 = 31125)
+    // (124 entries per internal/leaf page, 125 children per internal
+    // page) -> 251*124 + 1 = 31125)
     //
-    // (124 entries per internal/leaf page, 125 children per internal page)
+    // (124 entries per internal/leaf page, 125 children per internal
+    // page)
     //
     // 1st tier: 1 internal page
     // 2nd tier: 3 internal pages (2 * 125 + 2 = 252 children)
@@ -244,16 +249,24 @@ fn test_delete_internal_pages() {
         .unwrap();
     assert_eq!(122, root_rc.rl().empty_slots_count());
 
-    // Delete tuples causing leaf pages to merge until the first internal page
-    // gets to minimum occupancy.
+    // Delete tuples causing leaf pages to merge until the first
+    // internal page gets to minimum occupancy.
     let e = BTreeInternalPageIterator::new(&root_rc.rl())
         .next()
         .unwrap();
     let left_child_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_left_child())
+        .get_internal_page(
+            &ctx.tx,
+            Permission::ReadWrite,
+            &e.get_left_child(),
+        )
         .unwrap();
     let right_child_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_right_child())
+        .get_internal_page(
+            &ctx.tx,
+            Permission::ReadWrite,
+            &e.get_right_child(),
+        )
         .unwrap();
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
@@ -269,8 +282,9 @@ fn test_delete_internal_pages() {
     table.draw_tree(2);
     table.check_integrity(true);
 
-    // Deleting a page of tuples should bring the internal page below minimum
-    // occupancy and cause the entries to be redistributed.
+    // Deleting a page of tuples should bring the internal page below
+    // minimum occupancy and cause the entries to be
+    // redistributed.
     assert_eq!(62, left_child_rc.rl().empty_slots_count());
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     for t in it.take(124) {
@@ -281,8 +295,9 @@ fn test_delete_internal_pages() {
     assert_eq!(62, left_child_rc.rl().empty_slots_count());
     assert_eq!(62, right_child_rc.rl().empty_slots_count());
 
-    // deleting another page of tuples should bring the page below minimum
-    // occupancy again but this time cause it to merge with its right sibling
+    // deleting another page of tuples should bring the page below
+    // minimum occupancy again but this time cause it to merge
+    // with its right sibling
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     for t in it.take(124) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
@@ -294,10 +309,18 @@ fn test_delete_internal_pages() {
         .next()
         .unwrap();
     let left_child_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_left_child())
+        .get_internal_page(
+            &ctx.tx,
+            Permission::ReadWrite,
+            &e.get_left_child(),
+        )
         .unwrap();
     let right_child_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &e.get_right_child())
+        .get_internal_page(
+            &ctx.tx,
+            Permission::ReadWrite,
+            &e.get_right_child(),
+        )
         .unwrap();
     assert_eq!(0, left_child_rc.rl().empty_slots_count());
     assert!(e.get_key().compare(
@@ -308,8 +331,9 @@ fn test_delete_internal_pages() {
             .get_key()
     ));
 
-    // Delete tuples causing leaf pages to merge until the first internal page
-    // gets below minimum occupancy and causes the entries to be redistributed
+    // Delete tuples causing leaf pages to merge until the first
+    // internal page gets below minimum occupancy and causes the
+    // entries to be redistributed
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
     for _ in 0..62 {
@@ -320,16 +344,16 @@ fn test_delete_internal_pages() {
         count += 1;
     }
 
-    // deleting another page of tuples should bring the page below minimum
-    // occupancy and cause it to merge with the right sibling to replace the
-    // root
+    // deleting another page of tuples should bring the page below
+    // minimum occupancy and cause it to merge with the right
+    // sibling to replace the root
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     for _ in 0..124 {
         table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
     }
 
-    // confirm that the last two internal pages have merged successfully and
-    // replaced the root
+    // confirm that the last two internal pages have merged
+    // successfully and replaced the root
     let root_pid = table.get_root_pid(&ctx.tx);
     let root_rc = Unique::buffer_pool()
         .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)

@@ -4,7 +4,9 @@ use std::{
     sync::{Mutex, MutexGuard},
 };
 
-use crate::{btree::page::BTreePage, error::SmallError, types::SmallResult};
+use crate::{
+    btree::page::BTreePage, error::SmallError, types::SmallResult,
+};
 
 pub struct SmallFile {
     file: Mutex<File>,

@@ -24,7 +24,10 @@ impl Catalog {
         self.map.get(table_index)
     }
 
-    pub fn get_tuple_scheme(&self, table_index: &Key) -> Option<TupleScheme> {
+    pub fn get_tuple_scheme(
+        &self,
+        table_index: &Key,
+    ) -> Option<TupleScheme> {
         let table_rc = self.map.get(table_index);
         match table_rc {
             Some(table_rc) => {
