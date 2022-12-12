@@ -3,32 +3,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Cargo test",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--lib"
-                ]
-            },
-            "args": []
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
             "name": "test_delete_internal_pages",
+            // RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
             "cargo": {
                 "args": [
                     "test",
-                    "--package",
-                    "small-db",
-                    "--all-features",
                 ]
             },
             "args": [
-                "test_delete_internal_pages",
-                "--exact",
+                "--test-threads=1",
                 "--nocapture",
+                "test_delete_internal_pages",
             ],
             "env": {
                 "RUST_LOG": "debug",
