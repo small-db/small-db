@@ -48,6 +48,12 @@ impl IntField {
     pub fn to_bytes(&self) -> Vec<u8> {
         self.value.to_be_bytes().to_vec()
     }
+
+    pub fn from_bytes(bytes: &[u8]) -> IntField {
+        IntField {
+            value: i32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        }
+    }
 }
 
 impl fmt::Display for IntField {

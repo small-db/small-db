@@ -59,16 +59,23 @@ impl SmallFile {
 
 pub struct SimpleReader<'a> {
     buf: &'a Vec<u8>,
+    cursor: usize,
 }
 
 impl<'a> SimpleReader<'a> {
     pub fn new(buf: &'a Vec<u8>) -> Self {
-        Self { buf }
+        Self { buf, cursor: 0 }
     }
 
-    pub fn read_exact(&mut self, bytes_count: usize) -> Vec<u8> {
-        let mut buf = vec![0u8; bytes_count];
-        buf.copy_from_slice(&self.buf[..bytes_count]);
-        buf
+    pub fn read_exact(&mut self, bytes_count: usize) -> &'_ [u8] {
+        let start = self.cursor;
+        let end = self.cursor + bytes_count;
+
+        // boundary check
+        if end > self.buf.len() {
+            panic!("read out of boundary");
+        }
+
+        return &self.buf[start..end];
     }
 }

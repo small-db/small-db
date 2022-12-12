@@ -11,7 +11,7 @@ use crate::{
     field::{get_type_length, IntField},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, HandyRwLock},
+    utils::{self, bytes_to_u32, HandyRwLock},
     Unique,
 };
 
@@ -80,23 +80,38 @@ impl BTreeInternalPage {
         let slot_count = Self::get_max_entries(key_size) + 1;
         let header_size = Self::get_header_bytes_size(slot_count) as usize;
 
+        let mut reader = utils::SimpleReader::new(&bytes);
         // read children category
-        let children_category = PageCategory::from_bytes(&bytes[0..4]);
+        let children_category = PageCategory::from_bytes(reader.read_exact(4));
 
         // read header
-        let header = BitVec::from_bytes(&bytes[4..header_size + 4]);
+        let header = BitVec::from_bytes(reader.read_exact(header_size));
 
+        // read keys
         let mut keys: Vec<IntField> = Vec::new();
+        keys.push(IntField::new(0));
+        for _ in 1..slot_count {
+            let key = IntField::from_bytes(reader.read_exact(key_size));
+            keys.push(key);
+        }
+
+        // read children
         let mut children: Vec<BTreePageID> = Vec::new();
-        keys.resize(slot_count, IntField::new(0));
-        children.resize(slot_count, BTreePageID::new(PageCategory::Leaf, 0, 0));
+        for _ in 0..slot_count {
+            let child = BTreePageID::new(
+                children_category,
+                pid.get_table_id(),
+                bytes_to_u32(reader.read_exact(INDEX_SIZE)),
+            );
+            children.push(child);
+        }
 
         Self {
             base: BTreeBasePage::new(pid),
             keys,
             children,
             slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
+            header,
         }
     }
 
