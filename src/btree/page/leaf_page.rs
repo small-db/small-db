@@ -24,7 +24,9 @@ use crate::{
 /// - 4 bytes: parent page index
 /// - 4 bytes: left sibling page index
 /// - 4 bytes: right sibling page index
-/// - n bytes:
+/// - n bytes: header bytes, indicate whether every slot of the page
+///   is used or not.
+/// - n bytes: tuple bytes
 pub struct BTreeLeafPage {
     base: BTreeBasePage,
 
@@ -47,6 +49,38 @@ pub struct BTreeLeafPage {
 }
 
 impl BTreeLeafPage {
+    fn new(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+        let header_size =
+            Self::calculate_header_size(slot_count) as usize;
+
+        // init tuples
+        let mut tuples = Vec::new();
+        for i in 0..slot_count {
+            let start = header_size + i * tuple_scheme.get_size();
+            let end = start + tuple_scheme.get_size();
+            let t =
+                Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
+            tuples.push(t);
+        }
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            slot_count,
+            header: BitVec::from_bytes(&bytes[..header_size]),
+            tuples,
+            tuple_scheme: tuple_scheme.clone(),
+            right_sibling_id: EMPTY_PAGE_ID,
+            left_sibling_id: EMPTY_PAGE_ID,
+            key_field,
+        }
+    }
+
     pub fn set_right_pid(&mut self, pid: Option<BTreePageID>) {
         match pid {
             Some(pid) => {
@@ -294,30 +328,7 @@ impl BTreePage for BTreeLeafPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
-        let slot_count = Self::calculate_slots_count(&tuple_scheme);
-        let header_size =
-            Self::calculate_header_size(slot_count) as usize;
-
-        // init tuples
-        let mut tuples = Vec::new();
-        for i in 0..slot_count {
-            let start = header_size + i * tuple_scheme.get_size();
-            let end = start + tuple_scheme.get_size();
-            let t =
-                Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
-            tuples.push(t);
-        }
-
-        Self {
-            base: BTreeBasePage::new(pid),
-            slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
-            tuples,
-            tuple_scheme: tuple_scheme.clone(),
-            right_sibling_id: EMPTY_PAGE_ID,
-            left_sibling_id: EMPTY_PAGE_ID,
-            key_field,
-        }
+        Self::new(pid, bytes, tuple_scheme, key_field)
     }
 
     fn get_pid(&self) -> BTreePageID {

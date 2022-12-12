@@ -25,6 +25,7 @@ use crate::{
 ///
 /// # Binary Layout
 ///
+/// - 4 bytes: parent page index
 /// - 4 bytes: children category (leaf/internal)
 /// - n bytes: header bytes, indicate whether every slot of the page
 ///   is used or not.
@@ -93,6 +94,13 @@ impl BTreeInternalPage {
 
         let mut reader = utils::SmallReader::new(&bytes);
 
+        // read parent page index
+        let parent_pid = BTreePageID::new(
+            PageCategory::Internal,
+            pid.get_table_id(),
+            bytes_to_u32(reader.read_exact(INDEX_SIZE)),
+        );
+
         // read children category
         let children_category =
             PageCategory::from_bytes(reader.read_exact(4));
@@ -121,8 +129,11 @@ impl BTreeInternalPage {
             children.push(child);
         }
 
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
         Self {
-            base: BTreeBasePage::new(pid),
+            base,
             keys,
             children,
             slot_count,
