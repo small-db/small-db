@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bit_vec::BitVec;
-use log::{debug, error};
+use log::error;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
@@ -21,7 +21,8 @@ use crate::{
 /// # Binary Layout
 ///
 /// - 4 bytes: children category (leaf/internal)
-/// - n bytes: header bytes, indicate whether every slot of the page is used or not.
+/// - n bytes: header bytes, indicate whether every slot of the page is used or
+///   not.
 /// - n bytes: keys
 /// - n bytes: children
 pub struct BTreeInternalPage {

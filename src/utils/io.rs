@@ -1,16 +1,10 @@
 use std::{
-    collections::HashMap,
     fs::{File, OpenOptions},
-    io::{Read, Seek, Write},
-    sync::{Arc, Mutex, MutexGuard, RwLock},
+    io::{Read, Write},
+    sync::{Mutex, MutexGuard},
 };
 
-use log::debug;
-
-use crate::{
-    btree::page::BTreePage, error::SmallError, transaction::Transaction,
-    types::SmallResult, Unique,
-};
+use crate::{btree::page::BTreePage, error::SmallError, types::SmallResult};
 
 pub struct SmallFile {
     file: Mutex<File>,

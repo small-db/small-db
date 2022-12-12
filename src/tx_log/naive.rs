@@ -1,8 +1,8 @@
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
-    io::{Read, Seek, Write},
-    sync::{Arc, Mutex, MutexGuard, RwLock},
+    fs::File,
+    io::{Read, Seek},
+    sync::{Arc, MutexGuard, RwLock},
 };
 
 use log::debug;
@@ -19,7 +19,6 @@ static START_RECORD_LEN: u64 = 17;
 ///
 /// TODO: add docs for `repr(u8)`
 /// #[repr(u8)]
-///
 #[derive(Debug)]
 enum RecordType {
     ABORT,

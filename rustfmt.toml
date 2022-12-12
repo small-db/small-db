@@ -5,7 +5,9 @@ imports_granularity = "Crate"
 
 blank_lines_lower_bound = 0
 wrap_comments = true
-max_width = 80
+
+# https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#max_width
+max_width = 70
 
 # https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#normalize_comments
 normalize_comments = true

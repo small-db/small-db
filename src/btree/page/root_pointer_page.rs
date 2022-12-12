@@ -1,7 +1,5 @@
 use std::convert::TryInto;
 
-use log::debug;
-
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
 };
