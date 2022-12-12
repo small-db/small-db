@@ -221,89 +221,6 @@ impl BTreeInternalPage {
         self.header[slot_index]
     }
 
-    pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
-        if self.empty_slots_count() == 0 {
-            return Err(SmallError::new("No empty slots on this page."));
-        }
-
-        // if this is the first entry, add it and return
-        if self.empty_slots_count() == Self::get_max_entries(4) {
-            self.children[0] = e.get_left_child();
-            self.children[1] = e.get_right_child();
-            self.keys[1] = e.get_key();
-            self.mark_slot_status(0, true);
-            self.mark_slot_status(1, true);
-            return Ok(());
-        }
-
-        // find the first empty slot, start from 1
-        let mut empty_slot = 0;
-        for i in 0..self.slot_count {
-            if !self.is_slot_used(i) {
-                empty_slot = i;
-                break;
-            }
-        }
-
-        // find the child pointer matching the left or right child in this entry
-        let mut slot_just_ahead: usize = usize::MAX;
-        for i in 0..self.slot_count {
-            if !self.is_slot_used(i) {
-                continue;
-            }
-
-            // circumstances 1: we want to insert a entry just after the current
-            // entry
-            if self.children[i] == e.get_left_child() {
-                slot_just_ahead = i;
-                break;
-            }
-
-            // circumstances 2: we want to insert a entry just inside the
-            // current entry, so the right child of the current
-            // entry should be updated to the left child of the new
-            // entry
-            if self.children[i] == e.get_right_child() {
-                slot_just_ahead = i;
-                // update right child of current entry
-                self.children[i] = e.get_left_child();
-                break;
-            }
-        }
-
-        if slot_just_ahead == usize::MAX {
-            let e = SmallError::new(&format!(
-                "No slot found for entry {}, pid: {}, entries count: {}",
-                e,
-                self.get_pid(),
-                self.entries_count()
-            ));
-            error!("{}", e);
-            // panic!("{}", e);
-            return Err(e);
-        }
-
-        // shift entries back or forward to fill empty slot and make room for
-        // new entry while keeping entries in sorted order
-        let good_slot: usize;
-        if empty_slot < slot_just_ahead {
-            for i in empty_slot..slot_just_ahead {
-                self.move_entry(i + 1, i);
-            }
-            good_slot = slot_just_ahead
-        } else {
-            for i in (slot_just_ahead + 1..empty_slot).rev() {
-                self.move_entry(i, i + 1);
-            }
-            good_slot = slot_just_ahead + 1
-        }
-
-        self.keys[good_slot] = e.get_key();
-        self.children[good_slot] = e.get_right_child();
-        self.mark_slot_status(good_slot, true);
-        Ok(())
-    }
-
     fn move_entry(&mut self, from: usize, to: usize) {
         if self.is_slot_used(from) && !self.is_slot_used(to) {
             self.keys[to] = self.keys[from];
@@ -438,6 +355,97 @@ impl BTreeInternalPage {
                 self.get_pid(),
             );
         }
+    }
+}
+
+// Insertion methods.
+impl BTreeInternalPage {
+    pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
+        if self.empty_slots_count() == 0 {
+            return Err(SmallError::new("No empty slots on this page."));
+        }
+
+        // check if this is the first entry
+        if self.empty_slots_count() == Self::get_max_entries(4) {
+            // reset the `children_category`
+            self.children_category = e.get_left_child().category;
+
+            // add the entry to the first slot (slot 1)
+            self.children[0] = e.get_left_child();
+            self.children[1] = e.get_right_child();
+            self.keys[1] = e.get_key();
+            self.mark_slot_status(0, true);
+            self.mark_slot_status(1, true);
+
+            return Ok(());
+        }
+
+        // find the first empty slot, start from 1
+        let mut empty_slot = 0;
+        for i in 0..self.slot_count {
+            if !self.is_slot_used(i) {
+                empty_slot = i;
+                break;
+            }
+        }
+
+        // find the child pointer matching the left or right child in this entry
+        let mut slot_just_ahead: usize = usize::MAX;
+        for i in 0..self.slot_count {
+            if !self.is_slot_used(i) {
+                continue;
+            }
+
+            // circumstances 1: we want to insert a entry just after the current
+            // entry
+            if self.children[i] == e.get_left_child() {
+                slot_just_ahead = i;
+                break;
+            }
+
+            // circumstances 2: we want to insert a entry just inside the
+            // current entry, so the right child of the current
+            // entry should be updated to the left child of the new
+            // entry
+            if self.children[i] == e.get_right_child() {
+                slot_just_ahead = i;
+                // update right child of current entry
+                self.children[i] = e.get_left_child();
+                break;
+            }
+        }
+
+        if slot_just_ahead == usize::MAX {
+            let e = SmallError::new(&format!(
+                "No slot found for entry {}, pid: {}, entries count: {}",
+                e,
+                self.get_pid(),
+                self.entries_count()
+            ));
+            error!("{}", e);
+            // panic!("{}", e);
+            return Err(e);
+        }
+
+        // shift entries back or forward to fill empty slot and make room for
+        // new entry while keeping entries in sorted order
+        let good_slot: usize;
+        if empty_slot < slot_just_ahead {
+            for i in empty_slot..slot_just_ahead {
+                self.move_entry(i + 1, i);
+            }
+            good_slot = slot_just_ahead
+        } else {
+            for i in (slot_just_ahead + 1..empty_slot).rev() {
+                self.move_entry(i, i + 1);
+            }
+            good_slot = slot_just_ahead + 1
+        }
+
+        self.keys[good_slot] = e.get_key();
+        self.children[good_slot] = e.get_right_child();
+        self.mark_slot_status(good_slot, true);
+        Ok(())
     }
 }
 

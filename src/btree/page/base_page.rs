@@ -14,6 +14,15 @@ impl BTreeBasePage {
         }
     }
 
+    /// Static method to generate a byte array corresponding to an empty
+    /// BTreePage.
+    /// 
+    /// Used to add new, empty pages to the file.
+    /// 
+    /// Passing the results of this method to the following constructors
+    /// will create a BTreePage with no valid entries in it.
+    /// - `BTreeInternalPage`
+    /// - `BTreeLeafPage`
     pub fn empty_page_data() -> Vec<u8> {
         let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
         data

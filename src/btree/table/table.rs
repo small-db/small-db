@@ -896,12 +896,13 @@ impl BTreeTable {
         max_level: i32,
     ) -> String {
         match pid.category {
-            PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
                 self.draw_internal_node(tx, pid, level, max_level)
             }
             PageCategory::Leaf => self.draw_leaf_node(tx, pid, level),
-            PageCategory::Header => todo!(),
+            _ => {
+                panic!("invalid page category: {:?}", pid.category);
+            }
         }
     }
 
