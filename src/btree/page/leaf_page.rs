@@ -16,6 +16,14 @@ use crate::{
     Tuple,
 };
 
+/// A leaf page in the B+ tree.
+/// 
+/// # Binary Layout
+/// 
+/// - 4 bytes: parent page index
+/// - 4 bytes: left sibling page index
+/// - 4 bytes: right sibling page index
+/// - n bytes: 
 pub struct BTreeLeafPage {
     base: BTreeBasePage,
 

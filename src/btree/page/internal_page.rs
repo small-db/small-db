@@ -21,8 +21,7 @@ use crate::{
 /// # Binary Layout
 ///
 /// - 4 bytes: children category (leaf/internal)
-/// - n bytes: header bytes, indicating the slots of the page are used
-/// or not.
+/// - n bytes: header bytes, indicate whether every slot of the page is used or not.
 /// - n bytes: keys
 /// - n bytes: children
 pub struct BTreeInternalPage {
