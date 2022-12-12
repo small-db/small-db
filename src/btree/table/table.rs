@@ -674,7 +674,7 @@ impl BTreeTable {
             self.key_field,
         );
 
-        self.write_page_to_disk(&page_id);
+        self.write_empty_page_to_disk(&page_id);
 
         let page_rc = Arc::new(RwLock::new(page));
         // insert to buffer pool because it's a dirty page at this time
@@ -699,7 +699,7 @@ impl BTreeTable {
             self.key_field,
         );
 
-        self.write_page_to_disk(&page_id);
+        self.write_empty_page_to_disk(&page_id);
 
         let page_rc = Arc::new(RwLock::new(page));
         // insert to buffer pool because it's a dirty page at this time
@@ -719,7 +719,7 @@ impl BTreeTable {
             BTreePageID::new(PageCategory::Header, self.table_id, page_index);
         let page = BTreeHeaderPage::new(&page_id);
 
-        self.write_page_to_disk(&page_id);
+        self.write_empty_page_to_disk(&page_id);
 
         let page_rc = Arc::new(RwLock::new(page));
         // insert to buffer pool because it's a dirty page at this time
@@ -729,14 +729,16 @@ impl BTreeTable {
         page_rc
     }
 
-    pub fn write_page_to_disk(&self, page_id: &BTreePageID) {
+    pub fn write_empty_page_to_disk(&self, page_id: &BTreePageID) {
+        self.write_page_to_disk(page_id, &BTreeBasePage::empty_page_data())
+    }
+
+    pub fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
         let start_pos: usize = page_id.page_index * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
-        self.get_file()
-            .write(&BTreeBasePage::empty_page_data())
-            .expect("io error");
+        self.get_file().write(&data).expect("io error");
         self.get_file().flush().expect("io error");
     }
 

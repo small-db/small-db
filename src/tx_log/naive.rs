@@ -1,23 +1,50 @@
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
-    io::{Seek, Write},
-    sync::{Mutex, MutexGuard},
+    io::{Read, Seek, Write},
+    sync::{Arc, Mutex, MutexGuard, RwLock},
 };
 
-use crate::{error::SmallError, transaction::Transaction, types::SmallResult};
+use log::debug;
+
+use crate::{
+    btree::page::{BTreePage, BTreePageID},
+    error::SmallError,
+    transaction::Transaction,
+    types::SmallResult,
+    utils::{lock_state, HandyRwLock},
+    Unique,
+};
+
+static START_RECORD_LEN: u64 = 17;
 
 /// see:
 /// https://users.rust-lang.org/t/mapping-enum-u8/23400
 ///
 /// TODO: add docs for `repr(u8)`
-#[repr(u8)]
+/// #[repr(u8)]
+///
+///
+#[derive(Debug)]
 enum RecordType {
     ABORT,
     COMMIT,
     UPDATE,
     START,
     CHECKPOINT,
+}
+
+impl RecordType {
+    fn from_u8(value: u8) -> Self {
+        match value {
+            0 => RecordType::ABORT,
+            1 => RecordType::COMMIT,
+            2 => RecordType::UPDATE,
+            3 => RecordType::START,
+            4 => RecordType::CHECKPOINT,
+            _ => panic!("invalid record type"),
+        }
+    }
 }
 
 pub struct LogManager {
@@ -63,9 +90,20 @@ impl LogManager {
         Ok(())
     }
 
+    /// Write an UPDATE record to disk for the specified tid and page
+    /// (with provided         before and after images.)
+    pub fn log_update(&mut self, tx: &Transaction) -> SmallResult {
+        todo!()
+    }
+
+    // pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
+    // }
+
     /// Write an abort record to the log for the specified tid, force the log to
     /// disk, and perform a rollback
     pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
+        self.rollback(tx)?;
+
         self.file.write_u8(RecordType::START as u8)?;
         self.file.write_u64(tx.get_id())?;
         self.file.write_u64(self.current_offset)?;
@@ -84,7 +122,33 @@ impl LogManager {
     /// transaction semantics, this should not be called on
     /// transactions that have already committed (though this may not
     /// be enforced by this method.)
-    fn rollback() {}
+    fn rollback(&mut self, tx: &Transaction) -> SmallResult {
+        let start = self.tx_start_position.get(tx).unwrap();
+        // seek to the start position of the transaction, skip the START_RECORD
+        self.get_file()
+            .seek(std::io::SeekFrom::Start(*start + START_RECORD_LEN))
+            .unwrap();
+
+        let record_type = RecordType::from_u8(self.file.read_u8().unwrap());
+        debug!("record_type: {:?}", record_type);
+
+        match record_type {
+            RecordType::UPDATE => {
+                let before_page_rc = self.read_page().unwrap();
+                let before_page = before_page_rc.read().unwrap();
+                Unique::buffer_pool().discard_page(&before_page.get_pid());
+
+                todo!()
+            }
+            _ => panic!("invalid record type"),
+        }
+
+        todo!()
+    }
+
+    fn read_page(&mut self) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
+        todo!()
+    }
 }
 
 struct SmallFile {
@@ -108,6 +172,12 @@ impl SmallFile {
 
     fn get_file(&self) -> MutexGuard<'_, File> {
         self.file.lock().unwrap()
+    }
+
+    pub fn read_u8(&self) -> Result<u8, SmallError> {
+        let mut buf = [0u8; 1];
+        self.get_file().read_exact(&mut buf).unwrap();
+        Ok(buf[0])
     }
 
     pub fn write_u8(&self, v: u8) -> SmallResult {

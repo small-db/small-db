@@ -148,7 +148,7 @@ fn sequential_insert_into_table(
             table.get_id(),
             page_index,
         );
-        table.write_page_to_disk(&pid);
+        table.write_empty_page_to_disk(&pid);
 
         let leaf_rc = Unique::buffer_pool()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
@@ -221,7 +221,7 @@ fn sequential_insert_into_table(
             table.get_id(),
             page_index,
         );
-        table.write_page_to_disk(&pid);
+        table.write_empty_page_to_disk(&pid);
 
         let internal_rc = Unique::buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
@@ -283,7 +283,7 @@ fn write_internal_pages(
             table.get_id(),
             *page_index,
         );
-        table.write_page_to_disk(&pid);
+        table.write_empty_page_to_disk(&pid);
 
         let root_rc = Unique::buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)

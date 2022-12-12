@@ -189,6 +189,25 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
+    pub fn holds_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> bool {
+        let s_lock_map = self.s_lock_map.get_inner_rl();
+        let x_lock_map = self.x_lock_map.get_inner_rl();
+
+        if let Some(v) = s_lock_map.get(page_id) {
+            if v.contains(tx) {
+                return true;
+            }
+        }
+
+        if let Some(v) = x_lock_map.get(page_id) {
+            if v == tx {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     pub fn clear(&self) {
         self.s_lock_map.get_inner().wl().clear();
         self.x_lock_map.get_inner().wl().clear();

@@ -108,6 +108,13 @@ impl<K, V> ConcurrentHashMap<K, V> {
     {
         self.map.wl().insert(key, value)
     }
+
+    pub fn keys(&self) -> Vec<K>
+    where
+        K: std::cmp::Eq + std::hash::Hash + Clone,
+    {
+        self.map.rl().keys().cloned().collect()
+    }
 }
 
 pub struct SmallLock {

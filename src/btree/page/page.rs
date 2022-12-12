@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use super::BTreePageID;
 use crate::btree::tuple::TupleScheme;
 
@@ -15,4 +17,6 @@ pub trait BTreePage {
 
     fn get_parent_pid(&self) -> BTreePageID;
     fn set_parent_pid(&mut self, pid: &BTreePageID);
+
+    fn as_any(&self) -> &dyn Any;
 }

@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use super::{BTreePage, BTreePageID, PageCategory};
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
@@ -50,5 +52,9 @@ impl BTreePage for BTreeBasePage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.parent_page_index = pid.page_index;
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

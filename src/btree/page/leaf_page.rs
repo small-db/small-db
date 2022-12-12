@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    any::Any,
+    sync::{Arc, RwLock},
+};
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
@@ -307,6 +310,10 @@ impl BTreePage for BTreeLeafPage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.base.set_parent_pid(pid)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

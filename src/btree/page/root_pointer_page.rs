@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{any::Any, convert::TryInto};
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID,
@@ -79,5 +79,9 @@ impl BTreePage for BTreeRootPointerPage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.base.set_parent_pid(pid)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

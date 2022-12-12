@@ -36,6 +36,8 @@ pub struct BufferPool {
     pub leaf_buffer: ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer:
         ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
+
+    unified_buffer: ConcurrentHashMap<BTreePageID, Arc<RwLock<dyn BTreePage>>>,
 }
 
 type Key = BTreePageID;
@@ -47,6 +49,8 @@ impl BufferPool {
             header_buffer: ConcurrentHashMap::new(),
             internal_buffer: ConcurrentHashMap::new(),
             leaf_buffer: ConcurrentHashMap::new(),
+
+            unified_buffer: ConcurrentHashMap::new(),
         }
     }
 
@@ -69,7 +73,10 @@ impl BufferPool {
     ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BufferPool.java?L88:17&subtree=true
-    fn load_page<PAGE: BTreePage>(&self, key: &Key) -> ResultPod<PAGE> {
+    fn load_page<PAGE>(&self, key: &Key) -> ResultPod<PAGE>
+    where
+        PAGE: BTreePage,
+    {
         // stage 1: get table
         let catalog = Unique::catalog();
         let v = catalog.get_table(&key.get_table_id()).unwrap();
@@ -201,6 +208,37 @@ impl BufferPool {
 
     pub fn get_page_size() -> usize {
         PAGE_SIZE.load(Ordering::Relaxed)
+    }
+
+    /// Write all pages of the specified transaction to disk.
+    ///
+    /// TODO: protest this function (mut self / or global lock)
+    pub fn flush_pages(&self, tx: &Transaction) {
+        for pid in self.all_keys() {
+            if Unique::concurrent_status().holds_lock(tx, &pid) {
+                self.flush_page(&pid);
+            }
+        }
+    }
+
+    fn flush_page(&self, pid: &BTreePageID) {
+        // stage 1: get table
+        let catalog = Unique::catalog();
+        let v = catalog.get_table(&pid.get_table_id()).unwrap();
+        let table = v.read().unwrap();
+
+        // table.write_page_to_disk(pid, data)
+
+        todo!()
+    }
+
+    fn all_keys(&self) -> Vec<Key> {
+        let mut keys = vec![];
+        keys.append(&mut self.root_pointer_buffer.keys());
+        keys.append(&mut self.header_buffer.keys());
+        keys.append(&mut self.leaf_buffer.keys());
+        keys.append(&mut self.internal_buffer.keys());
+        keys
     }
 
     // /// Add a tuple to the specified table on behalf of transaction tid.

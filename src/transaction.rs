@@ -23,6 +23,7 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
+        Unique::buffer_pool().flush_pages(self);
         Unique::concurrent_status().release_lock_by_tx(self)
     }
 

@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use bit_vec::BitVec;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID};
@@ -65,5 +67,9 @@ impl BTreePage for BTreeHeaderPage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.base.set_parent_pid(pid)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

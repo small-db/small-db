@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{any::Any, fmt};
 
 use bit_vec::BitVec;
 use log::error;
@@ -420,6 +420,10 @@ impl BTreePage for BTreeInternalPage {
 
     fn set_parent_pid(&mut self, pid: &BTreePageID) {
         self.base.set_parent_pid(pid)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
