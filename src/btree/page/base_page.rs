@@ -5,7 +5,7 @@ use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
 pub struct BTreeBasePage {
     pid: BTreePageID,
-    parent_page_index: usize,
+    parent_page_index: u32,
 }
 
 impl BTreeBasePage {

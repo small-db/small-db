@@ -348,7 +348,7 @@ impl BTreeTable {
         // borrow of header_rc start here
         {
             let mut header = header_rc.wl();
-            let slot_index = pid.page_index % header.get_slots_count();
+            let slot_index = pid.page_index as usize % header.get_slots_count();
             header.mark_slot_status(slot_index, false);
         }
         // borrow of header_rc end here

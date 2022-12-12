@@ -32,9 +32,9 @@ pub struct BTreeLeafPage {
 
     pub tuple_scheme: TupleScheme,
 
-    // use usize instead of Option<BTreePageID> to reduce memory footprint
-    right_sibling_id: usize,
-    left_sibling_id: usize,
+    // use u32 instead of Option<BTreePageID> to reduce memory footprint
+    right_sibling_id: u32,
+    left_sibling_id: u32,
 
     key_field: usize,
 }

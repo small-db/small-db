@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::btree::buffer_pool::BufferPool;
 
-pub const EMPTY_PAGE_ID: usize = 0;
+pub const EMPTY_PAGE_ID: u32 = 0;
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash, Debug)]
 pub enum PageCategory {
@@ -16,14 +16,14 @@ pub enum PageCategory {
 // necessary metadata
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BTreePageID {
-    // category indicates the category of the page
+    /// category indicates the category of the page
     pub category: PageCategory,
 
-    // page_index represents the position of the page in
-    // the table, start from 0
-    pub page_index: usize,
+    /// page_index represents the position of the page in
+    /// the table, start from 0
+    pub page_index: u32,
 
-    pub table_id: i32,
+    pub table_id: u32,
 }
 
 impl fmt::Display for BTreePageID {
@@ -41,8 +41,8 @@ impl fmt::Debug for BTreePageID {
 impl BTreePageID {
     pub fn new(
         category: PageCategory,
-        table_id: i32,
-        page_index: usize,
+        table_id: u32,
+        page_index: u32,
     ) -> Self {
         Self {
             category,
@@ -59,7 +59,7 @@ impl BTreePageID {
         }
     }
 
-    pub fn get_table_id(&self) -> i32 {
+    pub fn get_table_id(&self) -> u32 {
         self.table_id
     }
 

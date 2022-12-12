@@ -1,7 +1,7 @@
 use std::{any::Any, fmt};
 
 use bit_vec::BitVec;
-use log::error;
+use log::{error, debug};
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
@@ -447,6 +447,8 @@ impl BTreePage for BTreeInternalPage {
 
     fn get_page_data(&self) -> Vec<u8> {
         let mut data = vec![0; BufferPool::get_page_size()];
+
+        debug!("page size {}", BufferPool::get_page_size());
 
         // write header
         let header_size = Self::get_header_bytes_size(self.slot_count) as usize;

@@ -97,7 +97,7 @@ impl BufferPool {
 
     fn read_page(&self, file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
         let page_size = Self::get_page_size();
-        let start_pos = key.page_index * page_size;
+        let start_pos = key.page_index as usize * page_size;
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 

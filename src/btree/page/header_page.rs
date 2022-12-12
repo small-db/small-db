@@ -37,10 +37,10 @@ impl BTreeHeaderPage {
         self.slot_count
     }
 
-    pub fn get_empty_slot(&self) -> Option<usize> {
+    pub fn get_empty_slot(&self) -> Option<u32> {
         for i in 0..self.slot_count {
             if !self.header[i] {
-                return Some(i);
+                return Some(i as u32);
             }
         }
         None

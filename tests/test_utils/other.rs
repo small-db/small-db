@@ -129,7 +129,7 @@ fn sequential_insert_into_table(
     tuples: &Vec<Tuple>,
     tuple_scheme: &TupleScheme,
     tree_layout: TreeLayout,
-) -> usize {
+) -> u32 {
     // stage 1: write leaf pages
     let mut leaves = Vec::new();
 
@@ -168,7 +168,7 @@ fn sequential_insert_into_table(
                 // page index in range of [1, leaf_page_count], inclusive
 
                 // set sibling for all but the last leaf page
-                if page_index < leaf_buckets.len() {
+                if page_index < leaf_buckets.len() as u32 {
                     let right_pid = BTreePageID::new(
                         btree::page::PageCategory::Leaf,
                         table.get_id(),
@@ -268,8 +268,8 @@ fn write_internal_pages(
     tx: &Transaction,
     table: &BTreeTable,
     internals: Vec<Arc<RwLock<BTreeInternalPage>>>,
-    page_index: &mut usize,
-) -> usize {
+    page_index: &mut u32,
+) -> u32 {
     let childrent_per_internal_page = BufferPool::children_per_page();
     if internals.len() <= 1 {
         let internal = internals[0].rl();

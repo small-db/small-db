@@ -14,13 +14,13 @@ pub struct BTreeRootPointerPage {
     // The root_pid in mandatory to avoid a bunch of Option & match
     root_pid: BTreePageID,
 
-    header_page_index: usize,
+    header_page_index: u32,
 }
 
 impl BTreeRootPointerPage {
     pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let root_page_index =
-            i32::from_le_bytes(bytes[0..4].try_into().unwrap()) as usize;
+            u32::from_le_bytes(bytes[0..4].try_into().unwrap()) ;
         let root_pid = BTreePageID {
             category: PageCategory::Leaf,
             page_index: root_page_index,

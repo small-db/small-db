@@ -10,7 +10,7 @@ pub struct Catalog {
     map: HashMap<Key, Value>,
 }
 
-type Key = i32;
+type Key = u32;
 type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {

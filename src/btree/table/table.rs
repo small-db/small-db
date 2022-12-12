@@ -8,7 +8,7 @@ use std::{
     ops::DerefMut,
     str,
     sync::{
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicU32, AtomicUsize, Ordering},
         Arc, Mutex, MutexGuard, RwLock,
     },
     time::SystemTime,
@@ -56,13 +56,13 @@ pub struct BTreeTable {
 
     file: Mutex<File>,
 
-    table_id: i32,
+    table_id: u32,
 
     /// the page index of the last page in the file
     ///
     /// The page index start from 0 and increase monotonically by 1, the page
     /// index of "root pointer" page is always 0.
-    page_index: AtomicUsize,
+    page_index: AtomicU32,
 }
 
 #[derive(Copy, Clone)]
@@ -106,7 +106,7 @@ impl BTreeTable {
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
 
-        let table_id = hasher.finish() as i32;
+        let table_id = hasher.finish() as u32;
 
         Self::file_init(f.lock().unwrap());
 
@@ -120,14 +120,14 @@ impl BTreeTable {
             // start from 1 (the root page)
             //
             // TODO: init it according to actual condition
-            page_index: AtomicUsize::new(1),
+            page_index: AtomicU32::new(1),
         }
     }
 }
 
 // normal read-only functions
 impl BTreeTable {
-    pub fn get_id(&self) -> i32 {
+    pub fn get_id(&self) -> u32 {
         self.table_id
     }
 
@@ -299,7 +299,7 @@ impl BTreeTable {
         }
     }
 
-    pub fn get_empty_page_index(&self, tx: &Transaction) -> usize {
+    pub fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
         let root_ptr_rc = self.get_root_ptr_page(tx);
         // borrow of root_ptr_rc start here
         {
@@ -734,7 +734,8 @@ impl BTreeTable {
     }
 
     pub fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
-        let start_pos: usize = page_id.page_index * BufferPool::get_page_size();
+        let start_pos: usize =
+            page_id.page_index as usize * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
@@ -800,7 +801,7 @@ impl BTreeTable {
         todo!()
     }
 
-    pub fn set_page_index(&self, i: usize) {
+    pub fn set_page_index(&self, i: u32) {
         self.page_index.store(i, Ordering::Relaxed);
     }
 
