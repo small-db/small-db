@@ -3,14 +3,25 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Cargo test",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib"
+                ]
+            },
+            "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "test_delete_internal_pages",
             "cargo": {
                 "args": [
                     "test",
                     "--package",
                     "small-db",
-                    "--test",
-                    "btree_delete_test",
                     "--all-features",
                 ]
             },
