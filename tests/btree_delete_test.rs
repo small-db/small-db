@@ -242,10 +242,7 @@ fn test_delete_internal_pages() {
     table.check_integrity(true);
 
     let root_pod = get_internal_page(&table, 0, 0);
-    assert_eq!(
-        internal_entries_count() - 2,
-        root_pod.rl().empty_slots_count()
-    );
+    assert_eq!(2, root_pod.rl().entries_count());
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
@@ -295,12 +292,12 @@ fn test_delete_internal_pages() {
     // minimum occupancy again but this time cause it to merge
     // with its right sibling
     let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(123) {
+    for t in it.take(leaf_slots_count()) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
     // confirm that the pages have merged
-    assert_eq!(121, root_pod.rl().empty_slots_count());
+    assert_eq!(1, root_pod.rl().entries_count());
     let e = BTreeInternalPageIterator::new(&root_pod.rl())
         .next()
         .unwrap();
