@@ -119,7 +119,7 @@ pub fn create_random_btree_table(
     }
     // borrow of table_rc ends here
 
-    write_tx.commit();
+    write_tx.commit().unwrap();
     debug!(
         "table construction finished, insert {} rows in total",
         rows,

@@ -290,15 +290,18 @@ fn test_delete_internal_pages() {
     }
     tx.commit().unwrap();
 
+    left_child_rc.rl().peek();
     table.draw_tree(2);
+    left_child_rc.rl().peek();
     table.check_integrity(true);
 
     // Deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be
     // redistributed.
+    left_child_rc.rl().peek();
     assert_eq!(
         internal_entries_count() / 2,
-        left_child_rc.rl().empty_slots_count()
+        left_child_rc.rl().empty_slots_count(),
     );
 
     let tx = Transaction::new();
