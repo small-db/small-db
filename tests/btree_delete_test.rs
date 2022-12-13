@@ -226,7 +226,7 @@ fn test_delete_internal_pages() {
     // page) -> 251*124 + 1 = 31125)
     //
     // 123 records per leaf page
-    // 124 children per internal
+    // 124 children (123 entries) per internal
     //
     // 1st tier: 1 internal page
     // 2nd tier: 3 internal pages (2 * 124 + 2 = 250 children)
@@ -240,14 +240,14 @@ fn test_delete_internal_pages() {
     );
 
     let table = table_rc.rl();
-    table.draw_tree(2);
+    // table.draw_tree(-1);
     table.check_integrity(true);
 
     let root_pid = table.get_root_pid(&ctx.tx);
     let root_rc = Unique::buffer_pool()
         .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
-    assert_eq!(122, root_rc.rl().empty_slots_count());
+    assert_eq!(121, root_rc.rl().empty_slots_count());
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.

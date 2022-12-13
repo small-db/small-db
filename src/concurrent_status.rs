@@ -193,10 +193,10 @@ impl ConcurrentStatus {
 
         let mut x_lock_map = self.x_lock_map.get_inner_wl();
         if let Some(_) = x_lock_map.get_mut(page_id) {
-            debug!(
-                "release_lock_exclusive, tx: {}, page_id: {:?}",
-                tx, page_id
-            );
+            // debug!(
+            //     "release_lock_exclusive, tx: {}, page_id: {:?}",
+            //     tx, page_id
+            // );
             x_lock_map.remove(page_id);
         }
 
