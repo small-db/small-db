@@ -1,4 +1,6 @@
 mod test_utils;
+use crate::test_utils::internal_children_count;
+use crate::test_utils::leaf_slots_count;
 use log::error;
 use small_db::{
     btree::{
@@ -231,9 +233,11 @@ fn test_delete_internal_pages() {
     // 1st tier: 1 internal page
     // 2nd tier: 3 internal pages (2 * 124 + 2 = 250 children)
     // 3rd tier: 250 leaf pages (249 * 124 + 1 = 30877 records)
+    let row_count =
+        3 * internal_children_count() * leaf_slots_count();
     let table_rc = test_utils::create_random_btree_table(
         2,
-        30877,
+        row_count,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,

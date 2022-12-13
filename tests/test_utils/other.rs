@@ -387,11 +387,15 @@ fn get_buckets(
     table
 }
 
-fn leaf_slots_count() -> usize {
+pub fn leaf_slots_count() -> usize {
     let scheme = small_int_tuple_scheme(2, "");
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 
-fn internal_entries_count() -> usize {
+pub fn internal_entries_count() -> usize {
     BTreeInternalPage::calculate_entries_count(4)
+}
+
+pub fn internal_children_count() -> usize {
+    BTreeInternalPage::calculate_entries_count(4) + 1
 }
