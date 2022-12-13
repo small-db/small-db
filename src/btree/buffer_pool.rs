@@ -104,12 +104,6 @@ impl BufferPool {
             table.key_field,
         );
 
-        {
-            if page.get_pid().page_index == 373 {
-                page.peek();
-            }
-        }
-
         // stage 4: return
         return Ok(Arc::new(RwLock::new(page)));
     }
@@ -291,12 +285,6 @@ impl BufferPool {
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         let page_pod = buffer.get_inner_wl().remove(pid).unwrap();
-        {
-            // let page = page_pod.rl();
-            // if page.get_pid().page_index == 373 {
-            //     page.peek();
-            // }
-        }
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
         buffer.remove(pid);
     }
