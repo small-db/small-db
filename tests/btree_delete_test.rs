@@ -14,7 +14,8 @@ use small_db::{
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    internal_children_count, internal_entries_count, leaf_slots_count,
+    get_internal_page, internal_children_count,
+    internal_entries_count, leaf_slots_count,
 };
 
 #[test]
@@ -225,17 +226,7 @@ fn test_delete_internal_pages() {
     BufferPool::set_page_size(1024);
 
     // This should create a B+ tree with three nodes in the second
-    // tier and 250 nodes in the third tier.
-    //
-    // (124 entries per internal/leaf page, 125 children per internal
-    // page) -> 251*124 + 1 = 31125)
-    //
-    // 123 records per leaf page
-    // 124 children (123 entries) per internal
-    //
-    // 1st tier: 1 internal page
-    // 2nd tier: 3 internal pages (2 * 124 + 2 = 250 children)
-    // 3rd tier: 250 leaf pages (249 * 124 + 1 = 30877 records)
+    // tier and third tier is packed.
     let row_count =
         3 * internal_children_count() * leaf_slots_count();
     let table_rc = test_utils::create_random_btree_table(
@@ -250,37 +241,14 @@ fn test_delete_internal_pages() {
     table.draw_tree(2);
     table.check_integrity(true);
 
-    let tx = Transaction::new();
-    let root_pid = table.get_root_pid(&tx);
-    let root_rc = Unique::buffer_pool()
-        .get_internal_page(&tx, Permission::ReadWrite, &root_pid)
-        .unwrap();
+    let root_pod = get_internal_page(&table, 0, 0);
     assert_eq!(
         internal_entries_count() - 2,
-        root_rc.rl().empty_slots_count()
+        root_pod.rl().empty_slots_count()
     );
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
-    let e = BTreeInternalPageIterator::new(&root_rc.rl())
-        .next()
-        .unwrap();
-    let left_child_rc = Unique::buffer_pool()
-        .get_internal_page(
-            &tx,
-            Permission::ReadWrite,
-            &e.get_left_child(),
-        )
-        .unwrap();
-    let right_child_rc = Unique::buffer_pool()
-        .get_internal_page(
-            &tx,
-            Permission::ReadWrite,
-            &e.get_right_child(),
-        )
-        .unwrap();
-    tx.commit().unwrap();
-
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
     for _ in 0..(internal_entries_count() / 2) {
@@ -290,18 +258,15 @@ fn test_delete_internal_pages() {
     }
     tx.commit().unwrap();
 
-    left_child_rc.rl().peek();
     table.draw_tree(2);
-    left_child_rc.rl().peek();
     table.check_integrity(true);
 
     // Deleting a page of tuples should bring the internal page below
-    // minimum occupancy and cause the entries to be
-    // redistributed.
-    left_child_rc.rl().peek();
+    // minimum occupancy and cause the entries to be redistributed.
+    let left_child_pod = get_internal_page(&table, 1, 0);
     assert_eq!(
         internal_entries_count() / 2,
-        left_child_rc.rl().empty_slots_count(),
+        left_child_pod.rl().empty_slots_count(),
     );
 
     let tx = Transaction::new();
@@ -313,39 +278,17 @@ fn test_delete_internal_pages() {
     }
     tx.commit().unwrap();
 
-    debug!("left pid: {:?}", left_child_rc.rl().get_pid());
-    debug!("right pid: {:?}", right_child_rc.rl().get_pid());
-    debug!(
-        "left empty_slots_count: {:?}, enties_count: {:?}",
-        left_child_rc.rl().empty_slots_count(),
-        left_child_rc.rl().entries_count()
-    );
-    debug!(
-        "right empty_slots_count: {:?}, enties_count: {:?}",
-        right_child_rc.rl().empty_slots_count(),
-        right_child_rc.rl().entries_count()
-    );
+    let left_child_pod = get_internal_page(&table, 1, 0);
+    let right_child_pod = get_internal_page(&table, 1, 1);
     table.draw_tree(2);
     table.check_integrity(true);
-    debug!("left pid: {:?}", left_child_rc.rl().get_pid());
-    debug!("right pid: {:?}", right_child_rc.rl().get_pid());
-    debug!(
-        "left empty_slots_count: {:?}, enties_count: {:?}",
-        left_child_rc.rl().empty_slots_count(),
-        left_child_rc.rl().entries_count()
-    );
-    debug!(
-        "right empty_slots_count: {:?}, enties_count: {:?}",
-        right_child_rc.rl().empty_slots_count(),
-        right_child_rc.rl().entries_count()
+    assert_eq!(
+        internal_entries_count() / 2,
+        left_child_pod.rl().empty_slots_count()
     );
     assert_eq!(
         internal_entries_count() / 2,
-        left_child_rc.rl().empty_slots_count()
-    );
-    assert_eq!(
-        internal_entries_count() / 2,
-        right_child_rc.rl().empty_slots_count()
+        right_child_pod.rl().empty_slots_count()
     );
 
     // deleting another page of tuples should bring the page below
@@ -357,8 +300,8 @@ fn test_delete_internal_pages() {
     }
 
     // confirm that the pages have merged
-    assert_eq!(121, root_rc.rl().empty_slots_count());
-    let e = BTreeInternalPageIterator::new(&root_rc.rl())
+    assert_eq!(121, root_pod.rl().empty_slots_count());
+    let e = BTreeInternalPageIterator::new(&root_pod.rl())
         .next()
         .unwrap();
     let left_child_rc = Unique::buffer_pool()
