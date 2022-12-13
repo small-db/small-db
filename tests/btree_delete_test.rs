@@ -1,7 +1,10 @@
 mod test_utils;
 use crate::test_utils::internal_children_count;
+use crate::test_utils::internal_entries_count;
 use crate::test_utils::leaf_slots_count;
+use log::debug;
 use log::error;
+use small_db::btree::page::BTreePage;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
@@ -251,7 +254,10 @@ fn test_delete_internal_pages() {
     let root_rc = Unique::buffer_pool()
         .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
         .unwrap();
-    assert_eq!(121, root_rc.rl().empty_slots_count());
+    assert_eq!(
+        internal_entries_count() - 2,
+        root_rc.rl().empty_slots_count()
+    );
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
@@ -273,14 +279,11 @@ fn test_delete_internal_pages() {
         )
         .unwrap();
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    let mut count = 0;
     table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    for _ in 0..61 {
-        assert_eq!(count, left_child_rc.rl().empty_slots_count());
-        for _ in 0..123 {
+    for _ in 0..(internal_entries_count() / 2) {
+        for _ in 0..leaf_slots_count() {
             table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
         }
-        count += 1;
     }
 
     table.draw_tree(2);
@@ -289,15 +292,50 @@ fn test_delete_internal_pages() {
     // Deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be
     // redistributed.
-    assert_eq!(61, left_child_rc.rl().empty_slots_count());
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(123) {
-        table.delete_tuple(&ctx.tx, &t).unwrap();
+    assert_eq!(
+        internal_entries_count() / 2,
+        left_child_rc.rl().empty_slots_count()
+    );
+    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
+    for _ in 0..(internal_entries_count() / 2) {
+        for _ in 0..leaf_slots_count() {
+            table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
+        }
     }
+    debug!("left pid: {:?}", left_child_rc.rl().get_pid());
+    debug!("right pid: {:?}", right_child_rc.rl().get_pid());
+    debug!(
+        "left empty_slots_count: {:?}, enties_count: {:?}",
+        left_child_rc.rl().empty_slots_count(),
+        left_child_rc.rl().entries_count()
+    );
+    debug!(
+        "right empty_slots_count: {:?}, enties_count: {:?}",
+        right_child_rc.rl().empty_slots_count(),
+        right_child_rc.rl().entries_count()
+    );
     table.draw_tree(2);
     table.check_integrity(true);
-    assert_eq!(61, left_child_rc.rl().empty_slots_count());
-    assert_eq!(60, right_child_rc.rl().empty_slots_count());
+    debug!("left pid: {:?}", left_child_rc.rl().get_pid());
+    debug!("right pid: {:?}", right_child_rc.rl().get_pid());
+    debug!(
+        "left empty_slots_count: {:?}, enties_count: {:?}",
+        left_child_rc.rl().empty_slots_count(),
+        left_child_rc.rl().entries_count()
+    );
+    debug!(
+        "right empty_slots_count: {:?}, enties_count: {:?}",
+        right_child_rc.rl().empty_slots_count(),
+        right_child_rc.rl().entries_count()
+    );
+    assert_eq!(
+        internal_entries_count() / 2,
+        left_child_rc.rl().empty_slots_count()
+    );
+    assert_eq!(
+        internal_entries_count() / 2,
+        right_child_rc.rl().empty_slots_count()
+    );
 
     // deleting another page of tuples should bring the page below
     // minimum occupancy again but this time cause it to merge

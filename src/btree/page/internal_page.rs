@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bit_vec::BitVec;
-use log::error;
+use log::{error, debug};
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,
@@ -18,7 +18,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, HandyRwLock},
+    utils::{self, ceil_dev, floor_dev, HandyRwLock},
     Unique,
 };
 
@@ -249,8 +249,7 @@ impl BTreeInternalPage {
             return true;
         }
 
-        let max_empty_slots =
-            self.get_entry_capacity() - self.get_entry_capacity() / 2; // ceiling
+        let max_empty_slots = floor_dev(self.get_entry_capacity(), 2);
         return self.empty_slots_count() <= max_empty_slots;
     }
 
@@ -275,6 +274,7 @@ impl BTreeInternalPage {
                 count += 1
             }
         }
+        debug!("pid: {}, empty slots: {}", self.get_pid(), count);
         count
     }
 
@@ -447,10 +447,7 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            // minus 1 hear since the page may become lower than half
-            // full in the process of splitting
-            let minimal_stable =
-                Self::calculate_entries_count(4) / 2 - 1;
+            let minimal_stable = Self::calculate_minimal_stable(4);
             assert!(
                 self.entries_count() >= minimal_stable,
                 "entries count: {}, max entries: {}, pid: {:?}",
@@ -563,6 +560,10 @@ impl BTreeInternalPage {
 impl BTreeInternalPage {
     pub fn get_entry_capacity(&self) -> usize {
         self.slot_count - 1
+    }
+
+    pub fn calculate_minimal_stable(key_size: usize) -> usize {
+        ceil_dev(Self::calculate_entries_count(key_size), 2)
     }
 
     /// Retrieve the maximum number of entries this page can hold.
