@@ -398,24 +398,7 @@ impl BTreePage for BTreeLeafPage {
             writer.write(tuple);
         }
 
-        let mut data = vec![0; BufferPool::get_page_size()];
-
-        // write header
-        let header_size =
-            Self::calculate_header_size(self.slot_count) as usize;
-        let header = self.header.to_bytes();
-        data[..header_size].copy_from_slice(&header);
-
-        // write tuples
-        for i in 0..self.slot_count {
-            let start =
-                header_size + i * self.tuple_scheme.get_size();
-            let end = start + self.tuple_scheme.get_size();
-            let tuple = self.tuples[i].to_bytes();
-            data[start..end].copy_from_slice(&tuple);
-        }
-
-        return data;
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 }
 

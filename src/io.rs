@@ -99,6 +99,15 @@ impl SmallWriter {
 
     pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
         let mut buf = self.buf.clone();
+
+        if buf.len() > size {
+            panic!(
+                "buffer size is larger than the given size: {} > {}",
+                buf.len(),
+                size
+            );
+        }
+
         buf.resize(size, 0);
         buf
     }
