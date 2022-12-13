@@ -21,6 +21,10 @@ pub struct BTreeHeaderPage {
 
 impl BTreeHeaderPage {
     pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> BTreeHeaderPage {
+        if BTreeBasePage::is_empty_page(&bytes) {
+            return Self::new_empty_page(pid);
+        }
+
         let mut reader = SmallReader::new(&bytes);
 
         // read page category
@@ -33,6 +37,19 @@ impl BTreeHeaderPage {
         let header = BitVec::read_from(&mut reader);
 
         let slot_count = header.len();
+
+        BTreeHeaderPage {
+            base: BTreeBasePage::new(pid),
+            header,
+            slot_count,
+        }
+    }
+
+    pub fn new_empty_page(pid: &BTreePageID) -> BTreeHeaderPage {
+        let slot_count = 1000;
+
+        let mut header = BitVec::new();
+        header.grow(slot_count, false);
 
         BTreeHeaderPage {
             base: BTreeBasePage::new(pid),

@@ -240,7 +240,7 @@ fn test_delete_internal_pages() {
     );
 
     let table = table_rc.rl();
-    // table.draw_tree(-1);
+    table.draw_tree(2);
     table.check_integrity(true);
 
     let root_pid = table.get_root_pid(&ctx.tx);
@@ -271,9 +271,9 @@ fn test_delete_internal_pages() {
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut count = 0;
     table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    for _ in 0..62 {
+    for _ in 0..61 {
         assert_eq!(count, left_child_rc.rl().empty_slots_count());
-        for _ in 0..124 {
+        for _ in 0..123 {
             table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
         }
         count += 1;
@@ -285,26 +285,26 @@ fn test_delete_internal_pages() {
     // Deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be
     // redistributed.
-    assert_eq!(62, left_child_rc.rl().empty_slots_count());
+    assert_eq!(61, left_child_rc.rl().empty_slots_count());
     let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(124) {
+    for t in it.take(123) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
     table.draw_tree(2);
     table.check_integrity(true);
-    assert_eq!(62, left_child_rc.rl().empty_slots_count());
-    assert_eq!(62, right_child_rc.rl().empty_slots_count());
+    assert_eq!(61, left_child_rc.rl().empty_slots_count());
+    assert_eq!(60, right_child_rc.rl().empty_slots_count());
 
     // deleting another page of tuples should bring the page below
     // minimum occupancy again but this time cause it to merge
     // with its right sibling
     let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(124) {
+    for t in it.take(123) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 
     // confirm that the pages have merged
-    assert_eq!(123, root_rc.rl().empty_slots_count());
+    assert_eq!(121, root_rc.rl().empty_slots_count());
     let e = BTreeInternalPageIterator::new(&root_rc.rl())
         .next()
         .unwrap();
