@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{self, Condensable, Serializable, SmallReader, Vaporizable},
+    io::{Condensable, SmallReader, Vaporizable},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;

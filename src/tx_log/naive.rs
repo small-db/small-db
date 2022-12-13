@@ -8,9 +8,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePage, error::SmallError,
-    transaction::Transaction, types::SmallResult, io::SmallFile,
-    Unique,
+    btree::page::BTreePage, error::SmallError, io::SmallFile,
+    transaction::Transaction, types::SmallResult, Unique,
 };
 
 static START_RECORD_LEN: u64 = 17;

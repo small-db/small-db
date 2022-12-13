@@ -13,10 +13,7 @@ use crate::{
         tuple::{TupleScheme, WrappedTuple},
     },
     field::IntField,
-    io::{
-        Condensable, Serializable, SmallReader, SmallWriter,
-        Vaporizable,
-    },
+    io::{SmallReader, SmallWriter, Vaporizable},
     utils::HandyRwLock,
     Tuple,
 };

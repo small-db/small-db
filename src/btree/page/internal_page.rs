@@ -12,10 +12,10 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     field::{get_type_length, IntField},
-    io::{Serializable, SmallReader, SmallWriter, Vaporizable},
+    io::{SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock},
+    utils::{self, HandyRwLock},
     Unique,
 };
 

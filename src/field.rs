@@ -1,10 +1,7 @@
-use std::{
-    convert::TryInto,
-    fmt::{self, Debug},
-};
+use std::fmt::{self, Debug};
 
 use crate::{
-    io::{Condensable, Serializable, SmallReader, Vaporizable},
+    io::{Condensable, SmallReader, Vaporizable},
     Op,
 };
 

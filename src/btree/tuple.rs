@@ -6,7 +6,7 @@ use std::{
 use super::page::BTreePageID;
 use crate::{
     field::*,
-    io::{Condensable, Serializable, Vaporizable},
+    io::{Condensable, Vaporizable},
 };
 
 #[derive(Debug, Default)]
