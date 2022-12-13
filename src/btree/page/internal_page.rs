@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bit_vec::BitVec;
-use log::{error, debug};
+use log::{debug, error};
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,
@@ -18,7 +18,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{self, ceil_dev, floor_dev, HandyRwLock},
+    utils::{ceil_dev, floor_dev, HandyRwLock},
     Unique,
 };
 

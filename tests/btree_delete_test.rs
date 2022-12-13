@@ -1,14 +1,9 @@
 mod test_utils;
-use crate::test_utils::internal_children_count;
-use crate::test_utils::internal_entries_count;
-use crate::test_utils::leaf_slots_count;
-use log::debug;
-use log::error;
-use small_db::btree::page::BTreePage;
+use log::{debug, error};
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeInternalPageIterator, PageCategory},
+        page::{BTreeInternalPageIterator, BTreePage, PageCategory},
         table::BTreeTableIterator,
     },
     concurrent_status::Permission,
@@ -16,6 +11,10 @@ use small_db::{
     Op, Tuple, Unique,
 };
 use test_utils::TreeLayout;
+
+use crate::test_utils::{
+    internal_children_count, internal_entries_count, leaf_slots_count,
+};
 
 #[test]
 fn test_redistribute_leaf_pages() {

@@ -7,8 +7,6 @@ use std::{
     },
 };
 
-use log::debug;
-
 use super::{
     page::{
         BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
@@ -21,7 +19,7 @@ use crate::{
     error::SmallError,
     transaction::Transaction,
     types::{ConcurrentHashMap, ResultPod},
-    utils::{small_int_tuple_scheme, HandyRwLock},
+    utils::HandyRwLock,
     BTreeTable, Unique,
 };
 
