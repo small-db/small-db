@@ -6,8 +6,8 @@ use small_db::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
-            BTreeInternalPage, BTreeLeafPageIteratorRc, BTreePage,
-            BTreePageID, Entry,
+            BTreeInternalPage, BTreeLeafPage,
+            BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
         },
         tuple::TupleScheme,
     },
@@ -385,4 +385,13 @@ fn get_buckets(
     }
 
     table
+}
+
+fn leaf_slots_count() -> usize {
+    let scheme = small_int_tuple_scheme(2, "");
+    BTreeLeafPage::calculate_slots_count(&scheme)
+}
+
+fn internal_entries_count() -> usize {
+    BTreeInternalPage::calculate_entries_count(4)
 }
