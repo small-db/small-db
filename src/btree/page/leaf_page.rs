@@ -13,6 +13,10 @@ use crate::{
         tuple::{TupleScheme, WrappedTuple},
     },
     field::IntField,
+    io::{
+        Condensable, Serializable, SmallReader, SmallWriter,
+        Vaporizable,
+    },
     utils::HandyRwLock,
     Tuple,
 };
@@ -21,6 +25,7 @@ use crate::{
 ///
 /// # Binary Layout
 ///
+/// - 4 bytes: page category
 /// - 4 bytes: parent page index
 /// - 4 bytes: left sibling page index
 /// - 4 bytes: right sibling page index
@@ -59,24 +64,51 @@ impl BTreeLeafPage {
         let header_size =
             Self::calculate_header_size(slot_count) as usize;
 
-        // init tuples
+        let mut reader = SmallReader::new(&bytes);
+
+        // read page category
+        let category = PageCategory::read_from(&mut reader);
+        if category != PageCategory::Leaf {
+            panic!(
+                "BTreeLeafPage::new: page category is not leaf, category: {:?}",
+                category,
+            );
+        }
+
+        // read parent page index
+        let parent_pid = BTreePageID::new(
+            PageCategory::Internal,
+            pid.get_table_id(),
+            u32::read_from(&mut reader),
+        );
+
+        // read left sibling page index
+        let left_sibling_id = u32::read_from(&mut reader);
+
+        // read right sibling page index
+        let right_sibling_id = u32::read_from(&mut reader);
+
+        // read header
+        let header = BitVec::read_from(&mut reader);
+
+        // read tuples
         let mut tuples = Vec::new();
-        for i in 0..slot_count {
-            let start = header_size + i * tuple_scheme.get_size();
-            let end = start + tuple_scheme.get_size();
-            let t =
-                Tuple::new(tuple_scheme.clone(), &bytes[start..end]);
+        for _ in 0..slot_count {
+            let t = Tuple::read_from(&mut reader, tuple_scheme);
             tuples.push(t);
         }
 
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
         Self {
-            base: BTreeBasePage::new(pid),
+            base,
             slot_count,
-            header: BitVec::from_bytes(&bytes[..header_size]),
+            header,
             tuples,
             tuple_scheme: tuple_scheme.clone(),
-            right_sibling_id: EMPTY_PAGE_ID,
-            left_sibling_id: EMPTY_PAGE_ID,
+            right_sibling_id,
+            left_sibling_id,
             key_field,
         }
     }
@@ -344,6 +376,28 @@ impl BTreePage for BTreeLeafPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
+
+        // write page category
+        writer.write(&self.get_pid().category);
+
+        // write parent page index
+        writer.write(&self.get_parent_pid().page_index);
+
+        // write left sibling page index
+        writer.write(&self.left_sibling_id);
+
+        // write right sibling page index
+        writer.write(&self.right_sibling_id);
+
+        // write header
+        writer.write(&self.header);
+
+        // write tuples
+        for tuple in &self.tuples {
+            writer.write(tuple);
+        }
+
         let mut data = vec![0; BufferPool::get_page_size()];
 
         // write header

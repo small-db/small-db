@@ -1,6 +1,12 @@
-use std::fmt::{self, Debug};
+use std::{
+    convert::TryInto,
+    fmt::{self, Debug},
+};
 
-use crate::Op;
+use crate::{
+    io::{Condensable, Serializable, SmallReader, Vaporizable},
+    Op,
+};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
@@ -44,15 +50,20 @@ impl IntField {
             crate::Op::NotEquals => self.value != field.value,
         }
     }
+}
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+impl Condensable for IntField {
+    fn to_bytes(&self) -> Vec<u8> {
         self.value.to_be_bytes().to_vec()
     }
+}
 
-    pub fn from_bytes(bytes: &[u8]) -> IntField {
+impl Vaporizable for IntField {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let data = reader.read_exact(4);
         IntField {
             value: i32::from_be_bytes([
-                bytes[0], bytes[1], bytes[2], bytes[3],
+                data[0], data[1], data[2], data[3],
             ]),
         }
     }

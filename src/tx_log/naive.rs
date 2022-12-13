@@ -9,7 +9,7 @@ use log::debug;
 
 use crate::{
     btree::page::BTreePage, error::SmallError,
-    transaction::Transaction, types::SmallResult, utils::SmallFile,
+    transaction::Transaction, types::SmallResult, io::SmallFile,
     Unique,
 };
 

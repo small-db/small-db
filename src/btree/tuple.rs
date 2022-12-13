@@ -4,7 +4,10 @@ use std::{
 };
 
 use super::page::BTreePageID;
-use crate::field::*;
+use crate::{
+    field::*,
+    io::{Condensable, Serializable, Vaporizable},
+};
 
 #[derive(Debug, Default)]
 pub struct Tuple {
@@ -77,20 +80,40 @@ impl Tuple {
         self.fields[i]
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn clone(&self) -> Tuple {
+        Tuple {
+            scheme: self.scheme.clone(),
+            fields: self.fields.to_vec(),
+        }
+    }
+
+    pub fn read_from(
+        reader: &mut crate::io::SmallReader,
+        tuple_scheme: &TupleScheme,
+    ) -> Self {
+        let mut cells: Vec<IntField> = Vec::new();
+        for field in &tuple_scheme.fields {
+            match field.field_type {
+                Type::INT => {
+                    cells.push(IntField::read_from(reader));
+                }
+            }
+        }
+        Tuple {
+            scheme: tuple_scheme.clone(),
+            fields: cells,
+        }
+    }
+}
+
+impl Condensable for Tuple {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
         for cell in &self.fields {
             let mut cell_bytes = cell.to_bytes();
             bytes.append(&mut cell_bytes);
         }
         bytes
-    }
-
-    pub fn clone(&self) -> Tuple {
-        Tuple {
-            scheme: self.scheme.clone(),
-            fields: self.fields.to_vec(),
-        }
     }
 }
 

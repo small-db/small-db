@@ -12,11 +12,10 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     field::{get_type_length, IntField},
+    io::{Serializable, SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{
-        self, bytes_to_u32, u32_to_bytes, HandyRwLock, SmallWriter,
-    },
+    utils::{self, bytes_to_u32, u32_to_bytes, HandyRwLock},
     Unique,
 };
 
@@ -25,6 +24,7 @@ use crate::{
 ///
 /// # Binary Layout
 ///
+/// - 4 bytes: page category
 /// - 4 bytes: parent page index
 /// - 4 bytes: children category (leaf/internal)
 /// - n bytes: header bytes, indicate whether every slot of the page
@@ -89,32 +89,37 @@ impl BTreeInternalPage {
             tuple_scheme.fields[key_field].field_type,
         );
         let slot_count = Self::get_max_entries(key_size) + 1;
-        let header_size =
-            Self::get_header_bytes_size(slot_count) as usize;
 
-        let mut reader = utils::SmallReader::new(&bytes);
+        let mut reader = SmallReader::new(&bytes);
+
+        // read page category
+        let category = PageCategory::read_from(&mut reader);
+        if category != PageCategory::Internal {
+            panic!(
+                "The page category of the internal page is not
+                correct: {:?}",
+                category
+            );
+        }
 
         // read parent page index
         let parent_pid = BTreePageID::new(
             PageCategory::Internal,
             pid.get_table_id(),
-            bytes_to_u32(reader.read_exact(INDEX_SIZE)),
+            u32::read_from(&mut reader),
         );
 
         // read children category
-        let children_category =
-            PageCategory::from_bytes(reader.read_exact(4));
+        let children_category = PageCategory::read_from(&mut reader);
 
         // read header
-        let header =
-            BitVec::from_bytes(reader.read_exact(header_size));
+        let header = BitVec::read_from(&mut reader);
 
         // read keys
         let mut keys: Vec<IntField> = Vec::new();
         keys.push(IntField::new(0));
         for _ in 1..slot_count {
-            let key =
-                IntField::from_bytes(reader.read_exact(key_size));
+            let key = IntField::read_from(&mut reader);
             keys.push(key);
         }
 
@@ -124,7 +129,7 @@ impl BTreeInternalPage {
             let child = BTreePageID::new(
                 children_category,
                 pid.get_table_id(),
-                bytes_to_u32(reader.read_exact(INDEX_SIZE)),
+                u32::read_from(&mut reader),
             );
             children.push(child);
         }
@@ -533,24 +538,28 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut writer =
-            SmallWriter::new(BufferPool::get_page_size());
+        let mut writer = SmallWriter::new();
+
+        // write page category
+        writer.write(&self.get_pid().category);
 
         // write children category
-        writer.write(&self.children_category.to_bytes());
+        writer.write(&self.children_category);
 
         // write header
-        writer.write(&self.header.to_bytes());
+        writer.write(&self.header);
 
-        // write keys and children
-        for i in 0..self.slot_count {
-            if i > 0 {
-                writer.write(&self.keys[i].to_bytes());
-            }
-            writer.write(&u32_to_bytes(self.children[i].page_index));
+        // write keys
+        for i in 1..self.slot_count {
+            writer.write(&self.keys[i]);
         }
 
-        return writer.to_bytes();
+        // write children
+        for i in 0..self.slot_count {
+            writer.write(&self.children[i].page_index);
+        }
+
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 }
 

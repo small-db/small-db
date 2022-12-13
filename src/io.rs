@@ -1,8 +1,11 @@
 use std::{
+    convert::TryInto,
     fs::{File, OpenOptions},
     io::{Read, Write},
     sync::{Mutex, MutexGuard},
 };
+
+use bit_vec::BitVec;
 
 use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
@@ -78,32 +81,83 @@ impl<'a> SmallReader<'a> {
 
 pub struct SmallWriter {
     buf: Vec<u8>,
-    cap: usize,
 }
 
 impl SmallWriter {
-    pub fn new(cap: usize) -> Self {
+    pub fn new() -> Self {
         let buf = Vec::new();
-        Self { buf, cap }
+        Self { buf }
     }
 
-    pub fn write(&mut self, buf: &[u8]) {
-        // boundary check
-        if self.buf.len() + buf.len() > self.cap {
-            panic!("write out of boundary");
-        }
-
-        self.buf.extend_from_slice(buf);
+    pub fn write<T: Condensable>(&mut self, obj: &T) {
+        self.buf.extend_from_slice(obj.to_bytes().as_slice());
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        // boundary check
-        if self.buf.len() > self.cap {
-            panic!("write out of boundary");
-        }
+        self.buf.clone()
+    }
 
-        let mut result = self.buf.clone();
-        result.resize(self.cap, 0);
-        result
+    pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
+        let mut buf = self.buf.clone();
+        buf.resize(size, 0);
+        buf
+    }
+}
+
+pub trait Condensable {
+    fn to_bytes(&self) -> Vec<u8>;
+}
+
+pub trait Vaporizable {
+    fn read_from(reader: &mut SmallReader) -> Self;
+}
+
+pub trait Serializable: Condensable + Vaporizable {}
+
+/// # Format
+///
+/// - 2 bytes: bytes size (range: 0 - 65535) (65535 * 8 = 524280 bits)
+/// - n bytes: bit vector
+impl Condensable for BitVec {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+
+        let payload = self.to_bytes();
+
+        // write size
+        let len = payload.len() as u16;
+        buf.extend_from_slice(&len.to_le_bytes());
+
+        // write payload
+        buf.extend_from_slice(&payload);
+
+        buf
+    }
+}
+
+impl Vaporizable for BitVec {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        // read size
+        let size = u16::from_le_bytes(
+            reader.read_exact(2).try_into().unwrap(),
+        );
+
+        // read payload
+        let buf = reader.read_exact(size as usize);
+
+        BitVec::from_bytes(buf)
+    }
+}
+
+impl Condensable for u32 {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_le_bytes().to_vec()
+    }
+}
+
+impl Vaporizable for u32 {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let buf = reader.read_exact(4);
+        u32::from_le_bytes(buf.try_into().unwrap())
     }
 }

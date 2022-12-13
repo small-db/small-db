@@ -1,6 +1,9 @@
 use std::fmt;
 
-use crate::btree::buffer_pool::BufferPool;
+use crate::{
+    btree::buffer_pool::BufferPool,
+    io::{self, Condensable, Serializable, SmallReader, Vaporizable},
+};
 
 pub const EMPTY_PAGE_ID: u32 = 0;
 
@@ -12,24 +15,26 @@ pub enum PageCategory {
     Header,
 }
 
-impl PageCategory {
-    /// serialize to 4 bytes
-    pub fn to_bytes(&self) -> [u8; 4] {
+impl Condensable for PageCategory {
+    fn to_bytes(&self) -> Vec<u8> {
         match self {
-            PageCategory::RootPointer => [0, 0, 0, 0],
-            PageCategory::Internal => [0, 0, 0, 1],
-            PageCategory::Leaf => [0, 0, 0, 2],
-            PageCategory::Header => [0, 0, 0, 3],
+            PageCategory::RootPointer => vec![0, 0, 0, 0],
+            PageCategory::Internal => vec![0, 0, 0, 1],
+            PageCategory::Leaf => vec![0, 0, 0, 2],
+            PageCategory::Header => vec![0, 0, 0, 3],
         }
     }
+}
 
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        match bytes {
+impl Vaporizable for PageCategory {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let data = reader.read_exact(4);
+        match data {
             [0, 0, 0, 0] => PageCategory::RootPointer,
             [0, 0, 0, 1] => PageCategory::Internal,
             [0, 0, 0, 2] => PageCategory::Leaf,
             [0, 0, 0, 3] => PageCategory::Header,
-            _ => panic!("invalid page category: {:?}", bytes),
+            _ => panic!("invalid page category: {:?}", data),
         }
     }
 }

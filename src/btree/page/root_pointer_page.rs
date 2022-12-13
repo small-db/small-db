@@ -4,7 +4,10 @@ use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,
     EMPTY_PAGE_ID,
 };
-use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
+use crate::{
+    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    io::{Condensable, Serializable, SmallReader, Vaporizable},
+};
 
 /// # Binary Layout
 ///
@@ -27,10 +30,11 @@ pub struct BTreeRootPointerPage {
 
 impl BTreeRootPointerPage {
     fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
+        let mut reader = SmallReader::new(&bytes);
+
         let root_page_index =
             u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let root_page_category =
-            PageCategory::from_bytes(&bytes[4..8]);
+        let root_page_category = PageCategory::read_from(&mut reader);
         let header_page_index =
             u32::from_le_bytes(bytes[8..12].try_into().unwrap());
 
