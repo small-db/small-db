@@ -1,8 +1,15 @@
 use bit_vec::BitVec;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID};
-use crate::btree::tuple::TupleScheme;
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
+use crate::{
+    btree::tuple::TupleScheme,
+    io::{SmallReader, Vaporizable},
+};
 
+/// # Binary Layout
+///
+/// - 4 bytes: page category
+/// - n bytes: header
 pub struct BTreeHeaderPage {
     base: BTreeBasePage,
 
@@ -13,16 +20,24 @@ pub struct BTreeHeaderPage {
 }
 
 impl BTreeHeaderPage {
-    pub fn new(pid: &BTreePageID) -> BTreeHeaderPage {
-        let header_size = 100;
-        let slot_count = 100 * 8;
-        let bytes: Vec<u8> = vec![0xff; header_size];
-        let header = BitVec::from_bytes(&bytes);
+    pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> BTreeHeaderPage {
+        let mut reader = SmallReader::new(&bytes);
+
+        // read page category
+        let page_category = PageCategory::read_from(&mut reader);
+        if page_category != PageCategory::Header {
+            panic!("invalid page category: {:?}", page_category);
+        }
+
+        // read header
+        let header = BitVec::read_from(&mut reader);
+
+        let slot_count = header.len();
 
         BTreeHeaderPage {
             base: BTreeBasePage::new(pid),
-            header: header,
-            slot_count: slot_count,
+            header,
+            slot_count,
         }
     }
 
@@ -52,11 +67,11 @@ impl BTreeHeaderPage {
 impl BTreePage for BTreeHeaderPage {
     fn new(
         pid: &BTreePageID,
-        _bytes: Vec<u8>,
+        bytes: Vec<u8>,
         _tuple_scheme: &TupleScheme,
         _key_field: usize,
     ) -> Self {
-        Self::new(pid)
+        Self::new(pid, bytes)
     }
 
     fn get_pid(&self) -> BTreePageID {

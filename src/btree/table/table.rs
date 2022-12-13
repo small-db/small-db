@@ -776,7 +776,10 @@ impl BTreeTable {
             self.table_id,
             page_index,
         );
-        let page = BTreeHeaderPage::new(&page_id);
+        let page = BTreeHeaderPage::new(
+            &page_id,
+            BTreeBasePage::empty_page_data().to_vec(),
+        );
 
         self.write_empty_page_to_disk(&page_id);
 

@@ -61,8 +61,6 @@ impl BTreeLeafPage {
         key_field: usize,
     ) -> Self {
         let slot_count = Self::calculate_slots_count(&tuple_scheme);
-        let header_size =
-            Self::calculate_header_size(slot_count) as usize;
 
         let mut reader = SmallReader::new(&bytes);
 

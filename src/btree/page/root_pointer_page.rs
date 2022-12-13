@@ -6,14 +6,18 @@ use super::{
 };
 use crate::{
     btree::{buffer_pool::BufferPool, tuple::TupleScheme},
-    io::{Condensable, Serializable, SmallReader, Vaporizable},
+    io::{
+        Condensable, Serializable, SmallReader, SmallWriter,
+        Vaporizable,
+    },
 };
 
 /// # Binary Layout
 ///
-/// - [0-4) (4 bytes): root page index
-/// - [4-8) (4 bytes): root page category (leaf/internal)
-/// - [8-12) (4 bytes): header page index
+/// - 4 bytes: page category
+/// - 4 bytes: root page index
+/// - 4 bytes: root page category (leaf/internal)
+/// - 4 bytes: header page index
 pub struct BTreeRootPointerPage {
     base: BTreeBasePage,
 
@@ -32,11 +36,20 @@ impl BTreeRootPointerPage {
     fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
         let mut reader = SmallReader::new(&bytes);
 
-        let root_page_index =
-            u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        // read page category
+        let page_category = PageCategory::read_from(&mut reader);
+        if page_category != PageCategory::RootPointer {
+            panic!("invalid page category: {:?}", page_category);
+        }
+
+        // read root page index
+        let root_page_index = u32::read_from(&mut reader);
+
+        // read root page category
         let root_page_category = PageCategory::read_from(&mut reader);
-        let header_page_index =
-            u32::from_le_bytes(bytes[8..12].try_into().unwrap());
+
+        // read header page index
+        let header_page_index = u32::read_from(&mut reader);
 
         let root_pid = BTreePageID {
             category: root_page_category,
@@ -100,20 +113,20 @@ impl BTreePage for BTreeRootPointerPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut data = vec![0; BufferPool::get_page_size()];
+        let mut writer = SmallWriter::new();
 
-        // Write the root page index.
-        data[0..4]
-            .copy_from_slice(&self.root_pid.page_index.to_le_bytes());
+        // write page category
+        writer.write(&self.get_pid().category);
 
-        // Write the root page category.
-        data[4..8]
-            .copy_from_slice(&self.root_pid.category.to_bytes());
+        // write root page index
+        writer.write(&self.root_pid.page_index);
 
-        // Write the header page index.
-        data[8..12]
-            .copy_from_slice(&self.header_page_index.to_le_bytes());
+        // write root page category
+        writer.write(&self.root_pid.category);
 
-        return data;
+        // write header page index
+        writer.write(&self.header_page_index);
+
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 }
