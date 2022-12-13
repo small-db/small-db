@@ -57,6 +57,15 @@ impl BTreeLeafPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
+        if BTreeBasePage::is_empty_page(&bytes) {
+            return Self::new_empty_page(
+                pid,
+                bytes,
+                tuple_scheme,
+                key_field,
+            );
+        }
+
         let slot_count = Self::calculate_slots_count(&tuple_scheme);
 
         let mut reader = SmallReader::new(&bytes);
@@ -104,6 +113,47 @@ impl BTreeLeafPage {
             tuple_scheme: tuple_scheme.clone(),
             right_sibling_id,
             left_sibling_id,
+            key_field,
+        }
+    }
+
+    fn new_empty_page(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+
+        let mut reader = SmallReader::new(&bytes);
+
+        let parent_pid = BTreePageID::new(
+            PageCategory::Internal,
+            pid.get_table_id(),
+            EMPTY_PAGE_ID,
+        );
+
+        let mut header = BitVec::new();
+        header.grow(slot_count, false);
+
+        // read tuples
+        let mut tuples = Vec::new();
+        for _ in 0..slot_count {
+            let t = Tuple::read_from(&mut reader, tuple_scheme);
+            tuples.push(t);
+        }
+
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
+        Self {
+            base,
+            slot_count,
+            header,
+            tuples,
+            tuple_scheme: tuple_scheme.clone(),
+            right_sibling_id: EMPTY_PAGE_ID,
+            left_sibling_id: EMPTY_PAGE_ID,
             key_field,
         }
     }

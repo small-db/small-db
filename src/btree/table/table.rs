@@ -109,7 +109,7 @@ impl BTreeTable {
 
         let table_id = hasher.finish() as u32;
 
-        Self::file_init(f.lock().unwrap());
+        Self::file_init(f.lock().unwrap(), table_id);
 
         Self {
             file_path: file_path.to_string(),
@@ -685,17 +685,22 @@ impl BTreeTable {
     }
 
     /// init file in necessary
-    fn file_init(mut file: impl DerefMut<Target = File>) {
+    fn file_init(
+        mut file: impl DerefMut<Target = File>,
+        table_inex: u32,
+    ) {
         // if db file is empty, create root pointer page at first
         if file.metadata().unwrap().len() == 0 {
             // write root pointer page
             {
-                // set the root pid to 1
-                let mut data = empty_page_data();
-                let root_pid_bytes = 1_i32.to_le_bytes();
-                for i in 0..4 {
-                    data[i] = root_pid_bytes[i];
-                }
+                let pid = BTreePageID::new(
+                    PageCategory::RootPointer,
+                    table_inex,
+                    0,
+                );
+
+                let page = BTreeRootPointerPage::new_empty_page(&pid);
+                let data = page.get_page_data();
                 file.write(&data).unwrap();
             }
 

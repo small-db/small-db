@@ -3,7 +3,10 @@ use std::fmt;
 use bit_vec::BitVec;
 use log::error;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
+use super::{
+    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
+    EMPTY_PAGE_ID,
+};
 use crate::{
     btree::{
         buffer_pool::BufferPool, consts::INDEX_SIZE,
@@ -85,6 +88,15 @@ impl BTreeInternalPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
+        if BTreeBasePage::is_empty_page(&bytes) {
+            return Self::new_empty_page(
+                pid,
+                bytes,
+                tuple_scheme,
+                key_field,
+            );
+        }
+
         let key_size = get_type_length(
             tuple_scheme.fields[key_field].field_type,
         );
@@ -114,6 +126,62 @@ impl BTreeInternalPage {
 
         // read header
         let header = BitVec::read_from(&mut reader);
+
+        // read keys
+        let mut keys: Vec<IntField> = Vec::new();
+        keys.push(IntField::new(0));
+        for _ in 1..slot_count {
+            let key = IntField::read_from(&mut reader);
+            keys.push(key);
+        }
+
+        // read children
+        let mut children: Vec<BTreePageID> = Vec::new();
+        for _ in 0..slot_count {
+            let child = BTreePageID::new(
+                children_category,
+                pid.get_table_id(),
+                u32::read_from(&mut reader),
+            );
+            children.push(child);
+        }
+
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
+        Self {
+            base,
+            keys,
+            children,
+            slot_count,
+            header,
+            children_category,
+        }
+    }
+
+    fn new_empty_page(
+        pid: &BTreePageID,
+        bytes: Vec<u8>,
+        tuple_scheme: &TupleScheme,
+        key_field: usize,
+    ) -> Self {
+        let key_size = get_type_length(
+            tuple_scheme.fields[key_field].field_type,
+        );
+        let slot_count = Self::get_max_entries(key_size) + 1;
+
+        let mut reader = SmallReader::new(&bytes);
+
+        let parent_pid = BTreePageID::new(
+            PageCategory::Internal,
+            pid.get_table_id(),
+            EMPTY_PAGE_ID,
+        );
+
+        let children_category = PageCategory::Leaf;
+
+        let mut header = BitVec::new();
+        header.grow(slot_count, false);
 
         // read keys
         let mut keys: Vec<IntField> = Vec::new();

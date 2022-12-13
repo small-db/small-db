@@ -1,6 +1,8 @@
 use super::{BTreePage, BTreePageID, PageCategory};
 use crate::btree::{buffer_pool::BufferPool, tuple::TupleScheme};
 
+const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
+
 pub struct BTreeBasePage {
     pid: BTreePageID,
     parent_page_index: u32,
@@ -25,8 +27,16 @@ impl BTreeBasePage {
     /// - `BTreeInternalPage`
     /// - `BTreeLeafPage`
     pub fn empty_page_data() -> Vec<u8> {
-        let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
+        let mut data: Vec<u8> = vec![0; BufferPool::get_page_size()];
+
+        // write the empty page token to the first 4 bytes of the page
+        data[0..4].copy_from_slice(&EMPTY_PAGE_TOKEN);
+
         data
+    }
+
+    pub fn is_empty_page(bytes: &[u8]) -> bool {
+        bytes[0..4] == EMPTY_PAGE_TOKEN
     }
 }
 

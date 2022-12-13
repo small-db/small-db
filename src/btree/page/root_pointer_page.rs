@@ -58,6 +58,21 @@ impl BTreeRootPointerPage {
         }
     }
 
+    pub fn new_empty_page(pid: &BTreePageID) -> Self {
+        // set the root pid to 1
+        let root_pid = BTreePageID {
+            category: PageCategory::Leaf,
+            page_index: 1,
+            table_id: pid.get_table_id(),
+        };
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            root_pid,
+            header_page_index: EMPTY_PAGE_ID,
+        }
+    }
+
     pub fn get_root_pid(&self) -> BTreePageID {
         self.root_pid
     }
