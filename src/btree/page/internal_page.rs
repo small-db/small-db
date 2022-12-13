@@ -617,6 +617,9 @@ impl BTreePage for BTreeInternalPage {
         // write page category
         writer.write(&self.get_pid().category);
 
+        // write parent page index
+        writer.write(&self.get_parent_pid().page_index);
+
         // write children category
         writer.write(&self.children_category);
 

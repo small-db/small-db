@@ -75,6 +75,8 @@ impl<'a> SmallReader<'a> {
             panic!("read out of boundary");
         }
 
+        self.cursor += bytes_count;
+
         return &self.buf[start..end];
     }
 }
