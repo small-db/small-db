@@ -6,13 +6,15 @@ use small_db::{
     btree::{
         buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
-            BTreeInternalPage, BTreeLeafPage,
-            BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
+            BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
+            BTreePageID, Entry,
         },
         tuple::TupleScheme,
     },
     concurrent_status::Permission,
     transaction::Transaction,
+    types::Pod,
     utils::{small_int_tuple_scheme, HandyRwLock},
     *,
 };
@@ -398,4 +400,57 @@ pub fn internal_entries_count() -> usize {
 
 pub fn internal_children_count() -> usize {
     BTreeInternalPage::calculate_entries_count(4) + 1
+}
+
+pub fn get_internal_page(
+    table: &BTreeTable,
+    level: usize,
+    index: usize,
+) -> Pod<BTreeInternalPage> {
+    let tx = Transaction::new();
+    let root_pid = table.get_root_pid(&tx);
+    let root_pod = Unique::buffer_pool()
+        .get_internal_page(&tx, Permission::ReadOnly, &root_pid)
+        .unwrap();
+
+    match level {
+        0 => {
+            tx.commit().unwrap();
+            return root_pod;
+        }
+        1 => match index {
+            0 => {
+                let e =
+                    BTreeInternalPageIterator::new(&root_pod.rl())
+                        .next()
+                        .unwrap();
+                let left_child_rc = Unique::buffer_pool()
+                    .get_internal_page(
+                        &tx,
+                        Permission::ReadOnly,
+                        &e.get_left_child(),
+                    )
+                    .unwrap();
+                tx.commit().unwrap();
+                return left_child_rc;
+            }
+            _ => {
+                let e =
+                    BTreeInternalPageIterator::new(&root_pod.rl())
+                        .skip(index - 1)
+                        .next()
+                        .unwrap();
+                let left_child_rc = Unique::buffer_pool()
+                    .get_internal_page(
+                        &tx,
+                        Permission::ReadOnly,
+                        &e.get_right_child(),
+                    )
+                    .unwrap();
+                tx.commit().unwrap();
+                return left_child_rc;
+            }
+        },
+        _ => todo!(),
+    }
 }

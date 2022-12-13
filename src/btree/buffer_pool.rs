@@ -104,6 +104,12 @@ impl BufferPool {
             table.key_field,
         );
 
+        {
+            if page.get_pid().page_index == 373 {
+                page.peek();
+            }
+        }
+
         // stage 4: return
         return Ok(Arc::new(RwLock::new(page)));
     }

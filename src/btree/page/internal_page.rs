@@ -640,11 +640,11 @@ impl BTreePage for BTreeInternalPage {
 
     fn peek(&self) {
         debug!("======start=======");
-        debug!("Internal page: {}", self.get_pid());
-        debug!("Parent: {}", self.get_parent_pid());
-        debug!("slots count: {}", self.slot_count);
-        debug!("entries count: {}", self.entries_count());
-        debug!("children category: {:?}", self.children_category);
+        println!("Internal page: {}", self.get_pid());
+        println!("Parent: {}", self.get_parent_pid());
+        println!("slots count: {}", self.slot_count);
+        println!("entries count: {}", self.entries_count());
+        println!("children category: {:?}", self.children_category);
     }
 }
 
