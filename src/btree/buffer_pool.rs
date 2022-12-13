@@ -288,12 +288,7 @@ impl BufferPool {
         {
             let page = page_pod.rl();
             if page.get_pid().page_index == 373 {
-                debug!(
-                    "pid: {}, slot count: {}, empty slots: {}",
-                    page.get_pid().page_index,
-                    page.get_slot_count(),
-                    page.em()
-                );
+                page.peek();
             }
         }
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());

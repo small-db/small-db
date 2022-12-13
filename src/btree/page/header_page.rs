@@ -1,4 +1,5 @@
 use bit_vec::BitVec;
+use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
@@ -113,5 +114,9 @@ impl BTreePage for BTreeHeaderPage {
         writer.write(&self.header);
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
+    }
+
+    fn peek(&self) {
+        debug!("header page: {:?}", self.get_pid())
     }
 }
