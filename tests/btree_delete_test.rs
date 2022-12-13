@@ -297,6 +297,8 @@ fn test_delete_internal_pages() {
     }
 
     // confirm that the pages have merged
+    table.draw_tree(2);
+    table.check_integrity(true);
     assert_eq!(1, root_pod.rl().entries_count());
     let e = BTreeInternalPageIterator::new(&root_pod.rl())
         .next()
