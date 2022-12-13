@@ -226,8 +226,8 @@ impl BufferPool {
         );
         debug!(
             "internal page entries count: {}, children count: {}",
-            BTreeInternalPage::get_max_entries(4),
-            BTreeInternalPage::get_max_entries(4) + 1,
+            BTreeInternalPage::calculate_entries_count(4),
+            BTreeInternalPage::calculate_entries_count(4) + 1,
         );
     }
 
@@ -236,7 +236,7 @@ impl BufferPool {
     }
 
     pub fn children_per_page() -> usize {
-        BTreeInternalPage::get_max_entries(4) + 1
+        BTreeInternalPage::calculate_entries_count(4) + 1
     }
 
     pub fn get_page_size() -> usize {

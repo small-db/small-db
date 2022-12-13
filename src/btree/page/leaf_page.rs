@@ -205,23 +205,6 @@ impl BTreeLeafPage {
         }
     }
 
-    /// Retrieve the maximum number of tuples this page can hold.
-    pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
-        let bits_per_tuple_including_header =
-            scheme.get_size() * 8 + 1;
-
-        // extraBits:
-        // - page category
-        // - parent pointer
-        // - left sibling pointer
-        // - right sibling pointer
-        // - header size
-        let extra_bits = (4 * INDEX_SIZE + 2) * 8;
-
-        (BufferPool::get_page_size() * 8 - extra_bits)
-            / bits_per_tuple_including_header
-    }
-
     pub fn get_slots_count(&self) -> usize {
         self.slot_count
     }
@@ -401,6 +384,26 @@ impl BTreeLeafPage {
                 self.tuples_count() >= self.get_slots_count() / 2
             );
         }
+    }
+}
+
+// Methods for accessing const attributes.
+impl BTreeLeafPage {
+    /// Retrieve the maximum number of tuples this page can hold.
+    pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
+        let bits_per_tuple_including_header =
+            scheme.get_size() * 8 + 1;
+
+        // extraBits:
+        // - page category
+        // - parent pointer
+        // - left sibling pointer
+        // - right sibling pointer
+        // - header size
+        let extra_bits = (4 * INDEX_SIZE + 2) * 8;
+
+        (BufferPool::get_page_size() * 8 - extra_bits)
+            / bits_per_tuple_including_header
     }
 }
 

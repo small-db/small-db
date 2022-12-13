@@ -68,10 +68,10 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
-        debug!(
-            "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
-            tx, lock, page_id
-        );
+        // debug!(
+        //     "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
+        //     tx, lock, page_id
+        // );
 
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3
@@ -148,10 +148,10 @@ impl ConcurrentStatus {
             Ok(())
         })?;
 
-        debug!(
-            "lock_acquired, tx: {}, lock: {:?}, page_id: {:?}",
-            tx, lock, page_id
-        );
+        // debug!(
+        //     "lock_acquired, tx: {}, lock: {:?}, page_id: {:?}",
+        //     tx, lock, page_id
+        // );
         return Ok(true);
     }
 
@@ -181,10 +181,10 @@ impl ConcurrentStatus {
     ) -> SmallResult {
         let mut s_lock_map = self.s_lock_map.get_inner_wl();
         if let Some(v) = s_lock_map.get_mut(page_id) {
-            debug!(
-                "release_lock_shared, tx: {}, page_id: {:?}",
-                tx, page_id
-            );
+            // debug!(
+            //     "release_lock_shared, tx: {}, page_id: {:?}",
+            //     tx, page_id
+            // );
             v.remove(tx);
             if v.len() == 0 {
                 s_lock_map.remove(page_id);

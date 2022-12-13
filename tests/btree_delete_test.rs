@@ -220,20 +220,20 @@ fn test_delete_internal_pages() {
     BufferPool::set_page_size(1024);
 
     // This should create a B+ tree with three nodes in the second
-    // tier and 252 nodes in the third tier.
+    // tier and 250 nodes in the third tier.
     //
     // (124 entries per internal/leaf page, 125 children per internal
     // page) -> 251*124 + 1 = 31125)
     //
-    // (124 entries per internal/leaf page, 125 children per internal
-    // page)
+    // 123 records per leaf page
+    // 124 children per internal
     //
     // 1st tier: 1 internal page
-    // 2nd tier: 3 internal pages (2 * 125 + 2 = 252 children)
-    // 3rd tier: 252 leaf pages (251 * 124 + 1 = 31125 entries)
+    // 2nd tier: 3 internal pages (2 * 124 + 2 = 250 children)
+    // 3rd tier: 250 leaf pages (249 * 124 + 1 = 30877 records)
     let table_rc = test_utils::create_random_btree_table(
         2,
-        31125,
+        30877,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,

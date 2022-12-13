@@ -100,7 +100,7 @@ impl BTreeInternalPage {
         let key_size = get_type_length(
             tuple_scheme.fields[key_field].field_type,
         );
-        let slot_count = Self::get_max_entries(key_size) + 1;
+        let slot_count = Self::calculate_entries_count(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);
 
@@ -168,7 +168,7 @@ impl BTreeInternalPage {
         let key_size = get_type_length(
             tuple_scheme.fields[key_field].field_type,
         );
-        let slot_count = Self::get_max_entries(key_size) + 1;
+        let slot_count = Self::calculate_entries_count(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);
 
@@ -449,12 +449,13 @@ impl BTreeInternalPage {
         if check_occupancy && depth > 0 {
             // minus 1 hear since the page may become lower than half
             // full in the process of splitting
-            let minimal_stable = Self::get_max_entries(4) / 2 - 1;
+            let minimal_stable =
+                Self::calculate_entries_count(4) / 2 - 1;
             assert!(
                 self.entries_count() >= minimal_stable,
                 "entries count: {}, max entries: {}, pid: {:?}",
                 self.entries_count(),
-                Self::get_max_entries(4),
+                Self::calculate_entries_count(4),
                 self.get_pid(),
             );
         }
@@ -471,7 +472,9 @@ impl BTreeInternalPage {
         }
 
         // check if this is the first entry
-        if self.empty_slots_count() == Self::get_max_entries(4) {
+        if self.empty_slots_count()
+            == Self::calculate_entries_count(4)
+        {
             // reset the `children_category`
             self.children_category = e.get_left_child().category;
 
@@ -558,17 +561,13 @@ impl BTreeInternalPage {
 
 // Methods for accessing const attributes.
 impl BTreeInternalPage {
-    fn get_header_bytes_size(max_entries_count: usize) -> usize {
-        utils::div_ceil(max_entries_count, 8)
-    }
-
     pub fn get_entry_capacity(&self) -> usize {
         self.slot_count - 1
     }
 
     /// Retrieve the maximum number of entries this page can hold.
     /// (The number of keys)
-    pub fn get_max_entries(key_size: usize) -> usize {
+    pub fn calculate_entries_count(key_size: usize) -> usize {
         let bits_per_entry_including_header =
             key_size * 8 + INDEX_SIZE * 8 + 1;
 
