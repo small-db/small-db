@@ -1,3 +1,5 @@
+use log::debug;
+
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,
     EMPTY_PAGE_ID,
@@ -138,5 +140,13 @@ impl BTreePage for BTreeRootPointerPage {
         writer.write(&self.header_page_index);
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
+    }
+
+    fn peek(&self) {
+        debug!("BTreeRootPointerPage {{");
+        debug!("  pid: {:?}", self.get_pid());
+        debug!("  root_pid: {:?}", self.root_pid);
+        debug!("  header_page_index: {}", self.header_page_index);
+        debug!("}}");
     }
 }

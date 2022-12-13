@@ -7,6 +7,8 @@ use std::{
     },
 };
 
+use log::debug;
+
 use super::{
     page::{
         BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
@@ -78,25 +80,25 @@ impl BufferPool {
     ///
     /// reference:
     /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BufferPool.java?L88:17&subtree=true
-    fn load_page<PAGE>(&self, key: &Key) -> ResultPod<PAGE>
+    fn load_page<PAGE>(&self, pid: &Key) -> ResultPod<PAGE>
     where
         PAGE: BTreePage,
     {
         // stage 1: get table
         let catalog = Unique::catalog();
-        let v = catalog.get_table(&key.get_table_id()).expect(
-            &format!("table {} not found", key.get_table_id()),
+        let v = catalog.get_table(&pid.get_table_id()).expect(
+            &format!("table {} not found", pid.get_table_id()),
         );
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
         let buf = self
-            .read_page(&mut table.get_file(), key)
+            .read_page(&mut table.get_file(), pid)
             .or(Err(SmallError::new("read page content failed")))?;
 
         // stage 3: page instantiation
         let page = PAGE::new(
-            key,
+            pid,
             buf.to_vec(),
             &table.tuple_scheme,
             table.key_field,
@@ -276,16 +278,25 @@ impl BufferPool {
         }
     }
 
-    fn write_and_remove<PAGE>(
+    fn write_and_remove<PAGE: BTreePage>(
         &self,
         table: &BTreeTable,
         pid: &BTreePageID,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
-    ) where
-        PAGE: BTreePage,
-    {
-        let page = buffer.get_inner_wl().remove(pid).unwrap();
-        table.write_page_to_disk(pid, &page.rl().get_page_data());
+    ) {
+        let page_pod = buffer.get_inner_wl().remove(pid).unwrap();
+        {
+            let page = page_pod.rl();
+            if page.get_pid().page_index == 373 {
+                debug!(
+                    "pid: {}, slot count: {}, empty slots: {}",
+                    page.get_pid().page_index,
+                    page.get_slot_count(),
+                    page.em()
+                );
+            }
+        }
+        table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
         buffer.remove(pid);
     }
 

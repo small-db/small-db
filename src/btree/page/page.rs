@@ -27,4 +27,6 @@ pub trait BTreePage {
     /// # Returns
     /// A byte array representing the contents of this page.
     fn get_page_data(&self) -> Vec<u8>;
+
+    fn peek(&self);
 }

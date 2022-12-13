@@ -7,6 +7,7 @@ use small_db::{
         table::BTreeTableIterator,
     },
     concurrent_status::Permission,
+    transaction::Transaction,
     utils::HandyRwLock,
     Op, Tuple, Unique,
 };
@@ -249,9 +250,10 @@ fn test_delete_internal_pages() {
     table.draw_tree(2);
     table.check_integrity(true);
 
-    let root_pid = table.get_root_pid(&ctx.tx);
+    let tx = Transaction::new();
+    let root_pid = table.get_root_pid(&tx);
     let root_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
+        .get_internal_page(&tx, Permission::ReadWrite, &root_pid)
         .unwrap();
     assert_eq!(
         internal_entries_count() - 2,
@@ -265,25 +267,28 @@ fn test_delete_internal_pages() {
         .unwrap();
     let left_child_rc = Unique::buffer_pool()
         .get_internal_page(
-            &ctx.tx,
+            &tx,
             Permission::ReadWrite,
             &e.get_left_child(),
         )
         .unwrap();
     let right_child_rc = Unique::buffer_pool()
         .get_internal_page(
-            &ctx.tx,
+            &tx,
             Permission::ReadWrite,
             &e.get_right_child(),
         )
         .unwrap();
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
+    tx.commit().unwrap();
+
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
     for _ in 0..(internal_entries_count() / 2) {
         for _ in 0..leaf_slots_count() {
-            table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
+            table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
         }
     }
+    tx.commit().unwrap();
 
     table.draw_tree(2);
     table.check_integrity(true);
@@ -295,12 +300,16 @@ fn test_delete_internal_pages() {
         internal_entries_count() / 2,
         left_child_rc.rl().empty_slots_count()
     );
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
+
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
     for _ in 0..(internal_entries_count() / 2) {
         for _ in 0..leaf_slots_count() {
-            table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
+            table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
         }
     }
+    tx.commit().unwrap();
+
     debug!("left pid: {:?}", left_child_rc.rl().get_pid());
     debug!("right pid: {:?}", right_child_rc.rl().get_pid());
     debug!(

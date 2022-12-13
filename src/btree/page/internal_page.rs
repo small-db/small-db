@@ -274,7 +274,6 @@ impl BTreeInternalPage {
                 count += 1
             }
         }
-        debug!("pid: {}, empty slots: {}", self.get_pid(), count);
         count
     }
 
@@ -637,6 +636,14 @@ impl BTreePage for BTreeInternalPage {
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
+    }
+
+    fn peek(&self) {
+        println!("Internal page: {}", self.get_pid());
+        println!("Parent: {}", self.get_parent_pid());
+        println!("slots count: {}", self.slot_count);
+        println!("entries count: {}", self.entries_count());
+        println!("children category: {:?}", self.children_category);
     }
 }
 

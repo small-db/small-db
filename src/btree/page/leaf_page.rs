@@ -454,6 +454,15 @@ impl BTreePage for BTreeLeafPage {
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
+
+    fn peek(&self) {
+        println!("page id: {:?}", self.get_pid());
+        println!("parent id: {:?}", self.get_parent_pid());
+        println!("left sibling id: {:?}", self.left_sibling_id);
+        println!("right sibling id: {:?}", self.right_sibling_id);
+        println!("header: {:?}", self.header);
+        println!("tuples: {:?}", self.tuples);
+    }
 }
 
 pub struct BTreeLeafPageIteratorRc {
