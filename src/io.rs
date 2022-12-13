@@ -93,10 +93,6 @@ impl SmallWriter {
         self.buf.extend_from_slice(obj.to_bytes().as_slice());
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.buf.clone()
-    }
-
     pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
         let mut buf = self.buf.clone();
 

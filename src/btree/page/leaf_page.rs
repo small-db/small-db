@@ -10,6 +10,7 @@ use super::{
 use crate::{
     btree::{
         buffer_pool::BufferPool,
+        consts::INDEX_SIZE,
         tuple::{TupleScheme, WrappedTuple},
     },
     field::IntField,
@@ -208,10 +209,15 @@ impl BTreeLeafPage {
     pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
         let bits_per_tuple_including_header =
             scheme.get_size() * 8 + 1;
-        // extraBits are: left sibling pointer, right sibling pointer,
-        // parent pointer
-        let index_size: usize = 4;
-        let extra_bits = 3 * index_size * 8;
+
+        // extraBits:
+        // - page category
+        // - parent pointer
+        // - left sibling pointer
+        // - right sibling pointer
+        // - header size
+        let extra_bits = (4 * INDEX_SIZE + 2) * 8;
+
         (BufferPool::get_page_size() * 8 - extra_bits)
             / bits_per_tuple_including_header
     }

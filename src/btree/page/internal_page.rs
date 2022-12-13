@@ -571,11 +571,16 @@ impl BTreeInternalPage {
     pub fn get_max_entries(key_size: usize) -> usize {
         let bits_per_entry_including_header =
             key_size * 8 + INDEX_SIZE * 8 + 1;
-        // extraBits are: one parent pointer, 1 byte for child page
-        // category, one extra child pointer (node with m
-        // entries has m+1 pointers to children),
-        // 1 bit for extra header (why?)
-        let extra_bits = 2 * INDEX_SIZE * 8 + 8;
+
+        // extraBits:
+        // - page category
+        // - one parent pointer
+        // - child page category
+        // - one extra child pointer (node with m entries has m+1 pointers to children)
+        // - header size
+        // - 1 bit for extra header (for the slot 0)
+        let extra_bits = (4 * INDEX_SIZE + 2) * 8 + 1;
+
         let entries_per_page = (BufferPool::get_page_size() * 8
             - extra_bits)
             / bits_per_entry_including_header; // round down
