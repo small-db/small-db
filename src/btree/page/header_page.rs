@@ -2,8 +2,8 @@ use bit_vec::BitVec;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
-    btree::tuple::TupleScheme,
-    io::{SmallReader, Vaporizable},
+    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    io::{SmallReader, SmallWriter, Vaporizable},
 };
 
 /// # Binary Layout
@@ -87,6 +87,14 @@ impl BTreePage for BTreeHeaderPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        unimplemented!()
+        let mut writer = SmallWriter::new();
+
+        // write page category
+        writer.write(&self.get_pid().category);
+
+        // write header
+        writer.write(&self.header);
+
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 }
