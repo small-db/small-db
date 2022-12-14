@@ -394,11 +394,11 @@ pub fn leaf_records_cap() -> usize {
 }
 
 pub fn internal_entries_cap() -> usize {
-    BTreeInternalPage::calculate_entries_count(4)
+    BTreeInternalPage::get_children_cap(4)
 }
 
 pub fn internal_children_cap() -> usize {
-    BTreeInternalPage::calculate_entries_count(4) + 1
+    BTreeInternalPage::get_children_cap(4) + 1
 }
 
 pub fn get_internal_page(

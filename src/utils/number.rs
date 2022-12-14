@@ -22,10 +22,10 @@ impl Number for usize {
     }
 }
 
-pub fn ceil_dev<T: Number>(a: T, b: T) -> T {
+pub fn ceil_div<T: Number>(a: T, b: T) -> T {
     (a + b - T::one()) / b
 }
 
-pub fn floor_dev<T: Number>(a: T, b: T) -> T {
+pub fn floor_div<T: Number>(a: T, b: T) -> T {
     a / b
 }

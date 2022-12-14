@@ -18,7 +18,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{ceil_dev, floor_dev, HandyRwLock},
+    utils::{ceil_div, floor_div, HandyRwLock},
     Unique,
 };
 
@@ -104,7 +104,7 @@ impl BTreeInternalPage {
         let key_size = get_type_length(
             tuple_scheme.fields[key_field].field_type,
         );
-        let slot_count = Self::calculate_entries_count(key_size) + 1;
+        let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);
 
@@ -172,7 +172,7 @@ impl BTreeInternalPage {
         let key_size = get_type_length(
             tuple_scheme.fields[key_field].field_type,
         );
-        let slot_count = Self::calculate_entries_count(key_size) + 1;
+        let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);
 
@@ -254,7 +254,7 @@ impl BTreeInternalPage {
         }
 
         let max_empty_slots =
-            floor_dev(self.get_children_capacity(), 2);
+            floor_div(self.get_children_capacity(), 2);
         return self.empty_slots_count() <= max_empty_slots;
     }
 
@@ -268,26 +268,6 @@ impl BTreeInternalPage {
         } else {
             None
         }
-    }
-
-    pub fn empty_slots_count(&self) -> usize {
-        let mut count = 0;
-        // start from 1 because the first key slot is not used
-        // since a node with m keys has m+1 pointers
-        for i in 1..self.slot_count {
-            if !self.is_slot_used(i) {
-                count += 1
-            }
-        }
-        count
-    }
-
-    pub fn children_count(&self) -> usize {
-        self.slot_count - self.empty_slots_count()
-    }
-
-    pub fn entries_count(&self) -> usize {
-        self.slot_count - self.empty_slots_count() - 1
     }
 
     pub fn delete_key_and_right_child(&mut self, record_id: usize) {
@@ -455,12 +435,12 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            let minimal_stable = Self::calculate_minimal_stable(4);
             assert!(
-                self.entries_count() >= minimal_stable,
-                "entries count: {}, max entries: {}, pid: {:?}",
-                self.entries_count(),
-                Self::calculate_entries_count(4),
+                self.children_count()
+                    >= Self::get_stable_threshold(4),
+                "children count: {}, max children: {}, pid: {:?}",
+                self.children_count(),
+                Self::get_children_cap(4),
                 self.get_pid(),
             );
         }
@@ -477,9 +457,7 @@ impl BTreeInternalPage {
         }
 
         // check if this is the first entry
-        if self.empty_slots_count()
-            == Self::calculate_entries_count(4)
-        {
+        if self.entries_count() == 0 {
             // reset the `children_category`
             self.children_category = e.get_left_child().category;
 
@@ -564,19 +542,44 @@ impl BTreeInternalPage {
     }
 }
 
+// Methods for accessing dynamic attributes.
+impl BTreeInternalPage {
+    /// Empty slots (entries/children) count.
+    pub fn empty_slots_count(&self) -> usize {
+        let mut count = 0;
+        // start from 1 because the first key slot is not used
+        // since a node with m keys has m+1 pointers
+        for i in 1..self.slot_count {
+            if !self.is_slot_used(i) {
+                count += 1
+            }
+        }
+        count
+    }
+
+    pub fn children_count(&self) -> usize {
+        self.slot_count - self.empty_slots_count()
+    }
+
+    pub fn entries_count(&self) -> usize {
+        self.slot_count - self.empty_slots_count() - 1
+    }
+}
+
 // Methods for accessing const attributes.
 impl BTreeInternalPage {
     pub fn get_children_capacity(&self) -> usize {
         self.slot_count
     }
 
-    pub fn calculate_minimal_stable(key_size: usize) -> usize {
-        ceil_dev(Self::calculate_entries_count(key_size), 2)
+    /// Retrive the minimum number of children needed to keep this page
+    /// stable.
+    pub fn get_stable_threshold(key_size: usize) -> usize {
+        floor_div(Self::get_children_cap(key_size), 2)
     }
 
-    /// Retrieve the maximum number of entries this page can hold.
-    /// (The number of keys)
-    pub fn calculate_entries_count(key_size: usize) -> usize {
+    /// Retrieve the maximum number of children this page can hold.
+    pub fn get_children_cap(key_size: usize) -> usize {
         let bits_per_entry_including_header =
             key_size * 8 + INDEX_SIZE * 8 + 1;
 

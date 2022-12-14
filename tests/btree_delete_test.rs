@@ -8,14 +8,14 @@ use small_db::{
     },
     concurrent_status::Permission,
     transaction::Transaction,
-    utils::HandyRwLock,
-    Op, Tuple, Unique,
+    utils::{ceil_div, floor_div, HandyRwLock},
+    BTreeTable, Op, Tuple, Unique,
 };
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    get_internal_page, internal_children_cap,
-    internal_entries_cap, leaf_records_cap,
+    get_internal_page, internal_children_cap, internal_entries_cap,
+    leaf_records_cap,
 };
 
 #[test]
@@ -227,8 +227,7 @@ fn test_delete_internal_pages() {
 
     // This should create a B+ tree with three nodes in the second
     // tier and third tier is packed.
-    let row_count =
-        3 * internal_children_cap() * leaf_records_cap();
+    let row_count = 3 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
         row_count,
@@ -242,118 +241,73 @@ fn test_delete_internal_pages() {
     table.check_integrity(true);
 
     let root_pod = get_internal_page(&table, 0, 0);
-    assert_eq!(2, root_pod.rl().entries_count());
+    assert_eq!(3, root_pod.rl().children_count());
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
-    let tx = Transaction::new();
-    let mut it = BTreeTableIterator::new(&tx, &table);
-    for _ in 0..(internal_entries_cap() / 2) {
-        for _ in 0..leaf_records_cap() {
-            table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
-        }
-    }
-    tx.commit().unwrap();
-
-    table.draw_tree(2);
-    table.check_integrity(true);
+    let count =
+        ceil_div(internal_children_cap(), 2) * leaf_records_cap();
+    delete_tuples(&table, count);
 
     // Deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be redistributed.
+    table.draw_tree(2);
+    table.check_integrity(true);
     let left_child_pod = get_internal_page(&table, 1, 0);
     assert_eq!(
-        internal_entries_cap() / 2,
+        internal_children_cap() / 2,
         left_child_pod.rl().empty_slots_count(),
     );
 
-    let tx = Transaction::new();
-    let mut it = BTreeTableIterator::new(&tx, &table);
-    for _ in 0..(internal_entries_cap() / 2) {
-        for _ in 0..leaf_records_cap() {
-            table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
-        }
-    }
-    tx.commit().unwrap();
+    let count = (ceil_div(internal_children_cap(), 2) - 1)
+        * leaf_records_cap();
+    delete_tuples(&table, count);
 
-    let left_child_pod = get_internal_page(&table, 1, 0);
-    let right_child_pod = get_internal_page(&table, 1, 1);
     table.draw_tree(2);
     table.check_integrity(true);
-    assert_eq!(
-        internal_entries_cap() / 2,
-        left_child_pod.rl().empty_slots_count()
-    );
-    assert_eq!(
-        internal_entries_cap() / 2,
-        right_child_pod.rl().empty_slots_count()
-    );
 
     // deleting another page of tuples should bring the page below
     // minimum occupancy again but this time cause it to merge
     // with its right sibling
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(leaf_records_cap()) {
-        table.delete_tuple(&ctx.tx, &t).unwrap();
-    }
+    let count = leaf_records_cap();
+    delete_tuples(&table, count);
 
     // confirm that the pages have merged
+    let root_pod = get_internal_page(&table, 0, 0);
     table.draw_tree(2);
     table.check_integrity(true);
-    assert_eq!(1, root_pod.rl().entries_count());
+    assert_eq!(2, root_pod.rl().children_count());
+
     let e = BTreeInternalPageIterator::new(&root_pod.rl())
         .next()
         .unwrap();
-    let left_child_rc = Unique::buffer_pool()
-        .get_internal_page(
-            &ctx.tx,
-            Permission::ReadWrite,
-            &e.get_left_child(),
-        )
-        .unwrap();
-    let right_child_rc = Unique::buffer_pool()
-        .get_internal_page(
-            &ctx.tx,
-            Permission::ReadWrite,
-            &e.get_right_child(),
-        )
-        .unwrap();
-    assert_eq!(0, left_child_rc.rl().empty_slots_count());
+    let left_child_pod = get_internal_page(&table, 1, 0);
+    let right_child_pod = get_internal_page(&table, 1, 1);
+    assert_eq!(0, left_child_pod.rl().empty_slots_count());
     assert!(e.get_key().compare(
         Op::LessThanOrEq,
-        BTreeInternalPageIterator::new(&right_child_rc.rl())
+        BTreeInternalPageIterator::new(&right_child_pod.rl())
             .next()
             .unwrap()
             .get_key()
     ));
 
-    // Delete tuples causing leaf pages to merge until the first
-    // internal page gets below minimum occupancy and causes the
-    // entries to be redistributed
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    let mut count = 0;
-    for _ in 0..62 {
-        assert_eq!(count, left_child_rc.rl().empty_slots_count());
-        for _ in 0..124 {
-            table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-        }
-        count += 1;
-    }
-
-    // deleting another page of tuples should bring the page below
-    // minimum occupancy and cause it to merge with the right
-    // sibling to replace the root
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    for _ in 0..124 {
-        table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    }
+    let count = internal_children_cap() * leaf_records_cap();
+    delete_tuples(&table, count);
 
     // confirm that the last two internal pages have merged
     // successfully and replaced the root
-    let root_pid = table.get_root_pid(&ctx.tx);
-    let root_rc = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
-        .unwrap();
-    assert_eq!(0, root_rc.rl().empty_slots_count());
+    let root_pod = get_internal_page(&table, 0, 0);
+    assert_eq!(0, root_pod.rl().empty_slots_count());
     table.draw_tree(2);
     table.check_integrity(true);
+}
+
+fn delete_tuples(table: &BTreeTable, count: usize) {
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
+    for _ in 0..count {
+        table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
+    }
+    tx.commit().unwrap();
 }
