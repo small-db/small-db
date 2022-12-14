@@ -111,38 +111,34 @@ fn test_delete_root_page() {
 
 #[test]
 fn test_reuse_deleted_pages() {
-    let ctx = test_utils::setup();
+    test_utils::setup();
 
-    // this should create a B+ tree with 3 leaf nodes
+    // This should create a B+ tree with 3 leaf nodes.
     let table_rc = test_utils::create_random_btree_table(
         2,
-        1005,
+        leaf_records_cap() * 3,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
+    table.draw_tree(-1);
     table.check_integrity(true);
 
     // 3 leaf pages, 1 internal page
     assert_eq!(4, table.pages_count());
 
     // delete enough tuples to ensure one page gets deleted
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(502) {
-        table.delete_tuple(&ctx.tx, &t).unwrap();
-    }
+    delete_tuples(&table, leaf_records_cap() + 2);
 
     // now there should be 2 leaf pages, 1 internal page, 1 unused
     // leaf page, 1 header page
+    table.draw_tree(-1);
+    table.check_integrity(true);
     assert_eq!(5, table.pages_count());
 
     // insert enough tuples to ensure one of the leaf pages splits
-    for value in 0..502 {
-        let tuple = Tuple::new_btree_tuple(value, 2);
-        table.insert_tuple(&ctx.tx, &tuple).unwrap();
-    }
-    ctx.tx.commit().unwrap();
+    insert_tuples(&table, leaf_records_cap());
 
     // now there should be 3 leaf pages, 1 internal page, and 1 header
     // page
@@ -274,6 +270,16 @@ fn delete_tuples(table: &BTreeTable, count: usize) {
     let mut it = BTreeTableIterator::new(&tx, &table);
     for _ in 0..count {
         table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
+    }
+    tx.commit().unwrap();
+}
+
+fn insert_tuples(table: &BTreeTable, count: usize) {
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
+    for value in 0..count {
+        let tuple = Tuple::new_btree_tuple(value as i32, 2);
+        table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
 }
