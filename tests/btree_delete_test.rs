@@ -84,9 +84,9 @@ fn test_merge_leaf_pages() {
 
 #[test]
 fn test_delete_root_page() {
-    let _ctx = test_utils::setup();
+    test_utils::setup();
 
-    // this should create a B+ tree with two half-full leaf pages
+    // this should create a B+ tree with two full leaf pages
     let table_rc = test_utils::create_random_btree_table(
         2,
         leaf_records_cap() * 2,
