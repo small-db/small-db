@@ -18,7 +18,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::{ceil_div, floor_div, HandyRwLock},
+    utils::{floor_div, HandyRwLock},
     Unique,
 };
 
@@ -572,8 +572,8 @@ impl BTreeInternalPage {
         self.slot_count
     }
 
-    /// Retrive the minimum number of children needed to keep this page
-    /// stable.
+    /// Retrive the minimum number of children needed to keep this
+    /// page stable.
     pub fn get_stable_threshold(key_size: usize) -> usize {
         floor_div(Self::get_children_cap(key_size), 2)
     }

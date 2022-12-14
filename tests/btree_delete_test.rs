@@ -1,21 +1,20 @@
 mod test_utils;
-use log::{debug, error};
+use log::error;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeInternalPageIterator, BTreePage, PageCategory},
+        page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
-    concurrent_status::Permission,
     transaction::Transaction,
-    utils::{ceil_div, floor_div, HandyRwLock},
-    BTreeTable, Op, Tuple, Unique,
+    utils::{ceil_div, HandyRwLock},
+    BTreeTable, Op, Tuple,
 };
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
     get_internal_page, get_leaf_page, internal_children_cap,
-    internal_entries_cap, leaf_records_cap,
+    leaf_records_cap,
 };
 
 #[test]
@@ -85,7 +84,7 @@ fn test_merge_leaf_pages() {
 
 #[test]
 fn test_delete_root_page() {
-    let ctx = test_utils::setup();
+    let _ctx = test_utils::setup();
 
     // this should create a B+ tree with two half-full leaf pages
     let table_rc = test_utils::create_random_btree_table(
@@ -196,7 +195,7 @@ fn test_redistribute_internal_pages() {
 
 #[test]
 fn test_delete_internal_pages() {
-    let ctx = test_utils::setup();
+    let _ctx = test_utils::setup();
 
     BufferPool::set_page_size(1024);
 
