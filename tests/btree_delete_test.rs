@@ -7,7 +7,7 @@ use small_db::{
         table::BTreeTableIterator,
     },
     transaction::Transaction,
-    utils::{ceil_div, HandyRwLock},
+    utils::{ceil_div, HandyRwLock, floor_div},
     BTreeTable, Op, Tuple,
 };
 use test_utils::TreeLayout;
@@ -39,8 +39,10 @@ fn test_redistribute_leaf_pages() {
 
     // Delete some tuples from the first page until it gets to minimum
     // occupancy.
-    let count = ceil_div(leaf_records_cap(), 2);
+    let count = floor_div(leaf_records_cap(), 2);
     delete_tuples(&table, count);
+    table.draw_tree(-1);
+    table.check_integrity(true);
     assert_eq!(left_pod.rl().empty_slots_count(), count);
 
     // Deleting a tuple now should bring the page below minimum
