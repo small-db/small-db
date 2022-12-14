@@ -461,11 +461,33 @@ pub fn get_leaf_page(
     level: usize,
     index: usize,
 ) -> Pod<BTreeLeafPage> {
-    let tx = Transaction::new();
-    let root_pid = table.get_root_pid(&tx);
-    let root_pod = Unique::buffer_pool()
-        .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
-        .unwrap();
-    tx.commit().unwrap();
-    return root_pod;
+    match level {
+        0 => {
+            let tx = Transaction::new();
+            let root_pid = table.get_root_pid(&tx);
+            let root_pod = Unique::buffer_pool()
+                .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
+                .unwrap();
+            tx.commit().unwrap();
+            return root_pod;
+        }
+        _ => {
+            let internal_pod =
+                get_internal_page(table, level - 1, index);
+            let tx = Transaction::new();
+            let e =
+                BTreeInternalPageIterator::new(&internal_pod.rl())
+                    .next()
+                    .unwrap();
+            let leaf_pod = Unique::buffer_pool()
+                .get_leaf_page(
+                    &tx,
+                    Permission::ReadOnly,
+                    &e.get_left_child(),
+                )
+                .unwrap();
+            tx.commit().unwrap();
+            return leaf_pod;
+        }
+    }
 }

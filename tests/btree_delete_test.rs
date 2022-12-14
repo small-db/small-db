@@ -20,54 +20,39 @@ use crate::test_utils::{
 
 #[test]
 fn test_redistribute_leaf_pages() {
-    let ctx = test_utils::setup();
+    test_utils::setup();
 
-    // This should create a B+ tree with two partially full leaf pages
-    let table_rc = test_utils::create_random_btree_table(
+    // Create a B+ tree with two full leaf pages.
+    let table_pod = test_utils::create_random_btree_table(
         2,
-        600,
+        leaf_records_cap() * 2,
         None,
         0,
         TreeLayout::EvenlyDistributed,
     );
-    let table = table_rc.rl();
+    let table = table_pod.rl();
 
     table.draw_tree(-1);
     table.check_integrity(true);
 
+    let left_pod = get_leaf_page(&table, 1, 0);
+    let right_pod = get_leaf_page(&table, 1, 1);
+
     // Delete some tuples from the first page until it gets to minimum
-    // occupancy
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    let mut count = 0;
-    let page_rc =
-        table.get_first_page(&ctx.tx, Permission::ReadWrite);
-    for tuple in it.by_ref() {
-        assert_eq!(202 + count, page_rc.rl().empty_slots_count());
+    // occupancy.
+    let count = ceil_div(leaf_records_cap(), 2);
+    delete_tuples(&table, count);
+    table.draw_tree(-1);
+    table.check_integrity(true);
+    assert_eq!(left_pod.rl().empty_slots_count(), count);
 
-        let _ = table.delete_tuple(&ctx.tx, &tuple);
+    // Deleting a tuple now should bring the page below minimum
+    // occupancy and cause the tuples to be redistributed.
+    delete_tuples(&table, 1);
+    assert!(left_pod.rl().empty_slots_count() <= count);
 
-        count += 1;
-        if count >= 49 {
-            break;
-        }
-    }
-
-    // deleting a tuple now should bring the page below minimum
-    // occupancy and cause the tuples to be redistributed
-    let t = it.next().unwrap();
-    let page_rc = Unique::buffer_pool()
-        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
-        .unwrap();
-    assert_eq!(page_rc.rl().empty_slots_count(), 251);
-    let _ = table.delete_tuple(&ctx.tx, &t);
-    assert!(page_rc.rl().empty_slots_count() <= 251);
-
-    let _right_pid = page_rc.rl().get_right_pid().unwrap();
-    let right_rc = Unique::buffer_pool()
-        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &t.get_pid())
-        .unwrap();
-    // assert some tuples of the right page were stolen
-    assert!(right_rc.rl().empty_slots_count() > 202);
+    // Assert some tuples of the right page were stolen.
+    assert!(right_pod.rl().empty_slots_count() > 0);
 
     table.draw_tree(-1);
     table.check_integrity(true);

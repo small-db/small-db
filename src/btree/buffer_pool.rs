@@ -244,41 +244,30 @@ impl BufferPool {
 
         match pid.category {
             PageCategory::RootPointer => {
-                self.write_and_remove(
-                    &table,
-                    pid,
-                    &self.root_pointer_buffer,
-                );
+                self.write(&table, pid, &self.root_pointer_buffer);
             }
             PageCategory::Header => {
-                self.write_and_remove(
-                    &table,
-                    pid,
-                    &self.header_buffer,
-                );
+                self.write(&table, pid, &self.header_buffer);
             }
             PageCategory::Internal => {
-                self.write_and_remove(
-                    &table,
-                    pid,
-                    &self.internal_buffer,
-                );
+                self.write(&table, pid, &self.internal_buffer);
             }
             PageCategory::Leaf => {
-                self.write_and_remove(&table, pid, &self.leaf_buffer);
+                self.write(&table, pid, &self.leaf_buffer);
             }
         }
     }
 
-    fn write_and_remove<PAGE: BTreePage>(
+    fn write<PAGE: BTreePage>(
         &self,
         table: &BTreeTable,
         pid: &BTreePageID,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
-        let page_pod = buffer.get_inner_wl().remove(pid).unwrap();
+        let b = buffer.get_inner_wl();
+        let page_pod = b.get(pid).unwrap();
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
-        buffer.remove(pid);
+        // buffer.remove(pid);
     }
 
     fn all_keys(&self) -> Vec<Key> {

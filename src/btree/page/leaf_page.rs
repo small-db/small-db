@@ -15,7 +15,7 @@ use crate::{
     },
     field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
-    utils::HandyRwLock,
+    utils::{floor_div, HandyRwLock},
     Tuple,
 };
 
@@ -216,7 +216,7 @@ impl BTreeLeafPage {
             return true;
         }
 
-        let stable_threshold = self.slot_count - self.slot_count / 2; // ceiling
+        let stable_threshold = floor_div(self.slot_count, 2);
         return self.tuples_count() >= stable_threshold;
     }
 
