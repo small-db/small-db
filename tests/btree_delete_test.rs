@@ -42,8 +42,6 @@ fn test_redistribute_leaf_pages() {
     // occupancy.
     let count = ceil_div(leaf_records_cap(), 2);
     delete_tuples(&table, count);
-    table.draw_tree(-1);
-    table.check_integrity(true);
     assert_eq!(left_pod.rl().empty_slots_count(), count);
 
     // Deleting a tuple now should bring the page below minimum
