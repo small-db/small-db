@@ -14,8 +14,8 @@ use small_db::{
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    get_internal_page, internal_children_cap, internal_entries_cap,
-    leaf_records_cap,
+    get_internal_page, get_leaf_page, internal_children_cap,
+    internal_entries_cap, leaf_records_cap,
 };
 
 #[test]
@@ -107,7 +107,7 @@ fn test_delete_root_page() {
     // this should create a B+ tree with two half-full leaf pages
     let table_rc = test_utils::create_random_btree_table(
         2,
-        503,
+        leaf_records_cap() * 2,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
@@ -119,20 +119,12 @@ fn test_delete_root_page() {
     assert_eq!(3, table.pages_count());
 
     // delete the first two tuples
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    table.check_integrity(true);
-    table.delete_tuple(&ctx.tx, &it.next().unwrap()).unwrap();
-    table.check_integrity(true);
+    delete_tuples(&table, leaf_records_cap());
 
+    table.check_integrity(true);
     table.draw_tree(-1);
-
-    let root_pid = table.get_root_pid(&ctx.tx);
-    assert!(root_pid.category == PageCategory::Leaf);
-    let root_rc = Unique::buffer_pool()
-        .get_leaf_page(&ctx.tx, Permission::ReadOnly, &root_pid)
-        .unwrap();
-    assert_eq!(root_rc.rl().empty_slots_count(), 1);
+    let root_pod = get_leaf_page(&table, 0, 0);
+    assert_eq!(root_pod.rl().empty_slots_count(), 0);
 }
 
 #[test]

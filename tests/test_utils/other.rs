@@ -253,7 +253,7 @@ fn sequential_insert_into_table(
                     &left_rc.rl().get_pid(),
                     &right_rc.rl().get_pid(),
                 );
-                internal.insert_entry(&mut e);
+                internal.insert_entry(&mut e).unwrap();
 
                 leaf_index += 1;
 
@@ -372,7 +372,9 @@ fn get_buckets(
         }
         TreeLayout::LastTwoEvenlyDistributed => {
             let lacked = max_capacity * bucket_count - elem_count;
-            for _ in 0..bucket_count - 2 {
+            for _ in
+                0..(bucket_count.checked_sub(2).unwrap_or_default())
+            {
                 table.push(max_capacity);
             }
 
@@ -452,4 +454,18 @@ pub fn get_internal_page(
         },
         _ => todo!(),
     }
+}
+
+pub fn get_leaf_page(
+    table: &BTreeTable,
+    level: usize,
+    index: usize,
+) -> Pod<BTreeLeafPage> {
+    let tx = Transaction::new();
+    let root_pid = table.get_root_pid(&tx);
+    let root_pod = Unique::buffer_pool()
+        .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
+        .unwrap();
+    tx.commit().unwrap();
+    return root_pod;
 }
