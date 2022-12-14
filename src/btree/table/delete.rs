@@ -437,10 +437,10 @@ impl BTreeTable {
             )
             .unwrap();
 
-        let left_entries = left_rc.rl().entries_count();
-        let right_entries = right_rc.rl().entries_count();
-        if left_entries + right_entries
-            < left_rc.rl().get_entry_capacity()
+        let left_children = left_rc.rl().children_count();
+        let right_children = right_rc.rl().children_count();
+        if left_children + right_children
+            <= left_rc.rl().get_children_capacity()
         {
             // if the two pages can be merged, merge them
             return self.merge_internal_page(
@@ -453,8 +453,8 @@ impl BTreeTable {
         }
 
         // if there aren't any entries to move, return immediately
-        let move_count = (left_entries + right_entries) / 2
-            - cmp::min(left_entries, right_entries);
+        let move_count = (left_children + right_children) / 2
+            - cmp::min(left_children, right_children);
         if move_count == 0 {
             return Ok(());
         }
@@ -466,7 +466,7 @@ impl BTreeTable {
             let mut left = left_rc.wl();
             let mut right = right_rc.wl();
 
-            if left_entries < right_entries {
+            if left_children < right_children {
                 // The edge child of the destination page.
                 let edge_child_pid = left.get_last_child_pid();
 

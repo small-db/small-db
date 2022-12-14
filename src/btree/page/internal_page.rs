@@ -34,6 +34,10 @@ use crate::{
 ///   is used or not.
 /// - n bytes: keys
 /// - n bytes: children
+///
+/// # Stable Criteria
+///
+/// count(used_slots) >= floor_dev(slot_count, 2)
 pub struct BTreeInternalPage {
     base: BTreeBasePage,
 
@@ -249,7 +253,8 @@ impl BTreeInternalPage {
             return true;
         }
 
-        let max_empty_slots = floor_dev(self.get_entry_capacity(), 2);
+        let max_empty_slots =
+            floor_dev(self.get_children_capacity(), 2);
         return self.empty_slots_count() <= max_empty_slots;
     }
 
@@ -275,6 +280,10 @@ impl BTreeInternalPage {
             }
         }
         count
+    }
+
+    pub fn children_count(&self) -> usize {
+        self.slot_count - self.empty_slots_count()
     }
 
     pub fn entries_count(&self) -> usize {
@@ -557,8 +566,8 @@ impl BTreeInternalPage {
 
 // Methods for accessing const attributes.
 impl BTreeInternalPage {
-    pub fn get_entry_capacity(&self) -> usize {
-        self.slot_count - 1
+    pub fn get_children_capacity(&self) -> usize {
+        self.slot_count
     }
 
     pub fn calculate_minimal_stable(key_size: usize) -> usize {

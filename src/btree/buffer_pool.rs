@@ -219,14 +219,6 @@ impl BufferPool {
         PAGE_SIZE.store(page_size, Ordering::Relaxed);
     }
 
-    pub fn rows_per_page(scheme: &TupleScheme) -> usize {
-        BTreeLeafPage::calculate_slots_count(&scheme)
-    }
-
-    pub fn children_per_page() -> usize {
-        BTreeInternalPage::calculate_entries_count(4) + 1
-    }
-
     pub fn get_page_size() -> usize {
         PAGE_SIZE.load(Ordering::Relaxed)
     }

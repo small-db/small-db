@@ -1085,11 +1085,11 @@ impl BTreeTable {
         {
             let page = page_rc.rl();
             depiction.push_str(&format!(
-                "{}├── internal: {} ({}/{} entries) (lock state: {})\n",
+                "{}├── internal: {} ({}/{} children) (lock state: {})\n",
                 prefix,
                 pid,
-                page.entries_count(),
-                page.get_entry_capacity(),
+                page.children_count(),
+                page.get_children_capacity(),
                 lock_state,
             ));
             if max_level != -1 && level as i32 == max_level {

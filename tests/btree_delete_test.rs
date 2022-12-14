@@ -14,8 +14,8 @@ use small_db::{
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    get_internal_page, internal_children_count,
-    internal_entries_count, leaf_slots_count,
+    get_internal_page, internal_children_cap,
+    internal_entries_cap, leaf_records_cap,
 };
 
 #[test]
@@ -228,7 +228,7 @@ fn test_delete_internal_pages() {
     // This should create a B+ tree with three nodes in the second
     // tier and third tier is packed.
     let row_count =
-        3 * internal_children_count() * leaf_slots_count();
+        3 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
         row_count,
@@ -248,8 +248,8 @@ fn test_delete_internal_pages() {
     // internal page gets to minimum occupancy.
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
-    for _ in 0..(internal_entries_count() / 2) {
-        for _ in 0..leaf_slots_count() {
+    for _ in 0..(internal_entries_cap() / 2) {
+        for _ in 0..leaf_records_cap() {
             table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
         }
     }
@@ -262,14 +262,14 @@ fn test_delete_internal_pages() {
     // minimum occupancy and cause the entries to be redistributed.
     let left_child_pod = get_internal_page(&table, 1, 0);
     assert_eq!(
-        internal_entries_count() / 2,
+        internal_entries_cap() / 2,
         left_child_pod.rl().empty_slots_count(),
     );
 
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
-    for _ in 0..(internal_entries_count() / 2) {
-        for _ in 0..leaf_slots_count() {
+    for _ in 0..(internal_entries_cap() / 2) {
+        for _ in 0..leaf_records_cap() {
             table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
         }
     }
@@ -280,11 +280,11 @@ fn test_delete_internal_pages() {
     table.draw_tree(2);
     table.check_integrity(true);
     assert_eq!(
-        internal_entries_count() / 2,
+        internal_entries_cap() / 2,
         left_child_pod.rl().empty_slots_count()
     );
     assert_eq!(
-        internal_entries_count() / 2,
+        internal_entries_cap() / 2,
         right_child_pod.rl().empty_slots_count()
     );
 
@@ -292,7 +292,7 @@ fn test_delete_internal_pages() {
     // minimum occupancy again but this time cause it to merge
     // with its right sibling
     let it = BTreeTableIterator::new(&ctx.tx, &table);
-    for t in it.take(leaf_slots_count()) {
+    for t in it.take(leaf_records_cap()) {
         table.delete_tuple(&ctx.tx, &t).unwrap();
     }
 

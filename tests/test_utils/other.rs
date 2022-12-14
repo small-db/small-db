@@ -142,7 +142,7 @@ fn sequential_insert_into_table(
 
     let leaf_buckets = get_buckets(
         tuples.len(),
-        BufferPool::rows_per_page(tuple_scheme),
+        BTreeLeafPage::calculate_slots_count(&tuple_scheme),
         tree_layout,
     );
 
@@ -214,7 +214,7 @@ fn sequential_insert_into_table(
     // stage 2: write internal pages
     let interanl_buckets = get_buckets(
         leaf_buckets.len(),
-        BufferPool::children_per_page(),
+        internal_children_cap(),
         tree_layout,
     );
 
@@ -285,12 +285,11 @@ fn write_internal_pages(
     internals: Vec<Arc<RwLock<BTreeInternalPage>>>,
     page_index: &mut u32,
 ) -> u32 {
-    let childrent_per_internal_page = BufferPool::children_per_page();
     if internals.len() <= 1 {
         let internal = internals[0].rl();
         table.set_root_pid(tx, &internal.get_pid());
         return *page_index;
-    } else if internals.len() <= childrent_per_internal_page {
+    } else if internals.len() <= internal_children_cap() {
         // write a new internal page (the root page)
         *page_index += 1;
         let pid = BTreePageID::new(
@@ -389,16 +388,16 @@ fn get_buckets(
     table
 }
 
-pub fn leaf_slots_count() -> usize {
+pub fn leaf_records_cap() -> usize {
     let scheme = small_int_tuple_scheme(2, "");
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 
-pub fn internal_entries_count() -> usize {
+pub fn internal_entries_cap() -> usize {
     BTreeInternalPage::calculate_entries_count(4)
 }
 
-pub fn internal_children_count() -> usize {
+pub fn internal_children_cap() -> usize {
     BTreeInternalPage::calculate_entries_count(4) + 1
 }
 
