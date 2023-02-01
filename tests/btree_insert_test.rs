@@ -248,20 +248,14 @@ fn test_split_internal_page() {
     let ctx = test_utils::setup();
 
     // For this test we will decrease the size of the Buffer Pool
-    // pages
+    // pages.
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with a packed second tier of
-    // internal pages and packed third tier of leaf pages
-    // (124 tuples per leaf page, 125 children per internal page ->
-    // 2 * 125 * 124 = 31000)
-    // 2 = 2 children (internal pages) for the top level internal page
-    // 125 = 125 children (leaf pages) for each second level internal
-    // pages 124 = 124 tuples per leaf page
-    let rows = 2 * 125 * 124;
+    // Create a B+ tree with 2 nodes in the first tier; the second and the third tier are packed.
+    let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
-        rows,
+        row_count,
         None,
         0,
         TreeLayout::EvenlyDistributed,
@@ -269,10 +263,14 @@ fn test_split_internal_page() {
 
     let table = table_rc.rl();
 
-    // there should be 250 leaf pages + 3 internal nodes
-    assert_eq!(253, table.pages_count());
+    // the number of internal nodes is 3
+    // the number of leaf nodes is 2 * internal_children_cap()
+    test_utils::assert_true(
+        table.pages_count() == 3 + 2 * internal_children_cap(),
+        &table,
+    );
 
-    // now make sure we have 31100 records and they are all in sorted
+    // now make sure we have enough records and they are all in sorted
     // order
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
@@ -291,7 +289,7 @@ fn test_split_internal_page() {
         pre = cur;
     }
 
-    assert_eq!(count, rows);
+    assert_eq!(count, row_count);
 
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
@@ -317,7 +315,7 @@ fn test_split_internal_page() {
         assert!(found);
     }
 
-    // now make sure we have 31100 records and they are all in sorted
+    // now make sure we have enough records and they are all in sorted
     // order
     let it = BTreeTableIterator::new(&ctx.tx, &table);
     let mut pre: i32 = i32::MIN;
@@ -336,5 +334,5 @@ fn test_split_internal_page() {
         pre = cur;
     }
 
-    assert_eq!(count, rows + rows_increment);
+    assert_eq!(count, row_count + rows_increment);
 }

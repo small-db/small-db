@@ -199,8 +199,7 @@ fn test_delete_internal_pages() {
 
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with three nodes in the second
-    // tier and third tier is packed.
+    // Create a B+ tree with 3 nodes in the first tier; the second and the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
