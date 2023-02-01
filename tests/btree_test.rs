@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use log::debug;
+use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
     btree::{
@@ -16,6 +16,11 @@ use small_db::{
     BTreeTable, Predicate, Tuple, Unique,
 };
 use test_utils::TreeLayout;
+
+use crate::test_utils::{
+    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap,
+};
 
 // Insert one tuple into the table
 fn inserter(
@@ -34,8 +39,9 @@ fn inserter(
         panic!("Error inserting tuple: {}", e);
     }
     debug!("{} insert done", tx);
-    s.send(tuple).unwrap();
     tx.commit().unwrap();
+
+    s.send(tuple).unwrap();
 }
 
 // Delete a random tuple from the table
@@ -49,6 +55,7 @@ fn deleter(
     let tuple = r.recv().unwrap();
     let predicate =
         Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+
     let tx = Transaction::new();
     let table = table_pod.rl();
 
@@ -63,7 +70,7 @@ fn deleter(
 
 // Test that doing lots of inserts and deletes in multiple threads
 // works.
-// #[test]
+#[test]
 fn test_big_table() {
     test_utils::setup();
 
@@ -71,24 +78,17 @@ fn test_big_table() {
     // pages.
     BufferPool::set_page_size(1024);
 
-    // This should create a B+ tree with a packed second tier of
-    // internal pages and packed third tier of leaf pages.
-    //
-    // (124 entries per internal/leaf page, 125 children per internal
-    // page)
-    //
-    // 1st tier: 1 internal page
-    // 2nd tier: 2 internal pages (2 * 125 = 250 children)
-    // 3rd tier: 250 leaf pages (250 * 124 = 31,000 entries)
-    debug!("Creating large random B+ tree...");
-    let columns = 2;
+    // Create a B+ tree with 2 nodes in the first tier; the second and the third tier are packed.
+    let row_count = 2 * internal_children_cap() * leaf_records_cap();
+    let column_count = 2;
     let table_pod = test_utils::create_random_btree_table(
-        columns,
-        31000,
+        column_count,
+        row_count,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
+    let table = table_pod.rl();
 
     let cs = Unique::concurrent_status();
     debug!("Concurrent status: {:?}", cs);
@@ -99,19 +99,10 @@ fn test_big_table() {
     let (sender, receiver) = crossbeam::channel::unbounded();
     thread::scope(|s| {
         let mut insert_threads = vec![];
-        for _ in 0..200 {
-            let handle =
-                s.spawn(|| inserter(columns, &table_pod, &sender));
-            // The first few inserts will cause pages to split so give
-            // them a little more time to avoid too many
-            // deadlock situations.
-            sleep(Duration::from_millis(10));
-            insert_threads.push(handle);
-        }
-
-        for _ in 0..800 {
-            let handle =
-                s.spawn(|| inserter(columns, &table_pod, &sender));
+        for _ in 0..1000 {
+            let handle = s.spawn(|| {
+                inserter(column_count, &table_pod, &sender)
+            });
             insert_threads.push(handle);
         }
 
@@ -121,16 +112,18 @@ fn test_big_table() {
         }
     });
 
-    debug!("Concurrent status: {:?}", cs);
-
-    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+    test_utils::assert_true(
+        table_pod.rl().tuples_count() == row_count + 1000,
+        &table,
+    );
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
         let mut threads = vec![];
-        for _ in 0..1000 {
-            let handle =
-                s.spawn(|| inserter(columns, &table_pod, &sender));
+        for _ in 0..200 {
+            let handle = s.spawn(|| {
+                inserter(column_count, &table_pod, &sender)
+            });
             threads.push(handle);
 
             let handle = s.spawn(|| deleter(&table_pod, &receiver));
@@ -142,7 +135,12 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
-    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+
+    test_utils::assert_true(
+        table_pod.rl().tuples_count() == row_count + 1000,
+        &table,
+    );
+
     let page_count_marker = table_pod.rl().pages_count();
 
     // now delete a bunch of tuples
@@ -158,14 +156,15 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
-    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000 - 10);
+    assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
 
     // now insert a bunch of random tuples again
     thread::scope(|s| {
         let mut threads = vec![];
         for _ in 0..10 {
-            let handle =
-                s.spawn(|| inserter(columns, &table_pod, &sender));
+            let handle = s.spawn(|| {
+                inserter(column_count, &table_pod, &sender)
+            });
             threads.push(handle);
         }
 
@@ -174,7 +173,7 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
-    assert_eq!(table_pod.rl().tuples_count(), 31000 + 1000);
+    assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
     assert!(table_pod.rl().pages_count() < page_count_marker + 20);
 
     drop(sender);

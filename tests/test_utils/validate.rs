@@ -16,8 +16,8 @@ pub fn key_present(
 
 pub fn assert_true(predicate: bool, table: &BTreeTable) {
     if !predicate {
-        table.check_integrity(true);
         table.draw_tree(-1);
+        table.check_integrity(true);
         panic!("assertion failed");
     }
 }
