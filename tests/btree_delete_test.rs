@@ -13,8 +13,8 @@ use small_db::{
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    get_internal_page, get_leaf_page, internal_children_cap,
-    leaf_records_cap,
+    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap,
 };
 
 #[test]
@@ -267,23 +267,4 @@ fn test_delete_internal_pages() {
     assert_eq!(0, root_pod.rl().empty_slots_count());
     table.draw_tree(2);
     table.check_integrity(true);
-}
-
-fn delete_tuples(table: &BTreeTable, count: usize) {
-    let tx = Transaction::new();
-    let mut it = BTreeTableIterator::new(&tx, &table);
-    for _ in 0..count {
-        table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
-    }
-    tx.commit().unwrap();
-}
-
-fn insert_tuples(table: &BTreeTable, count: usize) {
-    let tx = Transaction::new();
-    let mut it = BTreeTableIterator::new(&tx, &table);
-    for value in 0..count {
-        let tuple = Tuple::new_btree_tuple(value as i32, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
-    }
-    tx.commit().unwrap();
 }

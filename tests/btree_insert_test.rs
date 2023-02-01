@@ -10,10 +10,15 @@ use small_db::{
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
     concurrent_status::Permission,
-    utils::HandyRwLock,
+    utils::{ceil_div, HandyRwLock},
     *,
 };
 use test_utils::TreeLayout;
+
+use crate::test_utils::{
+    get_internal_page, get_leaf_page, internal_children_cap,
+    leaf_records_cap,
+};
 
 #[test]
 fn test_insert_tuple() {
@@ -33,8 +38,8 @@ fn test_insert_tuple() {
 
     let mut insert_value = 0;
 
-    // we should be able to add 502 tuples on one page
-    let mut insert_count = 502;
+    // write a fullfilled leaf page
+    let mut insert_count = leaf_records_cap();
     debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
@@ -43,9 +48,9 @@ fn test_insert_tuple() {
         assert_eq!(1, table.pages_count());
     }
 
-    // the next 251 tuples should live on page 2 since they are
+    // the next half-paged tuples should live on page 2 since they are
     // greater than all existing tuples in the file
-    insert_count = 251;
+    insert_count = ceil_div(leaf_records_cap(), 2);
     debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
@@ -62,7 +67,7 @@ fn test_insert_tuple() {
     table.insert_tuple(&ctx.tx, &tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
-    assert_eq!(4, table.pages_count());
+    test_utils::assert_true(table.pages_count() == 4, &table);
 
     // now make sure the records are sorted on the key field
     let it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -119,12 +124,12 @@ fn test_insert_duplicate_tuples() {
 
 #[test]
 fn test_split_leaf_page() {
-    let ctx = test_utils::setup();
+    test_utils::setup();
 
     // This should create a B+ tree with one full page
     let table_rc = test_utils::create_random_btree_table(
         2,
-        502,
+        leaf_records_cap(),
         None,
         0,
         TreeLayout::EvenlyDistributed,
@@ -135,43 +140,29 @@ fn test_split_leaf_page() {
     assert_eq!(1, table.pages_count());
 
     // now insert a tuple
-    table
-        .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(5000, 2))
-        .unwrap();
-    // Unique::buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(),
-    // &Tuple::new_btree_tuple(5000, 2))     .unwrap();
+    test_utils::insert_tuples(&table, 1);
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
 
-    let root_pid = table.get_root_pid(&ctx.tx);
-    let root_ref = Unique::buffer_pool()
-        .get_internal_page(&ctx.tx, Permission::ReadWrite, &root_pid)
-        .unwrap();
-    let root = root_ref.rl();
-    assert_eq!(502, root.empty_slots_count());
+    let root_pod = test_utils::get_internal_page(&table, 0, 0);
+    test_utils::assert_true(
+        root_pod.rl().empty_slots_count()
+            == internal_children_cap() - 2,
+        &table,
+    );
 
     // each child should have half of the records
-    let mut it = BTreeInternalPageIterator::new(&root);
-    let entry = it.next().unwrap();
-    let left_ref = Unique::buffer_pool()
-        .get_leaf_page(
-            &ctx.tx,
-            Permission::ReadOnly,
-            &entry.get_left_child(),
-        )
-        .unwrap();
-    assert!(left_ref.rl().empty_slots_count() <= 251);
-
-    let right_ref = Unique::buffer_pool()
-        .get_leaf_page(
-            &ctx.tx,
-            Permission::ReadOnly,
-            &entry.get_right_child(),
-        )
-        .unwrap();
-    assert!(right_ref.rl().empty_slots_count() <= 251);
+    let leaf_pod = test_utils::get_leaf_page(&table, 1, 0);
+    test_utils::assert_true(
+        leaf_pod.rl().empty_slots_count() <= leaf_records_cap() / 2,
+        &table,
+    );
+    let right_pod = test_utils::get_leaf_page(&table, 1, 1);
+    test_utils::assert_true(
+        right_pod.rl().empty_slots_count() <= leaf_records_cap() / 2,
+        &table,
+    );
 }
 
 #[test]
