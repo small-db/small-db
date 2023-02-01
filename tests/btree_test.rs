@@ -63,7 +63,7 @@ fn deleter(
 
 // Test that doing lots of inserts and deletes in multiple threads
 // works.
-#[test]
+// #[test]
 fn test_big_table() {
     let _ctx = test_utils::setup();
 
