@@ -1,6 +1,8 @@
 # Used when you don't need too much detail.
+# 
+# The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test:
-	RUST_LOG=info cargo test -- --test-threads=1
+	RUST_LOG=info cargo test -- --test-threads=1 2>&1 | tee out
 
 # Used when you need more detail.
 # 
