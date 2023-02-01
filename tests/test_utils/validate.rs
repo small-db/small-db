@@ -13,3 +13,11 @@ pub fn key_present(
     let mut it = BTreeTableSearchIterator::new(tx, &table, predicate);
     it.next().is_some()
 }
+
+pub fn assert_true(predicate: bool, table: &BTreeTable) {
+    if !predicate {
+        table.check_integrity(true);
+        table.draw_tree(-1);
+        panic!("assertion failed");
+    }
+}

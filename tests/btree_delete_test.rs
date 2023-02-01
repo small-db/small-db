@@ -31,28 +31,32 @@ fn test_redistribute_leaf_pages() {
     );
     let table = table_pod.rl();
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
-
     let left_pod = get_leaf_page(&table, 1, 0);
     let right_pod = get_leaf_page(&table, 1, 1);
 
     // Delete some tuples from the first page until it gets to minimum
     // occupancy.
-    let count = floor_div(leaf_records_cap(), 2);
-    table.check_integrity(true);
-    assert_eq!(left_pod.rl().empty_slots_count(), count);
+    let delete_count = floor_div(leaf_records_cap(), 2);
+    delete_tuples(&table, delete_count);
+    test_utils::assert_true(
+        left_pod.rl().empty_slots_count() == delete_count,
+        &table,
+    );
 
     // Deleting a tuple now should bring the page below minimum
     // occupancy and cause the tuples to be redistributed.
     delete_tuples(&table, 1);
-    assert!(left_pod.rl().empty_slots_count() <= count);
+    test_utils::assert_true(
+        left_pod.rl().empty_slots_count() < delete_count,
+        &table,
+    );
 
     // Assert some tuples of the right page were stolen.
-    assert!(right_pod.rl().empty_slots_count() > 0);
-
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    // assert!(right_pod.rl().empty_slots_count() > 0);
+    test_utils::assert_true(
+        right_pod.rl().empty_slots_count() > 0,
+        &table,
+    );
 }
 
 #[test]
