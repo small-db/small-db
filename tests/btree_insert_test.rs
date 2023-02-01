@@ -16,8 +16,8 @@ use small_db::{
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    get_internal_page, get_leaf_page, internal_children_cap,
-    leaf_records_cap,
+    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap,
 };
 
 #[test]
@@ -169,97 +169,55 @@ fn test_split_leaf_page() {
 fn test_split_root_page() {
     let ctx = test_utils::setup();
 
-    // This should create a packed B+ tree with no empty slots
-    // There are 503 keys per internal page (504 children) and 502
-    // tuples per leaf page 504 * 502 = 253008
-    let rows = 504 * 502;
+    // This should create a B+ tree which the second tier is packed.
+    let row_count = internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
-        rows,
+        row_count,
         None,
         0,
         TreeLayout::EvenlyDistributed,
     );
     let table = table_rc.rl();
 
-    // there should be 504 leaf pages + 1 internal node
-    assert_eq!(505, table.pages_count());
+    // there should be a packed 2nd layer + 1 internal node (root)
+    test_utils::assert_true(
+        table.pages_count() == internal_children_cap() + 1,
+        &table,
+    );
 
-    // TODO: remove this check block.
-    {
-        let it = BTreeTableIterator::new(&ctx.tx, &table);
-        assert_eq!(it.count(), rows as usize);
+    insert_tuples(&table, 1);
 
-        let root_pid = table.get_root_pid(&ctx.tx);
-        let root_ref = Unique::buffer_pool()
-            .get_internal_page(
-                &ctx.tx,
-                Permission::ReadWrite,
-                &root_pid,
-            )
-            .unwrap();
-        let root = root_ref.rl();
-        debug!("root empty slot count: {}", root.empty_slots_count());
-        let it = BTreeInternalPageIterator::new(&root);
-        debug!("root entries count: {}", it.count());
-    }
+    // there should be 3 internal nodes now, since the origianl root
+    // node split into 2 nodes + 1 new root node
+    // and there is also a new leaf node
+    test_utils::assert_true(
+        table.pages_count() == internal_children_cap() + 3 + 1,
+        &table,
+    );
 
-    // now insert a tuple
-    table
-        .insert_tuple(&ctx.tx, &Tuple::new_btree_tuple(10, 2))
-        .unwrap();
-    // Unique::buffer_pool()
-    //     .insert_tuple(&ctx.tx, table.get_id(),
-    // &Tuple::new_btree_tuple(10, 2))     .unwrap();
+    // the root node should be an internal node and have 2
+    // children (1 entry)
+    let root_pod = test_utils::get_internal_page(&table, 0, 0);
+    test_utils::assert_true(
+        root_pod.rl().empty_slots_count()
+            == internal_children_cap() - 2,
+        &table,
+    );
 
-    // there should now be 505 leaf pages + 3 internal nodes
-    assert_eq!(508, table.pages_count());
-
-    // put borrow of pages in a scope so the external process will not
-    // be disturbed by the borrow
-    {
-        // the root node should be an internal node and have 2
-        // children (1 entry)
-        let root_pid = table.get_root_pid(&ctx.tx);
-        assert_eq!(root_pid.category, PageCategory::Internal);
-
-        let root_page_rc = Unique::buffer_pool()
-            .get_internal_page(
-                &ctx.tx,
-                Permission::ReadWrite,
-                &root_pid,
-            )
-            .unwrap();
-        let root_page = root_page_rc.rl();
-        assert_eq!(root_page.empty_slots_count(), 502);
-
-        // each child should have half of the entries
-        let mut it = BTreeInternalPageIterator::new(&root_page);
-        let entry = it.next().unwrap();
-        let left_pid = entry.get_left_child();
-        let left_rc = Unique::buffer_pool()
-            .get_internal_page(
-                &ctx.tx,
-                Permission::ReadWrite,
-                &left_pid,
-            )
-            .unwrap();
-        let left = left_rc.rl();
-        debug!("left entries count: {}", left.entries_count());
-        assert!(left.empty_slots_count() <= 252);
-
-        let right_pid = entry.get_right_child();
-        let right_rc = Unique::buffer_pool()
-            .get_internal_page(
-                &ctx.tx,
-                Permission::ReadWrite,
-                &right_pid,
-            )
-            .unwrap();
-        let right = right_rc.rl();
-        debug!("right entries count: {}", right.entries_count());
-        assert!(right.empty_slots_count() <= 252);
-    }
+    // each child should have half of the entries
+    let leaf_pod = test_utils::get_internal_page(&table, 1, 0);
+    test_utils::assert_true(
+        leaf_pod.rl().empty_slots_count()
+            <= internal_children_cap() / 2,
+        &table,
+    );
+    let right_pod = test_utils::get_internal_page(&table, 1, 1);
+    test_utils::assert_true(
+        right_pod.rl().empty_slots_count()
+            <= internal_children_cap() / 2,
+        &table,
+    );
 
     // now insert some random tuples and make sure we can find them
     let mut rng = rand::thread_rng();
