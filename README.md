@@ -2,9 +2,7 @@
 
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
-[![Rust](https://github.com/XiaochenCui/small-db/actions/workflows/rust.yml/badge.svg)](https://github.com/XiaochenCui/small-db/actions/workflows/rust.yml)
-[![codecov](https://codecov.io/gh/XiaochenCui/small-db/branch/master/graph/badge.svg)](https://codecov.io/gh/XiaochenCui/small-db)
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
+[![Rust](https://github.com/small-db/small-db/actions/workflows/rust.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/rust.yml)
 
 A small database writing in rust, inspired from mit 6.830
 
@@ -22,6 +20,7 @@ A small database writing in rust, inspired from mit 6.830
 ### TODO
 
 - WAL
+- Code coverage (https://blog.rng0.io/how-to-do-code-coverage-in-rust)
 
 ## License
 
