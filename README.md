@@ -8,31 +8,20 @@
 
 A small database writing in rust, inspired from mit 6.830
 
-## Roadmap
+## Features
 
-### 0.0.0
+### Implemented
 
 - B+ tree storage structure
+- B+ tree insert
+- B+ tree delete
 - Buffer pool
-- Insert
-
-### 0.1.0
-
-- Publish to crates.io
-
-### 0.2.0
-
 - Iterator
 - Search by condition
 
-### 0.3.0
+### TODO
 
-- Delete, query, update
-
-### 1.0.0
-
-- SQL (used for TPC test)
-- Page topology
+- WAL
 
 ## License
 
