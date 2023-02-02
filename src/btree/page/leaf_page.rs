@@ -15,7 +15,7 @@ use crate::{
     },
     field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
-    utils::{floor_div, HandyRwLock, ceil_div},
+    utils::{ceil_div, floor_div, HandyRwLock},
     Tuple,
 };
 
@@ -347,9 +347,10 @@ impl BTreeLeafPage {
         assert_eq!(
             &self.get_parent_pid(),
             parent_pid,
-            "parent pid incorrect, current page: {:?}, current parent pid: {:?}, backtrace: {:?}",
+            "parent pid incorrect, current page: {:?}, actual parent pid: {:?}, expect parent pid: {:?}, backtrace: {:?}",
             self.get_pid(),
             self.get_parent_pid(),
+            parent_pid,
             bt,
         );
 
