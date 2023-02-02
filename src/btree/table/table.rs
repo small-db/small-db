@@ -986,7 +986,7 @@ impl BTreeTable {
             "\n\n----- PRINT TREE STRUCTURE END   -----\n\n"
         ));
 
-        debug!("{}", depiction);
+        debug!("tree_structure, level {}: {}", max_level, depiction);
         tx.commit().unwrap();
     }
 
