@@ -129,7 +129,7 @@ fn test_big_table() {
     // now insert and delete tuples at the same time
     thread::scope(|s| {
         let mut threads = vec![];
-        for _ in 0..200 {
+        for _ in 0..1000 {
             let handle = s.spawn(|| {
                 inserter(column_count, &table_pod, &sender)
             });
