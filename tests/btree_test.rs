@@ -67,8 +67,7 @@ fn deleter(
         table.delete_tuple(&tx, &target).unwrap();
     } else {
         debug!("{} tuple not found", tx);
-        table.draw_tree(-1);
-        table.check_integrity(true);
+        test_utils::assert_true(false, &table);
         panic!("tuple not found")
     }
     // let target = it.next().unwrap();

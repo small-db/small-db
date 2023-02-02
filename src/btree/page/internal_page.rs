@@ -420,9 +420,11 @@ impl BTreeInternalPage {
             if let Some(previous) = previous {
                 assert!(
                     previous <= e.get_key(),
-                    "entries are not in order, previous: {}, current: {}",
+                    "entries are not in order, previous (lower_bound): {}, current entry: {}, current pid: {}, parent pid: {}",
                     previous,
                     e,
+                    self.get_pid(),
+                    self.get_parent_pid(),
                 );
             }
             previous = Some(e.get_key());
