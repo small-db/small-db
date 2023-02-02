@@ -1,6 +1,6 @@
 # small-db
 
-[![test](https://github.com/small-db/small-db/actions/workflows/rust.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/rust.yml)
+[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 
 A small database writing in rust, inspired from mit 6.830
 
