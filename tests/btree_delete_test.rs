@@ -1,14 +1,13 @@
 mod test_utils;
-use log::{debug, error};
+use log::error;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
-    transaction::Transaction,
     utils::{ceil_div, floor_div, HandyRwLock},
-    BTreeTable, Op, Tuple,
+    Op,
 };
 use test_utils::TreeLayout;
 
@@ -199,7 +198,8 @@ fn test_delete_internal_pages() {
 
     BufferPool::set_page_size(1024);
 
-    // Create a B+ tree with 3 nodes in the first tier; the second and the third tier are packed.
+    // Create a B+ tree with 3 nodes in the first tier; the second and
+    // the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
@@ -225,8 +225,9 @@ fn test_delete_internal_pages() {
     delete_tuples(&table, count);
     assert_eq!(second_child_pod.rl().empty_slots_count(), 0);
 
-    // Deleting two pages of tuples should bring the internal page below
-    // minimum occupancy and cause the entries to be redistributed.
+    // Deleting two pages of tuples should bring the internal page
+    // below minimum occupancy and cause the entries to be
+    // redistributed.
     let count = 2 * leaf_records_cap();
     delete_tuples(&table, count);
     assert!(second_child_pod.rl().empty_slots_count() > 0);

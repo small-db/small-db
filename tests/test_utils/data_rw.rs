@@ -3,8 +3,6 @@ use small_db::{
     BTreeTable, Tuple,
 };
 
-use super::leaf_records_cap;
-
 pub fn delete_tuples(table: &BTreeTable, count: usize) {
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);

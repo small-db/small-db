@@ -15,7 +15,7 @@ use crate::{
     },
     field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
-    utils::{ceil_div, floor_div, HandyRwLock},
+    utils::{ceil_div, HandyRwLock},
     Tuple,
 };
 

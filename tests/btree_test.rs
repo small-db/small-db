@@ -1,8 +1,5 @@
 mod test_utils;
-use std::{
-    thread::{self, sleep},
-    time::Duration,
-};
+use std::thread::{self};
 
 use log::{debug, info};
 use rand::prelude::*;
@@ -17,10 +14,7 @@ use small_db::{
 };
 use test_utils::TreeLayout;
 
-use crate::test_utils::{
-    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap,
-};
+use crate::test_utils::{internal_children_cap, leaf_records_cap};
 
 // Insert one tuple into the table
 fn inserter(
@@ -62,7 +56,7 @@ fn deleter(
     debug!("{} prepare to delete", tx);
     let mut it =
         BTreeTableSearchIterator::new(&tx, &table, predicate);
-    let target = it.next().unwrap();
+    let _target = it.next().unwrap();
     // table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
@@ -78,7 +72,8 @@ fn test_big_table() {
     // pages.
     BufferPool::set_page_size(1024);
 
-    // Create a B+ tree with 2 nodes in the first tier; the second and the third tier are packed.
+    // Create a B+ tree with 2 nodes in the first tier; the second and
+    // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
     let table_pod = test_utils::create_random_btree_table(

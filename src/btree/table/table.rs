@@ -1,7 +1,6 @@
 use core::fmt;
 use std::{
     collections::hash_map::DefaultHasher,
-    env,
     fs::{File, OpenOptions},
     hash::{Hash, Hasher},
     io::{Seek, SeekFrom, Write},

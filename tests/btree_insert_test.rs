@@ -6,18 +6,15 @@ use rand::Rng;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeInternalPageIterator, PageCategory},
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
-    concurrent_status::Permission,
     utils::{ceil_div, HandyRwLock},
     *,
 };
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap,
+    insert_tuples, internal_children_cap, leaf_records_cap,
 };
 
 #[test]
@@ -251,7 +248,8 @@ fn test_split_internal_page() {
     // pages.
     BufferPool::set_page_size(1024);
 
-    // Create a B+ tree with 2 nodes in the first tier; the second and the third tier are packed.
+    // Create a B+ tree with 2 nodes in the first tier; the second and
+    // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let table_rc = test_utils::create_random_btree_table(
         2,
