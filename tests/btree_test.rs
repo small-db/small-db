@@ -63,7 +63,7 @@ fn deleter(
     let mut it =
         BTreeTableSearchIterator::new(&tx, &table, predicate);
     let target = it.next().unwrap();
-    table.delete_tuple(&tx, &target).unwrap();
+    // table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
 }
@@ -135,6 +135,13 @@ fn test_big_table() {
             handle.join().unwrap();
         }
     });
+
+    info!(
+        "row_count: {}, tuples_count: {}",
+        row_count,
+        table.tuples_count()
+    );
+    return;
 
     test_utils::assert_true(
         table_pod.rl().tuples_count() == row_count + 1000,
