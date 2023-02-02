@@ -953,13 +953,6 @@ impl BTreeTable {
         Unique::concurrent_status().clear();
 
         let tx = Transaction::new();
-
-        // return if the log level is not debug
-        if env::var("RUST_LOG").unwrap_or_default() != "debug" {
-            tx.commit().unwrap();
-            return;
-        }
-
         let mut depiction = "".to_string();
 
         depiction.push_str(
