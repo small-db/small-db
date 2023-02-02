@@ -22,11 +22,12 @@ A small database writing in rust, inspired from mit 6.830
 
 ## License
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db?ref=badge_large)
 
 ```
 TODO:
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db?ref=badge_large)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
 
 run test:
 FILE=btree_delete_test
