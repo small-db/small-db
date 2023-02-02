@@ -4,7 +4,7 @@ use test_utils::TreeLayout;
 
 // #[test]
 fn test_patch() {
-    let _ = test_utils::setup();
+    test_utils::setup();
 
     // *** Test ***
     // check that BufferPool.flushPage() calls LogFile.logWrite().
@@ -45,7 +45,7 @@ fn test_patch() {
 
 #[test]
 fn test_abort() {
-    let _ = test_utils::setup();
+    test_utils::setup();
 
     let table_rc = test_utils::create_random_btree_table(
         2,
