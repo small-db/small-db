@@ -1,7 +1,5 @@
 # small-db
 
-[![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
-
 [![Rust](https://github.com/small-db/small-db/actions/workflows/rust.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/rust.yml)
 
 A small database writing in rust, inspired from mit 6.830
@@ -27,6 +25,9 @@ A small database writing in rust, inspired from mit 6.830
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db?ref=badge_large)
 
 ```
+TODO:
+[![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
+
 run test:
 FILE=btree_delete_test
 TEST=test_delete_internal_pages
