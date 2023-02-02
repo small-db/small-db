@@ -64,11 +64,13 @@ fn deleter(
         BTreeTableSearchIterator::new(&tx, &table, predicate);
     if let Some(target) = it.next() {
         debug!("{} delete tuple {:?}", tx, target);
-        table.delete_tuple(&tx, &target).unwrap();
+        if table.delete_tuple(&tx, &target).is_err() {
+            debug!("{} delete failed", tx);
+            test_utils::assert_true(false, &table);
+        }
     } else {
         debug!("{} tuple not found", tx);
         test_utils::assert_true(false, &table);
-        panic!("tuple not found")
     }
     // let target = it.next().unwrap();
     // table.delete_tuple(&tx, &target).unwrap();
