@@ -41,8 +41,8 @@ fn test_patch() {
     // check that BufferPool.flushPage() calls LogFile.logWrite().
     assert_eq!(Unique::log_file().records_count(), 5);
 
-    // check that BufferPool.transactionComplete(commit=true) called Page.setBeforeImage().
-    // table.draw_tree(-1);
+    // check that BufferPool.transactionComplete(commit=true) called
+    // Page.setBeforeImage(). table.draw_tree(-1);
     // table.check_integrity(true);
     let page_pod = test_utils::get_leaf_page(&table, 0, 0);
     let page = page_pod.rl();

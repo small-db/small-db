@@ -30,8 +30,8 @@ pub trait BTreePage {
 
     fn set_before_image(&mut self);
 
-    /// Provide a representation of this page before any modifications were made
-    /// to it. Used by recovery.
+    /// Provide a representation of this page before any modifications
+    /// were made to it. Used by recovery.
     fn get_before_image(&self) -> Vec<u8>;
 
     fn peek(&self);
