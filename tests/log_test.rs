@@ -1,14 +1,47 @@
 mod test_utils;
-use small_db::{transaction::Transaction, utils::HandyRwLock, Tuple};
+use small_db::{
+    transaction::Transaction, utils::HandyRwLock, Tuple, Unique,
+};
 use test_utils::TreeLayout;
 
-// #[test]
+#[test]
 fn test_patch() {
     test_utils::setup();
 
+    // Create an empty B+ tree file keyed on the second field of a
+    // 2-field tuple.
+    let table_rc = test_utils::create_random_btree_table(
+        2,
+        0,
+        None,
+        1,
+        TreeLayout::Naturally,
+    );
+    let table = table_rc.rl();
+
+    // step 1: start a transaction
+    let tx = Transaction::new();
+    tx.start().unwrap();
+
+    // step 2: insert a tuple into the table
+    let tuple = Tuple::new_btree_tuple(1, 2);
+    table.insert_tuple(&tx, &tuple).unwrap();
+
+    // step 3: force flush all pages (from the buffer pool to disk)
+    Unique::buffer_pool().flush_all_pages();
+
+    // step 4: insert another tuple into the table
+    let tuple = Tuple::new_btree_tuple(2, 2);
+    table.insert_tuple(&tx, &tuple).unwrap();
+
+    // step 5: commit the transaction
+    tx.commit().unwrap();
+
+    assert_eq!(Unique::log_file().records_count(), 4);
+
     // *** Test ***
     // check that BufferPool.flushPage() calls LogFile.logWrite().
-    let _tx = Transaction::new();
+    // let _tx = Transaction::new();
 
     // let tuple = Tuple::new_btree_tuple(insert_value, 2);
     // table.insert_tuple(&ctx.tx, &tuple).unwrap();

@@ -48,6 +48,10 @@ impl SmallFile {
         self.write(&v.to_le_bytes())
     }
 
+    pub fn write_i64(&self, v: i64) -> SmallResult {
+        self.write(&v.to_le_bytes())
+    }
+
     pub fn write(&self, buf: &[u8]) -> SmallResult {
         match self.get_file().write(buf) {
             Ok(_) => Ok(()),

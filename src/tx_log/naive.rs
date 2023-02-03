@@ -41,6 +41,11 @@ impl RecordType {
     }
 }
 
+/// Migrated from java version.
+///
+/// TODO: Figure out what this is used for, and if it's needed.
+static NO_CHECKPOINT_ID: i64 = -1;
+
 pub struct LogManager {
     /// Record the start position of each transaction.
     ///
@@ -52,6 +57,17 @@ pub struct LogManager {
 
     /// The absolute position of the file descriptor cursor.
     current_offset: u64,
+
+    /// Migrated from java version.
+    ///
+    /// TODO: Figure out what this is used for, and if it's needed.
+    total_records: usize,
+
+    /// Migrated from java version.
+    /// no call to recover() and no append to log
+    ///
+    /// TODO: Figure out what this is used for, and if it's needed.
+    recovery_undecided: bool,
 }
 
 impl LogManager {
@@ -60,18 +76,22 @@ impl LogManager {
             tx_start_position: HashMap::new(),
             file: SmallFile::new(file_path),
             current_offset: 0,
+            total_records: 0,
+            recovery_undecided: true,
         }
     }
 
-    // pub fn records_count(&self) -> usize {
-    //     unimplemented!()
-    // }
+    pub fn records_count(&self) -> usize {
+        self.total_records
+    }
 
     fn get_file(&self) -> MutexGuard<'_, File> {
         self.file.get_file()
     }
 
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {
+        self.pre_append()?;
+
         self.file.write_u8(RecordType::START as u8)?;
         self.file.write_u64(tx.get_id())?;
         self.file.write_u64(self.current_offset)?;
@@ -115,6 +135,27 @@ impl LogManager {
         Ok(())
     }
 
+    /**
+     * Write an UPDATE record to disk for the specified tid and page
+     * (with provided         before and after images.)
+     *
+     * @param tid    The transaction performing the write
+     * @param before The before image of the page
+     * @param after  The after image of the page
+     * @see simpledb.Page#getBeforeImage
+     */
+    // public synchronized void logWrite(TransactionId tid, Page before,
+    //     Page after)
+
+    pub fn log_write(
+        &self,
+        tx: &Transaction,
+        before: &[u8],
+        after: &[u8],
+    ) {
+        unimplemented!()
+    }
+
     /// Rollback the specified transaction, setting the state of any
     /// of pages it updated to their pre-updated state.  To preserve
     /// transaction semantics, this should not be called on
@@ -152,4 +193,50 @@ impl LogManager {
     ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
         todo!()
     }
+
+    // We're about to append a log record. If we weren't sure whether the
+    // DB wants to do recovery, we're sure now -- it didn't. So truncate
+    // the log.
+    fn pre_append(&mut self) -> SmallResult {
+        self.total_records += 1;
+
+        if self.recovery_undecided {
+            self.recovery_undecided = false;
+            self.get_file()
+                .set_len(0)
+                .or(Err(SmallError::new("set_len failed")))?;
+            self.get_file()
+                .seek(std::io::SeekFrom::Start(0))
+                .or(Err(SmallError::new("seek failed")))?;
+            self.file.write_i64(NO_CHECKPOINT_ID)?;
+            self.get_file()
+                .seek(std::io::SeekFrom::End(0))
+                .or(Err(SmallError::new("seek failed")))?;
+            let new_offset = self
+                .get_file()
+                .seek(std::io::SeekFrom::Current(0))
+                .or(Err(SmallError::new("seek failed")))?;
+            self.current_offset = new_offset;
+        }
+
+        return Ok(());
+    }
+
+    // void preAppend() throws IOException {
+    //     logger.debug("preAppend start, offsets = " + raf.getFilePointer());
+    //     print();
+
+    //     totalRecords++;
+    //     if (recoveryUndecided) {
+    //         recoveryUndecided = false;
+    //         raf.seek(0);
+    //         raf.setLength(0);
+    //         raf.writeLong(NO_CHECKPOINT_ID);
+    //         raf.seek(raf.length());
+    //         currentOffset = raf.getFilePointer();
+    //     }
+
+    //     print();
+    //     logger.debug("preAppend end, offsets = " + raf.getFilePointer());
+    // }
 }

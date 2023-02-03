@@ -652,6 +652,10 @@ impl BTreePage for BTreeInternalPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
+    fn get_before_image(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
     fn peek(&self) {
         debug!("======start=======");
         println!("Internal page: {}", self.get_pid());

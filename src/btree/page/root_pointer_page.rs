@@ -142,6 +142,10 @@ impl BTreePage for BTreeRootPointerPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
+    fn get_before_image(&self) -> Vec<u8> {
+        unimplemented!()
+    }
+
     fn peek(&self) {
         debug!("BTreeRootPointerPage {{");
         debug!("  pid: {:?}", self.get_pid());

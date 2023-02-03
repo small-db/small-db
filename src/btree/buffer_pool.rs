@@ -218,6 +218,12 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
+    pub fn flush_all_pages(&self) {
+        for pid in self.all_keys() {
+            self.flush_page(&pid);
+        }
+    }
+
     /// Write all pages of the specified transaction to disk.
     ///
     /// TODO: protest this function (mut self / or global lock)
@@ -259,8 +265,22 @@ impl BufferPool {
         pid: &BTreePageID,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
+        //        only write raf log for heap storage structure
+        // if (pid instanceof HeapPageId) {
+        //     TransactionId tid = new TransactionId();
+        //     Database.getLogFile().logWrite(tid,page.getBeforeImage(),page);
+        // }
+
         let b = buffer.get_inner_wl();
         let page_pod = b.get(pid).unwrap();
+
+        let tx = Transaction::new();
+        Unique::log_file().log_write(
+            &tx,
+            &page_pod.rl().get_before_image(),
+            &page_pod.rl().get_page_data(),
+        );
+
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
         // buffer.remove(pid);
     }

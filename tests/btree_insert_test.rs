@@ -21,8 +21,8 @@ use crate::test_utils::{
 fn test_insert_tuple() {
     let ctx = test_utils::setup();
 
-    // create an empty B+ tree file keyed on the second field of a
-    // 2-field tuple
+    // Create an empty B+ tree file keyed on the second field of a
+    // 2-field tuple.
     let table_rc = test_utils::create_random_btree_table(
         2,
         0,
