@@ -27,6 +27,11 @@ pub struct BTreeRootPointerPage {
 
     /// TODO: mandatory the presence of a header page?
     header_page_index: u32,
+
+    /// Migrated from java version.
+    ///
+    /// TODO: Figure out what this is used for, and if it's needed.
+    old_data: Vec<u8>,
 }
 
 impl BTreeRootPointerPage {
@@ -53,11 +58,15 @@ impl BTreeRootPointerPage {
             page_index: root_page_index,
             table_id: pid.get_table_id(),
         };
-        Self {
+
+        let mut instance = Self {
             base: BTreeBasePage::new(pid),
             root_pid,
             header_page_index,
-        }
+            old_data: Vec::new(),
+        };
+        instance.set_before_image();
+        return instance;
     }
 
     pub fn new_empty_page(pid: &BTreePageID) -> Self {
@@ -72,6 +81,7 @@ impl BTreeRootPointerPage {
             base: BTreeBasePage::new(pid),
             root_pid,
             header_page_index: EMPTY_PAGE_ID,
+            old_data: Vec::new(),
         }
     }
 
@@ -142,8 +152,15 @@ impl BTreePage for BTreeRootPointerPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
+    fn set_before_image(&mut self) {
+        self.old_data = self.get_page_data();
+    }
+
     fn get_before_image(&self) -> Vec<u8> {
-        unimplemented!()
+        if self.old_data.is_empty() {
+            panic!("no before image");
+        }
+        return self.old_data.clone();
     }
 
     fn peek(&self) {

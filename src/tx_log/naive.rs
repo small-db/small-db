@@ -64,6 +64,7 @@ pub struct LogManager {
     total_records: usize,
 
     /// Migrated from java version.
+    ///
     /// no call to recover() and no append to log
     ///
     /// TODO: Figure out what this is used for, and if it's needed.
@@ -135,25 +136,37 @@ impl LogManager {
         Ok(())
     }
 
-    /**
-     * Write an UPDATE record to disk for the specified tid and page
-     * (with provided         before and after images.)
-     *
-     * @param tid    The transaction performing the write
-     * @param before The before image of the page
-     * @param after  The after image of the page
-     * @see simpledb.Page#getBeforeImage
-     */
-    // public synchronized void logWrite(TransactionId tid, Page before,
-    //     Page after)
-
+    /// Write an UPDATE record to disk for the specified tid and page (with provided before and after images.)
     pub fn log_write(
-        &self,
+        &mut self,
         tx: &Transaction,
         before: &[u8],
         after: &[u8],
-    ) {
-        unimplemented!()
+    ) -> SmallResult {
+        self.pre_append()?;
+
+        /* update record conists of
+           record type
+           transaction id
+           before page data (see writePageData)
+           after page data
+           start offset
+           4 + 8 + before page + after page + 8
+        */
+
+        self.file.write_u8(RecordType::UPDATE as u8)?;
+        self.file.write_u64(tx.get_id())?;
+        self.file.write(before)?;
+        self.file.write(after)?;
+        self.file.write_u64(self.current_offset)?;
+
+        let current_offset = self
+            .get_file()
+            .seek(std::io::SeekFrom::Current(0))
+            .unwrap();
+        self.current_offset = current_offset;
+
+        return Ok(());
     }
 
     /// Rollback the specified transaction, setting the state of any

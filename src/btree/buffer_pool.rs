@@ -235,6 +235,43 @@ impl BufferPool {
         }
     }
 
+    pub fn tx_complete(&self, tx: &Transaction) {
+        self.flush_pages(tx);
+
+        for pid in self.all_keys() {
+            match pid.category {
+                PageCategory::Internal => {
+                    self.set_before_image(
+                        &pid,
+                        &self.internal_buffer,
+                    );
+                }
+                PageCategory::Leaf => {
+                    self.set_before_image(&pid, &self.leaf_buffer);
+                }
+                PageCategory::RootPointer => {
+                    self.set_before_image(
+                        &pid,
+                        &self.root_pointer_buffer,
+                    );
+                }
+                PageCategory::Header => {
+                    self.set_before_image(&pid, &self.header_buffer);
+                }
+            }
+        }
+    }
+
+    fn set_before_image<PAGE: BTreePage>(
+        &self,
+        pid: &BTreePageID,
+        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+    ) {
+        let b = buffer.get_inner_wl();
+        let page_pod = b.get(pid).unwrap();
+        page_pod.wl().set_before_image();
+    }
+
     /// Write the content of a specific page to disk.
     fn flush_page(&self, pid: &BTreePageID) {
         // stage 1: get table
@@ -265,21 +302,17 @@ impl BufferPool {
         pid: &BTreePageID,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
-        //        only write raf log for heap storage structure
-        // if (pid instanceof HeapPageId) {
-        //     TransactionId tid = new TransactionId();
-        //     Database.getLogFile().logWrite(tid,page.getBeforeImage(),page);
-        // }
-
         let b = buffer.get_inner_wl();
         let page_pod = b.get(pid).unwrap();
 
         let tx = Transaction::new();
-        Unique::log_file().log_write(
-            &tx,
-            &page_pod.rl().get_before_image(),
-            &page_pod.rl().get_page_data(),
-        );
+        Unique::mut_log_file()
+            .log_write(
+                &tx,
+                &page_pod.rl().get_before_image(),
+                &page_pod.rl().get_page_data(),
+            )
+            .unwrap();
 
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
         // buffer.remove(pid);

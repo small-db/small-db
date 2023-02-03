@@ -49,6 +49,8 @@ pub struct BTreeLeafPage {
     left_sibling_id: u32,
 
     key_field: usize,
+
+    old_data: Vec<u8>,
 }
 
 impl BTreeLeafPage {
@@ -58,64 +60,71 @@ impl BTreeLeafPage {
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
+        let mut instance: Self;
+
         if BTreeBasePage::is_empty_page(&bytes) {
-            return Self::new_empty_page(
+            instance = Self::new_empty_page(
                 pid,
                 bytes,
                 tuple_scheme,
                 key_field,
             );
-        }
+        } else {
+            let slot_count =
+                Self::calculate_slots_count(&tuple_scheme);
 
-        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+            let mut reader = SmallReader::new(&bytes);
 
-        let mut reader = SmallReader::new(&bytes);
-
-        // read page category
-        let category = PageCategory::read_from(&mut reader);
-        if category != PageCategory::Leaf {
-            panic!(
+            // read page category
+            let category = PageCategory::read_from(&mut reader);
+            if category != PageCategory::Leaf {
+                panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",
                 category,
             );
+            }
+
+            // read parent page index
+            let parent_pid = BTreePageID::new(
+                PageCategory::Internal,
+                pid.get_table_id(),
+                u32::read_from(&mut reader),
+            );
+
+            // read left sibling page index
+            let left_sibling_id = u32::read_from(&mut reader);
+
+            // read right sibling page index
+            let right_sibling_id = u32::read_from(&mut reader);
+
+            // read header
+            let header = BitVec::read_from(&mut reader);
+
+            // read tuples
+            let mut tuples = Vec::new();
+            for _ in 0..slot_count {
+                let t = Tuple::read_from(&mut reader, tuple_scheme);
+                tuples.push(t);
+            }
+
+            let mut base = BTreeBasePage::new(pid);
+            base.set_parent_pid(&parent_pid);
+
+            instance = Self {
+                base,
+                slot_count,
+                header,
+                tuples,
+                tuple_scheme: tuple_scheme.clone(),
+                right_sibling_id,
+                left_sibling_id,
+                key_field,
+                old_data: Vec::new(),
+            };
         }
 
-        // read parent page index
-        let parent_pid = BTreePageID::new(
-            PageCategory::Internal,
-            pid.get_table_id(),
-            u32::read_from(&mut reader),
-        );
-
-        // read left sibling page index
-        let left_sibling_id = u32::read_from(&mut reader);
-
-        // read right sibling page index
-        let right_sibling_id = u32::read_from(&mut reader);
-
-        // read header
-        let header = BitVec::read_from(&mut reader);
-
-        // read tuples
-        let mut tuples = Vec::new();
-        for _ in 0..slot_count {
-            let t = Tuple::read_from(&mut reader, tuple_scheme);
-            tuples.push(t);
-        }
-
-        let mut base = BTreeBasePage::new(pid);
-        base.set_parent_pid(&parent_pid);
-
-        Self {
-            base,
-            slot_count,
-            header,
-            tuples,
-            tuple_scheme: tuple_scheme.clone(),
-            right_sibling_id,
-            left_sibling_id,
-            key_field,
-        }
+        instance.set_before_image();
+        return instance;
     }
 
     fn new_empty_page(
@@ -156,6 +165,7 @@ impl BTreeLeafPage {
             right_sibling_id: EMPTY_PAGE_ID,
             left_sibling_id: EMPTY_PAGE_ID,
             key_field,
+            old_data: Vec::new(),
         }
     }
 
@@ -455,9 +465,16 @@ impl BTreePage for BTreeLeafPage {
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
-    
+
+    fn set_before_image(&mut self) {
+        self.old_data = self.get_page_data();
+    }
+
     fn get_before_image(&self) -> Vec<u8> {
-        unimplemented!()
+        if self.old_data.is_empty() {
+            panic!("before image is not set");
+        }
+        return self.old_data.clone();
     }
 
     fn peek(&self) {

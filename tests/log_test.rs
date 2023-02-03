@@ -1,6 +1,7 @@
 mod test_utils;
 use small_db::{
-    transaction::Transaction, utils::HandyRwLock, Tuple, Unique,
+    btree::page::BTreePage, transaction::Transaction,
+    utils::HandyRwLock, Tuple, Unique,
 };
 use test_utils::TreeLayout;
 
@@ -37,43 +38,15 @@ fn test_patch() {
     // step 5: commit the transaction
     tx.commit().unwrap();
 
-    assert_eq!(Unique::log_file().records_count(), 4);
-
-    // *** Test ***
     // check that BufferPool.flushPage() calls LogFile.logWrite().
-    // let _tx = Transaction::new();
+    assert_eq!(Unique::log_file().records_count(), 5);
 
-    // let tuple = Tuple::new_btree_tuple(insert_value, 2);
-    // table.insert_tuple(&ctx.tx, &tuple).unwrap();
-
-    // tx_begin  -> BEGIN_RECORD
-    // log_write -> UPDATE_RECORD
-    // log_write -> UPDATE_RECORD
-    // tx_commit -> COMMIT_RECORD
-    // assert_eq!(Unique::log_file().records_count(), 4);
-
-    //     // insert tuples
-    //     void doInsert(HeapFile hf, int t1, int t2)
-    //     throws DbException, TransactionAbortedException,
-    // IOException {     Transaction t = new Transaction();
-    //     t.start();
-    //     if(t1 != -1)
-    //         insertRow(hf, t, t1, 0);
-    //     Database.getBufferPool().flushAllPages();
-    //     if(t2 != -1)
-    //         insertRow(hf, t, t2, 0);
-    //     t.commit();
-    // }
-
-    // *** Test:
-    // check that BufferPool.flushPage() calls LogFile.logWrite().
-    // doInsert(hf1, 1, 2);
-    //
-    // if(Database.getLogFile().getTotalRecords() != 4) {
-    //     logger.info("total records: " +
-    // Database.getLogFile().getTotalRecords());     throw new
-    // RuntimeException("LogTest: wrong # of log records; patch
-    // failed?"); }
+    // check that BufferPool.transactionComplete(commit=true) called Page.setBeforeImage().
+    // table.draw_tree(-1);
+    // table.check_integrity(true);
+    let page_pod = test_utils::get_leaf_page(&table, 0, 0);
+    let page = page_pod.rl();
+    assert_eq!(page.get_page_data(), page.get_before_image());
 }
 
 // #[test]

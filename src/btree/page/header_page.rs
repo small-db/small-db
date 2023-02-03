@@ -116,6 +116,10 @@ impl BTreePage for BTreeHeaderPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
+    fn set_before_image(&mut self) {
+        unimplemented!()
+    }
+
     fn get_before_image(&self) -> Vec<u8> {
         unimplemented!()
     }

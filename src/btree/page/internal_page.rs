@@ -113,8 +113,9 @@ impl BTreeInternalPage {
         if category != PageCategory::Internal {
             panic!(
                 "The page category of the internal page is not
-                correct: {:?}",
-                category
+                correct, expect: {:?}, actual: {:?}",
+                PageCategory::Internal,
+                category,
             );
         }
 
@@ -650,6 +651,10 @@ impl BTreePage for BTreeInternalPage {
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
+    }
+
+    fn set_before_image(&mut self) {
+        unimplemented!()
     }
 
     fn get_before_image(&self) -> Vec<u8> {
