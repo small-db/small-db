@@ -2,8 +2,7 @@
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test:
-	set -o pipefail
-	RUST_LOG=info cargo test -- --test-threads=1 2>&1 | tee out
+	RUST_LOG=info cargo test -- --test-threads=1
 
 # Used when you need more detail.
 # 
