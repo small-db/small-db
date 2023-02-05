@@ -107,11 +107,11 @@ impl LogManager {
         Ok(())
     }
 
-    /// Write an UPDATE record to disk for the specified tid and page
-    /// (with provided         before and after images.)
-    pub fn log_update(&mut self, _tx: &Transaction) -> SmallResult {
-        todo!()
-    }
+    // /// Write an UPDATE record to disk for the specified tid and page
+    // /// (with provided         before and after images.)
+    // pub fn log_update(&mut self, _tx: &Transaction) -> SmallResult {
+    //     todo!()
+    // }
 
     // pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
     // }
@@ -138,7 +138,7 @@ impl LogManager {
 
     /// Write an UPDATE record to disk for the specified tid and page
     /// (with provided before and after images.)
-    pub fn log_write(
+    pub fn log_update(
         &mut self,
         tx: &Transaction,
         before: &[u8],
@@ -262,27 +262,65 @@ impl LogManager {
             let record_type =
                 RecordType::from_u8(self.file.read_u8().unwrap());
             depiction.push_str(&format!(
-                "├── [1 byte] record type: {:?}\n",
-                record_type,
+                "├── [record {}]-{:?}\n",
+                record_id, record_type,
             ));
 
             match record_type {
                 RecordType::START => {
+                    depiction.push_str(&format!(
+                        "│   ├── [1 byte] record type: {:?}\n",
+                        record_type,
+                    ));
+
                     let tid = self.file.read_u64().unwrap();
-                    let start_offset = self.file.read_u64().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
                     ));
+
+                    let start_offset = self.file.read_u64().unwrap();
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
                     ));
                 }
-                _ => panic!("invalid record type"),
+                RecordType::UPDATE => {
+                    depiction.push_str(&format!(
+                        "│   ├── [1 byte] record type: {:?}\n",
+                        record_type,
+                    ));
+
+                    let tid = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] tid: {}\n",
+                        tid,
+                    ));
+
+                    let before_page = self.read_page().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [{} bytes] before page: {:?}\n",
+                        before_page.get_size(),
+                        before_page,
+                    ));
+
+                    let after_page = self.read_page().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [{} bytes] after page: {:?}\n",
+                        after_page.get_size(),
+                        after_page,
+                    ));
+
+                    let start_offset = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   └── [8 bytes] start offset: {}\n",
+                        start_offset,
+                    ));
+                }
+                _ => panic!("invalid record type: {:?}", record_type),
             }
 
-            break;
+            // break;
         }
 
         debug!("log content: \n{}", depiction);

@@ -307,7 +307,7 @@ impl BufferPool {
 
         let tx = Transaction::new();
         Unique::mut_log_file()
-            .log_write(
+            .log_update(
                 &tx,
                 &page_pod.rl().get_before_image(),
                 &page_pod.rl().get_page_data(),
