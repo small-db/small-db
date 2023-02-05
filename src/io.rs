@@ -36,7 +36,9 @@ impl SmallFile {
 
     pub fn read_u8(&self) -> Result<u8, SmallError> {
         let mut buf = [0u8; 1];
-        self.get_file().read_exact(&mut buf).unwrap();
+        self.get_file()
+            .read_exact(&mut buf)
+            .or(Err(SmallError::new("io error")))?;
         Ok(buf[0])
     }
 
@@ -44,8 +46,24 @@ impl SmallFile {
         self.write(&[v])
     }
 
+    pub fn read_u64(&self) -> Result<u64, SmallError> {
+        let mut buf = [0u8; 8];
+        self.get_file()
+            .read_exact(&mut buf)
+            .or(Err(SmallError::new("io error")))?;
+        Ok(u64::from_le_bytes(buf))
+    }
+
     pub fn write_u64(&self, v: u64) -> SmallResult {
         self.write(&v.to_le_bytes())
+    }
+
+    pub fn read_i64(&self) -> Result<i64, SmallError> {
+        let mut buf = [0u8; 8];
+        self.get_file()
+            .read_exact(&mut buf)
+            .or(Err(SmallError::new("io error")))?;
+        Ok(i64::from_le_bytes(buf))
     }
 
     pub fn write_i64(&self, v: i64) -> SmallResult {

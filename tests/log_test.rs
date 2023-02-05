@@ -51,7 +51,7 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     );
 
     // step 4: abort the transaction
-    tx.abort().unwrap();
+    test_utils::assert_true(tx.abort().is_ok(), table);
 }
 
 #[test]

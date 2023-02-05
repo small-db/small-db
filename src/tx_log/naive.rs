@@ -36,7 +36,7 @@ impl RecordType {
             2 => RecordType::UPDATE,
             3 => RecordType::START,
             4 => RecordType::CHECKPOINT,
-            _ => panic!("invalid record type"),
+            _ => panic!("invalid record type: {}", value),
         }
     }
 }
@@ -175,15 +175,14 @@ impl LogManager {
     /// transactions that have already committed (though this may not
     /// be enforced by this method.)
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
-        let start = self.tx_start_position.get(tx).unwrap();
+        let start = *self.tx_start_position.get(tx).unwrap();
         // seek to the start position of the transaction, skip the
         // START_RECORD
         self.get_file()
-            .seek(std::io::SeekFrom::Start(*start + START_RECORD_LEN))
+            .seek(std::io::SeekFrom::Start(start + START_RECORD_LEN))
             .unwrap();
 
-        let record_type =
-            RecordType::from_u8(self.file.read_u8().unwrap());
+        let record_type = RecordType::from_u8(self.file.read_u8()?);
         debug!("record_type: {:?}", record_type);
 
         match record_type {
@@ -235,21 +234,57 @@ impl LogManager {
         return Ok(());
     }
 
-    // void preAppend() throws IOException {
-    //     logger.debug("preAppend start, offsets = " +
-    // raf.getFilePointer());     print();
+    pub fn show_log_contents(&self) {
+        let mut depiction = String::new();
 
-    //     totalRecords++;
-    //     if (recoveryUndecided) {
-    //         recoveryUndecided = false;
-    //         raf.seek(0);
-    //         raf.setLength(0);
-    //         raf.writeLong(NO_CHECKPOINT_ID);
-    //         raf.seek(raf.length());
-    //         currentOffset = raf.getFilePointer();
-    //     }
+        {
+            let mut file = self.get_file();
+            file.seek(std::io::SeekFrom::Start(0)).unwrap();
+        }
 
-    //     print();
-    //     logger.debug("preAppend end, offsets = " +
-    // raf.getFilePointer()); }
+        let last_checkpoint = self.file.read_i64().unwrap();
+
+        if last_checkpoint != NO_CHECKPOINT_ID {
+            depiction.push_str(&format!(
+                "├── [8 bytes] last checkpoint: {}\n",
+                last_checkpoint,
+            ));
+        } else {
+            depiction
+                .push_str(&format!("├── [8 bytes] no checkpoint\n",));
+        }
+
+        let mut offset = 0;
+        let mut record_id = -1;
+        while offset < self.current_offset {
+            record_id += 1;
+
+            let record_type =
+                RecordType::from_u8(self.file.read_u8().unwrap());
+            depiction.push_str(&format!(
+                "├── [1 byte] record type: {:?}\n",
+                record_type,
+            ));
+
+            match record_type {
+                RecordType::START => {
+                    let tid = self.file.read_u64().unwrap();
+                    let start_offset = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] tid: {}\n",
+                        tid,
+                    ));
+                    depiction.push_str(&format!(
+                        "│   └── [8 bytes] start offset: {}\n",
+                        start_offset,
+                    ));
+                }
+                _ => panic!("invalid record type"),
+            }
+
+            break;
+        }
+
+        debug!("log content: \n{}", depiction);
+    }
 }

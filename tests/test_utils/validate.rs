@@ -1,7 +1,7 @@
 use log::error;
 use small_db::{
     btree::table::BTreeTableSearchIterator, field::IntField,
-    transaction::Transaction, BTreeTable, Op, Predicate,
+    transaction::Transaction, BTreeTable, Op, Predicate, Unique,
 };
 
 pub fn key_present(
@@ -27,11 +27,11 @@ pub fn look_for(
 
 pub fn assert_true(predicate: bool, table: &BTreeTable) {
     if !predicate {
-        error!("assertion failed, debug_info:");
-        table.draw_tree(1);
-        table.draw_tree(2);
+        error!("--- assertion failed, debug_info start ---");
         table.draw_tree(-1);
         table.check_integrity(true);
+        Unique::log_file().show_log_contents();
+        error!("--- assertion failed, debug_info end ---");
         panic!("assertion failed");
     }
 }
