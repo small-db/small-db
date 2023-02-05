@@ -18,32 +18,40 @@ pub struct BTreeHeaderPage {
     header: BitVec<u32>,
 
     slot_count: usize,
+
+    old_data: Vec<u8>,
 }
 
 impl BTreeHeaderPage {
     pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> BTreeHeaderPage {
+        let mut instance: Self;
+
         if BTreeBasePage::is_empty_page(&bytes) {
-            return Self::new_empty_page(pid);
+            instance = Self::new_empty_page(pid);
+        } else {
+            let mut reader = SmallReader::new(&bytes);
+
+            // read page category
+            let page_category = PageCategory::read_from(&mut reader);
+            if page_category != PageCategory::Header {
+                panic!("invalid page category: {:?}", page_category);
+            }
+
+            // read header
+            let header = BitVec::read_from(&mut reader);
+
+            let slot_count = header.len();
+
+            instance = BTreeHeaderPage {
+                base: BTreeBasePage::new(pid),
+                header,
+                slot_count,
+                old_data: Vec::new(),
+            };
         }
 
-        let mut reader = SmallReader::new(&bytes);
-
-        // read page category
-        let page_category = PageCategory::read_from(&mut reader);
-        if page_category != PageCategory::Header {
-            panic!("invalid page category: {:?}", page_category);
-        }
-
-        // read header
-        let header = BitVec::read_from(&mut reader);
-
-        let slot_count = header.len();
-
-        BTreeHeaderPage {
-            base: BTreeBasePage::new(pid),
-            header,
-            slot_count,
-        }
+        instance.set_before_image();
+        return instance;
     }
 
     pub fn new_empty_page(pid: &BTreePageID) -> BTreeHeaderPage {
@@ -56,6 +64,7 @@ impl BTreeHeaderPage {
             base: BTreeBasePage::new(pid),
             header,
             slot_count,
+            old_data: Vec::new(),
         }
     }
 
@@ -117,11 +126,14 @@ impl BTreePage for BTreeHeaderPage {
     }
 
     fn set_before_image(&mut self) {
-        unimplemented!()
+        self.old_data = self.get_page_data();
     }
 
     fn get_before_image(&self) -> Vec<u8> {
-        unimplemented!()
+        if self.old_data.is_empty() {
+            panic!("before image is not set");
+        }
+        return self.old_data.clone();
     }
 
     fn peek(&self) {

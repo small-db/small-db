@@ -65,6 +65,7 @@ impl BTreeRootPointerPage {
             header_page_index,
             old_data: Vec::new(),
         };
+
         instance.set_before_image();
         return instance;
     }
