@@ -1,9 +1,58 @@
 mod test_utils;
 use small_db::{
     btree::page::BTreePage, transaction::Transaction,
-    utils::HandyRwLock, Tuple, Unique,
+    utils::HandyRwLock, BTreeTable, Tuple, Unique,
 };
 use test_utils::TreeLayout;
+
+/// Insert two tuples into the table, then commit the transaction.
+/// (There is a flush action in the middle of the transaction.)
+fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
+    // step 1: start a transaction
+    let tx = Transaction::new();
+    tx.start().unwrap();
+
+    // step 2: insert a tuple into the table
+    let tuple = Tuple::new_btree_tuple(key_1, 2);
+    table.insert_tuple(&tx, &tuple).unwrap();
+
+    // step 3: force flush all pages (from the buffer pool to disk)
+    Unique::buffer_pool().flush_all_pages();
+
+    // step 4: insert another tuple into the table
+    let tuple = Tuple::new_btree_tuple(key_2, 2);
+    table.insert_tuple(&tx, &tuple).unwrap();
+
+    // step 5: commit the transaction
+    tx.commit().unwrap();
+}
+
+/// Insert two tuples into the table, then abort the transaction.
+/// (We well look for the tuples before abort.)
+fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
+    // step 1: start a transaction
+    let tx = Transaction::new();
+    tx.start().unwrap();
+
+    // step 2: insert two tuples into the table
+    let tuple_1 = Tuple::new_btree_tuple(key_1, 2);
+    table.insert_tuple(&tx, &tuple_1).unwrap();
+    let tuple_2 = Tuple::new_btree_tuple(key_2, 2);
+    table.insert_tuple(&tx, &tuple_2).unwrap();
+
+    // step 3: search for the tuples
+    test_utils::assert_true(
+        test_utils::look_for(table, &tx, key_1) == 1,
+        table,
+    );
+    test_utils::assert_true(
+        test_utils::look_for(table, &tx, key_2) == 1,
+        table,
+    );
+
+    // step 4: abort the transaction
+    tx.abort().unwrap();
+}
 
 #[test]
 fn test_patch() {
@@ -20,36 +69,19 @@ fn test_patch() {
     );
     let table = table_rc.rl();
 
-    // step 1: start a transaction
-    let tx = Transaction::new();
-    tx.start().unwrap();
-
-    // step 2: insert a tuple into the table
-    let tuple = Tuple::new_btree_tuple(1, 2);
-    table.insert_tuple(&tx, &tuple).unwrap();
-
-    // step 3: force flush all pages (from the buffer pool to disk)
-    Unique::buffer_pool().flush_all_pages();
-
-    // step 4: insert another tuple into the table
-    let tuple = Tuple::new_btree_tuple(2, 2);
-    table.insert_tuple(&tx, &tuple).unwrap();
-
-    // step 5: commit the transaction
-    tx.commit().unwrap();
+    commit_insert(&table, 1, 2);
 
     // check that BufferPool.flushPage() calls LogFile.logWrite().
     assert_eq!(Unique::log_file().records_count(), 5);
 
     // check that BufferPool.transactionComplete(commit=true) called
-    // Page.setBeforeImage(). table.draw_tree(-1);
-    // table.check_integrity(true);
+    // Page.setBeforeImage().
     let page_pod = test_utils::get_leaf_page(&table, 0, 0);
     let page = page_pod.rl();
     assert_eq!(page.get_page_data(), page.get_before_image());
 }
 
-// #[test]
+#[test]
 fn test_abort() {
     test_utils::setup();
 
@@ -61,6 +93,16 @@ fn test_abort() {
         TreeLayout::Naturally,
     );
     let table = table_rc.rl();
+
+    commit_insert(&table, 1, 2);
+
+    abort_insert(&table, 3, 4);
+
+    return;
+
+    // *** Test:
+    // insert, abort: data should not be there
+    // flush pages directly to heap file to defeat NO-STEAL policy
 
     let tx = Transaction::new();
     tx.start().unwrap();
