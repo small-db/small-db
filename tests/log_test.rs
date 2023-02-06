@@ -126,13 +126,25 @@ fn test_abort_commit_interleaved() {
     commit_insert(&table, 1, 2);
 
     // T1 start, T2 start and commit, T1 abort
+
     let tx_1 = Transaction::new();
     tx_1.start().unwrap();
+    insert_row(&table, &tx_1, 3);
+
+    let tx_2 = Transaction::new();
+    tx_2.start().unwrap();
+    insert_row(&table, &tx_2, 21);
+    Unique::log_file().log_checkpoint();
+    insert_row(&table, &tx_2, 22);
+    tx_2.commit().unwrap();
+
+    tx_1.abort().unwrap();
 
     // verify the result
     let tx = Transaction::new();
-    assert!(test_utils::key_present(&tx, &table, 1));
-    assert!(test_utils::key_present(&tx, &table, 2));
+    assert_true(look_for(&table, &tx, 1) == 1, &table);
+    assert_true(look_for(&table, &tx, 2) == 1, &table);
+    assert_true(look_for(&table, &tx, 3) == 0, &table);
     tx.commit().unwrap();
 
     // Transaction t1 = new Transaction();
