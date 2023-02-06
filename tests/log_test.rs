@@ -5,6 +5,11 @@ use small_db::{
 };
 use test_utils::TreeLayout;
 
+use crate::test_utils::{
+    assert_true, delete_tuples, get_internal_page, get_leaf_page,
+    insert_tuples, internal_children_cap, leaf_records_cap, look_for,
+};
+
 /// Insert two tuples into the table, then commit the transaction.
 /// (There is a flush action in the middle of the transaction.)
 fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
@@ -41,14 +46,8 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     table.insert_tuple(&tx, &tuple_2).unwrap();
 
     // step 3: search for the tuples
-    test_utils::assert_true(
-        test_utils::look_for(table, &tx, key_1) == 1,
-        table,
-    );
-    test_utils::assert_true(
-        test_utils::look_for(table, &tx, key_2) == 1,
-        table,
-    );
+    assert_true(look_for(table, &tx, key_1) == 1, table);
+    assert_true(look_for(table, &tx, key_2) == 1, table);
 
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {
@@ -97,15 +96,15 @@ fn test_abort() {
     );
     let table = table_rc.rl();
 
-    // commit_insert(&table, 1, 2);
+    // TODO: what's the meaning of below comments?
+    //
+    // insert, abort: data should not be there
+    // flush pages directly to heap file to defeat NO-STEAL policy
 
+    commit_insert(&table, 1, 2);
     abort_insert(&table, 3, 4);
 
     return;
-
-    // *** Test:
-    // insert, abort: data should not be there
-    // flush pages directly to heap file to defeat NO-STEAL policy
 
     let tx = Transaction::new();
     tx.start().unwrap();
