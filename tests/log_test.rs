@@ -5,10 +5,7 @@ use small_db::{
 };
 use test_utils::TreeLayout;
 
-use crate::test_utils::{
-    assert_true, delete_tuples, get_internal_page, get_leaf_page,
-    insert_tuples, internal_children_cap, leaf_records_cap, look_for,
-};
+use crate::test_utils::{assert_true, look_for};
 
 /// Insert two tuples into the table, then commit the transaction.
 /// (There is a flush action in the middle of the transaction.)
@@ -110,7 +107,6 @@ fn test_abort() {
     assert_true(look_for(&table, &tx, 3) == 0, &table);
     assert_true(look_for(&table, &tx, 4) == 0, &table);
     tx.commit().unwrap();
-
 
     return;
 
