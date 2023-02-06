@@ -28,7 +28,8 @@ impl Transaction {
     }
 
     pub fn abort(&self) -> SmallResult {
-        Unique::mut_log_file().log_abort(self)
+        Unique::buffer_pool().tx_complete(self, false);
+        Unique::concurrent_status().release_lock_by_tx(self)
     }
 
     pub fn get_id(&self) -> u64 {

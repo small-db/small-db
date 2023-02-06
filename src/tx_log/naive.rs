@@ -176,7 +176,7 @@ impl LogManager {
     /// transactions that have already committed (though this may not
     /// be enforced by this method).
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
-        Unique::buffer_pool().tx_complete(tx, false);
+        // Unique::buffer_pool().tx_complete(tx, false);
         return Ok(());
 
         todo!();

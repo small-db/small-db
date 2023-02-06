@@ -242,6 +242,9 @@ impl BufferPool {
                     self.discard_page(&pid);
                 }
             }
+
+            Unique::mut_log_file().log_abort(tx).unwrap();
+
             return;
         }
 

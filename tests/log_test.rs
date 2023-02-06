@@ -104,6 +104,14 @@ fn test_abort() {
     commit_insert(&table, 1, 2);
     abort_insert(&table, 3, 4);
 
+    let tx = Transaction::new();
+    assert_true(look_for(&table, &tx, 1) == 1, &table);
+    assert_true(look_for(&table, &tx, 2) == 1, &table);
+    assert_true(look_for(&table, &tx, 3) == 0, &table);
+    assert_true(look_for(&table, &tx, 4) == 0, &table);
+    tx.commit().unwrap();
+
+
     return;
 
     let tx = Transaction::new();
