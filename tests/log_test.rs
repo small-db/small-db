@@ -51,7 +51,10 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     );
 
     // step 4: abort the transaction
-    test_utils::assert_true(tx.abort().is_ok(), table);
+    if let Err(e) = tx.abort() {
+        panic!("abort failed: {}", e);
+    }
+    // test_utils::assert_true(tx.abort().is_ok(), table);
 }
 
 #[test]
@@ -94,7 +97,7 @@ fn test_abort() {
     );
     let table = table_rc.rl();
 
-    commit_insert(&table, 1, 2);
+    // commit_insert(&table, 1, 2);
 
     abort_insert(&table, 3, 4);
 

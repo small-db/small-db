@@ -8,7 +8,9 @@ use std::{
 use bit_vec::BitVec;
 
 use crate::{
-    btree::page::BTreePage, error::SmallError, types::SmallResult,
+    btree::{buffer_pool::BufferPool, page::BTreePage},
+    error::SmallError,
+    types::SmallResult,
 };
 
 pub struct SmallFile {
@@ -70,11 +72,29 @@ impl SmallFile {
         self.write(&v.to_le_bytes())
     }
 
+    pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
+        let page_size = BufferPool::get_page_size();
+
+        let mut buf: Vec<u8> = vec![0; page_size];
+        self.get_file()
+            .read_exact(&mut buf)
+            .or(Err(SmallError::new("io error")))?;
+        Ok(buf)
+    }
+
     pub fn write(&self, buf: &[u8]) -> SmallResult {
         match self.get_file().write(buf) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
+    }
+
+    pub fn get_size(&self) -> Result<u64, SmallError> {
+        let metadata = self
+            .get_file()
+            .metadata()
+            .or(Err(SmallError::new("io error")))?;
+        Ok(metadata.len())
     }
 }
 
