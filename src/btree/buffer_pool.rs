@@ -235,7 +235,16 @@ impl BufferPool {
         }
     }
 
-    pub fn tx_complete(&self, tx: &Transaction) {
+    pub fn tx_complete(&self, tx: &Transaction, commit: bool) {
+        if !commit {
+            for pid in self.all_keys() {
+                if Unique::concurrent_status().holds_lock(tx, &pid) {
+                    self.discard_page(&pid);
+                }
+            }
+            return;
+        }
+
         self.flush_pages(tx);
 
         for pid in self.all_keys() {
