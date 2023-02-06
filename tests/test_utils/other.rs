@@ -34,6 +34,7 @@ pub fn setup() -> TestContext {
     utils::init_log();
     Unique::buffer_pool().clear();
     BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
+    Unique::mut_log_file().reset();
 
     let tx = Transaction::new();
     return TestContext { tx };

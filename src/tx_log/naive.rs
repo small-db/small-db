@@ -69,6 +69,8 @@ pub struct LogManager {
     ///
     /// TODO: Figure out what this is used for, and if it's needed.
     recovery_undecided: bool,
+
+    file_path: String,
 }
 
 impl LogManager {
@@ -79,7 +81,16 @@ impl LogManager {
             current_offset: 0,
             total_records: 0,
             recovery_undecided: true,
+            file_path: file_path.to_string(),
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.file = SmallFile::new(&self.file_path);
+        self.tx_start_position.clear();
+        self.current_offset = 0;
+        self.total_records = 0;
+        self.recovery_undecided = true;
     }
 
     pub fn records_count(&self) -> usize {
