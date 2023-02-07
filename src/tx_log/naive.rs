@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Read, Seek},
+    io::{Read, Seek, Write},
     sync::{Arc, MutexGuard, RwLock},
 };
 
@@ -167,8 +167,8 @@ impl LogManager {
 
         self.file.write_u8(RecordType::UPDATE as u8)?;
         self.file.write_u64(tx.get_id())?;
-        self.file.write(before)?;
-        self.file.write(after)?;
+        self.file.write_bytes(before)?;
+        self.file.write_bytes(after)?;
         self.file.write_u64(self.current_offset)?;
 
         let current_offset = self
@@ -176,6 +176,44 @@ impl LogManager {
             .seek(std::io::SeekFrom::Current(0))
             .unwrap();
         self.current_offset = current_offset;
+
+        return Ok(());
+    }
+
+    pub fn log_checkpoint(&mut self) -> SmallResult {
+        self.pre_append()?;
+
+        self.get_file().flush().unwrap();
+
+        Unique::buffer_pool().flush_all_pages();
+
+        self.file.write_u8(RecordType::CHECKPOINT as u8)?;
+
+        // no tid , but leave space for convenience
+        //
+        // TODO: Figure out what this is used for, and if it's needed.
+        self.file.write(&NO_CHECKPOINT_ID)?;
+
+        // write list of outstanding transactions
+        for (tx, start_position) in &self.tx_start_position {
+            self.file.write(&tx.get_id())?;
+            self.file.write(start_position)?;
+        }
+
+        // once the CP is written, make sure the CP location at the
+        // beginning of the log file is updated
+        let checkpoint_end_position =
+            self.file.get_current_position()?;
+        self.get_file().seek(std::io::SeekFrom::Start(0)).unwrap();
+        self.file.write(&checkpoint_end_position)?;
+
+        // TODO: Figure out what this is used for, and if it's needed.
+        self.get_file().seek(std::io::SeekFrom::Start(
+            checkpoint_end_position,
+        )).unwrap();
+        self.file.write(&checkpoint_end_position)?;
+
+        self.current_offset = self.file.get_current_position()?;
 
         return Ok(());
     }

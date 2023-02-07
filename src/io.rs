@@ -1,7 +1,7 @@
 use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
-    io::{Read, Write},
+    io::{Read, Seek, Write},
     sync::{Mutex, MutexGuard},
 };
 
@@ -45,7 +45,7 @@ impl SmallFile {
     }
 
     pub fn write_u8(&self, v: u8) -> SmallResult {
-        self.write(&[v])
+        self.write_bytes(&[v])
     }
 
     pub fn read_u64(&self) -> Result<u64, SmallError> {
@@ -57,7 +57,7 @@ impl SmallFile {
     }
 
     pub fn write_u64(&self, v: u64) -> SmallResult {
-        self.write(&v.to_le_bytes())
+        self.write_bytes(&v.to_le_bytes())
     }
 
     pub fn read_i64(&self) -> Result<i64, SmallError> {
@@ -69,7 +69,7 @@ impl SmallFile {
     }
 
     pub fn write_i64(&self, v: i64) -> SmallResult {
-        self.write(&v.to_le_bytes())
+        self.write_bytes(&v.to_le_bytes())
     }
 
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
@@ -82,8 +82,15 @@ impl SmallFile {
         Ok(buf)
     }
 
-    pub fn write(&self, buf: &[u8]) -> SmallResult {
+    pub fn write_bytes(&self, buf: &[u8]) -> SmallResult {
         match self.get_file().write(buf) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(SmallError::new(&e.to_string())),
+        }
+    }
+
+    pub fn write<T: Condensable>(&self, obj: &T) -> SmallResult {
+        match self.get_file().write(&obj.to_bytes()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
@@ -95,6 +102,14 @@ impl SmallFile {
             .metadata()
             .or(Err(SmallError::new("io error")))?;
         Ok(metadata.len())
+    }
+
+    pub fn get_current_position(&self) -> Result<u64, SmallError> {
+        let offset = self
+            .get_file()
+            .seek(std::io::SeekFrom::Current(0))
+            .or(Err(SmallError::new("io error")))?;
+        Ok(offset)
     }
 }
 
@@ -161,8 +176,6 @@ pub trait Vaporizable {
     fn read_from(reader: &mut SmallReader) -> Self;
 }
 
-pub trait Serializable: Condensable + Vaporizable {}
-
 /// # Format
 ///
 /// - 2 bytes: bytes size (range: 0 - 65535) (65535 * 8 = 524280 bits)
@@ -208,5 +221,31 @@ impl Vaporizable for u32 {
     fn read_from(reader: &mut SmallReader) -> Self {
         let buf = reader.read_exact(4);
         u32::from_le_bytes(buf.try_into().unwrap())
+    }
+}
+
+impl Condensable for i64 {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_le_bytes().to_vec()
+    }
+}
+
+impl Vaporizable for i64 {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let buf = reader.read_exact(8);
+        i64::from_le_bytes(buf.try_into().unwrap())
+    }
+}
+
+impl Condensable for u64 {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_le_bytes().to_vec()
+    }
+}
+
+impl Vaporizable for u64 {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let buf = reader.read_exact(8);
+        u64::from_le_bytes(buf.try_into().unwrap())
     }
 }

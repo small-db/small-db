@@ -134,7 +134,7 @@ fn test_abort_commit_interleaved() {
     let tx_2 = Transaction::new();
     tx_2.start().unwrap();
     insert_row(&table, &tx_2, 21);
-    Unique::log_file().log_checkpoint();
+    Unique::mut_log_file().log_checkpoint().unwrap();
     insert_row(&table, &tx_2, 22);
     tx_2.commit().unwrap();
 
