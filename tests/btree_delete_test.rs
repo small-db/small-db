@@ -78,8 +78,8 @@ fn test_merge_leaf_pages() {
 
     // delete the last two tuples
     let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
-    let _ = table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
+    table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
+    table.delete_tuple(&ctx.tx, &it.next_back().unwrap());
 
     table.draw_tree(-1);
     table.check_integrity(true);
