@@ -12,9 +12,9 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, new_random_btree_table, get_internal_page,
-    get_leaf_page, insert_tuples, internal_children_cap,
-    leaf_records_cap, setup, TreeLayout,
+    assert_true, get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap, new_random_btree_table,
+    setup, TreeLayout,
 };
 
 #[test]
@@ -23,13 +23,8 @@ fn test_insert_tuple() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc = new_random_btree_table(
-        2,
-        0,
-        None,
-        1,
-        TreeLayout::Naturally,
-    );
+    let table_rc =
+        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
@@ -79,13 +74,8 @@ fn test_insert_duplicate_tuples() {
 
     // create an empty B+ tree file keyed on the second field of a
     // 2-field tuple
-    let table_rc = new_random_btree_table(
-        2,
-        0,
-        None,
-        1,
-        TreeLayout::Naturally,
-    );
+    let table_rc =
+        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 

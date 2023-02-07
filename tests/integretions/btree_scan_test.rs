@@ -4,9 +4,7 @@ use small_db::{
     utils::HandyRwLock, Unique,
 };
 
-use crate::test_utils::{
-    new_random_btree_table, setup, TreeLayout,
-};
+use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
 
 fn test_scan(rows: usize, columns: usize) {
     let tx = Transaction::new();

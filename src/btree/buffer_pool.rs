@@ -318,7 +318,7 @@ impl BufferPool {
         let page_pod = b.get(pid).unwrap();
 
         // TODO: what's the purpose of this block?
-        // 
+        //
         // let tx = Transaction::new();
         // Unique::mut_log_file()
         //     .log_update(

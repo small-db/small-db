@@ -11,9 +11,9 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, new_random_btree_table, delete_tuples,
-    get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap, setup, TreeLayout,
+    assert_true, delete_tuples, get_internal_page, get_leaf_page,
+    insert_tuples, internal_children_cap, leaf_records_cap,
+    new_random_btree_table, setup, TreeLayout,
 };
 
 #[test]
