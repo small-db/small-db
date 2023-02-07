@@ -4,8 +4,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, create_random_btree_table, get_leaf_page, look_for,
-    setup, TreeLayout,
+    assert_true, get_leaf_page, look_for, new_empty_btree_table,
+    new_random_btree_table, setup, TreeLayout,
 };
 
 fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
@@ -61,13 +61,8 @@ fn test_patch() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc = create_random_btree_table(
-        2,
-        0,
-        None,
-        1,
-        TreeLayout::Naturally,
-    );
+    let table_rc =
+        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
     commit_insert(&table, 1, 2);
@@ -86,13 +81,8 @@ fn test_patch() {
 fn test_abort() {
     setup();
 
-    let table_rc = create_random_btree_table(
-        2,
-        0,
-        None,
-        1,
-        TreeLayout::Naturally,
-    );
+    let table_rc =
+        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
     // TODO: what's the meaning of below comments?
@@ -115,37 +105,33 @@ fn test_abort() {
 fn test_abort_commit_interleaved() {
     setup();
 
-    let table_rc = create_random_btree_table(
-        2,
-        0,
-        None,
-        1,
-        TreeLayout::Naturally,
-    );
-    let table = table_rc.rl();
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_2 = table_pod_2.rl();
 
-    commit_insert(&table, 1, 2);
+    commit_insert(&table_1, 1, 2);
 
     // T1 start, T2 start and commit, T1 abort
 
     let tx_1 = Transaction::new();
     tx_1.start().unwrap();
-    insert_row(&table, &tx_1, 3);
+    insert_row(&table_1, &tx_1, 3);
 
     let tx_2 = Transaction::new();
     tx_2.start().unwrap();
-    insert_row(&table, &tx_2, 21);
+    insert_row(&table_2, &tx_2, 21);
     Unique::mut_log_file().log_checkpoint().unwrap();
-    insert_row(&table, &tx_2, 22);
+    insert_row(&table_2, &tx_2, 22);
     tx_2.commit().unwrap();
 
     tx_1.abort().unwrap();
 
     // verify the result
     let tx = Transaction::new();
-    assert_true(look_for(&table, &tx, 1) == 1, &table);
-    assert_true(look_for(&table, &tx, 2) == 1, &table);
-    assert_true(look_for(&table, &tx, 3) == 0, &table);
+    assert_true(look_for(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(look_for(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(look_for(&table_1, &tx, 3) == 0, &table_1);
     tx.commit().unwrap();
 
     // Transaction t1 = new Transaction();

@@ -12,7 +12,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, create_random_btree_table, get_internal_page,
+    assert_true, new_random_btree_table, get_internal_page,
     get_leaf_page, insert_tuples, internal_children_cap,
     leaf_records_cap, setup, TreeLayout,
 };
@@ -23,7 +23,7 @@ fn test_insert_tuple() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         0,
         None,
@@ -79,7 +79,7 @@ fn test_insert_duplicate_tuples() {
 
     // create an empty B+ tree file keyed on the second field of a
     // 2-field tuple
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         0,
         None,
@@ -124,7 +124,7 @@ fn test_split_leaf_page() {
     setup();
 
     // This should create a B+ tree with one full page
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         leaf_records_cap(),
         None,
@@ -168,7 +168,7 @@ fn test_split_root_page() {
 
     // This should create a B+ tree which the second tier is packed.
     let row_count = internal_children_cap() * leaf_records_cap();
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         row_count,
         None,
@@ -251,7 +251,7 @@ fn test_split_internal_page() {
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         row_count,
         None,

@@ -19,7 +19,7 @@ use small_db::{
     *,
 };
 
-pub const DB_FILE: &str = "./btree.db";
+pub const DB_DEFAULT_PATH: &str = "./btree.db";
 
 pub struct TestContext {
     pub tx: Transaction,
@@ -47,6 +47,17 @@ pub enum TreeLayout {
     LastTwoEvenlyDistributed,
 }
 
+pub fn new_empty_btree_table(
+    path: &str,
+    columns: usize,
+) -> Arc<RwLock<BTreeTable>> {
+    let row_scheme = small_int_tuple_scheme(columns, "");
+    let table_rc =
+        Arc::new(RwLock::new(BTreeTable::new(path, 0, &row_scheme)));
+    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
+    return table_rc;
+}
+
 /// Create a table with a given number of rows and columns.
 ///
 /// The rows are filled with random data and are sorted by the
@@ -59,7 +70,7 @@ pub enum TreeLayout {
 ///
 /// - int_tuples: This is a reference used to return all inserted
 ///   data. Only works when it's not None.
-pub fn create_random_btree_table(
+pub fn new_random_btree_table(
     columns: usize,
     rows: usize,
     int_tuples: Option<&mut Vec<Vec<i32>>>,
@@ -68,7 +79,7 @@ pub fn create_random_btree_table(
 ) -> Arc<RwLock<BTreeTable>> {
     let row_scheme = small_int_tuple_scheme(columns, "");
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        DB_FILE,
+        DB_DEFAULT_PATH,
         key_field,
         &row_scheme,
     )));

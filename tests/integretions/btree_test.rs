@@ -13,7 +13,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, create_random_btree_table, internal_children_cap,
+    assert_true, new_random_btree_table, internal_children_cap,
     leaf_records_cap, setup, TreeLayout,
 };
 
@@ -77,7 +77,7 @@ fn test_big_table() {
     // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
-    let table_pod = create_random_btree_table(
+    let table_pod = new_random_btree_table(
         column_count,
         row_count,
         None,

@@ -11,7 +11,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, create_random_btree_table, delete_tuples,
+    assert_true, new_random_btree_table, delete_tuples,
     get_internal_page, get_leaf_page, insert_tuples,
     internal_children_cap, leaf_records_cap, setup, TreeLayout,
 };
@@ -21,7 +21,7 @@ fn test_redistribute_leaf_pages() {
     setup();
 
     // Create a B+ tree with two full leaf pages.
-    let table_pod = create_random_btree_table(
+    let table_pod = new_random_btree_table(
         2,
         leaf_records_cap() * 2,
         None,
@@ -61,7 +61,7 @@ fn test_merge_leaf_pages() {
 
     // This should create a B+ tree with one full page and two
     // half-full leaf pages
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 2 + 1,
         None,
@@ -89,7 +89,7 @@ fn test_delete_root_page() {
     setup();
 
     // this should create a B+ tree with two full leaf pages
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 2,
         None,
@@ -116,7 +116,7 @@ fn test_reuse_deleted_pages() {
     setup();
 
     // This should create a B+ tree with 3 leaf nodes.
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 3,
         None,
@@ -157,7 +157,7 @@ fn test_redistribute_internal_pages() {
     // 302204 = 2 * 301 * 502
     // 2 internal pages
     // 602 leaf pages
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         302204,
         None,
@@ -200,7 +200,7 @@ fn test_delete_internal_pages() {
     // Create a B+ tree with 3 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         row_count,
         None,

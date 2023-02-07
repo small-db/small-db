@@ -5,7 +5,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    create_random_btree_table, setup, TreeLayout,
+    new_random_btree_table, setup, TreeLayout,
 };
 
 fn test_scan(rows: usize, columns: usize) {
@@ -13,7 +13,7 @@ fn test_scan(rows: usize, columns: usize) {
     let mut rng = rand::thread_rng();
     let mut int_tuples: Vec<Vec<i32>> = Vec::new();
     let key_field = rng.gen_range(0, columns);
-    let table_rc = create_random_btree_table(
+    let table_rc = new_random_btree_table(
         columns,
         rows,
         Some(&mut int_tuples),
