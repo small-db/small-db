@@ -8,8 +8,12 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::page::BTreePage, error::SmallError, io::SmallFile,
-    transaction::Transaction, types::SmallResult, Unique,
+    btree::page::BTreePage,
+    error::SmallError,
+    io::{Condensable, SmallFile, SmallReader, Vaporizable},
+    transaction::Transaction,
+    types::SmallResult,
+    Unique,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -38,6 +42,19 @@ impl RecordType {
             4 => RecordType::CHECKPOINT,
             _ => panic!("invalid record type: {}", value),
         }
+    }
+}
+
+impl Condensable for RecordType {
+    fn to_bytes(&self) -> Vec<u8> {
+        vec![*self as u8]
+    }
+}
+
+impl Vaporizable for RecordType {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let value = reader.read_exact(1);
+        RecordType::from_u8(value[0])
     }
 }
 
@@ -187,7 +204,7 @@ impl LogManager {
 
         Unique::buffer_pool().flush_all_pages();
 
-        self.file.write_u8(RecordType::CHECKPOINT as u8)?;
+        self.file.write(&RecordType::CHECKPOINT)?;
 
         // no tid , but leave space for convenience
         //
@@ -195,6 +212,7 @@ impl LogManager {
         self.file.write(&NO_CHECKPOINT_ID)?;
 
         // write list of outstanding transactions
+        self.file.write(&self.tx_start_position.len())?;
         for (tx, start_position) in &self.tx_start_position {
             self.file.write(&tx.get_id())?;
             self.file.write(start_position)?;
@@ -419,8 +437,24 @@ impl LogManager {
                         start_offset,
                     ));
                 }
-                // _ => panic!("invalid record type: {:?}",
-                // record_type),
+                RecordType::CHECKPOINT => {
+                    depiction.push_str(&format!(
+                        "│   ├── [1 byte] record type: {:?}\n",
+                        record_type,
+                    ));
+
+                    let checkpoint_id = self.file.read_i64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] checkpoint id: {}\n",
+                        checkpoint_id,
+                    ));
+
+                    let start_offset = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   └── [8 bytes] start offset: {}\n",
+                        start_offset,
+                    ));
+                }
                 _ => {
                     debug!("invalid record type: {:?}", record_type);
                     break;

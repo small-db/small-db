@@ -2,6 +2,7 @@ use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
     io::{Read, Seek, Write},
+    mem::size_of,
     sync::{Mutex, MutexGuard},
 };
 
@@ -211,41 +212,23 @@ impl Vaporizable for BitVec {
     }
 }
 
-impl Condensable for u32 {
-    fn to_bytes(&self) -> Vec<u8> {
-        self.to_le_bytes().to_vec()
+macro_rules! impl_serialization {
+    (for $($t:ty),+) => {
+        $(
+            impl Condensable for $t {
+                fn to_bytes(&self) -> Vec<u8> {
+                    self.to_le_bytes().to_vec()
+                }
+            }
+
+            impl Vaporizable for $t {
+                fn read_from(reader: &mut SmallReader) -> Self {
+                    let buf = reader.read_exact(size_of::<Self>());
+                    Self::from_le_bytes(buf.try_into().unwrap())
+                }
+            }
+        )*
     }
 }
 
-impl Vaporizable for u32 {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let buf = reader.read_exact(4);
-        u32::from_le_bytes(buf.try_into().unwrap())
-    }
-}
-
-impl Condensable for i64 {
-    fn to_bytes(&self) -> Vec<u8> {
-        self.to_le_bytes().to_vec()
-    }
-}
-
-impl Vaporizable for i64 {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let buf = reader.read_exact(8);
-        i64::from_le_bytes(buf.try_into().unwrap())
-    }
-}
-
-impl Condensable for u64 {
-    fn to_bytes(&self) -> Vec<u8> {
-        self.to_le_bytes().to_vec()
-    }
-}
-
-impl Vaporizable for u64 {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let buf = reader.read_exact(8);
-        u64::from_le_bytes(buf.try_into().unwrap())
-    }
-}
+impl_serialization!(for u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, isize, usize, f32, f64);
