@@ -6,9 +6,11 @@ use small_db::{
         page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
+    transaction::Transaction,
     utils::{ceil_div, floor_div, HandyRwLock},
     Op,
 };
+use test_utils::assert_true;
 use test_utils::TreeLayout;
 
 use crate::test_utils::{
@@ -60,33 +62,30 @@ fn test_redistribute_leaf_pages() {
 
 #[test]
 fn test_merge_leaf_pages() {
-    let ctx = test_utils::setup();
+    test_utils::setup();
 
-    // This should create a B+ tree with one three half-full leaf
-    // pages
+    // This should create a B+ tree with one full page and two half-full leaf pages
     let table_rc = test_utils::create_random_btree_table(
         2,
-        1005,
+        leaf_records_cap() * 2 + 1,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    // there should be one internal node and 3 leaf nodes
+    assert_true(table.pages_count() == 4, &table);
 
     // delete the last two tuples
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
-    table
-        .delete_tuple(&ctx.tx, &it.next_back().unwrap())
-        .unwrap();
-    table
-        .delete_tuple(&ctx.tx, &it.next_back().unwrap())
-        .unwrap();
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
+    table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
+    table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
 
-    table.draw_tree(-1);
-    table.check_integrity(true);
+    // confirm that the last two pages have merged successfully
+    let root_pod = get_internal_page(&table, 0, 0);
+    assert_true(root_pod.rl().children_count() == 2, &table);
 }
 
 #[test]
