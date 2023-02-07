@@ -1,12 +1,11 @@
-use crate::test_utils::{
-    assert_true, create_random_btree_table, delete_tuples,
-    get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap, setup, TreeLayout,
-};
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, transaction::Transaction,
     utils::HandyRwLock, Unique,
+};
+
+use crate::test_utils::{
+    create_random_btree_table, setup, TreeLayout,
 };
 
 fn test_scan(rows: usize, columns: usize) {

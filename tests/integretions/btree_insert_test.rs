@@ -1,10 +1,5 @@
 use std::sync::Arc;
 
-use crate::test_utils::{
-    assert_true, create_random_btree_table, delete_tuples,
-    get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap, setup, TreeLayout,
-};
 use log::debug;
 use rand::Rng;
 use small_db::{
@@ -14,6 +9,12 @@ use small_db::{
     },
     utils::{ceil_div, HandyRwLock},
     *,
+};
+
+use crate::test_utils::{
+    assert_true, create_random_btree_table, get_internal_page,
+    get_leaf_page, insert_tuples, internal_children_cap,
+    leaf_records_cap, setup, TreeLayout,
 };
 
 #[test]

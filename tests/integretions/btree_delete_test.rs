@@ -11,9 +11,9 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    create_random_btree_table, delete_tuples, get_internal_page,
-    get_leaf_page, insert_tuples, internal_children_cap,
-    leaf_records_cap, setup, TreeLayout, assert_true,
+    assert_true, create_random_btree_table, delete_tuples,
+    get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap, setup, TreeLayout,
 };
 
 #[test]
@@ -59,7 +59,8 @@ fn test_redistribute_leaf_pages() {
 fn test_merge_leaf_pages() {
     setup();
 
-    // This should create a B+ tree with one full page and two half-full leaf pages
+    // This should create a B+ tree with one full page and two
+    // half-full leaf pages
     let table_rc = create_random_btree_table(
         2,
         leaf_records_cap() * 2 + 1,

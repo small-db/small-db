@@ -208,9 +208,9 @@ impl LogManager {
         self.file.write(&checkpoint_end_position)?;
 
         // TODO: Figure out what this is used for, and if it's needed.
-        self.get_file().seek(std::io::SeekFrom::Start(
-            checkpoint_end_position,
-        )).unwrap();
+        self.get_file()
+            .seek(std::io::SeekFrom::Start(checkpoint_end_position))
+            .unwrap();
         self.file.write(&checkpoint_end_position)?;
 
         self.current_offset = self.file.get_current_position()?;
