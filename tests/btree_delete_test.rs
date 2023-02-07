@@ -1,4 +1,5 @@
 mod test_utils;
+mod integretions;
 use log::error;
 use small_db::{
     btree::{

@@ -1,11 +1,12 @@
-mod test_utils;
 use small_db::{
     btree::page::BTreePage, transaction::Transaction,
     utils::HandyRwLock, BTreeTable, Tuple, Unique,
 };
-use test_utils::{setup, TreeLayout};
 
-use crate::test_utils::{assert_true, look_for};
+use crate::test_utils::{
+    assert_true, create_random_btree_table, get_leaf_page, look_for,
+    setup, TreeLayout,
+};
 
 fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
     let tuple = Tuple::new_btree_tuple(key, 2);
@@ -51,16 +52,16 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     if let Err(e) = tx.abort() {
         panic!("abort failed: {}", e);
     }
-    // test_utils::assert_true(tx.abort().is_ok(), table);
+    // assert_true(tx.abort().is_ok(), table);
 }
 
 #[test]
 fn test_patch() {
-    test_utils::setup();
+    setup();
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         0,
         None,
@@ -76,16 +77,16 @@ fn test_patch() {
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().
-    let page_pod = test_utils::get_leaf_page(&table, 0, 0);
+    let page_pod = get_leaf_page(&table, 0, 0);
     let page = page_pod.rl();
     assert_eq!(page.get_page_data(), page.get_before_image());
 }
 
 #[test]
 fn test_abort() {
-    test_utils::setup();
+    setup();
 
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         0,
         None,
@@ -114,7 +115,7 @@ fn test_abort() {
 fn test_abort_commit_interleaved() {
     setup();
 
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         0,
         None,
