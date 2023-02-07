@@ -1,6 +1,10 @@
-mod test_utils;
 use std::sync::Arc;
 
+use crate::test_utils::{
+    assert_true, create_random_btree_table, delete_tuples,
+    get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap, setup, TreeLayout,
+};
 use log::debug;
 use rand::Rng;
 use small_db::{
@@ -11,19 +15,14 @@ use small_db::{
     utils::{ceil_div, HandyRwLock},
     *,
 };
-use test_utils::TreeLayout;
-
-use crate::test_utils::{
-    insert_tuples, internal_children_cap, leaf_records_cap,
-};
 
 #[test]
 fn test_insert_tuple() {
-    let ctx = test_utils::setup();
+    let ctx = setup();
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         0,
         None,
@@ -64,7 +63,7 @@ fn test_insert_tuple() {
     table.insert_tuple(&ctx.tx, &tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
-    test_utils::assert_true(table.pages_count() == 4, &table);
+    assert_true(table.pages_count() == 4, &table);
 
     // now make sure the records are sorted on the key field
     let it = BTreeTableIterator::new(&ctx.tx, &table);
@@ -75,11 +74,11 @@ fn test_insert_tuple() {
 
 #[test]
 fn test_insert_duplicate_tuples() {
-    let ctx = test_utils::setup();
+    let ctx = setup();
 
     // create an empty B+ tree file keyed on the second field of a
     // 2-field tuple
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         0,
         None,
@@ -121,10 +120,10 @@ fn test_insert_duplicate_tuples() {
 
 #[test]
 fn test_split_leaf_page() {
-    test_utils::setup();
+    setup();
 
     // This should create a B+ tree with one full page
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         leaf_records_cap(),
         None,
@@ -137,26 +136,26 @@ fn test_split_leaf_page() {
     assert_eq!(1, table.pages_count());
 
     // now insert a tuple
-    test_utils::insert_tuples(&table, 1);
+    insert_tuples(&table, 1);
 
     // there should now be 2 leaf pages + 1 internal node
     assert_eq!(3, table.pages_count());
 
-    let root_pod = test_utils::get_internal_page(&table, 0, 0);
-    test_utils::assert_true(
+    let root_pod = get_internal_page(&table, 0, 0);
+    assert_true(
         root_pod.rl().empty_slots_count()
             == internal_children_cap() - 2,
         &table,
     );
 
     // each child should have half of the records
-    let leaf_pod = test_utils::get_leaf_page(&table, 1, 0);
-    test_utils::assert_true(
+    let leaf_pod = get_leaf_page(&table, 1, 0);
+    assert_true(
         leaf_pod.rl().empty_slots_count() <= leaf_records_cap() / 2,
         &table,
     );
-    let right_pod = test_utils::get_leaf_page(&table, 1, 1);
-    test_utils::assert_true(
+    let right_pod = get_leaf_page(&table, 1, 1);
+    assert_true(
         right_pod.rl().empty_slots_count() <= leaf_records_cap() / 2,
         &table,
     );
@@ -164,11 +163,11 @@ fn test_split_leaf_page() {
 
 #[test]
 fn test_split_root_page() {
-    let ctx = test_utils::setup();
+    let ctx = setup();
 
     // This should create a B+ tree which the second tier is packed.
     let row_count = internal_children_cap() * leaf_records_cap();
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         row_count,
         None,
@@ -178,7 +177,7 @@ fn test_split_root_page() {
     let table = table_rc.rl();
 
     // there should be a packed 2nd layer + 1 internal node (root)
-    test_utils::assert_true(
+    assert_true(
         table.pages_count() == internal_children_cap() + 1,
         &table,
     );
@@ -188,29 +187,29 @@ fn test_split_root_page() {
     // there should be 3 internal nodes now, since the origianl root
     // node split into 2 nodes + 1 new root node
     // and there is also a new leaf node
-    test_utils::assert_true(
+    assert_true(
         table.pages_count() == internal_children_cap() + 3 + 1,
         &table,
     );
 
     // the root node should be an internal node and have 2
     // children (1 entry)
-    let root_pod = test_utils::get_internal_page(&table, 0, 0);
-    test_utils::assert_true(
+    let root_pod = get_internal_page(&table, 0, 0);
+    assert_true(
         root_pod.rl().empty_slots_count()
             == internal_children_cap() - 2,
         &table,
     );
 
     // each child should have half of the entries
-    let leaf_pod = test_utils::get_internal_page(&table, 1, 0);
-    test_utils::assert_true(
+    let leaf_pod = get_internal_page(&table, 1, 0);
+    assert_true(
         leaf_pod.rl().empty_slots_count()
             <= internal_children_cap() / 2,
         &table,
     );
-    let right_pod = test_utils::get_internal_page(&table, 1, 1);
-    test_utils::assert_true(
+    let right_pod = get_internal_page(&table, 1, 1);
+    assert_true(
         right_pod.rl().empty_slots_count()
             <= internal_children_cap() / 2,
         &table,
@@ -242,7 +241,7 @@ fn test_split_root_page() {
 
 #[test]
 fn test_split_internal_page() {
-    let ctx = test_utils::setup();
+    let ctx = setup();
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
@@ -251,7 +250,7 @@ fn test_split_internal_page() {
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         row_count,
         None,
@@ -263,7 +262,7 @@ fn test_split_internal_page() {
 
     // the number of internal nodes is 3
     // the number of leaf nodes is 2 * internal_children_cap()
-    test_utils::assert_true(
+    assert_true(
         table.pages_count() == 3 + 2 * internal_children_cap(),
         &table,
     );

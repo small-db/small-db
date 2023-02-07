@@ -1,5 +1,4 @@
-mod test_utils;
-use std::thread::{self};
+use std::thread;
 
 use log::{debug, info};
 use rand::prelude::*;
@@ -12,9 +11,12 @@ use small_db::{
     utils::HandyRwLock,
     BTreeTable, Predicate, Tuple, Unique,
 };
-use test_utils::TreeLayout;
 
-use crate::test_utils::{internal_children_cap, leaf_records_cap};
+use crate::test_utils::{
+    assert_true, create_random_btree_table, delete_tuples,
+    get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap, setup, TreeLayout,
+};
 
 // Insert one tuple into the table
 fn inserter(
@@ -66,7 +68,7 @@ fn deleter(
 // works.
 // #[test]
 fn test_big_table() {
-    test_utils::setup();
+    setup();
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
@@ -76,7 +78,7 @@ fn test_big_table() {
     // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
-    let table_pod = test_utils::create_random_btree_table(
+    let table_pod = create_random_btree_table(
         column_count,
         row_count,
         None,
@@ -107,7 +109,7 @@ fn test_big_table() {
         }
     });
 
-    test_utils::assert_true(
+    assert_true(
         table_pod.rl().tuples_count() == row_count + 1000,
         &table,
     );
@@ -138,7 +140,7 @@ fn test_big_table() {
     );
     return;
 
-    test_utils::assert_true(
+    assert_true(
         table_pod.rl().tuples_count() == row_count + 1000,
         &table,
     );

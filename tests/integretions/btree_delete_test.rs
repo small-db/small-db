@@ -1,5 +1,3 @@
-mod test_utils;
-mod integretions;
 use log::error;
 use small_db::{
     btree::{
@@ -11,20 +9,19 @@ use small_db::{
     utils::{ceil_div, floor_div, HandyRwLock},
     Op,
 };
-use test_utils::assert_true;
-use test_utils::TreeLayout;
 
 use crate::test_utils::{
-    delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap,
+    create_random_btree_table, delete_tuples, get_internal_page,
+    get_leaf_page, insert_tuples, internal_children_cap,
+    leaf_records_cap, setup, TreeLayout, assert_true,
 };
 
 #[test]
 fn test_redistribute_leaf_pages() {
-    test_utils::setup();
+    setup();
 
     // Create a B+ tree with two full leaf pages.
-    let table_pod = test_utils::create_random_btree_table(
+    let table_pod = create_random_btree_table(
         2,
         leaf_records_cap() * 2,
         None,
@@ -40,7 +37,7 @@ fn test_redistribute_leaf_pages() {
     // occupancy.
     let delete_count = floor_div(leaf_records_cap(), 2);
     delete_tuples(&table, delete_count);
-    test_utils::assert_true(
+    assert_true(
         left_pod.rl().empty_slots_count() == delete_count,
         &table,
     );
@@ -48,25 +45,22 @@ fn test_redistribute_leaf_pages() {
     // Deleting a tuple now should bring the page below minimum
     // occupancy and cause the tuples to be redistributed.
     delete_tuples(&table, 1);
-    test_utils::assert_true(
+    assert_true(
         left_pod.rl().empty_slots_count() < delete_count,
         &table,
     );
 
     // Assert some tuples of the right page were stolen.
     // assert!(right_pod.rl().empty_slots_count() > 0);
-    test_utils::assert_true(
-        right_pod.rl().empty_slots_count() > 0,
-        &table,
-    );
+    assert_true(right_pod.rl().empty_slots_count() > 0, &table);
 }
 
 #[test]
 fn test_merge_leaf_pages() {
-    test_utils::setup();
+    setup();
 
     // This should create a B+ tree with one full page and two half-full leaf pages
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         leaf_records_cap() * 2 + 1,
         None,
@@ -91,10 +85,10 @@ fn test_merge_leaf_pages() {
 
 #[test]
 fn test_delete_root_page() {
-    test_utils::setup();
+    setup();
 
     // this should create a B+ tree with two full leaf pages
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         leaf_records_cap() * 2,
         None,
@@ -118,10 +112,10 @@ fn test_delete_root_page() {
 
 #[test]
 fn test_reuse_deleted_pages() {
-    test_utils::setup();
+    setup();
 
     // This should create a B+ tree with 3 leaf nodes.
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         leaf_records_cap() * 3,
         None,
@@ -154,7 +148,7 @@ fn test_reuse_deleted_pages() {
 
 #[test]
 fn test_redistribute_internal_pages() {
-    let ctx = test_utils::setup();
+    let ctx = setup();
 
     // This should create a B+ tree with two nodes in the second tier
     // and 602 nodes in the third tier.
@@ -162,7 +156,7 @@ fn test_redistribute_internal_pages() {
     // 302204 = 2 * 301 * 502
     // 2 internal pages
     // 602 leaf pages
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         302204,
         None,
@@ -198,14 +192,14 @@ fn test_redistribute_internal_pages() {
 
 #[test]
 fn test_delete_internal_pages() {
-    test_utils::setup();
+    setup();
 
     BufferPool::set_page_size(1024);
 
     // Create a B+ tree with 3 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
-    let table_rc = test_utils::create_random_btree_table(
+    let table_rc = create_random_btree_table(
         2,
         row_count,
         None,

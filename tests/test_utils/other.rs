@@ -325,7 +325,7 @@ fn write_internal_pages(
                     &left_rc.rl().get_pid(),
                     &right_rc.rl().get_pid(),
                 );
-                root.insert_entry(&mut e);
+                root.insert_entry(&mut e).unwrap();
 
                 // set parent for all left children
                 left_rc.wl().set_parent_pid(&pid);
