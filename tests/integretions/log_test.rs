@@ -24,7 +24,7 @@ fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    Unique::buffer_pool().flush_all_pages();
+    Unique::mut_buffer_pool().flush_all_pages();
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);

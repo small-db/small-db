@@ -218,6 +218,11 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
+    /// Flush all pages of the buffer pool to disk.
+    ///
+    /// Require exclusive access to the buffer pool in this procedure.
+    ///
+    /// TODO: does these pages belong to a single table?
     pub fn flush_all_pages(&self) {
         for pid in self.all_keys() {
             self.flush_page(&pid);

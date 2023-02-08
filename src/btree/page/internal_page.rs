@@ -367,7 +367,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::buffer_pool()
+        let parent_rc = Unique::mut_buffer_pool()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();
@@ -385,7 +385,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::buffer_pool()
+        let parent_rc = Unique::mut_buffer_pool()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();

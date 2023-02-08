@@ -13,7 +13,7 @@ use crate::{
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    Unique,
+    Unique, utils::HandyRwLock,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -192,7 +192,9 @@ impl LogManager {
 
         self.get_file().flush().unwrap();
 
-        Unique::buffer_pool().flush_all_pages();
+        // Unique::mut_buffer_pool().flush_all_pages();
+
+        Unique::buffer_pool_pod().wl().flush_all_pages();
 
         self.file.write(&RecordType::CHECKPOINT)?;
 
@@ -233,7 +235,7 @@ impl LogManager {
     /// on transactions that have already committed (though this
     /// may not be enforced by this method).
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
-        // Unique::buffer_pool().tx_complete(tx, false);
+        // Unique::mut_buffer_pool().tx_complete(tx, false);
         return Ok(());
 
         todo!();
@@ -260,7 +262,7 @@ impl LogManager {
             RecordType::UPDATE => {
                 let before_page_rc = self.read_page().unwrap();
                 let before_page = before_page_rc.read().unwrap();
-                Unique::buffer_pool()
+                Unique::mut_buffer_pool()
                     .discard_page(&before_page.get_pid());
 
                 todo!()

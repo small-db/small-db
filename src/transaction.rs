@@ -23,12 +23,12 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        Unique::buffer_pool().tx_complete(self, true);
+        Unique::mut_buffer_pool().tx_complete(self, true);
         Unique::concurrent_status().release_lock_by_tx(self)
     }
 
     pub fn abort(&self) -> SmallResult {
-        Unique::buffer_pool().tx_complete(self, false);
+        Unique::mut_buffer_pool().tx_complete(self, false);
         Unique::concurrent_status().release_lock_by_tx(self)
     }
 
