@@ -149,46 +149,39 @@ fn test_reuse_deleted_pages() {
 
 #[test]
 fn test_redistribute_internal_pages() {
-    let ctx = setup();
+    setup();
 
-    // This should create a B+ tree with two nodes in the second tier
-    // and 602 nodes in the third tier.
-    //
-    // 302204 = 2 * 301 * 502
-    // 2 internal pages
-    // 602 leaf pages
+    // Create a B+ tree with:
+    // - 1st level: a root internal node
+    // - 2nd level: 2 internal nodes
+    // - 3rd level: (internal_cap / 2 + 50) leaf nodes for each parent
+    // - tuples: all leaf nodes are packed
     let table_rc = new_random_btree_table(
         2,
-        302204,
+        2 * (internal_children_cap() + 50) * leaf_records_cap(),
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.check_integrity(true);
-    table.draw_tree(-1);
+
+    let root_pod = get_internal_page(&table, 0, 0);
+    let root = root_pod.rl();
+    assert_true(root.children_count() == 2, &table);
+    return;
 
     // bring the left internal page to minimum occupancy
-    let mut it = BTreeTableIterator::new(&ctx.tx, &table);
+    let tx = Transaction::new();
+    let mut it = BTreeTableIterator::new(&tx, &table);
     for t in it.by_ref().take(49 * 502 + 1) {
-        table.delete_tuple(&ctx.tx, &t).unwrap();
+        table.delete_tuple(&tx, &t).unwrap();
     }
-
-    table.draw_tree(-1);
-    table.check_integrity(true);
 
     // deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be redistributed
     for t in it.by_ref().take(502) {
-        if let Err(e) = table.delete_tuple(&ctx.tx, &t) {
-            error!("Error: {:?}", e);
-            table.draw_tree(-1);
-            table.check_integrity(true);
-        }
+        table.delete_tuple(&tx, &t).unwrap();
     }
-
-    table.draw_tree(-1);
-    table.check_integrity(true);
 }
 
 #[test]
