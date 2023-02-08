@@ -1,2 +1,2 @@
-mod naive;
-pub use naive::*;
+mod log_manager;
+pub use log_manager::*;

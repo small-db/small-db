@@ -43,6 +43,10 @@ impl Unique {
         &Self::global().buffer_pool
     }
 
+    // pub fn buffer_pool() -> &'static BufferPool {
+    //     &Self::global().buffer_pool
+    // }
+
     pub fn concurrent_status() -> &'static ConcurrentStatus {
         &Self::global().concurrent_status
     }
