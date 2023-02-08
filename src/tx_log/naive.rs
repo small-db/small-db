@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, MutexGuard, RwLock},
 };
 
-use log::debug;
+use log::{debug, error};
 
 use crate::{
     btree::page::BTreePage,
@@ -121,16 +121,12 @@ impl LogManager {
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {
         self.pre_append()?;
 
-        self.file.write_u8(RecordType::START as u8)?;
-        self.file.write_u64(tx.get_id())?;
-        self.file.write_u64(self.current_offset)?;
+        self.file.write(&RecordType::START)?;
+        self.file.write(&tx.get_id())?;
+        self.file.write(&self.current_offset)?;
 
         self.tx_start_position.insert(*tx, self.current_offset);
-        let current_offset = self
-            .get_file()
-            .seek(std::io::SeekFrom::Current(0))
-            .unwrap();
-        self.current_offset = current_offset;
+        self.current_offset = self.file.get_current_position()?;
 
         Ok(())
     }
@@ -149,18 +145,12 @@ impl LogManager {
     pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
         self.rollback(tx)?;
 
-        self.file.write_u8(RecordType::START as u8)?;
-        self.file.write_u64(tx.get_id())?;
-        self.file.write_u64(self.current_offset)?;
+        self.file.write(&RecordType::ABORT)?;
+        self.file.write(&tx.get_id())?;
+        self.file.write(&self.current_offset)?;
 
-        let current_offset = self
-            .get_file()
-            .seek(std::io::SeekFrom::Current(0))
-            .unwrap();
-        self.current_offset = current_offset;
-
+        self.current_offset = self.file.get_current_position()?;
         self.tx_start_position.remove(tx);
-
         Ok(())
     }
 
@@ -305,11 +295,7 @@ impl LogManager {
             self.get_file()
                 .seek(std::io::SeekFrom::End(0))
                 .or(Err(SmallError::new("seek failed")))?;
-            let new_offset = self
-                .get_file()
-                .seek(std::io::SeekFrom::Current(0))
-                .or(Err(SmallError::new("seek failed")))?;
-            self.current_offset = new_offset;
+            self.current_offset = self.file.get_current_position()?;
         }
 
         return Ok(());
@@ -399,12 +385,31 @@ impl LogManager {
                         tid,
                     ));
 
-                    let before_page = self.file.read_page().unwrap();
-                    depiction.push_str(&format!(
-                        "│   ├── [{} bytes] before page: {:?}\n",
-                        before_page.len(),
-                        &before_page[0..16],
-                    ));
+                    match self.file.read_page() {
+                        Ok(before_page) => {
+                            depiction.push_str(&format!(
+                                "│   ├── [{} bytes] before page: {:?}\n",
+                                before_page.len(),
+                                &before_page[0..16],
+                            ));
+                        }
+                        Err(e) => {
+                            // depiction.push_str(&format!(
+                            //     "│   ├── [error] before page: {}\n",
+                            //     e,
+                            // ));
+                            error!("error reading tid: {}", e);
+                            debug!("log content: \n{}", depiction);
+                            panic!("wrong!")
+                        }
+                    }
+
+                    // let before_page = self.file.read_page().unwrap();
+                    // depiction.push_str(&format!(
+                    //     "│   ├── [{} bytes] before page: {:?}\n",
+                    //     before_page.len(),
+                    //     &before_page[0..16],
+                    // ));
 
                     let after_page = self.file.read_page().unwrap();
                     depiction.push_str(&format!(
@@ -425,11 +430,25 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read_u64().unwrap();
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] tid: {}\n",
-                        tid,
-                    ));
+                    match self.file.read_u64() {
+                        Ok(tid) => {
+                            depiction.push_str(&format!(
+                                "│   ├── [8 bytes] tid: {}\n",
+                                tid,
+                            ));
+                        }
+                        Err(e) => {
+                            error!("error reading tid: {}", e);
+                            debug!("log content: \n{}", depiction);
+                            panic!("e")
+                        }
+                    }
+
+                    // let tid = self.file.read_u64().unwrap();
+                    // depiction.push_str(&format!(
+                    //     "│   ├── [8 bytes] tid: {}\n",
+                    //     tid,
+                    // ));
 
                     let start_offset = self.file.read_u64().unwrap();
                     depiction.push_str(&format!(
