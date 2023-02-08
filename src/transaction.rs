@@ -1,7 +1,7 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{types::SmallResult, Unique};
+use crate::{types::SmallResult, utils::HandyRwLock, Unique};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 

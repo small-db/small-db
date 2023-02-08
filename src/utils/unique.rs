@@ -63,6 +63,10 @@ impl Unique {
         Self::global().log_file.wl()
     }
 
+    pub fn log_file_pod() -> Arc<RwLock<LogManager>> {
+        Self::global().log_file.clone()
+    }
+
     pub fn global() -> &'static Self {
         // Initialize it to a null value
         static mut SINGLETON: *mut Unique = 0 as *mut Unique;
