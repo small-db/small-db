@@ -395,7 +395,8 @@ impl LogManager {
                         }
                         Err(e) => {
                             // depiction.push_str(&format!(
-                            //     "│   ├── [error] before page: {}\n",
+                            //     "│   ├── [error] before page:
+                            // {}\n",
                             //     e,
                             // ));
                             error!("error reading tid: {}", e);
@@ -404,7 +405,8 @@ impl LogManager {
                         }
                     }
 
-                    // let before_page = self.file.read_page().unwrap();
+                    // let before_page =
+                    // self.file.read_page().unwrap();
                     // depiction.push_str(&format!(
                     //     "│   ├── [{} bytes] before page: {:?}\n",
                     //     before_page.len(),

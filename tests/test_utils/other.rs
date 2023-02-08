@@ -30,7 +30,7 @@ pub struct TestContext {
 /// - Setting up log configurations.
 /// - Clear buffer pool.
 /// - Reset page size.
-/// 
+///
 /// TODO: remove return value
 pub fn setup() -> TestContext {
     utils::init_log();
