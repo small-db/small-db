@@ -323,15 +323,16 @@ impl BufferPool {
         let page_pod = b.get(pid).unwrap();
 
         // TODO: what's the purpose of this block?
-        //
-        // let tx = Transaction::new();
-        // Unique::mut_log_file()
-        //     .log_update(
-        //         &tx,
-        //         &page_pod.rl().get_before_image(),
-        //         &page_pod.rl().get_page_data(),
-        //     )
-        //     .unwrap();
+        {
+            let tx = Transaction::new();
+            Unique::mut_log_file()
+                .log_update(
+                    &tx,
+                    &page_pod.rl().get_before_image(),
+                    &page_pod.rl().get_page_data(),
+                )
+                .unwrap();
+        }
 
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
         // buffer.remove(pid);
