@@ -281,7 +281,7 @@ impl PageCache {
         }
 
         if commit {
-            Unique::mut_log_manager().log_commit(tx).unwrap();
+            log_manager.log_commit(tx).unwrap();
         }
     }
 
