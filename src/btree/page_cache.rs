@@ -3,7 +3,7 @@ use std::{
     io::{self, prelude::*, Seek, SeekFrom},
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, RwLock, RwLockReadGuard,
+        Arc, RwLock,
     },
 };
 
@@ -218,8 +218,8 @@ impl PageCache {
 
     /// Flush all dirty pages to disk.
     ///
-    /// NB: Be careful using this routine -- it writes dirty data to disk so will
-    /// break small-db if running in NO STEAL mode.
+    /// NB: Be careful using this routine -- it writes dirty data to
+    /// disk so will break small-db if running in NO STEAL mode.
     ///
     /// TODO: does these pages belong to a single table?
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {

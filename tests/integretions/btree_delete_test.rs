@@ -1,4 +1,3 @@
-use log::error;
 use small_db::{
     btree::{
         page::{BTreeInternalPageIterator, BTreePage},

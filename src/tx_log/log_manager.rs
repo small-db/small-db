@@ -16,7 +16,6 @@ use crate::{
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    utils::HandyRwLock,
     Unique,
 };
 
@@ -138,8 +137,9 @@ impl LogManager {
     /// Write an abort record to the log for the specified tid, force
     /// the log to disk, and perform a rollback
     pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
-        // must have page cache lock before proceeding, since this calls rollback
-        // let cache = Unique::mut_page_cache();
+        // must have page cache lock before proceeding, since this
+        // calls rollback let cache =
+        // Unique::mut_page_cache();
 
         self.rollback(tx)?;
 
@@ -226,7 +226,8 @@ impl LogManager {
         self.get_file()
             .seek(std::io::SeekFrom::Start(checkpoint_end_position))
             .unwrap();
-        // TODO: why write self.current_offset instead of checkpoint_end_position?
+        // TODO: why write self.current_offset instead of
+        // checkpoint_end_position?
         self.file.write(&self.current_offset)?;
 
         self.current_offset = checkpoint_end_position;

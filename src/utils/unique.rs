@@ -71,7 +71,8 @@ impl Unique {
         Self::global().log_file.rl()
     }
 
-    pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager> {
+    pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager>
+    {
         Self::global().log_file.wl()
     }
 
