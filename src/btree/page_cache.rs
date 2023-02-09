@@ -214,10 +214,11 @@ impl PageCache {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    /// Flush all pages of the buffer pool to disk.
-    ///
-    /// Require exclusive access to the buffer pool in this procedure.
-    ///
+    /// Flush all dirty pages to disk.
+    /// 
+    /// NB: Be careful using this routine -- it writes dirty data to disk so will
+    /// break small-db if running in NO STEAL mode.
+    /// 
     /// TODO: does these pages belong to a single table?
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
         for pid in self.all_keys() {

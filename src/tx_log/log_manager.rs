@@ -135,18 +135,12 @@ impl LogManager {
         Ok(())
     }
 
-    // /// Write an UPDATE record to disk for the specified tid and
-    // page /// (with provided         before and after images.)
-    // pub fn log_update(&mut self, _tx: &Transaction) -> SmallResult
-    // {     todo!()
-    // }
-
-    // pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
-    // }
-
     /// Write an abort record to the log for the specified tid, force
     /// the log to disk, and perform a rollback
     pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
+        // must have page cache lock before proceeding, since this calls rollback
+        // let cache = Unique::mut_page_cache();
+
         self.rollback(tx)?;
 
         self.file.write(&RecordType::ABORT)?;
@@ -254,11 +248,6 @@ impl LogManager {
     /// on transactions that have already committed (though this
     /// may not be enforced by this method).
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
-        // Unique::mut_buffer_pool().tx_complete(tx, false);
-        return Ok(());
-
-        todo!();
-
         let start = *self.tx_start_position.get(tx).unwrap();
         // seek to the start position of the transaction, skip the
         // START_RECORD
@@ -270,12 +259,14 @@ impl LogManager {
         let file_size = self.file.get_size()?;
 
         debug!(
-            "start: {}, offset: {}, file_size: {}",
-            start, offset, file_size
+            "start: {}, offset: {}, file_size: {}, tid: {}",
+            start, offset, file_size, tx.get_id()
         );
 
         let record_type = RecordType::from_u8(self.file.read_u8()?);
         debug!("record_type: {:?}", record_type);
+
+        self.show_log_contents();
 
         match record_type {
             RecordType::UPDATE => {
@@ -286,7 +277,10 @@ impl LogManager {
 
                 todo!()
             }
-            _ => panic!("invalid record type"),
+            _ => {
+                error!("invalid record type: {:?}", record_type);
+                panic!("invalid record type");
+            }
         }
 
         todo!()

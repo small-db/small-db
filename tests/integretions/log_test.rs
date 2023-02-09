@@ -138,6 +138,8 @@ fn test_abort_commit_interleaved() {
     assert_true(look_for(&table_1, &tx, 3) == 0, &table_1);
     tx.commit().unwrap();
 
+    Unique::log_file().show_log_contents();
+
     // Transaction t1 = new Transaction();
     // t1.start();
     // insertRow(hf1, t1, 3);
