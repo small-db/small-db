@@ -271,7 +271,7 @@ impl LogManager {
             tx.get_id()
         );
 
-        let record_type = RecordType::from_u8(self.file.read_u8()?);
+        let record_type = RecordType::from_u8(self.file.read()?);
         debug!("record_type: {:?}", record_type);
 
         self.show_log_contents();
@@ -332,7 +332,7 @@ impl LogManager {
             file.seek(std::io::SeekFrom::Start(0)).unwrap();
         }
 
-        let last_checkpoint = self.file.read_i64().unwrap();
+        let last_checkpoint = self.file.read::<i64>().unwrap();
 
         if last_checkpoint != NO_CHECKPOINT_ID {
             depiction.push_str(&format!(
@@ -351,7 +351,7 @@ impl LogManager {
 
             let record_type: RecordType;
 
-            if let Ok(byte) = self.file.read_u8() {
+            if let Ok(byte) = self.file.read() {
                 match byte {
                     0..=4 => {
                         record_type = RecordType::from_u8(byte);
@@ -445,7 +445,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let checkpoint_id = self.file.read_i64().unwrap();
+                    let checkpoint_id = self.file.read::<i64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] checkpoint id: {}\n",
                         checkpoint_id,

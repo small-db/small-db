@@ -37,22 +37,6 @@ impl SmallFile {
         self.file.lock().unwrap()
     }
 
-    pub fn read_u8(&self) -> Result<u8, SmallError> {
-        let mut buf = [0u8; 1];
-        self.get_file()
-            .read_exact(&mut buf)
-            .or(Err(SmallError::new("io error")))?;
-        Ok(buf[0])
-    }
-
-    pub fn read_i64(&self) -> Result<i64, SmallError> {
-        let mut buf = [0u8; 8];
-        self.get_file()
-            .read_exact(&mut buf)
-            .or(Err(SmallError::new("io error")))?;
-        Ok(i64::from_le_bytes(buf))
-    }
-
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
         let page_size = PageCache::get_page_size();
 
@@ -93,25 +77,6 @@ impl SmallFile {
             .seek(std::io::SeekFrom::Current(0))
             .or(Err(SmallError::new("io error")))?;
         Ok(offset)
-    }
-}
-
-macro_rules! impl_serialization {
-    (for $($t:ty),+) => {
-        $(
-            impl Condensable for $t {
-                fn to_bytes(&self) -> Vec<u8> {
-                    self.to_le_bytes().to_vec()
-                }
-            }
-
-            impl Vaporizable for $t {
-                fn read_from(reader: &mut SmallReader) -> Self {
-                    let buf = reader.read_exact(size_of::<Self>());
-                    Self::from_le_bytes(buf.try_into().unwrap())
-                }
-            }
-        )*
     }
 }
 
