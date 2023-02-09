@@ -36,9 +36,6 @@ pub struct PageCache {
         ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer:
         ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
-
-    unified_buffer:
-        ConcurrentHashMap<BTreePageID, Arc<RwLock<dyn BTreePage>>>,
 }
 
 type Key = BTreePageID;
@@ -50,8 +47,6 @@ impl PageCache {
             header_buffer: ConcurrentHashMap::new(),
             internal_buffer: ConcurrentHashMap::new(),
             leaf_buffer: ConcurrentHashMap::new(),
-
-            unified_buffer: ConcurrentHashMap::new(),
         }
     }
 
