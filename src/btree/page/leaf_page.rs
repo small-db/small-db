@@ -11,7 +11,7 @@ use crate::{
     btree::{
         consts::INDEX_SIZE,
         page_cache::PageCache,
-        tuple::{TupleScheme, WrappedTuple},
+        tuple::{Schema, WrappedTuple},
     },
     field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
@@ -41,7 +41,7 @@ pub struct BTreeLeafPage {
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
 
-    pub tuple_scheme: TupleScheme,
+    pub tuple_scheme: Schema,
 
     // use u32 instead of Option<BTreePageID> to reduce memory
     // footprint
@@ -57,7 +57,7 @@ impl BTreeLeafPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         let mut instance: Self;
@@ -130,7 +130,7 @@ impl BTreeLeafPage {
     fn new_empty_page(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         let slot_count = Self::calculate_slots_count(&tuple_scheme);
@@ -401,7 +401,7 @@ impl BTreeLeafPage {
 // Methods for accessing const attributes.
 impl BTreeLeafPage {
     /// Retrieve the maximum number of tuples this page can hold.
-    pub fn calculate_slots_count(scheme: &TupleScheme) -> usize {
+    pub fn calculate_slots_count(scheme: &Schema) -> usize {
         let bits_per_tuple_including_header =
             scheme.get_size() * 8 + 1;
 
@@ -422,7 +422,7 @@ impl BTreePage for BTreeLeafPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         Self::new(pid, &bytes, tuple_scheme, key_field)

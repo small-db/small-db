@@ -11,12 +11,12 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct Tuple {
-    pub scheme: TupleScheme,
+    pub scheme: Schema,
     pub fields: Vec<IntField>,
 }
 
 impl Tuple {
-    pub fn new(scheme: TupleScheme, bytes: &[u8]) -> Tuple {
+    pub fn new(scheme: Schema, bytes: &[u8]) -> Tuple {
         let mut cells: Vec<IntField> = Vec::new();
         let mut start: usize = 0;
         let mut end: usize = 0;
@@ -45,7 +45,7 @@ impl Tuple {
     }
 
     pub fn new_default_tuple(
-        scheme: TupleScheme,
+        scheme: Schema,
         _width: usize,
     ) -> Tuple {
         let mut cells: Vec<IntField> = Vec::new();
@@ -63,7 +63,7 @@ impl Tuple {
     }
 
     pub fn new_btree_tuple(value: i32, width: usize) -> Tuple {
-        let scheme = small_int_tuple_scheme(width, "");
+        let scheme = small_int_schema(width, "");
         let _bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
         for i in 0..tuple.fields.len() {
@@ -89,7 +89,7 @@ impl Tuple {
 
     pub fn read_from(
         reader: &mut crate::io::SmallReader,
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
     ) -> Self {
         let mut cells: Vec<IntField> = Vec::new();
         for field in &tuple_scheme.fields {
@@ -206,11 +206,11 @@ impl fmt::Display for WrappedTuple {
 }
 
 #[derive(Debug)]
-pub struct TupleScheme {
+pub struct Schema {
     pub fields: Vec<FieldItem>,
 }
 
-impl PartialEq for TupleScheme {
+impl PartialEq for Schema {
     fn eq(&self, other: &Self) -> bool {
         let matching = self
             .fields
@@ -222,12 +222,12 @@ impl PartialEq for TupleScheme {
     }
 }
 
-impl TupleScheme {
+impl Schema {
     pub fn merge(
-        scheme1: TupleScheme,
-        scheme2: TupleScheme,
-    ) -> TupleScheme {
-        let mut new_scheme = TupleScheme {
+        scheme1: Schema,
+        scheme2: Schema,
+    ) -> Schema {
+        let mut new_scheme = Schema {
             ..Default::default()
         };
 
@@ -247,7 +247,7 @@ impl TupleScheme {
     }
 }
 
-impl Clone for TupleScheme {
+impl Clone for Schema {
     fn clone(&self) -> Self {
         Self {
             fields: self.fields.to_vec(),
@@ -255,16 +255,16 @@ impl Clone for TupleScheme {
     }
 }
 
-impl Default for TupleScheme {
-    fn default() -> TupleScheme {
-        TupleScheme { fields: Vec::new() }
+impl Default for Schema {
+    fn default() -> Schema {
+        Schema { fields: Vec::new() }
     }
 }
 
-pub fn small_int_tuple_scheme(
+pub fn small_int_schema(
     width: usize,
     name_prefix: &str,
-) -> TupleScheme {
+) -> Schema {
     let mut fields: Vec<FieldItem> = Vec::new();
     for i in 0..width {
         let field = FieldItem {
@@ -274,7 +274,7 @@ pub fn small_int_tuple_scheme(
         fields.push(field);
     }
 
-    TupleScheme { fields: fields }
+    Schema { fields: fields }
 }
 
 #[cfg(test)]

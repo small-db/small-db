@@ -26,7 +26,7 @@ use crate::{
             PageCategory,
         },
         page_cache::PageCache,
-        tuple::{Tuple, TupleScheme, WrappedTuple},
+        tuple::{Tuple, Schema, WrappedTuple},
     },
     concurrent_status::Permission,
     field::IntField,
@@ -52,7 +52,7 @@ pub struct BTreeTable {
     pub key_field: usize,
 
     // the tuple descriptor of tuples in the file
-    pub tuple_scheme: TupleScheme,
+    pub tuple_scheme: Schema,
 
     file: Mutex<File>,
 
@@ -86,7 +86,7 @@ impl BTreeTable {
     pub fn new(
         file_path: &str,
         key_field: usize,
-        row_scheme: &TupleScheme,
+        row_scheme: &Schema,
     ) -> Self {
         File::create(file_path).expect("io error");
 
@@ -131,7 +131,7 @@ impl BTreeTable {
         self.table_id
     }
 
-    pub fn get_tuple_scheme(&self) -> TupleScheme {
+    pub fn get_tuple_scheme(&self) -> Schema {
         self.tuple_scheme.clone()
     }
 

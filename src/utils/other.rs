@@ -24,7 +24,7 @@ impl<T> HandyRwLock<T> for RwLock<T> {
 }
 
 pub use crate::{
-    btree::tuple::small_int_tuple_scheme, utils::init_log,
+    btree::tuple::small_int_schema, utils::init_log,
 };
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {

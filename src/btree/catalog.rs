@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use super::{table::BTreeTable, tuple::TupleScheme};
+use super::{table::BTreeTable, tuple::Schema};
 use crate::utils::HandyRwLock;
 
 pub struct Catalog {
@@ -27,7 +27,7 @@ impl Catalog {
     pub fn get_tuple_scheme(
         &self,
         table_index: &Key,
-    ) -> Option<TupleScheme> {
+    ) -> Option<Schema> {
         let table_rc = self.map.get(table_index);
         match table_rc {
             Some(table_rc) => {

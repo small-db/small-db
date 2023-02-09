@@ -10,7 +10,7 @@ use super::{
 use crate::{
     btree::{
         page_cache::PageCache, consts::INDEX_SIZE,
-        tuple::TupleScheme,
+        tuple::Schema,
     },
     concurrent_status::Permission,
     error::SmallError,
@@ -91,7 +91,7 @@ impl BTreeInternalPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         let mut instance: Self;
@@ -176,7 +176,7 @@ impl BTreeInternalPage {
     fn new_empty_page(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         let key_size = get_type_length(
@@ -617,7 +617,7 @@ impl BTreePage for BTreeInternalPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
         Self::new(pid, bytes, tuple_scheme, key_field)

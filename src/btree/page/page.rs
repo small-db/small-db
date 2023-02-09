@@ -1,11 +1,11 @@
 use super::BTreePageID;
-use crate::btree::tuple::TupleScheme;
+use crate::btree::tuple::Schema;
 
 pub trait BTreePage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &TupleScheme,
+        tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self
     where

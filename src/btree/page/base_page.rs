@@ -1,5 +1,5 @@
 use super::{BTreePage, BTreePageID, PageCategory};
-use crate::btree::{page_cache::PageCache, tuple::TupleScheme};
+use crate::btree::{page_cache::PageCache, tuple::Schema};
 
 const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
 
@@ -44,7 +44,7 @@ impl BTreePage for BTreeBasePage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        _tuple_scheme: &TupleScheme,
+        _tuple_scheme: &Schema,
         _key_field: usize,
     ) -> Self {
         Self::new(pid)

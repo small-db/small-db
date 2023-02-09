@@ -5,7 +5,7 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::{page_cache::PageCache, tuple::TupleScheme},
+    btree::{page_cache::PageCache, tuple::Schema},
     io::{SmallReader, SmallWriter, Vaporizable},
 };
 
@@ -117,7 +117,7 @@ impl BTreePage for BTreeRootPointerPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        _tuple_scheme: &TupleScheme,
+        _tuple_scheme: &Schema,
         _key_field: usize,
     ) -> Self {
         Self::new(pid, bytes)

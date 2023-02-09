@@ -3,7 +3,7 @@ use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
-    btree::{page_cache::PageCache, tuple::TupleScheme},
+    btree::{page_cache::PageCache, tuple::Schema},
     io::{SmallReader, SmallWriter, Vaporizable},
 };
 
@@ -95,7 +95,7 @@ impl BTreePage for BTreeHeaderPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        _tuple_scheme: &TupleScheme,
+        _tuple_scheme: &Schema,
         _key_field: usize,
     ) -> Self {
         Self::new(pid, bytes)

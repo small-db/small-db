@@ -10,12 +10,12 @@ use small_db::{
             BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
             BTreePageID, Entry,
         },
-        tuple::TupleScheme,
+        tuple::Schema,
     },
     concurrent_status::Permission,
     transaction::Transaction,
     types::Pod,
-    utils::{small_int_tuple_scheme, HandyRwLock},
+    utils::{small_int_schema, HandyRwLock},
     *,
 };
 
@@ -53,7 +53,7 @@ pub fn new_empty_btree_table(
     path: &str,
     columns: usize,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_tuple_scheme(columns, "");
+    let row_scheme = small_int_schema(columns, "");
     let table_rc =
         Arc::new(RwLock::new(BTreeTable::new(path, 0, &row_scheme)));
     Unique::mut_catalog().add_table(Arc::clone(&table_rc));
@@ -79,7 +79,7 @@ pub fn new_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_tuple_scheme(columns, "");
+    let row_scheme = small_int_schema(columns, "");
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         DB_DEFAULT_PATH,
         key_field,
@@ -148,7 +148,7 @@ fn sequential_insert_into_table(
     tx: &Transaction,
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
-    tuple_scheme: &TupleScheme,
+    tuple_scheme: &Schema,
     tree_layout: TreeLayout,
 ) -> u32 {
     // stage 1: write leaf pages
@@ -405,7 +405,7 @@ fn get_buckets(
 }
 
 pub fn leaf_records_cap() -> usize {
-    let scheme = small_int_tuple_scheme(2, "");
+    let scheme = small_int_schema(2, "");
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 

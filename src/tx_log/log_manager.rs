@@ -8,7 +8,10 @@ use std::{
 use log::{debug, error};
 
 use crate::{
-    btree::page::{BTreeLeafPage, BTreePage, PageCategory},
+    btree::{
+        page::{BTreeLeafPage, BTreePage, BTreePageID, PageCategory},
+        tuple::small_int_schema,
+    },
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
@@ -480,8 +483,14 @@ impl LogManager {
 
         match page_category {
             PageCategory::Leaf => {
-                // TODO: use real tuple_scheme and key_field
-                // let page = BTreeLeafPage::new(pid, bytes, tuple_scheme, 0);
+                // TODO: use real value for schema, key_field and pid
+                let schema = small_int_schema(2, "");
+                let key_field = 0;
+                let pid = BTreePageID::new(page_category, 0, 0);
+
+                let page = BTreeLeafPage::new(
+                    &pid, bytes, &schema, key_field,
+                );
             }
             _ => {
                 return format!(
