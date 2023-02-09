@@ -344,10 +344,12 @@ impl LogManager {
                 .push_str(&format!("├── [8 bytes] no checkpoint\n",));
         }
 
-        let offset = 0;
+        let mut offset = 0;
         let mut record_id = -1;
         while offset < self.current_offset {
             record_id += 1;
+
+            offset = self.file.get_current_position().unwrap();
 
             let record_type: RecordType;
 
@@ -365,8 +367,8 @@ impl LogManager {
                 break;
             }
             depiction.push_str(&format!(
-                "├── [record {}]-{:?}\n",
-                record_id, record_type,
+                "├── {:?}-[pos {}]-[record {}]\n",
+                record_type, offset, record_id,
             ));
 
             match record_type {
@@ -445,7 +447,8 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let checkpoint_id = self.file.read::<i64>().unwrap();
+                    let checkpoint_id =
+                        self.file.read::<i64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] checkpoint id: {}\n",
                         checkpoint_id,
