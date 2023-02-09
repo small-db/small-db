@@ -7,6 +7,8 @@ use std::{
     },
 };
 
+use log::error;
+
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
     BTreePageID, BTreeRootPointerPage, PageCategory,
@@ -368,6 +370,9 @@ impl PageCache {
                         &page_pod.rl().get_page_data(),
                     )
                     .unwrap();
+            } else {
+                error!("no tx found for page {:?}", pid);
+                panic!();
             }
         }
 

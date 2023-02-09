@@ -170,11 +170,11 @@ impl LogManager {
         // start offset
         // 4 + 8 + before page + after page + 8
 
-        self.file.write_u8(RecordType::UPDATE as u8)?;
-        self.file.write_u64(tx.get_id())?;
-        self.file.write_bytes(before)?;
-        self.file.write_bytes(after)?;
-        self.file.write_u64(self.current_offset)?;
+        self.file.write(&RecordType::UPDATE)?;
+        self.file.write(&tx.get_id())?;
+        self.file.write(&before)?;
+        self.file.write(&after)?;
+        self.file.write(&self.current_offset)?;
 
         let current_offset = self
             .get_file()
@@ -197,6 +197,9 @@ impl LogManager {
         // Unique::buffer_pool_pod().wl().flush_all_pages();
         cache.flush_all_pages(self);
 
+        let checkpoint_start_position =
+            self.file.get_current_position()?;
+
         self.file.write(&RecordType::CHECKPOINT)?;
 
         // no tid , but leave space for convenience
@@ -211,20 +214,22 @@ impl LogManager {
             self.file.write(start_position)?;
         }
 
-        // once the CP is written, make sure the CP location at the
-        // beginning of the log file is updated
         let checkpoint_end_position =
             self.file.get_current_position()?;
+
+        // once the CP is written, make sure the CP location at the
+        // beginning of the log file is updated
         self.get_file().seek(std::io::SeekFrom::Start(0)).unwrap();
-        self.file.write(&checkpoint_end_position)?;
+        self.file.write(&checkpoint_start_position)?;
 
         // TODO: Figure out what this is used for, and if it's needed.
         self.get_file()
             .seek(std::io::SeekFrom::Start(checkpoint_end_position))
             .unwrap();
-        self.file.write(&checkpoint_end_position)?;
+        // TODO: why write self.current_offset instead of checkpoint_end_position?
+        self.file.write(&self.current_offset)?;
 
-        self.current_offset = self.file.get_current_position()?;
+        self.current_offset = checkpoint_end_position;
 
         return Ok(());
     }
@@ -260,7 +265,10 @@ impl LogManager {
 
         debug!(
             "start: {}, offset: {}, file_size: {}, tid: {}",
-            start, offset, file_size, tx.get_id()
+            start,
+            offset,
+            file_size,
+            tx.get_id()
         );
 
         let record_type = RecordType::from_u8(self.file.read_u8()?);
@@ -306,7 +314,7 @@ impl LogManager {
             self.get_file()
                 .seek(std::io::SeekFrom::Start(0))
                 .or(Err(SmallError::new("seek failed")))?;
-            self.file.write_i64(NO_CHECKPOINT_ID)?;
+            self.file.write(&NO_CHECKPOINT_ID)?;
             self.get_file()
                 .seek(std::io::SeekFrom::End(0))
                 .or(Err(SmallError::new("seek failed")))?;
@@ -368,13 +376,14 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read_u64().unwrap();
+                    let tid = self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
                     ));
 
-                    let start_offset = self.file.read_u64().unwrap();
+                    let start_offset =
+                        self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -386,7 +395,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read_u64().unwrap();
+                    let tid = self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
@@ -404,7 +413,8 @@ impl LogManager {
                         self.parsed_page_content(&after_page),
                     ));
 
-                    let start_offset = self.file.read_u64().unwrap();
+                    let start_offset =
+                        self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -416,13 +426,14 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read_u64().unwrap();
+                    let tid = self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
                     ));
 
-                    let start_offset = self.file.read_u64().unwrap();
+                    let start_offset =
+                        self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -464,7 +475,7 @@ impl LogManager {
                     let checkpoint_end_position: u64 =
                         self.file.read().unwrap();
                     depiction.push_str(&format!(
-                        "│   └── [8 bytes] checkpoint end position: {}\n",
+                        "│   └── [8 bytes] weird position: {}\n",
                         checkpoint_end_position,
                     ));
                 }
@@ -474,13 +485,14 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read_u64().unwrap();
+                    let tid = self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
                     ));
 
-                    let start_offset = self.file.read_u64().unwrap();
+                    let start_offset =
+                        self.file.read::<u64>().unwrap();
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,

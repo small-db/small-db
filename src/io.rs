@@ -45,32 +45,12 @@ impl SmallFile {
         Ok(buf[0])
     }
 
-    pub fn write_u8(&self, v: u8) -> SmallResult {
-        self.write_bytes(&[v])
-    }
-
-    pub fn read_u64(&self) -> Result<u64, SmallError> {
-        let mut buf = [0u8; 8];
-        self.get_file()
-            .read_exact(&mut buf)
-            .or(Err(SmallError::new("io error")))?;
-        Ok(u64::from_le_bytes(buf))
-    }
-
-    pub fn write_u64(&self, v: u64) -> SmallResult {
-        self.write_bytes(&v.to_le_bytes())
-    }
-
     pub fn read_i64(&self) -> Result<i64, SmallError> {
         let mut buf = [0u8; 8];
         self.get_file()
             .read_exact(&mut buf)
             .or(Err(SmallError::new("io error")))?;
         Ok(i64::from_le_bytes(buf))
-    }
-
-    pub fn write_i64(&self, v: i64) -> SmallResult {
-        self.write_bytes(&v.to_le_bytes())
     }
 
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
@@ -81,13 +61,6 @@ impl SmallFile {
             .read_exact(&mut buf)
             .or(Err(SmallError::new("io error")))?;
         Ok(buf)
-    }
-
-    pub fn write_bytes(&self, buf: &[u8]) -> SmallResult {
-        match self.get_file().write(buf) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(SmallError::new(&e.to_string())),
-        }
     }
 
     pub fn write<T: Condensable>(&self, obj: &T) -> SmallResult {
@@ -237,6 +210,12 @@ impl Vaporizable for BitVec {
         let buf = reader.read_exact(size as usize);
 
         BitVec::from_bytes(buf)
+    }
+}
+
+impl Condensable for &[u8] {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_vec()
     }
 }
 
