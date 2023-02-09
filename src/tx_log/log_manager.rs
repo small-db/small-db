@@ -446,10 +446,32 @@ impl LogManager {
                         checkpoint_id,
                     ));
 
-                    let start_offset = self.file.read_u64().unwrap();
+                    // read list of outstanding(active) transactions
+                    let tx_count: usize = self.file.read().unwrap();
                     depiction.push_str(&format!(
-                        "│   └── [8 bytes] start offset: {}\n",
-                        start_offset,
+                        "│   ├── [{} bytes] active tx count: {}\n",
+                        std::mem::size_of::<usize>(),
+                        tx_count,
+                    ));
+                    for _ in 0..tx_count {
+                        let tx_id: u64 = self.file.read().unwrap();
+                        depiction.push_str(&format!(
+                            "│   │   ├── [8 bytes] tx id: {}\n",
+                            tx_id,
+                        ));
+                        let tx_start_offset: u64 =
+                            self.file.read().unwrap();
+                        depiction.push_str(&format!(
+                            "│   │   └── [8 bytes] tx start offset: {}\n",
+                            tx_start_offset,
+                        ));
+                    }
+
+                    let checkpoint_end_position: u64 =
+                        self.file.read().unwrap();
+                    depiction.push_str(&format!(
+                        "│   └── [8 bytes] checkpoint end position: {}\n",
+                        checkpoint_end_position,
                     ));
                 }
                 RecordType::COMMIT => {

@@ -97,6 +97,15 @@ impl SmallFile {
         }
     }
 
+    pub fn read<T: Vaporizable>(&self) -> Result<T, SmallError> {
+        let mut buf = vec![0u8; size_of::<T>()];
+        self.get_file()
+            .read_exact(&mut buf)
+            .or(Err(SmallError::new("io error")))?;
+        let mut reader = SmallReader::new(&buf);
+        Ok(T::read_from(&mut reader))
+    }
+
     pub fn get_size(&self) -> Result<u64, SmallError> {
         let metadata = self
             .get_file()
@@ -111,6 +120,25 @@ impl SmallFile {
             .seek(std::io::SeekFrom::Current(0))
             .or(Err(SmallError::new("io error")))?;
         Ok(offset)
+    }
+}
+
+macro_rules! impl_serialization {
+    (for $($t:ty),+) => {
+        $(
+            impl Condensable for $t {
+                fn to_bytes(&self) -> Vec<u8> {
+                    self.to_le_bytes().to_vec()
+                }
+            }
+
+            impl Vaporizable for $t {
+                fn read_from(reader: &mut SmallReader) -> Self {
+                    let buf = reader.read_exact(size_of::<Self>());
+                    Self::from_le_bytes(buf.try_into().unwrap())
+                }
+            }
+        )*
     }
 }
 
