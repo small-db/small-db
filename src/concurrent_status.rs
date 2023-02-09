@@ -226,6 +226,18 @@ impl ConcurrentStatus {
         return false;
     }
 
+    pub fn get_page_tx(
+        &self,
+        page_id: &BTreePageID,
+    ) -> Option<Transaction> {
+        let x_lock_map = self.x_lock_map.get_inner_rl();
+        if let Some(v) = x_lock_map.get(page_id) {
+            return Some(v.clone());
+        }
+
+        return None;
+    }
+
     pub fn clear(&self) {
         self.s_lock_map.get_inner().wl().clear();
         self.x_lock_map.get_inner().wl().clear();

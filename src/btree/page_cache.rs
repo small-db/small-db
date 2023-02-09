@@ -358,14 +358,17 @@ impl PageCache {
         // TODO: what's the purpose of this block?
         {
             // TODO: get tx from somewhere
-            let tx = Transaction::new();
-            log_manager
-                .log_update(
-                    &tx,
-                    &page_pod.rl().get_before_image(),
-                    &page_pod.rl().get_page_data(),
-                )
-                .unwrap();
+            if let Some(tx) =
+                Unique::concurrent_status().get_page_tx(pid)
+            {
+                log_manager
+                    .log_update(
+                        &tx,
+                        &page_pod.rl().get_before_image(),
+                        &page_pod.rl().get_page_data(),
+                    )
+                    .unwrap();
+            }
         }
 
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
