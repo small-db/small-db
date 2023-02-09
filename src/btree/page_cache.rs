@@ -23,7 +23,7 @@ use crate::{
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
-pub struct BufferPool {
+pub struct PageCache {
     root_pointer_buffer: ConcurrentHashMap<
         BTreePageID,
         Arc<RwLock<BTreeRootPointerPage>>,
@@ -43,7 +43,7 @@ pub struct BufferPool {
 
 type Key = BTreePageID;
 
-impl BufferPool {
+impl PageCache {
     pub fn new() -> Self {
         Self {
             root_pointer_buffer: ConcurrentHashMap::new(),
@@ -276,6 +276,10 @@ impl BufferPool {
                     self.set_before_image(&pid, &self.header_buffer);
                 }
             }
+        }
+
+        if commit {
+            Unique::mut_log_file().log_commit(tx).unwrap();
         }
     }
 

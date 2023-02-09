@@ -5,7 +5,7 @@ use std::{
 
 use super::HandyRwLock;
 use crate::{
-    btree::buffer_pool::BufferPool,
+    btree::page_cache::PageCache,
     concurrent_status::ConcurrentStatus, tx_log::LogManager,
     types::Pod, Catalog,
 };
@@ -21,7 +21,7 @@ use crate::{
 /// they are used in concurrent environment, and it's hard, if not
 /// impossible, to acquire a exclusive lock in any context.
 pub struct Unique {
-    buffer_pool: Pod<BufferPool>,
+    buffer_pool: Pod<PageCache>,
     catalog: Pod<Catalog>,
     concurrent_status: ConcurrentStatus,
     log_file: Pod<LogManager>,
@@ -30,7 +30,7 @@ pub struct Unique {
 impl Unique {
     fn new() -> Self {
         Self {
-            buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
+            buffer_pool: Arc::new(RwLock::new(PageCache::new())),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
             log_file: Arc::new(RwLock::new(LogManager::new(
@@ -43,12 +43,12 @@ impl Unique {
     //     &Self::global().buffer_pool
     // }
 
-    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool>
+    pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache>
     {
         Self::global().buffer_pool.wl()
     }
 
-    pub fn buffer_pool_pod() -> Arc<RwLock<BufferPool>> {
+    pub fn buffer_pool_pod() -> Arc<RwLock<PageCache>> {
         Self::global().buffer_pool.clone()
     }
 

@@ -4,7 +4,7 @@ use log::debug;
 use rand::Rng;
 use small_db::{
     btree::{
-        buffer_pool::BufferPool,
+        page_cache::PageCache,
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
     utils::{ceil_div, HandyRwLock},
@@ -236,7 +236,7 @@ fn test_split_internal_page() {
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
-    BufferPool::set_page_size(1024);
+    PageCache::set_page_size(1024);
 
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.

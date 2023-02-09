@@ -9,7 +9,7 @@ use std::{
 use bit_vec::BitVec;
 
 use crate::{
-    btree::{buffer_pool::BufferPool, page::BTreePage},
+    btree::{page_cache::PageCache, page::BTreePage},
     error::SmallError,
     types::SmallResult,
 };
@@ -74,7 +74,7 @@ impl SmallFile {
     }
 
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
-        let page_size = BufferPool::get_page_size();
+        let page_size = PageCache::get_page_size();
 
         let mut buf: Vec<u8> = vec![0; page_size];
         self.get_file()

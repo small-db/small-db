@@ -4,7 +4,7 @@ use log::debug;
 use rand::prelude::*;
 use small_db::{
     btree::{
-        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
+        page_cache::{PageCache, DEFAULT_PAGE_SIZE},
         page::{
             BTreeInternalPage, BTreeInternalPageIterator,
             BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
@@ -34,8 +34,8 @@ pub struct TestContext {
 /// TODO: remove return value
 pub fn setup() -> TestContext {
     utils::init_log();
-    Unique::mut_buffer_pool().clear();
-    BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
+    Unique::mut_page_cache().clear();
+    PageCache::set_page_size(DEFAULT_PAGE_SIZE);
     Unique::mut_log_file().reset();
 
     let tx = Transaction::new();
@@ -171,7 +171,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let leaf_rc = Unique::mut_buffer_pool()
+        let leaf_rc = Unique::mut_page_cache()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         leaves.push(leaf_rc.clone());
@@ -245,7 +245,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let internal_rc = Unique::mut_buffer_pool()
+        let internal_rc = Unique::mut_page_cache()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         internals.push(internal_rc.clone());
@@ -313,7 +313,7 @@ fn write_internal_pages(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let root_rc = Unique::mut_buffer_pool()
+        let root_rc = Unique::mut_page_cache()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
 
@@ -424,7 +424,7 @@ pub fn get_internal_page(
 ) -> Pod<BTreeInternalPage> {
     let tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
-    let root_pod = Unique::mut_buffer_pool()
+    let root_pod = Unique::mut_page_cache()
         .get_internal_page(&tx, Permission::ReadOnly, &root_pid)
         .unwrap();
 
@@ -439,7 +439,7 @@ pub fn get_internal_page(
                     BTreeInternalPageIterator::new(&root_pod.rl())
                         .next()
                         .unwrap();
-                let left_child_rc = Unique::mut_buffer_pool()
+                let left_child_rc = Unique::mut_page_cache()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -455,7 +455,7 @@ pub fn get_internal_page(
                         .skip(index - 1)
                         .next()
                         .unwrap();
-                let left_child_rc = Unique::mut_buffer_pool()
+                let left_child_rc = Unique::mut_page_cache()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -479,7 +479,7 @@ pub fn get_leaf_page(
         0 => {
             let tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
-            let root_pod = Unique::mut_buffer_pool()
+            let root_pod = Unique::mut_page_cache()
                 .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
                 .unwrap();
             tx.commit().unwrap();
@@ -493,7 +493,7 @@ pub fn get_leaf_page(
                 BTreeInternalPageIterator::new(&internal_pod.rl())
                     .next()
                     .unwrap();
-            let leaf_pod = Unique::mut_buffer_pool()
+            let leaf_pod = Unique::mut_page_cache()
                 .get_leaf_page(
                     &tx,
                     Permission::ReadOnly,

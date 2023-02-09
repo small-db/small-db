@@ -3,7 +3,7 @@ use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
-    btree::{buffer_pool::BufferPool, tuple::TupleScheme},
+    btree::{page_cache::PageCache, tuple::TupleScheme},
     io::{SmallReader, SmallWriter, Vaporizable},
 };
 
@@ -122,7 +122,7 @@ impl BTreePage for BTreeHeaderPage {
         // write header
         writer.write(&self.header);
 
-        return writer.to_padded_bytes(BufferPool::get_page_size());
+        return writer.to_padded_bytes(PageCache::get_page_size());
     }
 
     fn set_before_image(&mut self) {

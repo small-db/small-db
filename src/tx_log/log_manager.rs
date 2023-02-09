@@ -13,7 +13,8 @@ use crate::{
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
-    Unique, utils::HandyRwLock,
+    utils::HandyRwLock,
+    Unique,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -188,13 +189,16 @@ impl LogManager {
     }
 
     pub fn log_checkpoint(&mut self) -> SmallResult {
+        // make sure we have buffer pool lock before proceeding
+        let cache = Unique::mut_page_cache();
+
         self.pre_append()?;
 
         self.get_file().flush().unwrap();
 
         // Unique::mut_buffer_pool().flush_all_pages();
-
-        Unique::buffer_pool_pod().wl().flush_all_pages();
+        // Unique::buffer_pool_pod().wl().flush_all_pages();
+        cache.flush_all_pages();
 
         self.file.write(&RecordType::CHECKPOINT)?;
 
@@ -226,6 +230,18 @@ impl LogManager {
         self.current_offset = self.file.get_current_position()?;
 
         return Ok(());
+    }
+
+    pub fn log_commit(&mut self, tx: &Transaction) -> SmallResult {
+        self.pre_append()?;
+
+        self.file.write(&RecordType::COMMIT)?;
+        self.file.write(&tx.get_id())?;
+        self.file.write(&self.current_offset)?;
+
+        self.current_offset = self.file.get_current_position()?;
+        self.tx_start_position.remove(tx);
+        Ok(())
     }
 
     /// Rollback the specified transaction, setting the state of any
@@ -262,7 +278,7 @@ impl LogManager {
             RecordType::UPDATE => {
                 let before_page_rc = self.read_page().unwrap();
                 let before_page = before_page_rc.read().unwrap();
-                Unique::mut_buffer_pool()
+                Unique::mut_page_cache()
                     .discard_page(&before_page.get_pid());
 
                 todo!()
@@ -478,9 +494,23 @@ impl LogManager {
                         start_offset,
                     ));
                 }
-                _ => {
-                    debug!("invalid record type: {:?}", record_type);
-                    break;
+                RecordType::COMMIT => {
+                    depiction.push_str(&format!(
+                        "│   ├── [1 byte] record type: {:?}\n",
+                        record_type,
+                    ));
+
+                    let tid = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] tid: {}\n",
+                        tid,
+                    ));
+
+                    let start_offset = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   └── [8 bytes] start offset: {}\n",
+                        start_offset,
+                    ));
                 }
             }
         }

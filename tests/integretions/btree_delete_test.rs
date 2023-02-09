@@ -1,7 +1,7 @@
 use log::error;
 use small_db::{
     btree::{
-        buffer_pool::BufferPool,
+        page_cache::PageCache,
         page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
@@ -151,7 +151,7 @@ fn test_reuse_deleted_pages() {
 fn test_redistribute_internal_pages() {
     setup();
 
-    BufferPool::set_page_size(1024);
+    PageCache::set_page_size(1024);
 
     // Create a B+ tree with:
     // - 1st level: a root internal node
@@ -197,7 +197,7 @@ fn test_redistribute_internal_pages() {
 fn test_delete_internal_pages() {
     setup();
 
-    BufferPool::set_page_size(1024);
+    PageCache::set_page_size(1024);
 
     // Create a B+ tree with 3 nodes in the first tier; the second and
     // the third tier are packed.

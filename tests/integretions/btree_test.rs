@@ -4,7 +4,7 @@ use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
     btree::{
-        buffer_pool::BufferPool, table::BTreeTableSearchIterator,
+        page_cache::PageCache, table::BTreeTableSearchIterator,
     },
     transaction::Transaction,
     types::Pod,
@@ -71,7 +71,7 @@ fn test_big_table() {
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
-    BufferPool::set_page_size(1024);
+    PageCache::set_page_size(1024);
 
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.

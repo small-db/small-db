@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     btree::{
-        buffer_pool::BufferPool,
+        page_cache::PageCache,
         consts::INDEX_SIZE,
         tuple::{TupleScheme, WrappedTuple},
     },
@@ -413,7 +413,7 @@ impl BTreeLeafPage {
         // - header size
         let extra_bits = (4 * INDEX_SIZE + 2) * 8;
 
-        (BufferPool::get_page_size() * 8 - extra_bits)
+        (PageCache::get_page_size() * 8 - extra_bits)
             / bits_per_tuple_including_header
     }
 }
@@ -463,7 +463,7 @@ impl BTreePage for BTreeLeafPage {
             writer.write(tuple);
         }
 
-        return writer.to_padded_bytes(BufferPool::get_page_size());
+        return writer.to_padded_bytes(PageCache::get_page_size());
     }
 
     fn set_before_image(&mut self) {

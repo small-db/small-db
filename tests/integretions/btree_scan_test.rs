@@ -23,7 +23,7 @@ fn test_scan(rows: usize, columns: usize) {
     validate_scan(&mut it, &int_tuples);
 
     // TODO: find a better solution
-    Unique::mut_buffer_pool().clear();
+    Unique::mut_page_cache().clear();
     Unique::concurrent_status().clear();
 }
 

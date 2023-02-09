@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     btree::{
-        buffer_pool::BufferPool, consts::INDEX_SIZE,
+        page_cache::PageCache, consts::INDEX_SIZE,
         tuple::TupleScheme,
     },
     concurrent_status::Permission,
@@ -367,7 +367,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::mut_buffer_pool()
+        let parent_rc = Unique::mut_page_cache()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();
@@ -385,7 +385,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::mut_buffer_pool()
+        let parent_rc = Unique::mut_page_cache()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();
@@ -606,7 +606,7 @@ impl BTreeInternalPage {
         // - 1 bit for extra header (for the slot 0)
         let extra_bits = (4 * INDEX_SIZE + 2) * 8 + 1;
 
-        let entries_per_page = (BufferPool::get_page_size() * 8
+        let entries_per_page = (PageCache::get_page_size() * 8
             - extra_bits)
             / bits_per_entry_including_header; // round down
         return entries_per_page;
@@ -660,7 +660,7 @@ impl BTreePage for BTreeInternalPage {
             writer.write(&self.children[i].page_index);
         }
 
-        return writer.to_padded_bytes(BufferPool::get_page_size());
+        return writer.to_padded_bytes(PageCache::get_page_size());
     }
 
     fn set_before_image(&mut self) {
