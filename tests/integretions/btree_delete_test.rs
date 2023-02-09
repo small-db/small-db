@@ -151,6 +151,8 @@ fn test_reuse_deleted_pages() {
 fn test_redistribute_internal_pages() {
     setup();
 
+    BufferPool::set_page_size(1024);
+
     // Create a B+ tree with:
     // - 1st level: a root internal node
     // - 2nd level: 2 internal nodes
@@ -158,7 +160,7 @@ fn test_redistribute_internal_pages() {
     // - tuples: all leaf nodes are packed
     let table_rc = new_random_btree_table(
         2,
-        2 * (internal_children_cap() + 50) * leaf_records_cap(),
+        2 * (internal_children_cap() / 2 + 50) * leaf_records_cap(),
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
@@ -168,6 +170,13 @@ fn test_redistribute_internal_pages() {
     let root_pod = get_internal_page(&table, 0, 0);
     let root = root_pod.rl();
     assert_true(root.children_count() == 2, &table);
+    assert_true(
+        root.empty_slots_count() == internal_children_cap() - 2,
+        &table,
+    );
+
+    // delete from the right child to test redistribution from the left
+
     return;
 
     // bring the left internal page to minimum occupancy

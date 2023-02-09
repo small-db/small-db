@@ -3,7 +3,7 @@ use std::{
     io::{self, prelude::*, Seek, SeekFrom},
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, RwLock,
+        Arc, RwLock, RwLockReadGuard,
     },
 };
 
