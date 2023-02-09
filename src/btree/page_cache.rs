@@ -215,10 +215,10 @@ impl PageCache {
     }
 
     /// Flush all dirty pages to disk.
-    /// 
+    ///
     /// NB: Be careful using this routine -- it writes dirty data to disk so will
     /// break small-db if running in NO STEAL mode.
-    /// 
+    ///
     /// TODO: does these pages belong to a single table?
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
         for pid in self.all_keys() {
@@ -300,6 +300,7 @@ impl PageCache {
     fn flush_page(
         &self,
         pid: &BTreePageID,
+
         log_manager: &mut LogManager,
     ) {
         // stage 1: get table
@@ -356,6 +357,7 @@ impl PageCache {
 
         // TODO: what's the purpose of this block?
         {
+            // TODO: get tx from somewhere
             let tx = Transaction::new();
             log_manager
                 .log_update(
@@ -364,18 +366,9 @@ impl PageCache {
                     &page_pod.rl().get_page_data(),
                 )
                 .unwrap();
-
-            // Unique::mut_log_manager()
-            //     .log_update(
-            //         &tx,
-            //         &page_pod.rl().get_before_image(),
-            //         &page_pod.rl().get_page_data(),
-            //     )
-            //     .unwrap();
         }
 
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
-        // buffer.remove(pid);
     }
 
     fn all_keys(&self) -> Vec<Key> {
