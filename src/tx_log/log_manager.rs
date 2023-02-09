@@ -8,7 +8,7 @@ use std::{
 use log::{debug, error};
 
 use crate::{
-    btree::page::{BTreePage, PageCategory},
+    btree::page::{BTreePage, PageCategory, BTreeLeafPage},
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
@@ -483,8 +483,20 @@ impl LogManager {
 
         // return depiction;
 
-        let root_page_category =
+        let page_category =
             PageCategory::read_from(&mut SmallReader::new(&page));
+
+        match page_category {
+            PageCategory::Leaf => {
+            }
+            _ => {
+                return format!(
+                    "[{} bytes] before page: {:?}",
+                    page.len(),
+                    &page[0..16],
+                );
+            }
+        }
 
         todo!()
     }
