@@ -396,6 +396,10 @@ impl BTreeLeafPage {
             );
         }
     }
+
+    pub fn iter(&self) -> BTreeLeafPageIterator {
+        BTreeLeafPageIterator::new(self)
+    }
 }
 
 // Methods for accessing const attributes.

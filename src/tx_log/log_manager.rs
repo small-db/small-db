@@ -406,9 +406,8 @@ impl LogManager {
 
                     let after_page = self.file.read_page().unwrap();
                     depiction.push_str(&format!(
-                        "│   ├── [{} bytes] after page: {:?}\n",
-                        after_page.len(),
-                        &after_page[0..16],
+                        "│   ├── {}\n",
+                        self.parsed_page_content(&after_page),
                     ));
 
                     let start_offset = self.file.read_u64().unwrap();
@@ -491,6 +490,19 @@ impl LogManager {
                 let page = BTreeLeafPage::new(
                     &pid, bytes, &schema, key_field,
                 );
+                let iter = page.iter();
+                // let content = iter.take(3).collect::<Vec<_>>();
+                let content = iter
+                    .take(3)
+                    .map(|x| x.fields[0].to_string())
+                    .collect::<Vec<_>>();
+
+                return format!(
+                    "[{} bytes] before page: {:?}, content: {:?}...",
+                    bytes.len(),
+                    page_category,
+                    content,
+                );
             }
             _ => {
                 return format!(
@@ -500,7 +512,5 @@ impl LogManager {
                 );
             }
         }
-
-        todo!()
     }
 }
