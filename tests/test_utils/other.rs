@@ -36,7 +36,7 @@ pub fn setup() -> TestContext {
     utils::init_log();
     Unique::mut_page_cache().clear();
     PageCache::set_page_size(DEFAULT_PAGE_SIZE);
-    Unique::mut_log_file().reset();
+    Unique::mut_log_manager().reset();
 
     let tx = Transaction::new();
     return TestContext { tx };

@@ -201,7 +201,7 @@ impl LogManager {
 
         // Unique::mut_buffer_pool().flush_all_pages();
         // Unique::buffer_pool_pod().wl().flush_all_pages();
-        cache.flush_all_pages();
+        cache.flush_all_pages(self);
 
         self.file.write(&RecordType::CHECKPOINT)?;
 

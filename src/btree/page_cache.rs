@@ -15,6 +15,7 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     transaction::Transaction,
+    tx_log::LogManager,
     types::{ConcurrentHashMap, ResultPod},
     utils::HandyRwLock,
     BTreeTable, Unique,
@@ -218,24 +219,30 @@ impl PageCache {
     /// Require exclusive access to the buffer pool in this procedure.
     ///
     /// TODO: does these pages belong to a single table?
-    pub fn flush_all_pages(&self) {
+    pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
         for pid in self.all_keys() {
-            self.flush_page(&pid);
+            self.flush_page(&pid, log_manager);
         }
     }
 
     /// Write all pages of the specified transaction to disk.
     ///
     /// TODO: protest this function (mut self / or global lock)
-    pub fn flush_pages(&self, tx: &Transaction) {
+    pub fn flush_pages(
+        &self,
+        tx: &Transaction,
+        log_manager: &mut LogManager,
+    ) {
         for pid in self.all_keys() {
             if Unique::concurrent_status().holds_lock(tx, &pid) {
-                self.flush_page(&pid);
+                self.flush_page(&pid, log_manager);
             }
         }
     }
 
     pub fn tx_complete(&self, tx: &Transaction, commit: bool) {
+        let mut log_manager = Unique::mut_log_manager();
+
         if !commit {
             for pid in self.all_keys() {
                 if Unique::concurrent_status().holds_lock(tx, &pid) {
@@ -243,12 +250,12 @@ impl PageCache {
                 }
             }
 
-            Unique::mut_log_file().log_abort(tx).unwrap();
+            log_manager.log_abort(tx).unwrap();
 
             return;
         }
 
-        self.flush_pages(tx);
+        self.flush_pages(tx, &mut log_manager);
 
         for pid in self.all_keys() {
             match pid.category {
@@ -274,7 +281,7 @@ impl PageCache {
         }
 
         if commit {
-            Unique::mut_log_file().log_commit(tx).unwrap();
+            Unique::mut_log_manager().log_commit(tx).unwrap();
         }
     }
 
@@ -289,7 +296,11 @@ impl PageCache {
     }
 
     /// Write the content of a specific page to disk.
-    fn flush_page(&self, pid: &BTreePageID) {
+    fn flush_page(
+        &self,
+        pid: &BTreePageID,
+        log_manager: &mut LogManager,
+    ) {
         // stage 1: get table
         let catalog = Unique::catalog();
         let table_pod =
@@ -298,16 +309,36 @@ impl PageCache {
 
         match pid.category {
             PageCategory::RootPointer => {
-                self.write(&table, pid, &self.root_pointer_buffer);
+                self.write(
+                    &table,
+                    pid,
+                    &self.root_pointer_buffer,
+                    log_manager,
+                );
             }
             PageCategory::Header => {
-                self.write(&table, pid, &self.header_buffer);
+                self.write(
+                    &table,
+                    pid,
+                    &self.header_buffer,
+                    log_manager,
+                );
             }
             PageCategory::Internal => {
-                self.write(&table, pid, &self.internal_buffer);
+                self.write(
+                    &table,
+                    pid,
+                    &self.internal_buffer,
+                    log_manager,
+                );
             }
             PageCategory::Leaf => {
-                self.write(&table, pid, &self.leaf_buffer);
+                self.write(
+                    &table,
+                    pid,
+                    &self.leaf_buffer,
+                    log_manager,
+                );
             }
         }
     }
@@ -317,6 +348,7 @@ impl PageCache {
         table: &BTreeTable,
         pid: &BTreePageID,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        log_manager: &mut LogManager,
     ) {
         let b = buffer.get_inner_wl();
         let page_pod = b.get(pid).unwrap();
@@ -324,13 +356,21 @@ impl PageCache {
         // TODO: what's the purpose of this block?
         {
             let tx = Transaction::new();
-            Unique::mut_log_file()
+            log_manager
                 .log_update(
                     &tx,
                     &page_pod.rl().get_before_image(),
                     &page_pod.rl().get_page_data(),
                 )
                 .unwrap();
+
+            // Unique::mut_log_manager()
+            //     .log_update(
+            //         &tx,
+            //         &page_pod.rl().get_before_image(),
+            //         &page_pod.rl().get_page_data(),
+            //     )
+            //     .unwrap();
         }
 
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());

@@ -19,7 +19,7 @@ impl Transaction {
     }
 
     pub fn start(&self) -> SmallResult {
-        Unique::mut_log_file().log_start(self)
+        Unique::mut_log_manager().log_start(self)
     }
 
     pub fn commit(&self) -> SmallResult {

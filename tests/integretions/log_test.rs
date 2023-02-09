@@ -24,7 +24,8 @@ fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    Unique::mut_page_cache().flush_all_pages();
+    Unique::mut_page_cache()
+        .flush_all_pages(&mut Unique::mut_log_manager());
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);
@@ -124,7 +125,7 @@ fn test_abort_commit_interleaved() {
     let tx_2 = Transaction::new();
     tx_2.start().unwrap();
     insert_row(&table_2, &tx_2, 21);
-    Unique::mut_log_file().log_checkpoint().unwrap();
+    Unique::mut_log_manager().log_checkpoint().unwrap();
     insert_row(&table_2, &tx_2, 22);
     tx_2.commit().unwrap();
 
