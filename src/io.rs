@@ -115,12 +115,12 @@ impl SmallFile {
 }
 
 pub struct SmallReader<'a> {
-    buf: &'a Vec<u8>,
+    buf: &'a [u8],
     cursor: usize,
 }
 
 impl<'a> SmallReader<'a> {
-    pub fn new(buf: &'a Vec<u8>) -> Self {
+    pub fn new(buf: &'a [u8]) -> Self {
         Self { buf, cursor: 0 }
     }
 

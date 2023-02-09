@@ -8,7 +8,7 @@ use std::{
 use log::{debug, error};
 
 use crate::{
-    btree::page::BTreePage,
+    btree::page::{BTreePage, PageCategory},
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
@@ -344,10 +344,6 @@ impl LogManager {
         while offset < self.current_offset {
             record_id += 1;
 
-            // if self.file.reach_end() {
-            //     break;
-            // }
-
             let record_type: RecordType;
 
             if let Ok(byte) = self.file.read_u8() {
@@ -363,10 +359,6 @@ impl LogManager {
             } else {
                 break;
             }
-
-            // let record_type =
-            //     RecordType::from_u8(self.file.read_u8().unwrap());
-
             depiction.push_str(&format!(
                 "├── [record {}]-{:?}\n",
                 record_id, record_type,
@@ -403,33 +395,11 @@ impl LogManager {
                         tid,
                     ));
 
-                    match self.file.read_page() {
-                        Ok(before_page) => {
-                            depiction.push_str(&format!(
-                                "│   ├── [{} bytes] before page: {:?}\n",
-                                before_page.len(),
-                                &before_page[0..16],
-                            ));
-                        }
-                        Err(e) => {
-                            // depiction.push_str(&format!(
-                            //     "│   ├── [error] before page:
-                            // {}\n",
-                            //     e,
-                            // ));
-                            error!("error reading tid: {}", e);
-                            debug!("log content: \n{}", depiction);
-                            panic!("wrong!")
-                        }
-                    }
-
-                    // let before_page =
-                    // self.file.read_page().unwrap();
-                    // depiction.push_str(&format!(
-                    //     "│   ├── [{} bytes] before page: {:?}\n",
-                    //     before_page.len(),
-                    //     &before_page[0..16],
-                    // ));
+                    let before_page = self.file.read_page().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── {}\n",
+                        self.parsed_page_content(&before_page),
+                    ));
 
                     let after_page = self.file.read_page().unwrap();
                     depiction.push_str(&format!(
@@ -450,25 +420,11 @@ impl LogManager {
                         record_type,
                     ));
 
-                    match self.file.read_u64() {
-                        Ok(tid) => {
-                            depiction.push_str(&format!(
-                                "│   ├── [8 bytes] tid: {}\n",
-                                tid,
-                            ));
-                        }
-                        Err(e) => {
-                            error!("error reading tid: {}", e);
-                            debug!("log content: \n{}", depiction);
-                            panic!("e")
-                        }
-                    }
-
-                    // let tid = self.file.read_u64().unwrap();
-                    // depiction.push_str(&format!(
-                    //     "│   ├── [8 bytes] tid: {}\n",
-                    //     tid,
-                    // ));
+                    let tid = self.file.read_u64().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] tid: {}\n",
+                        tid,
+                    ));
 
                     let start_offset = self.file.read_u64().unwrap();
                     depiction.push_str(&format!(
@@ -516,5 +472,20 @@ impl LogManager {
         }
 
         debug!("log content: \n{}", depiction);
+    }
+
+    fn parsed_page_content(&self, page: &[u8]) -> String {
+        // let depiction = format!(
+        //     "[{} bytes] before page: {:?}",
+        //     page.len(),
+        //     &page[0..16],
+        // );
+
+        // return depiction;
+
+        let root_page_category =
+            PageCategory::read_from(&mut SmallReader::new(&page));
+
+        todo!()
     }
 }
