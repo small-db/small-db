@@ -43,8 +43,7 @@ impl Unique {
     //     &Self::global().buffer_pool
     // }
 
-    pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache>
-    {
+    pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
         Self::global().buffer_pool.wl()
     }
 

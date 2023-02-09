@@ -23,9 +23,7 @@ impl<T> HandyRwLock<T> for RwLock<T> {
     }
 }
 
-pub use crate::{
-    btree::tuple::small_int_schema, utils::init_log,
-};
+pub use crate::{btree::tuple::small_int_schema, utils::init_log};
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
     let is_read: bool = lock.try_read().is_err();

@@ -1,8 +1,8 @@
 use log::error;
 use small_db::{
     btree::{
-        page_cache::PageCache,
         page::{BTreeInternalPageIterator, BTreePage},
+        page_cache::PageCache,
         table::BTreeTableIterator,
     },
     transaction::Transaction,
@@ -175,7 +175,8 @@ fn test_redistribute_internal_pages() {
         &table,
     );
 
-    // delete from the right child to test redistribution from the left
+    // delete from the right child to test redistribution from the
+    // left
 
     return;
 

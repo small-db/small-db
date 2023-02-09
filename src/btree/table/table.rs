@@ -26,7 +26,7 @@ use crate::{
             PageCategory,
         },
         page_cache::PageCache,
-        tuple::{Tuple, Schema, WrappedTuple},
+        tuple::{Schema, Tuple, WrappedTuple},
     },
     concurrent_status::Permission,
     field::IntField,

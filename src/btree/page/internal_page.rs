@@ -9,8 +9,7 @@ use super::{
 };
 use crate::{
     btree::{
-        page_cache::PageCache, consts::INDEX_SIZE,
-        tuple::Schema,
+        consts::INDEX_SIZE, page_cache::PageCache, tuple::Schema,
     },
     concurrent_status::Permission,
     error::SmallError,

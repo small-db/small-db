@@ -9,7 +9,7 @@ use std::{
 use bit_vec::BitVec;
 
 use crate::{
-    btree::{page_cache::PageCache, page::BTreePage},
+    btree::{page::BTreePage, page_cache::PageCache},
     error::SmallError,
     types::SmallResult,
 };

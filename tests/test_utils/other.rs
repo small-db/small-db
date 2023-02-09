@@ -4,12 +4,12 @@ use log::debug;
 use rand::prelude::*;
 use small_db::{
     btree::{
-        page_cache::{PageCache, DEFAULT_PAGE_SIZE},
         page::{
             BTreeInternalPage, BTreeInternalPageIterator,
             BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
             BTreePageID, Entry,
         },
+        page_cache::{PageCache, DEFAULT_PAGE_SIZE},
         tuple::Schema,
     },
     concurrent_status::Permission,

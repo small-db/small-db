@@ -44,10 +44,7 @@ impl Tuple {
         }
     }
 
-    pub fn new_default_tuple(
-        scheme: Schema,
-        _width: usize,
-    ) -> Tuple {
+    pub fn new_default_tuple(scheme: Schema, _width: usize) -> Tuple {
         let mut cells: Vec<IntField> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
@@ -223,10 +220,7 @@ impl PartialEq for Schema {
 }
 
 impl Schema {
-    pub fn merge(
-        scheme1: Schema,
-        scheme2: Schema,
-    ) -> Schema {
+    pub fn merge(scheme1: Schema, scheme2: Schema) -> Schema {
         let mut new_scheme = Schema {
             ..Default::default()
         };
@@ -261,10 +255,7 @@ impl Default for Schema {
     }
 }
 
-pub fn small_int_schema(
-    width: usize,
-    name_prefix: &str,
-) -> Schema {
+pub fn small_int_schema(width: usize, name_prefix: &str) -> Schema {
     let mut fields: Vec<FieldItem> = Vec::new();
     for i in 0..width {
         let field = FieldItem {

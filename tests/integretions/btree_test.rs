@@ -3,9 +3,7 @@ use std::thread;
 use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
-    btree::{
-        page_cache::PageCache, table::BTreeTableSearchIterator,
-    },
+    btree::{page_cache::PageCache, table::BTreeTableSearchIterator},
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
