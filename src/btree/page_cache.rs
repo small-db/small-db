@@ -94,7 +94,7 @@ impl PageCache {
         // stage 3: page instantiation
         let page = PAGE::new(
             pid,
-            buf.to_vec(),
+            &buf,
             &table.tuple_scheme,
             table.key_field,
         );

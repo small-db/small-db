@@ -23,7 +23,7 @@ pub struct BTreeHeaderPage {
 }
 
 impl BTreeHeaderPage {
-    pub fn new(pid: &BTreePageID, bytes: Vec<u8>) -> BTreeHeaderPage {
+    pub fn new(pid: &BTreePageID, bytes: &[u8]) -> BTreeHeaderPage {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
@@ -94,7 +94,7 @@ impl BTreeHeaderPage {
 impl BTreePage for BTreeHeaderPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         _tuple_scheme: &TupleScheme,
         _key_field: usize,
     ) -> Self {

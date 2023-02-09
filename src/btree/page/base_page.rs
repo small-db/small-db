@@ -43,7 +43,7 @@ impl BTreeBasePage {
 impl BTreePage for BTreeBasePage {
     fn new(
         pid: &BTreePageID,
-        _bytes: Vec<u8>,
+        bytes: &[u8],
         _tuple_scheme: &TupleScheme,
         _key_field: usize,
     ) -> Self {

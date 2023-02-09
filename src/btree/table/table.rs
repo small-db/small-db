@@ -18,7 +18,6 @@ use log::debug;
 
 use crate::{
     btree::{
-        page_cache::PageCache,
         page::{
             BTreeBasePage, BTreeHeaderPage, BTreeInternalPage,
             BTreeInternalPageIterator, BTreeLeafPage,
@@ -26,6 +25,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage, Entry,
             PageCategory,
         },
+        page_cache::PageCache,
         tuple::{Tuple, TupleScheme, WrappedTuple},
     },
     concurrent_status::Permission,
@@ -724,7 +724,7 @@ impl BTreeTable {
         );
         let page = BTreeLeafPage::new(
             &page_id,
-            BTreeBasePage::empty_page_data().to_vec(),
+            &BTreeBasePage::empty_page_data(),
             &self.tuple_scheme,
             self.key_field,
         );
@@ -753,7 +753,7 @@ impl BTreeTable {
         );
         let page = BTreeInternalPage::new(
             &page_id,
-            BTreeBasePage::empty_page_data().to_vec(),
+            &BTreeBasePage::empty_page_data(),
             &self.tuple_scheme,
             self.key_field,
         );
@@ -782,7 +782,7 @@ impl BTreeTable {
         );
         let page = BTreeHeaderPage::new(
             &page_id,
-            BTreeBasePage::empty_page_data().to_vec(),
+            &BTreeBasePage::empty_page_data(),
         );
 
         self.write_empty_page_to_disk(&page_id);

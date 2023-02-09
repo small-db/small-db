@@ -4,7 +4,7 @@ use crate::btree::tuple::TupleScheme;
 pub trait BTreePage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self

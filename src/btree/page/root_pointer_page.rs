@@ -35,7 +35,7 @@ pub struct BTreeRootPointerPage {
 }
 
 impl BTreeRootPointerPage {
-    fn new(pid: &BTreePageID, bytes: Vec<u8>) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8]) -> Self {
         let mut reader = SmallReader::new(&bytes);
 
         // read page category
@@ -116,7 +116,7 @@ impl BTreeRootPointerPage {
 impl BTreePage for BTreeRootPointerPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         _tuple_scheme: &TupleScheme,
         _key_field: usize,
     ) -> Self {

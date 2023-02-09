@@ -90,7 +90,7 @@ pub struct BTreeInternalPage {
 impl BTreeInternalPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
@@ -175,7 +175,7 @@ impl BTreeInternalPage {
 
     fn new_empty_page(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
@@ -616,7 +616,7 @@ impl BTreeInternalPage {
 impl BTreePage for BTreeInternalPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {

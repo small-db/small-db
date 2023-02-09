@@ -8,7 +8,7 @@ use std::{
 use log::{debug, error};
 
 use crate::{
-    btree::page::{BTreePage, PageCategory, BTreeLeafPage},
+    btree::page::{BTreeLeafPage, BTreePage, PageCategory},
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
@@ -474,26 +474,20 @@ impl LogManager {
         debug!("log content: \n{}", depiction);
     }
 
-    fn parsed_page_content(&self, page: &[u8]) -> String {
-        // let depiction = format!(
-        //     "[{} bytes] before page: {:?}",
-        //     page.len(),
-        //     &page[0..16],
-        // );
-
-        // return depiction;
-
+    fn parsed_page_content(&self, bytes: &[u8]) -> String {
         let page_category =
-            PageCategory::read_from(&mut SmallReader::new(&page));
+            PageCategory::read_from(&mut SmallReader::new(&bytes));
 
         match page_category {
             PageCategory::Leaf => {
+                // TODO: use real tuple_scheme and key_field
+                // let page = BTreeLeafPage::new(pid, bytes, tuple_scheme, 0);
             }
             _ => {
                 return format!(
                     "[{} bytes] before page: {:?}",
-                    page.len(),
-                    &page[0..16],
+                    bytes.len(),
+                    &bytes[0..16],
                 );
             }
         }

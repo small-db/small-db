@@ -108,7 +108,7 @@ impl Tuple {
 
 impl Condensable for Tuple {
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes: Vec<u8> = Vec::new();
+        let mut bytes = Vec::new();
         for cell in &self.fields {
             let mut cell_bytes = cell.to_bytes();
             bytes.append(&mut cell_bytes);

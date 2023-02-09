@@ -56,7 +56,7 @@ pub struct BTreeLeafPage {
 impl BTreeLeafPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
@@ -129,7 +129,7 @@ impl BTreeLeafPage {
 
     fn new_empty_page(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
@@ -421,11 +421,11 @@ impl BTreeLeafPage {
 impl BTreePage for BTreeLeafPage {
     fn new(
         pid: &BTreePageID,
-        bytes: Vec<u8>,
+        bytes: &[u8],
         tuple_scheme: &TupleScheme,
         key_field: usize,
     ) -> Self {
-        Self::new(pid, bytes, tuple_scheme, key_field)
+        Self::new(pid, &bytes, tuple_scheme, key_field)
     }
 
     fn get_pid(&self) -> BTreePageID {
