@@ -16,6 +16,10 @@ fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
 /// Insert two tuples into the table, then commit the transaction.
 /// (There is a flush action in the middle of the transaction.)
 fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
+    // acquire x locks on page cache and log manager
+    let mut page_cache = Unique::mut_page_cache();
+    let mut log_manager = Unique::mut_log_manager();
+
     // step 1: start a transaction
     let tx = Transaction::new();
     tx.start().unwrap();
@@ -24,14 +28,13 @@ fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    Unique::mut_page_cache()
-        .flush_all_pages(&mut Unique::mut_log_manager());
+    page_cache.flush_all_pages(&mut log_manager);
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);
 
     // step 5: commit the transaction
-    tx.commit().unwrap();
+    tx.manual_commit(&page_cache).unwrap();
 }
 
 /// Insert two tuples into the table, then abort the transaction.
