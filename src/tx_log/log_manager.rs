@@ -14,7 +14,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
-        tuple::{small_int_schema, Schema},
+        tuple::small_int_schema,
     },
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
@@ -268,7 +268,8 @@ impl LogManager {
         // step 2: seek to the start position of the checkpoint
         self.file.seek(last_checkpoint_position)?;
 
-        // step 3: read checkpoint, get the position of the specific tx
+        // step 3: read checkpoint, get the position of the specific
+        // tx
         let record_type = self.file.read::<RecordType>()?;
         if record_type != RecordType::CHECKPOINT {
             panic!("invalid checkpoint");

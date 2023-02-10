@@ -9,9 +9,7 @@ use std::{
 use bit_vec::BitVec;
 
 use crate::{
-    btree::{page::BTreePage, page_cache::PageCache},
-    error::SmallError,
-    types::SmallResult,
+    btree::page::BTreePage, error::SmallError, types::SmallResult,
 };
 
 pub struct SmallFile {
