@@ -8,12 +8,12 @@ use std::{
 ///
 /// A handy shortcut to replace `RwLock` write/read().unwrap() pattern
 /// to shortcut wl and rl.
-pub trait HandyRwLock<T> {
+pub trait HandyRwLock<T: ?Sized> {
     fn wl(&self) -> RwLockWriteGuard<'_, T>;
     fn rl(&self) -> RwLockReadGuard<'_, T>;
 }
 
-impl<T> HandyRwLock<T> for RwLock<T> {
+impl<T: ?Sized> HandyRwLock<T> for RwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T> {
         self.write().unwrap()
     }

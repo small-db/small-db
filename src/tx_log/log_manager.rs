@@ -14,6 +14,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
+        page_cache::{self, PageCache},
         tuple::small_int_schema,
     },
     error::SmallError,
@@ -141,12 +142,16 @@ impl LogManager {
 
     /// Write an abort record to the log for the specified tid, force
     /// the log to disk, and perform a rollback
-    pub fn log_abort(&mut self, tx: &Transaction) -> SmallResult {
+    pub fn log_abort(
+        &mut self,
+        tx: &Transaction,
+        page_cache: &PageCache,
+    ) -> SmallResult {
         // must have page cache lock before proceeding, since this
         // calls rollback let cache =
         // Unique::mut_page_cache();
 
-        self.rollback(tx)?;
+        self.rollback(tx, page_cache)?;
 
         self.file.write(&RecordType::ABORT)?;
         self.file.write(&tx.get_id())?;
@@ -256,7 +261,11 @@ impl LogManager {
     /// To preserve transaction semantics, this should not be called
     /// on transactions that have already committed (though this
     /// may not be enforced by this method).
-    fn rollback(&mut self, tx: &Transaction) -> SmallResult {
+    fn rollback(
+        &mut self,
+        tx: &Transaction,
+        page_cache: &PageCache,
+    ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
         self.file.seek(0)?;
@@ -294,6 +303,7 @@ impl LogManager {
         }
 
         // step 4: seek to the start position of the transaction
+        self.show_log_contents();
         self.file.seek(tx_start_position)?;
 
         // step 5: read the log records of the transaction, stop when
@@ -315,12 +325,41 @@ impl LogManager {
                     // skip the transaction id
                     let _ = self.file.read::<u64>()?;
 
-                    let before_page_pod = self.read_page()?;
-                    let before_page = before_page_pod.read().unwrap();
-                    Unique::mut_page_cache()
-                        .discard_page(&before_page.get_pid());
+                    let pid = self.file.read::<BTreePageID>()?;
+                    Unique::mut_page_cache().discard_page(&pid);
 
-                    todo!()
+                    // skip the before page
+                    let _ = self.read_page(&pid)?;
+
+                    // skip the after page
+                    let _ = self.read_page(&pid)?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::CHECKPOINT => {
+                    // skip the checkpoint id
+                    let _ = self.file.read::<i64>()?;
+
+                    // skip the list of outstanding transactions
+                    let tx_count = self.file.read::<usize>()?;
+                    for _ in 0..tx_count {
+                        // skip the transaction id
+                        let _ = self.file.read::<u64>()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    }
+
+                    // skip the current offset
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::COMMIT => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
                 }
                 _ => {
                     error!("invalid record type: {:?}", record_type);
@@ -343,8 +382,8 @@ impl LogManager {
         self.file.write(&before_data.len())?;
         self.file.write(&before_data)?;
 
-        let page = page_pod.read().unwrap();
-        self.file.write(&page.get_pid())?;
+        // let page = page_pod.read().unwrap();
+        // self.file.write(&page.get_pid())?;
 
         let after_data = page.get_page_data();
         self.file.write(&after_data.len())?;
@@ -355,8 +394,9 @@ impl LogManager {
 
     fn read_page(
         &mut self,
+        pid: &BTreePageID,
     ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
-        let pid = self.file.read::<BTreePageID>()?;
+        // let pid = self.file.read::<BTreePageID>()?;
 
         let data = self.file.read_page()?;
 
@@ -494,6 +534,13 @@ impl LogManager {
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
+                    ));
+
+                    let pid =
+                        self.file.read::<BTreePageID>().unwrap();
+                    depiction.push_str(&format!(
+                        "│   ├── [8 bytes] pid: {:?}\n",
+                        pid,
                     ));
 
                     let before_page = self.file.read_page().unwrap();

@@ -253,7 +253,7 @@ impl PageCache {
                 }
             }
 
-            log_manager.log_abort(tx).unwrap();
+            log_manager.log_abort(tx, self).unwrap();
 
             return;
         }

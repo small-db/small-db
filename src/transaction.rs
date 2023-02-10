@@ -1,7 +1,11 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{types::SmallResult, Unique};
+use crate::{
+    btree::page_cache::{self, PageCache},
+    types::SmallResult,
+    Unique,
+};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -23,18 +27,36 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        self.complete(true)
+        self.complete(true, &Unique::mut_page_cache())
+    }
+
+    pub fn manual_commit(
+        &self,
+        page_cache: &PageCache,
+    ) -> SmallResult {
+        self.complete(true, page_cache)
     }
 
     pub fn abort(&self) -> SmallResult {
-        self.complete(false)
+        self.complete(false, &Unique::mut_page_cache())
     }
 
-    fn complete(&self, commit: bool) -> SmallResult {
+    pub fn manual_abort(
+        &self,
+        page_cache: &PageCache,
+    ) -> SmallResult {
+        self.complete(false, page_cache)
+    }
+
+    fn complete(
+        &self,
+        commit: bool,
+        page_cache: &PageCache,
+    ) -> SmallResult {
         // write abort log record and rollback transaction
         if !commit {
             // does rollback too
-            Unique::mut_log_manager().log_abort(self)?;
+            Unique::mut_log_manager().log_abort(self, page_cache)?;
         }
 
         // Release locks and flush pages if needed
