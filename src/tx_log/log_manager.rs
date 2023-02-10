@@ -26,7 +26,7 @@ static START_RECORD_LEN: u64 = 17;
 ///
 /// TODO: add docs for `repr(u8)`
 /// #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum RecordType {
     ABORT,
     COMMIT,
@@ -64,7 +64,7 @@ impl Vaporizable for RecordType {
 /// Migrated from java version.
 ///
 /// TODO: Figure out what this is used for, and if it's needed.
-static NO_CHECKPOINT_ID: i64 = -1;
+static NO_CHECKPOINT: u64 = 0;
 
 pub struct LogManager {
     /// Record the start position of each transaction.
@@ -205,7 +205,7 @@ impl LogManager {
         // no tid , but leave space for convenience
         //
         // TODO: Figure out what this is used for, and if it's needed.
-        self.file.write(&NO_CHECKPOINT_ID)?;
+        self.file.write(&NO_CHECKPOINT)?;
 
         // write list of outstanding transactions
         self.file.write(&self.tx_start_position.len())?;
@@ -254,45 +254,78 @@ impl LogManager {
     /// on transactions that have already committed (though this
     /// may not be enforced by this method).
     fn rollback(&mut self, tx: &Transaction) -> SmallResult {
-        let start = *self.tx_start_position.get(tx).unwrap();
-        // seek to the start position of the transaction, skip the
-        // START_RECORD
-        let offset = self
-            .get_file()
-            .seek(std::io::SeekFrom::Start(start + START_RECORD_LEN))
-            .unwrap();
+        // step 1: get the position of last checkpoint
+        // TODO: what if there is no checkpoint?
+        self.file.seek(0)?;
+        let last_checkpoint_position = self.file.read::<u64>()?;
+        if last_checkpoint_position == NO_CHECKPOINT {
+            panic!("no checkpoint found");
+        }
 
-        let file_size = self.file.get_size()?;
+        // step 2: seek to the start position of the checkpoint
+        self.file.seek(last_checkpoint_position)?;
 
-        debug!(
-            "start: {}, offset: {}, file_size: {}, tid: {}",
-            start,
-            offset,
-            file_size,
-            tx.get_id()
-        );
-
-        let record_type = RecordType::from_u8(self.file.read()?);
-        debug!("record_type: {:?}", record_type);
-
-        self.show_log_contents();
-
-        match record_type {
-            RecordType::UPDATE => {
-                let before_page_rc = self.read_page().unwrap();
-                let before_page = before_page_rc.read().unwrap();
-                Unique::mut_page_cache()
-                    .discard_page(&before_page.get_pid());
-
-                todo!()
+        // step 3: read checkpoint, get the position of the specific tx
+        let record_type = self.file.read::<RecordType>()?;
+        if record_type != RecordType::CHECKPOINT {
+            panic!("invalid checkpoint");
+        }
+        // checkpoint id
+        let _ = self.file.read::<i64>().unwrap();
+        // read list of outstanding(active) transactions
+        let tx_count = self.file.read::<usize>()?;
+        let mut tx_start_position = 0;
+        for _ in 0..tx_count {
+            let tx_id = self.file.read::<u64>()?;
+            if tx_id == tx.get_id() {
+                tx_start_position = self.file.read::<u64>()?;
+                break;
+            } else {
+                // skip the start position
+                let _ = self.file.read::<u64>()?;
             }
-            _ => {
-                error!("invalid record type: {:?}", record_type);
-                panic!("invalid record type");
+        }
+        if tx_start_position == 0 {
+            panic!("no such transaction");
+        }
+
+        // step 4: seek to the start position of the transaction
+        self.file.seek(tx_start_position)?;
+
+        // step 5: read the log records of the transaction, stop when
+        // we encounter the EOF
+        let file_size = self.file.get_size()?;
+        while self.file.get_current_position()? < file_size {
+            let record_type = self.file.read::<RecordType>()?;
+            debug!("record_type: {:?}", record_type);
+
+            match record_type {
+                RecordType::START => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::UPDATE => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    let before_page_rc = self.read_page().unwrap();
+                    let before_page = before_page_rc.read().unwrap();
+                    Unique::mut_page_cache()
+                        .discard_page(&before_page.get_pid());
+
+                    todo!()
+                }
+                _ => {
+                    error!("invalid record type: {:?}", record_type);
+                    panic!("invalid record type");
+                }
             }
         }
 
-        todo!()
+        return Ok(());
     }
 
     fn read_page(
@@ -315,7 +348,7 @@ impl LogManager {
             self.get_file()
                 .seek(std::io::SeekFrom::Start(0))
                 .or(Err(SmallError::new("seek failed")))?;
-            self.file.write(&NO_CHECKPOINT_ID)?;
+            self.file.write(&NO_CHECKPOINT)?;
             self.get_file()
                 .seek(std::io::SeekFrom::End(0))
                 .or(Err(SmallError::new("seek failed")))?;
@@ -333,9 +366,9 @@ impl LogManager {
             file.seek(std::io::SeekFrom::Start(0)).unwrap();
         }
 
-        let last_checkpoint = self.file.read::<i64>().unwrap();
+        let last_checkpoint = self.file.read::<u64>().unwrap();
 
-        if last_checkpoint != NO_CHECKPOINT_ID {
+        if last_checkpoint != NO_CHECKPOINT {
             depiction.push_str(&format!(
                 "├── [8 bytes] last checkpoint: {}\n",
                 last_checkpoint,
@@ -406,13 +439,15 @@ impl LogManager {
 
                     let before_page = self.file.read_page().unwrap();
                     depiction.push_str(&format!(
-                        "│   ├── {}\n",
+                        "│   ├── [{} bytes] before page: {}\n",
+                        before_page.len(),
                         self.parsed_page_content(&before_page),
                     ));
 
                     let after_page = self.file.read_page().unwrap();
                     depiction.push_str(&format!(
-                        "│   ├── {}\n",
+                        "│   ├── [{} bytes] after page: {}\n",
+                        after_page.len(),
                         self.parsed_page_content(&after_page),
                     ));
 
@@ -530,18 +565,12 @@ impl LogManager {
                     .collect::<Vec<_>>();
 
                 return format!(
-                    "[{} bytes] before page: {:?}, content: {:?}...",
-                    bytes.len(),
-                    page_category,
-                    content,
+                    "{:?}, content: {:?}...",
+                    page_category, content,
                 );
             }
             _ => {
-                return format!(
-                    "[{} bytes] before page: {:?}",
-                    bytes.len(),
-                    &bytes[0..16],
-                );
+                return format!("{:?}", &bytes[0..16],);
             }
         }
     }

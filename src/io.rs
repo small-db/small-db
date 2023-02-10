@@ -78,6 +78,13 @@ impl SmallFile {
             .or(Err(SmallError::new("io error")))?;
         Ok(offset)
     }
+
+    pub fn seek(&self, offset: u64) -> SmallResult {
+        self.get_file()
+            .seek(std::io::SeekFrom::Start(offset))
+            .or(Err(SmallError::new("io error")))?;
+        Ok(())
+    }
 }
 
 pub struct SmallReader<'a> {
