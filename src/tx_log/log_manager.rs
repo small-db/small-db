@@ -9,7 +9,11 @@ use log::{debug, error};
 
 use crate::{
     btree::{
-        page::{BTreeLeafPage, BTreePage, BTreePageID, PageCategory},
+        page::{
+            BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
+            BTreePage, BTreePageID, BTreeRootPointerPage,
+            PageCategory,
+        },
         tuple::{small_int_schema, Schema},
     },
     error::SmallError,
@@ -367,6 +371,22 @@ impl LogManager {
                 let page = BTreeLeafPage::new(
                     &pid, &data, &schema, key_field,
                 );
+                return Ok(Arc::new(RwLock::new(page)));
+            }
+            PageCategory::RootPointer => {
+                let page = BTreeRootPointerPage::new(
+                    &pid, &data, &schema, key_field,
+                );
+                return Ok(Arc::new(RwLock::new(page)));
+            }
+            PageCategory::Internal => {
+                let page = BTreeInternalPage::new(
+                    &pid, &data, &schema, key_field,
+                );
+                return Ok(Arc::new(RwLock::new(page)));
+            }
+            PageCategory::Header => {
+                let page = BTreeHeaderPage::new(&pid, &data);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             _ => {
