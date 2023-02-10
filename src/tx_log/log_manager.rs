@@ -16,6 +16,7 @@ use crate::{
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
     transaction::Transaction,
     types::SmallResult,
+    utils::HandyRwLock,
     Unique,
 };
 
@@ -354,14 +355,19 @@ impl LogManager {
 
         let data = self.file.read_page()?;
 
-        let schema: Schema;
-        let key_field: usize;
+        let catalog = Unique::catalog();
+        let table_pod = catalog.get_table(&pid.table_id).unwrap();
+        let table = table_pod.rl();
+
+        let schema = table.get_tuple_scheme();
+        let key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {
                 let page = BTreeLeafPage::new(
                     &pid, &data, &schema, key_field,
                 );
+                return Ok(Arc::new(RwLock::new(page)));
             }
             _ => {
                 todo!()
