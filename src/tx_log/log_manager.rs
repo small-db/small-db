@@ -10,7 +10,7 @@ use log::{debug, error};
 use crate::{
     btree::{
         page::{BTreeLeafPage, BTreePage, BTreePageID, PageCategory},
-        tuple::small_int_schema,
+        tuple::{small_int_schema, Schema},
     },
     error::SmallError,
     io::{Condensable, SmallFile, SmallReader, Vaporizable},
@@ -154,11 +154,10 @@ impl LogManager {
 
     /// Write an UPDATE record to disk for the specified tid and page
     /// (with provided before and after images.)
-    pub fn log_update(
+    pub fn log_update<PAGE: BTreePage>(
         &mut self,
         tx: &Transaction,
-        before: &[u8],
-        after: &[u8],
+        page_pod: Arc<RwLock<PAGE>>,
     ) -> SmallResult {
         self.pre_append()?;
 
@@ -172,8 +171,7 @@ impl LogManager {
 
         self.file.write(&RecordType::UPDATE)?;
         self.file.write(&tx.get_id())?;
-        self.file.write(&before)?;
-        self.file.write(&after)?;
+        self.write_page(page_pod)?;
         self.file.write(&self.current_offset)?;
 
         let current_offset = self
@@ -311,8 +309,8 @@ impl LogManager {
                     // skip the transaction id
                     let _ = self.file.read::<u64>()?;
 
-                    let before_page_rc = self.read_page().unwrap();
-                    let before_page = before_page_rc.read().unwrap();
+                    let before_page_pod = self.read_page()?;
+                    let before_page = before_page_pod.read().unwrap();
                     Unique::mut_page_cache()
                         .discard_page(&before_page.get_pid());
 
@@ -328,9 +326,50 @@ impl LogManager {
         return Ok(());
     }
 
+    fn write_page<PAGE: BTreePage>(
+        &mut self,
+        page_pod: Arc<RwLock<PAGE>>,
+    ) -> SmallResult {
+        let page = page_pod.read().unwrap();
+        self.file.write(&page.get_pid())?;
+
+        let before_data = page.get_before_image();
+        self.file.write(&before_data.len())?;
+        self.file.write(&before_data)?;
+
+        let page = page_pod.read().unwrap();
+        self.file.write(&page.get_pid())?;
+
+        let after_data = page.get_page_data();
+        self.file.write(&after_data.len())?;
+        self.file.write(&after_data)?;
+
+        return Ok(());
+    }
+
     fn read_page(
         &mut self,
     ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
+        let pid = self.file.read::<BTreePageID>()?;
+
+        let data = self.file.read_page()?;
+
+        let schema: Schema;
+        let key_field: usize;
+
+        match pid.category {
+            PageCategory::Leaf => {
+                let page = BTreeLeafPage::new(
+                    &pid, &data, &schema, key_field,
+                );
+            }
+            _ => {
+                todo!()
+            }
+        }
+
+        // let page_data = self.file.read_page()?;
+
         todo!()
     }
 

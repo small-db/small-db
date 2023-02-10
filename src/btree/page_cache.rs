@@ -355,7 +355,7 @@ impl PageCache {
         log_manager: &mut LogManager,
     ) {
         let b = buffer.get_inner_wl();
-        let page_pod = b.get(pid).unwrap();
+        let page_pod = b.get(pid).unwrap().clone();
 
         // TODO: what's the purpose of this block?
         {
@@ -364,11 +364,7 @@ impl PageCache {
                 Unique::concurrent_status().get_page_tx(pid)
             {
                 log_manager
-                    .log_update(
-                        &tx,
-                        &page_pod.rl().get_before_image(),
-                        &page_pod.rl().get_page_data(),
-                    )
+                    .log_update(&tx, page_pod.clone())
                     .unwrap();
             } else {
                 error!("no tx found for page {:?}", pid);

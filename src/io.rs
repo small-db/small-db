@@ -110,6 +110,10 @@ impl<'a> SmallReader<'a> {
 
         return &self.buf[start..end];
     }
+
+    pub fn read<T: Vaporizable>(&mut self) -> T {
+        T::read_from(self)
+    }
 }
 
 pub struct SmallWriter {
@@ -124,6 +128,10 @@ impl SmallWriter {
 
     pub fn write<T: Condensable>(&mut self, obj: &T) {
         self.buf.extend_from_slice(obj.to_bytes().as_slice());
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.buf.clone()
     }
 
     pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
@@ -186,6 +194,12 @@ impl Vaporizable for BitVec {
 }
 
 impl Condensable for &[u8] {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.to_vec()
+    }
+}
+
+impl Condensable for Vec<u8> {
     fn to_bytes(&self) -> Vec<u8> {
         self.to_vec()
     }

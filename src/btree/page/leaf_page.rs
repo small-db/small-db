@@ -76,7 +76,7 @@ impl BTreeLeafPage {
             let mut reader = SmallReader::new(&bytes);
 
             // read page category
-            let category = PageCategory::read_from(&mut reader);
+            let category = reader.read::<PageCategory>();
             if category != PageCategory::Leaf {
                 panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",

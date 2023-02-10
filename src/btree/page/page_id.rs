@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     btree::page_cache::PageCache,
-    io::{Condensable, SmallReader, Vaporizable},
+    io::{Condensable, SmallReader, SmallWriter, Vaporizable},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;
@@ -92,6 +92,29 @@ impl BTreePageID {
 
     pub fn get_short_repr(&self) -> String {
         format!("{:?}_{}", self.category, self.page_index)
+    }
+}
+
+impl Condensable for BTreePageID {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
+        writer.write(&self.category);
+        writer.write(&self.page_index);
+        writer.write(&self.table_id);
+        return writer.to_bytes();
+    }
+}
+
+impl Vaporizable for BTreePageID {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        let category = reader.read();
+        let page_index = reader.read();
+        let table_id = reader.read();
+        Self {
+            category,
+            page_index,
+            table_id,
+        }
     }
 }
 

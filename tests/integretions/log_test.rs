@@ -113,9 +113,6 @@ fn test_abort_commit_interleaved() {
 
     commit_insert(&table_1, 1, 2);
 
-    // Unique::log_file().show_log_contents();
-    // return;
-
     // T1 start, T2 start and commit, T1 abort
 
     let tx_1 = Transaction::new();
