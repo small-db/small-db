@@ -23,13 +23,33 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        Unique::mut_page_cache().tx_complete(self, true);
-        Unique::concurrent_status().release_lock_by_tx(self)
+        self.complete(true)
     }
 
     pub fn abort(&self) -> SmallResult {
-        Unique::mut_page_cache().tx_complete(self, false);
-        Unique::concurrent_status().release_lock_by_tx(self)
+        self.complete(false)
+    }
+
+    fn complete(&self, commit: bool) -> SmallResult {
+        // write abort log record and rollback transaction
+        if !commit {
+            // does rollback too
+            Unique::mut_log_manager().log_abort(self)?;
+        }
+
+        // Release locks and flush pages if needed
+        //
+        // release locks
+        Unique::mut_page_cache().tx_complete(self, commit);
+
+        // write commit log record
+        if commit {
+            Unique::mut_log_manager().log_commit(self)?;
+        }
+
+        Unique::concurrent_status().release_lock_by_tx(self)?;
+
+        Ok(())
     }
 
     pub fn get_id(&self) -> u64 {

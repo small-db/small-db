@@ -38,7 +38,7 @@ impl SmallFile {
     }
 
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
-        let page_size = PageCache::get_page_size();
+        let page_size = self.read::<usize>()?;
 
         let mut buf: Vec<u8> = vec![0; page_size];
         self.get_file()

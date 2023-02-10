@@ -389,14 +389,7 @@ impl LogManager {
                 let page = BTreeHeaderPage::new(&pid, &data);
                 return Ok(Arc::new(RwLock::new(page)));
             }
-            _ => {
-                todo!()
-            }
         }
-
-        // let page_data = self.file.read_page()?;
-
-        todo!()
     }
 
     // We're about to append a log record. If we weren't sure whether
