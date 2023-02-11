@@ -29,6 +29,7 @@ pub fn assert_true(predicate: bool, table: &BTreeTable) {
     if !predicate {
         error!("--- assertion failed, debug_info start ---");
         Unique::log_file().show_log_contents();
+        panic!("assertion failed");
         table.draw_tree(-1);
         table.check_integrity(true);
         error!("--- assertion failed, debug_info end ---");

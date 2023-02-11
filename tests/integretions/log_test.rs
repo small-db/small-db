@@ -76,7 +76,7 @@ fn test_patch() {
     commit_insert(&table, 1, 2);
 
     // check that BufferPool.flushPage() calls LogFile.logWrite().
-    assert_eq!(Unique::log_file().records_count(), 5);
+    assert_true(Unique::log_file().records_count() == 5, &table);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().
@@ -149,30 +149,4 @@ fn test_abort_commit_interleaved() {
     assert_true(look_for(&table_2, &tx, 21) == 1, &table_2);
     assert_true(look_for(&table_2, &tx, 22) == 1, &table_2);
     tx.commit().unwrap();
-
-    // Unique::log_file().show_log_contents();
-
-    // Transaction t1 = new Transaction();
-    // t1.start();
-    // insertRow(hf1, t1, 3);
-
-    // Transaction t2 = new Transaction();
-    // t2.start();
-    // insertRow(hf2, t2, 21);
-    // Database.getLogFile().logCheckpoint();
-    // insertRow(hf2, t2, 22);
-    // t2.commit();
-
-    // insertRow(hf1, t1, 4);
-    // abort(t1);
-
-    // Transaction t = new Transaction();
-    // t.start();
-    // look(hf1, t, 1, true);
-    // look(hf1, t, 2, true);
-    // look(hf1, t, 3, false);
-    // look(hf1, t, 4, false);
-    // look(hf2, t, 21, true);
-    // look(hf2, t, 22, true);
-    // t.commit();
 }

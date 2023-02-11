@@ -9,7 +9,7 @@ use crate::{
     io::{Condensable, Vaporizable},
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
     pub fields: Vec<IntField>,
@@ -145,7 +145,13 @@ impl fmt::Display for Tuple {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl fmt::Debug for Tuple {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+#[derive(PartialEq)]
 pub struct WrappedTuple {
     internal: Tuple,
     slot_number: usize,
@@ -199,6 +205,12 @@ impl fmt::Display for WrappedTuple {
         content = content[..content.len() - 2].to_string();
         content.push_str(&"}");
         write!(f, "{}", content,)
+    }
+}
+
+impl fmt::Debug for WrappedTuple {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
     }
 }
 
