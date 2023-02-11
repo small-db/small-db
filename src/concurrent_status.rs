@@ -48,7 +48,7 @@ pub enum AcquireResult {
 pub struct ConcurrentStatus {
     s_lock_map: ConcurrentHashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: ConcurrentHashMap<BTreePageID, Transaction>,
-    hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
+    pub hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
     modification_lock: Arc<Mutex<()>>,
 }
 

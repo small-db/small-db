@@ -271,7 +271,17 @@ impl LogManager {
         self.file.seek(0)?;
         let last_checkpoint_position = self.file.read::<u64>()?;
         if last_checkpoint_position == NO_CHECKPOINT {
-            panic!("no checkpoint found");
+            // page_cache.discard_page(pid)
+            let hold_pages =
+                Unique::concurrent_status().hold_pages.get_inner_rl();
+            let pids = hold_pages.get(tx).unwrap();
+
+            for pid in pids {
+                page_cache.discard_page(pid);
+            }
+
+            return Ok(());
+            // panic!("no checkpoint found");
         }
 
         // step 2: seek to the start position of the checkpoint

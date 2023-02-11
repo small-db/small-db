@@ -56,6 +56,8 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     assert_true(look_for(table, &tx, key_1) == 1, table);
     assert_true(look_for(table, &tx, key_2) == 1, table);
 
+    Unique::mut_log_manager().show_log_contents();
+
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {
         panic!("abort failed: {}", e);
@@ -97,7 +99,6 @@ fn test_abort() {
     //
     // insert, abort: data should not be there
     // flush pages directly to heap file to defeat NO-STEAL policy
-
     commit_insert(&table, 1, 2);
     abort_insert(&table, 3, 4);
 
