@@ -151,3 +151,34 @@ fn test_abort_commit_interleaved() {
     assert_true(look_for(&table_2, &tx, 22) == 1, &table_2);
     tx.commit().unwrap();
 }
+
+#[test]
+fn test_abort_crash() {}
+
+//     @Test public void TestAbortCrash()
+//     throws IOException, DbException, TransactionAbortedException {
+// setup();
+// doInsert(hf1, 1, 2);
+
+// dontInsert(hf1, 4);
+
+// Transaction t = new Transaction();
+// t.start();
+// look(hf1, t, 1, true);
+// look(hf1, t, 2, true);
+// look(hf1, t, 3, false);
+// look(hf1, t, 4, false);
+// t.commit();
+
+// // *** Test:
+// // crash and recover: data should still not be there
+
+// crash();
+
+// t = new Transaction();
+// t.start();
+// look(hf1, t, 1, true);
+// look(hf1, t, 2, true);
+// look(hf1, t, 3, false);
+// look(hf1, t, 4, false);
+// t.commit();
