@@ -76,7 +76,7 @@ fn test_patch() {
     commit_insert(&table, 1, 2);
 
     // check that BufferPool.flushPage() calls LogFile.logWrite().
-    assert_true(Unique::log_file().records_count() == 5, &table);
+    assert_true(Unique::log_file().records_count() == 6, &table);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().

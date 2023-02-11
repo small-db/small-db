@@ -530,13 +530,8 @@ impl LogManager {
             self.get_file()
                 .set_len(0)
                 .or(Err(SmallError::new("set_len failed")))?;
-            self.get_file()
-                .seek(std::io::SeekFrom::Start(0))
-                .or(Err(SmallError::new("seek failed")))?;
+            self.file.seek(0)?;
             self.file.write(&NO_CHECKPOINT)?;
-            self.get_file()
-                .seek(std::io::SeekFrom::End(0))
-                .or(Err(SmallError::new("seek failed")))?;
             self.current_offset = self.file.get_current_position()?;
         }
 

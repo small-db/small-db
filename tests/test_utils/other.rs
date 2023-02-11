@@ -141,6 +141,8 @@ pub fn new_random_btree_table(
         rows,
     );
 
+    Unique::mut_log_manager().reset();
+
     return table_rc;
 }
 
