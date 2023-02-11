@@ -53,5 +53,6 @@ pub:
 
 clear:
 	rm out
+	rm *.svg
 	rm -rf *.db
 	rm -rf *.log
