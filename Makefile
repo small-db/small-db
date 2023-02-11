@@ -50,3 +50,8 @@ pub:
 	git push
 	cargo login
 	cargo publish
+
+clear:
+	rm out
+	rm -rf *.db
+	rm -rf *.log
