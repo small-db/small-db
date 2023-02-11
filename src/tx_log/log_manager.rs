@@ -56,7 +56,7 @@ impl RecordType {
 
 impl Condensable for RecordType {
     fn to_bytes(&self) -> Vec<u8> {
-        vec![*self as u8]
+        vec![*self.clone() as u8]
     }
 }
 
