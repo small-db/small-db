@@ -135,8 +135,8 @@ fn test_abort_commit_interleaved() {
 
     insert_row(&table_1, &tx_1, 4);
 
-    Unique::log_file().show_log_contents();
-    return;
+    // Unique::log_file().show_log_contents();
+    // return;
 
     tx_1.abort().unwrap();
 
@@ -150,7 +150,7 @@ fn test_abort_commit_interleaved() {
     assert_true(look_for(&table_2, &tx, 22) == 1, &table_2);
     tx.commit().unwrap();
 
-    Unique::log_file().show_log_contents();
+    // Unique::log_file().show_log_contents();
 
     // Transaction t1 = new Transaction();
     // t1.start();

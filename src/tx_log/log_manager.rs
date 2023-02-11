@@ -303,7 +303,6 @@ impl LogManager {
         }
 
         // step 4: seek to the start position of the transaction
-        self.show_log_contents();
         self.file.seek(tx_start_position)?;
 
         // step 5: read the log records of the transaction, stop when
@@ -311,7 +310,7 @@ impl LogManager {
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
             let record_type = self.file.read::<RecordType>()?;
-            debug!("record_type: {:?}", record_type);
+            // debug!("record_type: {:?}", record_type);
 
             match record_type {
                 RecordType::START => {
@@ -322,25 +321,38 @@ impl LogManager {
                     let _ = self.file.read::<u64>()?;
                 }
                 RecordType::UPDATE => {
-                    // skip the transaction id
-                    let _ = self.file.read::<u64>()?;
+                    let tid = self.file.read::<u64>()?;
+                    if tid == tx.get_id() {
+                        let pid = self.file.read::<BTreePageID>()?;
 
-                    let pid = self.file.read::<BTreePageID>()?;
-                    // page_cache.discard_page(&pid);
+                        // skip the before page
+                        let before_image = self.file.read_page()?;
+                        self.recover_page(
+                            &pid,
+                            &before_image,
+                            page_cache,
+                        )?;
 
-                    // skip the before page
-                    let before_image = self.file.read_page()?;
-                    self.recover_page(
-                        &pid,
-                        &before_image,
-                        page_cache,
-                    )?;
+                        // skip the after page
+                        let _ = self.read_page(&pid)?;
 
-                    // skip the after page
-                    let _ = self.read_page(&pid)?;
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    } else {
+                        // skip this record
 
-                    // skip the start position
-                    let _ = self.file.read::<u64>()?;
+                        // skip the page id
+                        let _ = self.file.read::<BTreePageID>()?;
+
+                        // skip the before page
+                        let _ = self.file.read_page()?;
+
+                        // skip the after page
+                        let _ = self.file.read_page()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    }
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id

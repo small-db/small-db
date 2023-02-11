@@ -372,7 +372,7 @@ impl PageCache {
             }
         }
 
-        debug!("flushing page {:?}", pid);
+        // debug!("flushing page {:?}", pid);
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
@@ -405,7 +405,7 @@ impl PageCache {
         let b = buffer.get_inner_wl();
         let page_pod = b.get(pid).unwrap().clone();
 
-        debug!("force flushing page {:?}", pid);
+        // debug!("force flushing page {:?}", pid);
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
