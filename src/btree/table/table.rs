@@ -1018,11 +1018,11 @@ impl BTreeTable {
 
         let mut it =
             BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc));
-        let first_tuple = it.next().unwrap();
+        let first_tuple = it.next();
 
         let page = page_rc.rl();
         let mut it = BTreeLeafPageIterator::new(&page);
-        let last_tuple = it.next_back().unwrap();
+        let last_tuple = it.next_back();
 
         if print_sibling {
             depiction.push_str(&format!(
@@ -1047,11 +1047,11 @@ impl BTreeTable {
 
         prefix = "│   ".repeat(level + 1);
         depiction.push_str(&format!(
-            "{}├── first tuple: {}\n",
+            "{}├── first tuple: {:?}\n",
             prefix, first_tuple
         ));
         depiction.push_str(&format!(
-            "{}└── last tuple:  {}\n",
+            "{}└── last tuple:  {:?}\n",
             prefix, last_tuple
         ));
 

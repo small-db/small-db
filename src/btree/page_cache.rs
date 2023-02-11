@@ -253,7 +253,7 @@ impl PageCache {
                 }
             }
 
-            log_manager.log_abort(tx, self).unwrap();
+            // log_manager.log_abort(tx, self).unwrap();
 
             return;
         }
@@ -283,9 +283,9 @@ impl PageCache {
             }
         }
 
-        if commit {
-            log_manager.log_commit(tx).unwrap();
-        }
+        // if commit {
+        //     log_manager.log_commit(tx).unwrap();
+        // }
     }
 
     fn set_before_image<PAGE: BTreePage>(
