@@ -77,6 +77,7 @@ fn test_merge_leaf_pages() {
     let mut it = BTreeTableIterator::new(&tx, &table);
     table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
     table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
+    tx.commit().unwrap();
 
     // confirm that the last two pages have merged successfully
     let root_pod = get_internal_page(&table, 0, 0);

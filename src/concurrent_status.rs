@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use log::debug;
+use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID,
@@ -48,7 +48,8 @@ pub enum AcquireResult {
 pub struct ConcurrentStatus {
     s_lock_map: ConcurrentHashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: ConcurrentHashMap<BTreePageID, Transaction>,
-    pub hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
+    pub hold_pages:
+        ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
     modification_lock: Arc<Mutex<()>>,
 }
 
@@ -85,7 +86,7 @@ impl ConcurrentStatus {
             sleep(std::time::Duration::from_millis(10));
         }
 
-        debug!(
+        error!(
             "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?},
         concurrent_status_map: {:?}",
             tx, lock, page_id, self,
