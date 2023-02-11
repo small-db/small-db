@@ -28,9 +28,9 @@ pub fn look_for(
 pub fn assert_true(predicate: bool, table: &BTreeTable) {
     if !predicate {
         error!("--- assertion failed, debug_info start ---");
+        Unique::log_file().show_log_contents();
         table.draw_tree(-1);
         table.check_integrity(true);
-        Unique::log_file().show_log_contents();
         error!("--- assertion failed, debug_info end ---");
         panic!("assertion failed");
     }

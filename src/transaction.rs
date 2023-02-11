@@ -60,7 +60,7 @@ impl Transaction {
         // Release locks and flush pages if needed
         //
         // release locks
-        Unique::mut_page_cache().tx_complete(self, commit);
+        page_cache.tx_complete(self, commit);
 
         // write commit log record
         if commit {

@@ -264,7 +264,7 @@ impl LogManager {
     fn rollback(
         &mut self,
         tx: &Transaction,
-        _page_cache: &PageCache,
+        page_cache: &PageCache,
     ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
@@ -326,10 +326,12 @@ impl LogManager {
                     let _ = self.file.read::<u64>()?;
 
                     let pid = self.file.read::<BTreePageID>()?;
-                    Unique::mut_page_cache().discard_page(&pid);
+                    page_cache.discard_page(&pid);
 
                     // skip the before page
-                    let _ = self.read_page(&pid)?;
+                    self.recover_page(&pid, page_cache)?;
+                    // let before_page = self.read_page(&pid)?;
+                    // page_cache.insert_page(&before_page);
 
                     // skip the after page
                     let _ = self.read_page(&pid)?;
@@ -361,9 +363,12 @@ impl LogManager {
                     // skip the start position
                     let _ = self.file.read::<u64>()?;
                 }
-                _ => {
-                    error!("invalid record type: {:?}", record_type);
-                    panic!("invalid record type");
+                RecordType::ABORT => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
                 }
             }
         }
@@ -390,6 +395,50 @@ impl LogManager {
         self.file.write(&after_data)?;
 
         return Ok(());
+    }
+
+    fn recover_page(
+        &mut self,
+        pid: &BTreePageID,
+        page_cache: &PageCache,
+    ) -> SmallResult {
+        let data = self.file.read_page()?;
+
+        let catalog = Unique::catalog();
+        let table_pod = catalog.get_table(&pid.table_id).unwrap();
+        let table = table_pod.rl();
+
+        let schema = table.get_tuple_scheme();
+        let key_field = table.key_field;
+
+        match pid.category {
+            PageCategory::Leaf => {
+                let page = BTreeLeafPage::new(
+                    &pid, &data, &schema, key_field,
+                );
+                // page_cache.insert_page(&Arc::new(RwLock::new(page)));
+                page_cache.recover_page(&pid);
+                todo!()
+            }
+            _ => {
+                todo!()
+            } // PageCategory::RootPointer => {
+              //     let page = BTreeRootPointerPage::new(
+              //         &pid, &data, &schema, key_field,
+              //     );
+              //     return Ok(Arc::new(RwLock::new(page)));
+              // }
+              // PageCategory::Internal => {
+              //     let page = BTreeInternalPage::new(
+              //         &pid, &data, &schema, key_field,
+              //     );
+              //     return Ok(Arc::new(RwLock::new(page)));
+              // }
+              // PageCategory::Header => {
+              //     let page = BTreeHeaderPage::new(&pid, &data);
+              //     return Ok(Arc::new(RwLock::new(page)));
+              // }
+        }
     }
 
     fn read_page(

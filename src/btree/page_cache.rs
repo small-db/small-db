@@ -7,7 +7,7 @@ use std::{
     },
 };
 
-use log::error;
+use log::{debug, error};
 
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
@@ -367,12 +367,68 @@ impl PageCache {
                     .log_update(&tx, page_pod.clone())
                     .unwrap();
             } else {
-                error!("no tx found for page {:?}", pid);
-                panic!();
+                // error!("no tx found for page {:?}", pid);
+                // panic!();
             }
         }
 
+        debug!("flushing page {:?}", pid);
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+    }
+
+    pub fn recover_page(&self, pid: &BTreePageID) {
+        // step 1: get table
+        let catalog = Unique::catalog();
+        let table_pod =
+            catalog.get_table(&pid.get_table_id()).unwrap();
+        let table = table_pod.read().unwrap();
+
+        match pid.category {
+            PageCategory::RootPointer => {
+                let b = self.root_pointer_buffer.get_inner_wl();
+                let page_pod = b.get(pid).unwrap().clone();
+                self.insert_page_dispatch(
+                    pid,
+                    &page_pod,
+                    &self.root_pointer_buffer,
+                );
+                self.force_flush_dispatch(
+                    pid,
+                    &table,
+                    &self.root_pointer_buffer,
+                    page_pod,
+                );
+            }
+            _ => {
+                error!("recovering page {:?} not supported", pid);
+                panic!();
+            }
+        }
+    }
+
+    // write a page to disk without write to WAL log
+    fn force_flush_dispatch<PAGE: BTreePage>(
+        &self,
+        pid: &BTreePageID,
+        table: &BTreeTable,
+        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        page_pod: Arc<RwLock<PAGE>>,
+    ) {
+        let b = buffer.get_inner_wl();
+        let page_pod = b.get(pid).unwrap().clone();
+
+        debug!("force flushing page {:?}", pid);
+        table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+    }
+
+    fn insert_page_dispatch<PAGE: BTreePage + ?Sized>(
+        &self,
+        pid: &BTreePageID,
+        page: &Arc<RwLock<PAGE>>,
+        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+    ) {
+        let mut b = buffer.get_inner_wl();
+        b.insert(pid.clone(), page.clone());
     }
 
     fn all_keys(&self) -> Vec<Key> {
