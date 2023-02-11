@@ -32,7 +32,7 @@ static START_RECORD_LEN: u64 = 17;
 ///
 /// TODO: add docs for `repr(u8)`
 /// #[repr(u8)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum RecordType {
     ABORT,
     COMMIT,
@@ -56,7 +56,7 @@ impl RecordType {
 
 impl Condensable for RecordType {
     fn to_bytes(&self) -> Vec<u8> {
-        vec![*self.clone() as u8]
+        vec![*self as u8]
     }
 }
 
