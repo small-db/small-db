@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use log::{debug, error};
+use log::error;
 
 use crate::{
     btree::page::BTreePageID,

@@ -7,8 +7,6 @@ use std::{
     },
 };
 
-use log::{debug, error};
-
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
     BTreePageID, BTreeRootPointerPage, PageCategory,
@@ -400,7 +398,7 @@ impl PageCache {
         pid: &BTreePageID,
         table: &BTreeTable,
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
-        page_pod: Arc<RwLock<PAGE>>,
+        _page_pod: Arc<RwLock<PAGE>>,
     ) {
         let b = buffer.get_inner_wl();
         let page_pod = b.get(pid).unwrap().clone();

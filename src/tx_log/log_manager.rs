@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, MutexGuard, RwLock},
 };
 
-use log::{debug, error};
+use log::debug;
 
 use crate::{
     btree::{
