@@ -326,12 +326,15 @@ impl LogManager {
                     let _ = self.file.read::<u64>()?;
 
                     let pid = self.file.read::<BTreePageID>()?;
-                    page_cache.discard_page(&pid);
+                    // page_cache.discard_page(&pid);
 
                     // skip the before page
-                    self.recover_page(&pid, page_cache)?;
-                    // let before_page = self.read_page(&pid)?;
-                    // page_cache.insert_page(&before_page);
+                    let before_image = self.file.read_page()?;
+                    self.recover_page(
+                        &pid,
+                        &before_image,
+                        page_cache,
+                    )?;
 
                     // skip the after page
                     let _ = self.read_page(&pid)?;
@@ -400,10 +403,9 @@ impl LogManager {
     fn recover_page(
         &mut self,
         pid: &BTreePageID,
+        before_image: &Vec<u8>,
         page_cache: &PageCache,
     ) -> SmallResult {
-        let data = self.file.read_page()?;
-
         let catalog = Unique::catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
@@ -414,31 +416,54 @@ impl LogManager {
         match pid.category {
             PageCategory::Leaf => {
                 let page = BTreeLeafPage::new(
-                    &pid, &data, &schema, key_field,
+                    &pid,
+                    &before_image,
+                    &schema,
+                    key_field,
                 );
-                // page_cache.insert_page(&Arc::new(RwLock::new(page)));
-                page_cache.recover_page(&pid);
-                todo!()
+                page_cache.recover_page(
+                    &pid,
+                    page,
+                    &page_cache.leaf_buffer,
+                );
             }
-            _ => {
-                todo!()
-            } // PageCategory::RootPointer => {
-              //     let page = BTreeRootPointerPage::new(
-              //         &pid, &data, &schema, key_field,
-              //     );
-              //     return Ok(Arc::new(RwLock::new(page)));
-              // }
-              // PageCategory::Internal => {
-              //     let page = BTreeInternalPage::new(
-              //         &pid, &data, &schema, key_field,
-              //     );
-              //     return Ok(Arc::new(RwLock::new(page)));
-              // }
-              // PageCategory::Header => {
-              //     let page = BTreeHeaderPage::new(&pid, &data);
-              //     return Ok(Arc::new(RwLock::new(page)));
-              // }
+            PageCategory::RootPointer => {
+                let page = BTreeRootPointerPage::new(
+                    &pid,
+                    &before_image,
+                    &schema,
+                    key_field,
+                );
+                page_cache.recover_page(
+                    &pid,
+                    page,
+                    &page_cache.root_pointer_buffer,
+                );
+            }
+            PageCategory::Internal => {
+                let page = BTreeInternalPage::new(
+                    &pid,
+                    &before_image,
+                    &schema,
+                    key_field,
+                );
+                page_cache.recover_page(
+                    &pid,
+                    page,
+                    &page_cache.internal_buffer,
+                );
+            }
+            PageCategory::Header => {
+                let page = BTreeHeaderPage::new(&pid, &before_image);
+                page_cache.recover_page(
+                    &pid,
+                    page,
+                    &page_cache.header_buffer,
+                );
+            }
         }
+
+        Ok(())
     }
 
     fn read_page(

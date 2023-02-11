@@ -27,7 +27,7 @@ pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct PageCache {
-    root_pointer_buffer: ConcurrentHashMap<
+    pub root_pointer_buffer: ConcurrentHashMap<
         BTreePageID,
         Arc<RwLock<BTreeRootPointerPage>>,
     >,
@@ -376,34 +376,22 @@ impl PageCache {
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
-    pub fn recover_page(&self, pid: &BTreePageID) {
+    pub fn recover_page<PAGE: BTreePage>(
+        &self,
+        pid: &BTreePageID,
+        page: PAGE,
+        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+    ) {
         // step 1: get table
         let catalog = Unique::catalog();
         let table_pod =
             catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
 
-        match pid.category {
-            PageCategory::RootPointer => {
-                let b = self.root_pointer_buffer.get_inner_wl();
-                let page_pod = b.get(pid).unwrap().clone();
-                self.insert_page_dispatch(
-                    pid,
-                    &page_pod,
-                    &self.root_pointer_buffer,
-                );
-                self.force_flush_dispatch(
-                    pid,
-                    &table,
-                    &self.root_pointer_buffer,
-                    page_pod,
-                );
-            }
-            _ => {
-                error!("recovering page {:?} not supported", pid);
-                panic!();
-            }
-        }
+        let page_pod = Arc::new(RwLock::new(page));
+
+        self.insert_page_dispatch(pid, &page_pod, buffer);
+        self.force_flush_dispatch(pid, &table, buffer, page_pod);
     }
 
     // write a page to disk without write to WAL log

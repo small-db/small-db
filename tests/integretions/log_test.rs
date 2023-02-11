@@ -133,6 +133,8 @@ fn test_abort_commit_interleaved() {
     insert_row(&table_2, &tx_2, 22);
     tx_2.commit().unwrap();
 
+    insert_row(&table_1, &tx_1, 4);
+
     tx_1.abort().unwrap();
 
     // verify the result
@@ -140,6 +142,9 @@ fn test_abort_commit_interleaved() {
     assert_true(look_for(&table_1, &tx, 1) == 1, &table_1);
     assert_true(look_for(&table_1, &tx, 2) == 1, &table_1);
     assert_true(look_for(&table_1, &tx, 3) == 0, &table_1);
+    assert_true(look_for(&table_1, &tx, 4) == 0, &table_1);
+    assert_true(look_for(&table_2, &tx, 21) == 1, &table_2);
+    assert_true(look_for(&table_2, &tx, 22) == 1, &table_2);
     tx.commit().unwrap();
 
     Unique::log_file().show_log_contents();
