@@ -47,7 +47,6 @@ fmt:
 	rustup run nightly cargo fmt
 
 pub:
-	git commit -v -a -m "update version and publish cargo"
 	git push
 	cargo login
 	cargo publish
