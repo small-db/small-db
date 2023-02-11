@@ -7,35 +7,35 @@ use small_db::{
         page_cache::PageCache,
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
+    transaction::Transaction,
     utils::{ceil_div, HandyRwLock},
     *,
 };
 
 use crate::test_utils::{
     assert_true, get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap, new_random_btree_table,
-    setup, TreeLayout,
+    internal_children_cap, leaf_records_cap, new_empty_btree_table,
+    new_random_btree_table, setup, TreeLayout, DB_DEFAULT_PATH,
 };
 
 #[test]
 fn test_insert_tuple() {
-    let ctx = setup();
+    setup();
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc =
+    let table_pod =
         new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
-    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
-    let table = table_rc.rl();
+    let table = table_pod.rl();
 
     let mut insert_value = 0;
 
     // write a fullfilled leaf page
     let mut insert_count = leaf_records_cap();
-    debug!("start insert, count: {}", insert_count);
+    let tx = Transaction::new();
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&ctx.tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
         insert_value += 1;
         assert_eq!(1, table.pages_count());
     }
@@ -43,10 +43,9 @@ fn test_insert_tuple() {
     // the next half-paged tuples should live on page 2 since they are
     // greater than all existing tuples in the file
     insert_count = ceil_div(leaf_records_cap(), 2);
-    debug!("start insert, count: {}", insert_count);
     for _ in 0..insert_count {
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&ctx.tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
         insert_value += 1;
 
         // there are 3 pages: 1 root page + 2 leaf pages
@@ -54,18 +53,19 @@ fn test_insert_tuple() {
     }
 
     // one more insert greater than 502 should cause page 2 to split
-    debug!("start insert, count: {}", 1);
     let tuple = Tuple::new_btree_tuple(insert_value, 2);
-    table.insert_tuple(&ctx.tx, &tuple).unwrap();
+    table.insert_tuple(&tx, &tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
     assert_true(table.pages_count() == 4, &table);
 
     // now make sure the records are sorted on the key field
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
+    let it = BTreeTableIterator::new(&tx, &table);
     for (i, tuple) in it.enumerate() {
         assert_eq!(i, tuple.get_field(0).value as usize);
     }
+
+    tx.commit().unwrap();
 }
 
 #[test]
