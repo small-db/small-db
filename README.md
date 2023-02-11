@@ -1,6 +1,7 @@
 # small-db
 
 [![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
+[![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
 A small database.
 
@@ -25,7 +26,6 @@ A small database.
 
 ```
 TODO:
-[![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FXiaochenCui%2Fsmall-db?ref=badge_large)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4128/badge)](https://bestpractices.coreinfrastructure.org/projects/4128)
 
