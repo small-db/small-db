@@ -2,9 +2,7 @@ use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    btree::page_cache::{self, PageCache},
-    types::SmallResult,
-    Unique,
+    btree::page_cache::PageCache, types::SmallResult, Unique,
 };
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);

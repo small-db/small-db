@@ -17,7 +17,7 @@ fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
 /// (There is a flush action in the middle of the transaction.)
 fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     // acquire x locks on page cache and log manager
-    let mut page_cache = Unique::mut_page_cache();
+    let page_cache = Unique::mut_page_cache();
     let mut log_manager = Unique::mut_log_manager();
 
     // step 1: start a transaction

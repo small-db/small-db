@@ -14,7 +14,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
-        page_cache::{self, PageCache},
+        page_cache::PageCache,
         tuple::small_int_schema,
     },
     error::SmallError,
@@ -264,7 +264,7 @@ impl LogManager {
     fn rollback(
         &mut self,
         tx: &Transaction,
-        page_cache: &PageCache,
+        _page_cache: &PageCache,
     ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
