@@ -52,7 +52,6 @@ pub:
 	cargo publish
 
 clear:
-	rm out
-	rm *.svg
+	rm -rf out
 	rm -rf *.db
 	rm -rf *.log
