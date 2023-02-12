@@ -4,8 +4,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, get_leaf_page, search_key, new_empty_btree_table,
-    new_random_btree_table, setup, TreeLayout,
+    assert_true, get_leaf_page, new_empty_btree_table,
+    new_random_btree_table, search_key, setup, TreeLayout,
 };
 
 fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
