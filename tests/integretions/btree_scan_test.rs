@@ -40,7 +40,7 @@ fn validate_scan(
 
 #[test]
 fn test_small() {
-    let _ctx = setup();
+    setup();
 
     let column_count_list: Vec<usize> = vec![1, 2, 3, 4, 5];
     let row_count_list: Vec<usize> =

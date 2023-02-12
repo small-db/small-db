@@ -226,7 +226,7 @@ fn test_split_root_page() {
 
 #[test]
 fn test_split_internal_page() {
-    let ctx = setup();
+    setup();
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
@@ -254,7 +254,8 @@ fn test_split_internal_page() {
 
     // now make sure we have enough records and they are all in sorted
     // order
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
+    let tx = Transaction::new();
+    let it = BTreeTableIterator::new(&tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
@@ -279,27 +280,17 @@ fn test_split_internal_page() {
     for _i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&ctx.tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
 
-        let predicate =
-            Predicate::new(Op::Equals, tuple.get_field(0));
-        let it = btree::table::BTreeTableSearchIterator::new(
-            &ctx.tx, &table, predicate,
+        assert_true(
+            search_key(&table, &tx, tuple.get_field(0).value) >= 1,
+            &table,
         );
-        let mut found = false;
-        for t in it {
-            if *t == tuple {
-                found = true;
-                break;
-            }
-        }
-
-        assert!(found);
     }
 
     // now make sure we have enough records and they are all in sorted
     // order
-    let it = BTreeTableIterator::new(&ctx.tx, &table);
+    let it = BTreeTableIterator::new(&tx, &table);
     let mut pre: i32 = i32::MIN;
     let mut count: usize = 0;
     for t in it {
@@ -317,4 +308,6 @@ fn test_split_internal_page() {
     }
 
     assert_eq!(count, row_count + rows_increment);
+
+    tx.commit().unwrap();
 }

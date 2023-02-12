@@ -21,10 +21,6 @@ use small_db::{
 
 pub const DB_DEFAULT_PATH: &str = "./btree.db";
 
-pub struct TestContext {
-    pub tx: Transaction,
-}
-
 /// # Conduct the initialization
 ///
 /// - Setting up log configurations.
@@ -32,14 +28,11 @@ pub struct TestContext {
 /// - Reset page size.
 ///
 /// TODO: remove return value
-pub fn setup() -> TestContext {
+pub fn setup() {
     utils::init_log();
     Unique::mut_page_cache().clear();
     PageCache::set_page_size(DEFAULT_PAGE_SIZE);
     Unique::mut_log_manager().reset();
-
-    let tx = Transaction::new();
-    return TestContext { tx };
 }
 
 #[derive(Clone, Copy, Debug)]
