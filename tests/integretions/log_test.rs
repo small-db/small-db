@@ -65,6 +65,21 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     // assert_true(tx.abort().is_ok(), table);
 }
 
+/// Simulate crash.
+/// 1. restart Database
+/// 2. run log recovery
+fn crash() {
+    todo!()
+}
+
+// void crash()
+//     throws IOException {
+//     Database.reset();
+//     hf1 = Utility.openHeapFile(2, file1);
+//     hf2 = Utility.openHeapFile(2, file2);
+//     Database.getLogFile().recover();
+// }
+
 #[test]
 fn test_patch() {
     setup();
@@ -153,32 +168,35 @@ fn test_abort_commit_interleaved() {
 }
 
 #[test]
-fn test_abort_crash() {}
+fn test_abort_crash() {
+    setup();
 
-//     @Test public void TestAbortCrash()
-//     throws IOException, DbException, TransactionAbortedException {
-// setup();
-// doInsert(hf1, 1, 2);
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_2 = table_pod_2.rl();
 
-// dontInsert(hf1, 4);
+    commit_insert(&table_1, 1, 2);
+    abort_insert(&table_1, 4, 5);
 
-// Transaction t = new Transaction();
-// t.start();
-// look(hf1, t, 1, true);
-// look(hf1, t, 2, true);
-// look(hf1, t, 3, false);
-// look(hf1, t, 4, false);
-// t.commit();
+    let tx = Transaction::new();
+    tx.start().unwrap();
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 5) == 0, &table_1);
+    tx.commit().unwrap();
 
-// // *** Test:
-// // crash and recover: data should still not be there
+    // crash and recover: data should still not be there
+    crash();
 
-// crash();
-
-// t = new Transaction();
-// t.start();
-// look(hf1, t, 1, true);
-// look(hf1, t, 2, true);
-// look(hf1, t, 3, false);
-// look(hf1, t, 4, false);
-// t.commit();
+    let tx = Transaction::new();
+    tx.start().unwrap();
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 5) == 0, &table_1);
+    tx.commit().unwrap();
+}

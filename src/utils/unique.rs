@@ -20,6 +20,8 @@ use crate::{
 /// kind of smark pointers / locks (e.g. `Arc`, `RwLock`), because
 /// they are used in concurrent environment, and it's hard, if not
 /// impossible, to acquire a exclusive lock in any context.
+/// 
+/// TODO: update this comment
 pub struct Unique {
     buffer_pool: Pod<PageCache>,
     catalog: Pod<Catalog>,
@@ -39,10 +41,6 @@ impl Unique {
         }
     }
 
-    // pub fn buffer_pool() -> &'static BufferPool {
-    //     &Self::global().buffer_pool
-    // }
-
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
         Self::global().buffer_pool.wl()
     }
@@ -50,10 +48,6 @@ impl Unique {
     pub fn buffer_pool_pod() -> Arc<RwLock<PageCache>> {
         Self::global().buffer_pool.clone()
     }
-
-    // pub fn buffer_pool() -> &'static BufferPool {
-    //     &Self::global().buffer_pool
-    // }
 
     pub fn concurrent_status() -> &'static ConcurrentStatus {
         &Self::global().concurrent_status

@@ -26,8 +26,7 @@ pub const DB_DEFAULT_PATH: &str = "./btree.db";
 /// - Setting up log configurations.
 /// - Clear buffer pool.
 /// - Reset page size.
-///
-/// TODO: remove return value
+/// - Reset log manager.
 pub fn setup() {
     utils::init_log();
     Unique::mut_page_cache().clear();
