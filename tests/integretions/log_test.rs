@@ -1,6 +1,6 @@
 use small_db::{
     btree::page::BTreePage, transaction::Transaction,
-    utils::HandyRwLock, BTreeTable, Tuple, Database,
+    utils::HandyRwLock, BTreeTable, Database, Tuple,
 };
 
 use crate::test_utils::{
@@ -69,6 +69,8 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
 /// 1. restart Database
 /// 2. run log recovery
 fn crash() {
+    // Database::reset();
+
     // todo!()
 }
 

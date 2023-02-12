@@ -31,6 +31,8 @@ pub struct Database {
     log_file: Pod<LogManager>,
 }
 
+static mut SINGLETON: *mut Database = 0 as *mut Database;
+
 impl Database {
     fn new() -> Self {
         Self {
@@ -40,6 +42,21 @@ impl Database {
             log_file: Arc::new(RwLock::new(LogManager::new(
                 "wal.log",
             ))),
+        }
+    }
+
+    /// Reset the database, used for unit tests only.
+    pub fn reset() {
+        unsafe {
+            // Drop the old database
+            let singleton = SINGLETON;
+            if !singleton.is_null() {
+                mem::drop(Box::from_raw(singleton));
+            }
+
+            // Make a new one
+            let singleton = Self::new();
+            SINGLETON = Box::into_raw(Box::new(singleton));
         }
     }
 
