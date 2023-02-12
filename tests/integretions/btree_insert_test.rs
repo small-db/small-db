@@ -52,7 +52,7 @@ fn test_insert_tuple() {
         assert_eq!(3, table.pages_count());
     }
 
-    // one more insert greater than 502 should cause page 2 to split
+    // one more insert should cause page 2 to split
     let tuple = Tuple::new_btree_tuple(insert_value, 2);
     table.insert_tuple(&tx, &tuple).unwrap();
 
