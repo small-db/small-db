@@ -2,7 +2,7 @@ use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    btree::page_cache::PageCache, types::SmallResult, Unique,
+    btree::page_cache::PageCache, types::SmallResult, Database,
 };
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -21,11 +21,11 @@ impl Transaction {
     }
 
     pub fn start(&self) -> SmallResult {
-        Unique::mut_log_manager().log_start(self)
+        Database::mut_log_manager().log_start(self)
     }
 
     pub fn commit(&self) -> SmallResult {
-        self.complete(true, &Unique::mut_page_cache())
+        self.complete(true, &Database::mut_page_cache())
     }
 
     pub fn manual_commit(
@@ -36,7 +36,7 @@ impl Transaction {
     }
 
     pub fn abort(&self) -> SmallResult {
-        self.complete(false, &Unique::mut_page_cache())
+        self.complete(false, &Database::mut_page_cache())
     }
 
     pub fn manual_abort(
@@ -54,7 +54,7 @@ impl Transaction {
         // write abort log record and rollback transaction
         if !commit {
             // does rollback too
-            Unique::mut_log_manager().log_abort(self, page_cache)?;
+            Database::mut_log_manager().log_abort(self, page_cache)?;
         }
 
         // Release locks and flush pages if needed
@@ -64,10 +64,10 @@ impl Transaction {
 
         // write commit log record
         if commit {
-            Unique::mut_log_manager().log_commit(self)?;
+            Database::mut_log_manager().log_commit(self)?;
         }
 
-        Unique::concurrent_status().release_lock_by_tx(self)?;
+        Database::concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, transaction::Transaction,
-    utils::HandyRwLock, Unique,
+    utils::HandyRwLock, Database,
 };
 
 use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
@@ -23,8 +23,8 @@ fn test_scan(rows: usize, columns: usize) {
     validate_scan(&mut it, &int_tuples);
 
     // TODO: find a better solution
-    Unique::mut_page_cache().clear();
-    Unique::concurrent_status().clear();
+    Database::mut_page_cache().clear();
+    Database::concurrent_status().clear();
 }
 
 fn validate_scan(

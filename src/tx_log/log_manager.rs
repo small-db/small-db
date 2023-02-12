@@ -22,7 +22,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    Unique,
+    Database,
 };
 
 static START_RECORD_LEN: u64 = 17;
@@ -195,7 +195,7 @@ impl LogManager {
 
     pub fn log_checkpoint(&mut self) -> SmallResult {
         // make sure we have buffer pool lock before proceeding
-        let cache = Unique::mut_page_cache();
+        let cache = Database::mut_page_cache();
 
         self.pre_append()?;
 
@@ -273,7 +273,7 @@ impl LogManager {
         if last_checkpoint_position == NO_CHECKPOINT {
             // page_cache.discard_page(pid)
             let hold_pages =
-                Unique::concurrent_status().hold_pages.get_inner_rl();
+                Database::concurrent_status().hold_pages.get_inner_rl();
             let pids = hold_pages.get(tx).unwrap();
 
             for pid in pids {
@@ -428,7 +428,7 @@ impl LogManager {
         before_image: &Vec<u8>,
         page_cache: &PageCache,
     ) -> SmallResult {
-        let catalog = Unique::catalog();
+        let catalog = Database::catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 
@@ -496,7 +496,7 @@ impl LogManager {
 
         let data = self.file.read_page()?;
 
-        let catalog = Unique::catalog();
+        let catalog = Database::catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 

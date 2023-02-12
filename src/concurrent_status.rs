@@ -14,7 +14,7 @@ use crate::{
     transaction::Transaction,
     types::{ConcurrentHashMap, SmallResult},
     utils::HandyRwLock,
-    Unique,
+    Database,
 };
 
 #[derive(Debug)]
@@ -77,7 +77,7 @@ impl ConcurrentStatus {
         let start_time = Instant::now();
         while Instant::now().duration_since(start_time).as_secs() < 3
         {
-            if Unique::concurrent_status()
+            if Database::concurrent_status()
                 .add_lock(tx, lock, page_id)?
             {
                 return Ok(());

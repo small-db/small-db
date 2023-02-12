@@ -29,9 +29,9 @@ pub const DB_DEFAULT_PATH: &str = "./btree.db";
 /// - Reset log manager.
 pub fn setup() {
     utils::init_log();
-    Unique::mut_page_cache().clear();
+    Database::mut_page_cache().clear();
     PageCache::set_page_size(DEFAULT_PAGE_SIZE);
-    Unique::mut_log_manager().reset();
+    Database::mut_log_manager().reset();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -48,7 +48,7 @@ pub fn new_empty_btree_table(
     let row_scheme = small_int_schema(columns, "");
     let table_rc =
         Arc::new(RwLock::new(BTreeTable::new(path, 0, &row_scheme)));
-    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
+    Database::mut_catalog().add_table(Arc::clone(&table_rc));
     return table_rc;
 }
 
@@ -77,7 +77,7 @@ pub fn new_random_btree_table(
         key_field,
         &row_scheme,
     )));
-    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
+    Database::mut_catalog().add_table(Arc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
@@ -133,7 +133,7 @@ pub fn new_random_btree_table(
         rows,
     );
 
-    Unique::mut_log_manager().reset();
+    Database::mut_log_manager().reset();
 
     return table_rc;
 }
@@ -165,7 +165,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let leaf_rc = Unique::mut_page_cache()
+        let leaf_rc = Database::mut_page_cache()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         leaves.push(leaf_rc.clone());
@@ -239,7 +239,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let internal_rc = Unique::mut_page_cache()
+        let internal_rc = Database::mut_page_cache()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         internals.push(internal_rc.clone());
@@ -307,7 +307,7 @@ fn write_internal_pages(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let root_rc = Unique::mut_page_cache()
+        let root_rc = Database::mut_page_cache()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
 
@@ -418,7 +418,7 @@ pub fn get_internal_page(
 ) -> Pod<BTreeInternalPage> {
     let tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
-    let root_pod = Unique::mut_page_cache()
+    let root_pod = Database::mut_page_cache()
         .get_internal_page(&tx, Permission::ReadOnly, &root_pid)
         .unwrap();
 
@@ -433,7 +433,7 @@ pub fn get_internal_page(
                     BTreeInternalPageIterator::new(&root_pod.rl())
                         .next()
                         .unwrap();
-                let left_child_rc = Unique::mut_page_cache()
+                let left_child_rc = Database::mut_page_cache()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -449,7 +449,7 @@ pub fn get_internal_page(
                         .skip(index - 1)
                         .next()
                         .unwrap();
-                let left_child_rc = Unique::mut_page_cache()
+                let left_child_rc = Database::mut_page_cache()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -473,7 +473,7 @@ pub fn get_leaf_page(
         0 => {
             let tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
-            let root_pod = Unique::mut_page_cache()
+            let root_pod = Database::mut_page_cache()
                 .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
                 .unwrap();
             tx.commit().unwrap();
@@ -487,7 +487,7 @@ pub fn get_leaf_page(
                 BTreeInternalPageIterator::new(&internal_pod.rl())
                     .next()
                     .unwrap();
-            let leaf_pod = Unique::mut_page_cache()
+            let leaf_pod = Database::mut_page_cache()
                 .get_leaf_page(
                     &tx,
                     Permission::ReadOnly,

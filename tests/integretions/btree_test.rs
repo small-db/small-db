@@ -7,7 +7,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Predicate, Tuple, Unique,
+    BTreeTable, Predicate, Tuple, Database,
 };
 
 use crate::test_utils::{
@@ -42,7 +42,7 @@ fn deleter(
     table_pod: &Pod<BTreeTable>,
     r: &crossbeam::channel::Receiver<Tuple>,
 ) {
-    let cs = Unique::concurrent_status();
+    let cs = Database::concurrent_status();
     debug!("concurrent_status: {:?}", cs);
 
     let tuple = r.recv().unwrap();
@@ -84,7 +84,7 @@ fn test_big_table() {
     );
     let table = table_pod.rl();
 
-    let cs = Unique::concurrent_status();
+    let cs = Database::concurrent_status();
     debug!("Concurrent status: {:?}", cs);
 
     debug!("Start insertion in multiple threads...");

@@ -18,7 +18,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::{floor_div, HandyRwLock},
-    Unique,
+    Database,
 };
 
 /// The internal page is used to store the keys and the page id of the
@@ -366,7 +366,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::mut_page_cache()
+        let parent_rc = Database::mut_page_cache()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();
@@ -384,7 +384,7 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Unique::mut_page_cache()
+        let parent_rc = Database::mut_page_cache()
             .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
             .unwrap();
         let parent = parent_rc.rl();

@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use super::HandyRwLock;
+use crate::utils::HandyRwLock;
 use crate::{
     btree::page_cache::PageCache,
     concurrent_status::ConcurrentStatus, tx_log::LogManager,
@@ -20,16 +20,18 @@ use crate::{
 /// kind of smark pointers / locks (e.g. `Arc`, `RwLock`), because
 /// they are used in concurrent environment, and it's hard, if not
 /// impossible, to acquire a exclusive lock in any context.
-/// 
+///
 /// TODO: update this comment
-pub struct Unique {
+///
+/// TODO: support multiple databases
+pub struct Database {
     buffer_pool: Pod<PageCache>,
     catalog: Pod<Catalog>,
     concurrent_status: ConcurrentStatus,
     log_file: Pod<LogManager>,
 }
 
-impl Unique {
+impl Database {
     fn new() -> Self {
         Self {
             buffer_pool: Arc::new(RwLock::new(PageCache::new())),
@@ -76,7 +78,7 @@ impl Unique {
 
     pub fn global() -> &'static Self {
         // Initialize it to a null value
-        static mut SINGLETON: *mut Unique = 0 as *mut Unique;
+        static mut SINGLETON: *mut Database = 0 as *mut Database;
         static ONCE: Once = Once::new();
 
         ONCE.call_once(|| {

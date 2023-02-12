@@ -18,7 +18,7 @@ use crate::{
     tx_log::LogManager,
     types::{ConcurrentHashMap, ResultPod},
     utils::HandyRwLock,
-    BTreeTable, Unique,
+    BTreeTable, Database,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -76,7 +76,7 @@ impl PageCache {
         PAGE: BTreePage,
     {
         // stage 1: get table
-        let catalog = Unique::catalog();
+        let catalog = Database::catalog();
         let v = catalog.get_table(&pid.get_table_id()).expect(
             &format!("table {} not found", pid.get_table_id()),
         );
@@ -120,7 +120,7 @@ impl PageCache {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        Unique::concurrent_status().request_lock(
+        Database::concurrent_status().request_lock(
             tx,
             &perm.to_lock(),
             key,
@@ -137,7 +137,7 @@ impl PageCache {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeHeaderPage> {
-        Unique::concurrent_status().request_lock(
+        Database::concurrent_status().request_lock(
             tx,
             &perm.to_lock(),
             key,
@@ -154,7 +154,7 @@ impl PageCache {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        Unique::concurrent_status().request_lock(
+        Database::concurrent_status().request_lock(
             tx,
             &perm.to_lock(),
             key,
@@ -171,7 +171,7 @@ impl PageCache {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        Unique::concurrent_status().request_lock(
+        Database::concurrent_status().request_lock(
             tx,
             &perm.to_lock(),
             key,
@@ -235,18 +235,18 @@ impl PageCache {
         log_manager: &mut LogManager,
     ) {
         for pid in self.all_keys() {
-            if Unique::concurrent_status().holds_lock(tx, &pid) {
+            if Database::concurrent_status().holds_lock(tx, &pid) {
                 self.flush_page(&pid, log_manager);
             }
         }
     }
 
     pub fn tx_complete(&self, tx: &Transaction, commit: bool) {
-        let mut log_manager = Unique::mut_log_manager();
+        let mut log_manager = Database::mut_log_manager();
 
         if !commit {
             for pid in self.all_keys() {
-                if Unique::concurrent_status().holds_lock(tx, &pid) {
+                if Database::concurrent_status().holds_lock(tx, &pid) {
                     self.discard_page(&pid);
                 }
             }
@@ -304,7 +304,7 @@ impl PageCache {
         log_manager: &mut LogManager,
     ) {
         // stage 1: get table
-        let catalog = Unique::catalog();
+        let catalog = Database::catalog();
         let table_pod =
             catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
@@ -359,7 +359,7 @@ impl PageCache {
         {
             // TODO: get tx from somewhere
             if let Some(tx) =
-                Unique::concurrent_status().get_page_tx(pid)
+                Database::concurrent_status().get_page_tx(pid)
             {
                 log_manager
                     .log_update(&tx, page_pod.clone())
@@ -381,7 +381,7 @@ impl PageCache {
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         // step 1: get table
-        let catalog = Unique::catalog();
+        let catalog = Database::catalog();
         let table_pod =
             catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();

@@ -1,6 +1,6 @@
 use small_db::{
     btree::page::BTreePage, transaction::Transaction,
-    utils::HandyRwLock, BTreeTable, Tuple, Unique,
+    utils::HandyRwLock, BTreeTable, Tuple, Database,
 };
 
 use crate::test_utils::{
@@ -31,14 +31,14 @@ fn commit_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     // let page_cache = Unique::mut_page_cache();
     // let mut log_manager = Unique::mut_log_manager();
     // page_cache.flush_all_pages(&mut log_manager);
-    Unique::mut_page_cache()
-        .flush_all_pages(&mut Unique::mut_log_manager());
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);
 
     // step 5: commit the transaction
-    tx.manual_commit(&Unique::mut_page_cache()).unwrap();
+    tx.manual_commit(&Database::mut_page_cache()).unwrap();
 }
 
 /// Insert two tuples into the table, then abort the transaction.
@@ -56,7 +56,7 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     assert_true(search_key(table, &tx, key_1) == 1, table);
     assert_true(search_key(table, &tx, key_2) == 1, table);
 
-    Unique::mut_log_manager().show_log_contents();
+    Database::mut_log_manager().show_log_contents();
 
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {
@@ -93,7 +93,7 @@ fn test_patch() {
     commit_insert(&table, 1, 2);
 
     // check that BufferPool.flushPage() calls LogFile.logWrite().
-    assert_true(Unique::log_file().records_count() == 6, &table);
+    assert_true(Database::log_file().records_count() == 6, &table);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().
@@ -145,7 +145,7 @@ fn test_abort_commit_interleaved() {
     let tx_2 = Transaction::new();
     tx_2.start().unwrap();
     insert_row(&table_2, &tx_2, 21);
-    Unique::mut_log_manager().log_checkpoint().unwrap();
+    Database::mut_log_manager().log_checkpoint().unwrap();
     insert_row(&table_2, &tx_2, 22);
     tx_2.commit().unwrap();
 
