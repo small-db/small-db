@@ -15,7 +15,8 @@ pub fn key_present(
     it.next().is_some()
 }
 
-pub fn look_for(
+// Search for a key in the table and return the number of records.
+pub fn search_key(
     table: &BTreeTable,
     tx: &Transaction,
     key: i32,

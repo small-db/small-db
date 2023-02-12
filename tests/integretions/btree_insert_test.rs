@@ -15,7 +15,8 @@ use small_db::{
 use crate::test_utils::{
     assert_true, get_internal_page, get_leaf_page, insert_tuples,
     internal_children_cap, leaf_records_cap, new_empty_btree_table,
-    new_random_btree_table, setup, TreeLayout, DB_DEFAULT_PATH,
+    new_random_btree_table, search_key, setup, TreeLayout,
+    DB_DEFAULT_PATH,
 };
 
 #[test]
@@ -70,43 +71,43 @@ fn test_insert_tuple() {
 
 #[test]
 fn test_insert_duplicate_tuples() {
-    let ctx = setup();
+    setup();
 
     // create an empty B+ tree file keyed on the second field of a
     // 2-field tuple
     let table_rc =
         new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
-    Unique::mut_catalog().add_table(Arc::clone(&table_rc));
     let table = table_rc.rl();
 
     // add a bunch of identical tuples
+    let tx = Transaction::new();
     let repetition_count = 600;
     for i in 0..5 {
         for _ in 0..repetition_count {
             let tuple = Tuple::new_btree_tuple(i, 2);
-            table.insert_tuple(&ctx.tx, &tuple).unwrap();
+            table.insert_tuple(&tx, &tuple).unwrap();
         }
     }
 
     // now search for some ranges and make sure we find all the tuples
     let predicate =
         Predicate::new(Op::Equals, field::IntField::new(1));
-    let it =
-        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
         Predicate::new(Op::GreaterThanOrEq, field::IntField::new(2));
-    let it =
-        BTreeTableSearchIterator::new(&ctx.tx, &table, predicate);
+    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
     let predicate =
         Predicate::new(Op::LessThan, field::IntField::new(2));
     let it = btree::table::BTreeTableSearchIterator::new(
-        &ctx.tx, &table, predicate,
+        &tx, &table, predicate,
     );
     assert_eq!(it.count(), repetition_count * 2);
+
+    tx.commit().unwrap();
 }
 
 #[test]
@@ -154,7 +155,7 @@ fn test_split_leaf_page() {
 
 #[test]
 fn test_split_root_page() {
-    let ctx = setup();
+    setup();
 
     // This should create a B+ tree which the second tier is packed.
     let row_count = internal_children_cap() * leaf_records_cap();
@@ -207,27 +208,20 @@ fn test_split_root_page() {
     );
 
     // now insert some random tuples and make sure we can find them
+    let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i32::MAX);
         let tuple = Tuple::new_btree_tuple(insert_value, 2);
-        table.insert_tuple(&ctx.tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
 
-        let predicate =
-            Predicate::new(Op::Equals, tuple.get_field(0));
-        let it = btree::table::BTreeTableSearchIterator::new(
-            &ctx.tx, &table, predicate,
+        assert_true(
+            search_key(&table, &tx, tuple.get_field(0).value) >= 1,
+            &table,
         );
-        let mut found = false;
-        for t in it {
-            if *t == tuple {
-                found = true;
-                break;
-            }
-        }
-
-        assert!(found);
     }
+
+    tx.commit().unwrap();
 }
 
 #[test]

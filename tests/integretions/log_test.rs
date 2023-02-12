@@ -4,7 +4,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, get_leaf_page, look_for, new_empty_btree_table,
+    assert_true, get_leaf_page, search_key, new_empty_btree_table,
     new_random_btree_table, setup, TreeLayout,
 };
 
@@ -53,8 +53,8 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     insert_row(&table, &tx, key_2);
 
     // step 3: search for the tuples
-    assert_true(look_for(table, &tx, key_1) == 1, table);
-    assert_true(look_for(table, &tx, key_2) == 1, table);
+    assert_true(search_key(table, &tx, key_1) == 1, table);
+    assert_true(search_key(table, &tx, key_2) == 1, table);
 
     Unique::mut_log_manager().show_log_contents();
 
@@ -103,10 +103,10 @@ fn test_abort() {
     abort_insert(&table, 3, 4);
 
     let tx = Transaction::new();
-    assert_true(look_for(&table, &tx, 1) == 1, &table);
-    assert_true(look_for(&table, &tx, 2) == 1, &table);
-    assert_true(look_for(&table, &tx, 3) == 0, &table);
-    assert_true(look_for(&table, &tx, 4) == 0, &table);
+    assert_true(search_key(&table, &tx, 1) == 1, &table);
+    assert_true(search_key(&table, &tx, 2) == 1, &table);
+    assert_true(search_key(&table, &tx, 3) == 0, &table);
+    assert_true(search_key(&table, &tx, 4) == 0, &table);
     tx.commit().unwrap();
 }
 
@@ -143,12 +143,12 @@ fn test_abort_commit_interleaved() {
 
     // verify the result
     let tx = Transaction::new();
-    assert_true(look_for(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(look_for(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(look_for(&table_1, &tx, 3) == 0, &table_1);
-    assert_true(look_for(&table_1, &tx, 4) == 0, &table_1);
-    assert_true(look_for(&table_2, &tx, 21) == 1, &table_2);
-    assert_true(look_for(&table_2, &tx, 22) == 1, &table_2);
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
+    assert_true(search_key(&table_2, &tx, 21) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, 22) == 1, &table_2);
     tx.commit().unwrap();
 }
 
