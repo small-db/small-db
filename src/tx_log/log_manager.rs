@@ -128,7 +128,7 @@ impl LogManager {
     }
 
     pub fn recover(&mut self) {
-        todo!()
+        // todo!()
     }
 
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {

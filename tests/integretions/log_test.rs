@@ -56,8 +56,6 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     assert_true(search_key(table, &tx, key_1) == 1, table);
     assert_true(search_key(table, &tx, key_2) == 1, table);
 
-    Database::mut_log_manager().show_log_contents();
-
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {
         panic!("abort failed: {}", e);
