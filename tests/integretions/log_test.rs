@@ -69,9 +69,11 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
 /// 1. restart Database
 /// 2. run log recovery
 fn crash() {
-    // Database::reset();
+    Database::reset();
 
     // todo!()
+
+    Database::mut_log_manager().recover();
 }
 
 // void crash()

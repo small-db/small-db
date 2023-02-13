@@ -127,6 +127,10 @@ impl LogManager {
         self.file.get_file()
     }
 
+    pub fn recover(&mut self) {
+        todo!()
+    }
+
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {
         self.pre_append()?;
 
@@ -272,8 +276,9 @@ impl LogManager {
         let last_checkpoint_position = self.file.read::<u64>()?;
         if last_checkpoint_position == NO_CHECKPOINT {
             // page_cache.discard_page(pid)
-            let hold_pages =
-                Database::concurrent_status().hold_pages.get_inner_rl();
+            let hold_pages = Database::concurrent_status()
+                .hold_pages
+                .get_inner_rl();
             let pids = hold_pages.get(tx).unwrap();
 
             for pid in pids {
