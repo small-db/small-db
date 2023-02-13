@@ -1174,7 +1174,7 @@ impl BTreeTable {
             root_summary.right_ptr,
         );
 
-        tx.commit();
+        tx.commit().unwrap();
     }
 
     /// panic on any error found.
