@@ -1,13 +1,7 @@
-
-
-
-
 use small_db::{
-    btree::{
-        page::{
-            BTreeInternalPage, BTreeInternalPageIterator,
-            BTreeLeafPage, BTreePage,
-        },
+    btree::page::{
+        BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
+        BTreePage,
     },
     concurrent_status::Permission,
     transaction::Transaction,

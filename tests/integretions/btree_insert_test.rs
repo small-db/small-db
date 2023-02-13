@@ -1,6 +1,3 @@
-
-
-
 use rand::Rng;
 use small_db::{
     btree::{

@@ -5,9 +5,8 @@ use rand::prelude::*;
 use small_db::{
     btree::{
         page::{
-            BTreeInternalPage,
-            BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
-            BTreePageID, Entry,
+            BTreeInternalPage, BTreeLeafPage,
+            BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
         },
         page_cache::{PageCache, DEFAULT_PAGE_SIZE},
         tuple::Schema,
