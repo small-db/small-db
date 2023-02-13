@@ -7,7 +7,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Predicate, Tuple, Database,
+    BTreeTable, Database, Predicate, Tuple,
 };
 
 use crate::test_utils::{

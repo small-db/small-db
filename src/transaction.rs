@@ -54,7 +54,8 @@ impl Transaction {
         // write abort log record and rollback transaction
         if !commit {
             // does rollback too
-            Database::mut_log_manager().log_abort(self, page_cache)?;
+            Database::mut_log_manager()
+                .log_abort(self, page_cache)?;
         }
 
         // Release locks and flush pages if needed

@@ -246,7 +246,8 @@ impl PageCache {
 
         if !commit {
             for pid in self.all_keys() {
-                if Database::concurrent_status().holds_lock(tx, &pid) {
+                if Database::concurrent_status().holds_lock(tx, &pid)
+                {
                     self.discard_page(&pid);
                 }
             }

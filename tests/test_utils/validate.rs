@@ -1,7 +1,7 @@
 use log::error;
 use small_db::{
     btree::table::BTreeTableSearchIterator, field::IntField,
-    transaction::Transaction, BTreeTable, Op, Predicate, Database,
+    transaction::Transaction, BTreeTable, Database, Op, Predicate,
 };
 
 pub fn key_present(

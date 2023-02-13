@@ -33,7 +33,7 @@ use crate::{
     transaction::Transaction,
     types::{ResultPod, SmallResult},
     utils::{lock_state, HandyRwLock},
-    Op, Predicate, Database,
+    Database, Op, Predicate,
 };
 
 enum SearchFor {

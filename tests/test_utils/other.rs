@@ -403,10 +403,6 @@ pub fn leaf_records_cap() -> usize {
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 
-pub fn internal_entries_cap() -> usize {
-    BTreeInternalPage::get_children_cap(4)
-}
-
 pub fn internal_children_cap() -> usize {
     BTreeInternalPage::get_children_cap(4) + 1
 }

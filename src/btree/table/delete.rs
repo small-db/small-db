@@ -1,6 +1,5 @@
 use std::{
     cmp,
-    io::Write,
     ops::DerefMut,
     sync::{Arc, RwLock},
     usize,
