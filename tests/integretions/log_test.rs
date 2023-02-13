@@ -175,22 +175,82 @@ fn test_abort_crash() {
 
     let table_pod_1 = new_empty_btree_table("table_1.db", 2);
     let table_1 = table_pod_1.rl();
-    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
-    let _table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
     abort_insert(&table_1, 4, 5);
 
-    let tx = Transaction::new();
-    tx.start().unwrap();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 5) == 0, &table_1);
-    tx.commit().unwrap();
+    fn check(table: &BTreeTable) {
+        let tx = Transaction::new();
+        tx.start().unwrap();
+        assert_true(search_key(&table, &tx, 1) == 1, &table);
+        assert_true(search_key(&table, &tx, 2) == 1, &table);
+        assert_true(search_key(&table, &tx, 3) == 0, &table);
+        assert_true(search_key(&table, &tx, 4) == 0, &table);
+        assert_true(search_key(&table, &tx, 5) == 0, &table);
+        tx.commit().unwrap();
+    }
+
+    check(&table_1);
 
     // crash and recover: data should still not be there
+    crash();
+
+    check(&table_1);
+}
+
+#[test]
+fn test_commit_abort_commit_crash() {
+    setup();
+
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+
+    commit_insert(&table_1, 1, 2);
+
+    // T1 inserts and commits
+    // T2 inserts but aborts
+    // T3 inserts and commits
+    // only T1 and T3 data should be there
+
+    commit_insert(&table_1, 5, 6);
+    abort_insert(&table_1, 7, 8);
+    commit_insert(&table_1, 9, 10);
+
+    fn check(table: &BTreeTable) {
+        let tx = Transaction::new();
+        tx.start().unwrap();
+        assert_true(search_key(&table, &tx, 1) == 1, &table);
+        assert_true(search_key(&table, &tx, 2) == 1, &table);
+        assert_true(search_key(&table, &tx, 3) == 0, &table);
+        assert_true(search_key(&table, &tx, 4) == 0, &table);
+        assert_true(search_key(&table, &tx, 5) == 1, &table);
+        assert_true(search_key(&table, &tx, 6) == 1, &table);
+        assert_true(search_key(&table, &tx, 7) == 0, &table);
+        assert_true(search_key(&table, &tx, 8) == 0, &table);
+        assert_true(search_key(&table, &tx, 9) == 1, &table);
+        assert_true(search_key(&table, &tx, 10) == 1, &table);
+        tx.commit().unwrap();
+    }
+
+    check(&table_1);
+
+    // crash: should not change visible data
+    crash();
+
+    check(&table_1);
+}
+
+#[test]
+fn test_commit_crash() {
+    setup();
+
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+
+    // insert, crash, recover: data should still be there
+
+    commit_insert(&table_1, 1, 2);
+
     crash();
 
     let tx = Transaction::new();
@@ -198,7 +258,74 @@ fn test_abort_crash() {
     assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 5) == 0, &table_1);
     tx.commit().unwrap();
 }
+
+#[test]
+/// Skip this test since it's aimed at testing the heap-file implementation.
+fn test_flush_all() {}
+
+#[test]
+fn test_open_commit_checkpoint_open_crash() {
+    setup();
+
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+
+    commit_insert(&table_1, 1, 2);
+
+    // T1 inserts but does not commit
+    // T2 inserts and commits
+    // checkpoint
+    // T3 inserts but does not commit
+    // crash
+    // only T2 data should be there
+}
+
+// @Test public void TestOpenCommitCheckpointOpenCrash()
+// throws IOException, DbException, TransactionAbortedException {
+// setup();
+// doInsert(hf1, 1, 2);
+
+// // *** Test:
+// // T1 inserts but does not commit
+// // T2 inserts and commits
+// // checkpoint
+// // T3 inserts but does not commit
+// // crash
+// // only T2 data should be there
+
+// Transaction t1 = new Transaction();
+// t1.start();
+// insertRow(hf1, t1, 12);
+// Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
+// insertRow(hf1, t1, 13);
+
+// // T2 commits
+// doInsert(hf2, 26, 27);
+
+// Database.getLogFile().logCheckpoint();
+
+// Transaction t3 = new Transaction();
+// t3.start();
+// insertRow(hf2, t3, 28);
+// Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
+// insertRow(hf2, t3, 29);
+
+// crash();
+
+// Transaction t = new Transaction();
+// t.start();
+// look(hf1, t, 1, true);
+// look(hf1, t, 12, false);
+// look(hf1, t, 13, false);
+// look(hf2, t, 22, false);
+// look(hf2, t, 23, false);
+// look(hf2, t, 24, false);
+// look(hf2, t, 25, false);
+// look(hf2, t, 26, true);
+// look(hf2, t, 27, true);
+// look(hf2, t, 28, false);
+// look(hf2, t, 29, false);
+// t.commit();
+// }

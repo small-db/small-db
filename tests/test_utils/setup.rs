@@ -397,3 +397,14 @@ fn get_buckets(
 
     table
 }
+
+pub fn open_btree_table(
+    path: &str,
+    columns: usize,
+) -> Arc<RwLock<BTreeTable>> {
+    let row_scheme = small_int_schema(columns, "");
+    let table_rc =
+        Arc::new(RwLock::new(BTreeTable::new(path, 0, &row_scheme)));
+    Database::mut_catalog().add_table(Arc::clone(&table_rc));
+    return table_rc;
+}
