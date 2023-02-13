@@ -5,7 +5,7 @@ use rand::prelude::*;
 use small_db::{
     btree::{
         page::{
-            BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeInternalPage,
             BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage,
             BTreePageID, Entry,
         },
@@ -14,7 +14,6 @@ use small_db::{
     },
     concurrent_status::Permission,
     transaction::Transaction,
-    types::Pod,
     utils::{small_int_schema, HandyRwLock},
     *,
 };

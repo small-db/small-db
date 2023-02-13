@@ -176,7 +176,7 @@ fn test_abort_crash() {
     let table_pod_1 = new_empty_btree_table("table_1.db", 2);
     let table_1 = table_pod_1.rl();
     let table_pod_2 = new_empty_btree_table("table_2.db", 2);
-    let table_2 = table_pod_2.rl();
+    let _table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
     abort_insert(&table_1, 4, 5);

@@ -1,6 +1,6 @@
-use std::sync::Arc;
 
-use log::debug;
+
+
 use rand::Rng;
 use small_db::{
     btree::{
