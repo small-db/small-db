@@ -87,8 +87,9 @@ impl ConcurrentStatus {
         }
 
         error!(
-            "acquire_lock timeout, tx: {}, lock: {:?}, page_id: {:?},
-        concurrent_status_map: {:?}",
+            "acquire_lock timeout
+            request: <tx: {}, lock: {:?}, page_id: {:?}>
+            concurrent_status_map: {:?}",
             tx, lock, page_id, self,
         );
 

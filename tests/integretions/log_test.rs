@@ -69,8 +69,6 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
 fn crash() {
     Database::reset();
 
-    // todo!()
-
     Database::mut_log_manager().recover();
 }
 
@@ -280,6 +278,32 @@ fn test_open_commit_checkpoint_open_crash() {
     // T3 inserts but does not commit
     // crash
     // only T2 data should be there
+
+    let t1 = Transaction::new();
+    t1.start().unwrap();
+    insert_row(&table_1, &t1, 12);
+
+    // defeat NO-STEAL-based abort (why?)
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+
+    insert_row(&table_1, &t1, 13);
+
+    crash();
+
+    let tx = Transaction::new();
+    tx.start().unwrap();
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 12) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 13) == 0, &table_1);
+    tx.commit().unwrap();
+
+    // Transaction t1 = new Transaction();
+    // t1.start();
+    // insertRow(hf1, t1, 12);
+    // Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
+    // insertRow(hf1, t1, 13);
 }
 
 // @Test public void TestOpenCommitCheckpointOpenCrash()

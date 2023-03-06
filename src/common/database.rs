@@ -47,15 +47,11 @@ impl Database {
     /// Reset the database, used for unit tests only.
     pub fn reset() {
         unsafe {
-            // Drop the old database
-            let singleton = SINGLETON;
-            if !singleton.is_null() {
-                mem::drop(Box::from_raw(singleton));
-            }
-
-            // Make a new one
-            let singleton = Self::new();
-            SINGLETON = Box::into_raw(Box::new(singleton));
+            let singleton: &mut Database =
+                SINGLETON.as_mut().unwrap();
+            singleton.buffer_pool =
+                Arc::new(RwLock::new(PageCache::new()));
+            singleton.concurrent_status = ConcurrentStatus::new();
         }
     }
 
@@ -94,7 +90,7 @@ impl Database {
 
     pub fn global() -> &'static Self {
         // Initialize it to a null value
-        static mut SINGLETON: *mut Database = 0 as *mut Database;
+        // static mut SINGLETON: *mut Database = 0 as *mut Database;
         static ONCE: Once = Once::new();
 
         ONCE.call_once(|| {
