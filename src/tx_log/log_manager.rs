@@ -1,7 +1,8 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{Read, Seek, Write},
+    mem::size_of,
     sync::{Arc, MutexGuard, RwLock},
 };
 
@@ -127,8 +128,224 @@ impl LogManager {
         self.file.get_file()
     }
 
-    pub fn recover(&mut self) {
-        // todo!()
+    /**
+    Recover the database system by ensuring that the updates of
+    committed transactions are installed and that the
+    updates of uncommitted transactions are not installed.
+
+    When the database system restarts after the crash, recovery proceeds in
+    three phases:
+
+    1. The analysis phase identifies dirty pages in the page cache and
+    transactions that were in progress at the time of a crash.
+    Information about dirty pages is used to identify the starting point
+    for the redo phase. A list of in-progress transactions is used during
+    the undo phase to roll back incomplete transactions.
+
+    2. The redo phase repeats the history up to the point of a crash and
+    restores the database to the previous state. This phase is done for
+    incomplete transactions as well as ones that were committed but
+    whose contents weren’t flushed to persistent storage.
+
+    3. The undo phase rolls back all incomplete transactions and restores
+    the database to the last consistent state. All operations are rolled
+    back in reverse chronological order. In case the database crashes
+    again during recovery, operations that undo transactions are
+    logged as well to avoid repeating them.
+    */
+    pub fn recover(&mut self) -> SmallResult {
+        // undo phase
+
+        // get all incomplete transactions (transactions that have
+        // started but not committed or aborted at the time of the
+        // crash)
+        let incomplete_transactions =
+            self.get_incomplete_transactions()?;
+        debug!(
+            "incomplete transactions: {:?}",
+            incomplete_transactions
+        );
+
+        self.get_file()
+            .seek(std::io::SeekFrom::End(0))
+            .or(Err(SmallError::new("io error")))?;
+
+        debug!(
+            "current offset: {}",
+            self.file.get_current_position()?
+        );
+
+        while self.file.get_current_position()? >= START_RECORD_LEN {
+            let word_size = size_of::<u64>() as i64;
+            self.get_file()
+                .seek(std::io::SeekFrom::Current(-word_size))
+                .or(Err(SmallError::new("io error")))?;
+
+            let record_start_pos = self.file.read::<u64>()?;
+            self.file.seek(record_start_pos)?;
+            let record_type = self.file.read::<RecordType>()?;
+
+            match record_type {
+                RecordType::START => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::UPDATE => {
+                    let tid = self.file.read::<u64>()?;
+
+                    if incomplete_transactions.contains(&tid) {
+                        // skip the page id
+                        let pid = self.file.read::<BTreePageID>()?;
+
+                        // skip the before page
+                        let before_page = self.file.read_page()?;
+
+                        // TODO: construct a new page from the before page
+                        let catalog = Database::catalog();
+                        let table_pod =
+                            catalog.get_table(&pid.table_id).ok_or(
+                                SmallError::new("table not found"),
+                            )?;
+                        let table = table_pod.rl();
+                        table.write_page_to_disk(&pid, &before_page);
+
+                        // skip the after page
+                        let _ = self.file.read_page()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    } else {
+                        // skip the page id
+                        let _ = self.file.read::<BTreePageID>()?;
+
+                        // skip the before page
+                        let _ = self.file.read_page()?;
+
+                        // skip the after page
+                        let _ = self.file.read_page()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    }
+                }
+                RecordType::CHECKPOINT => {
+                    // skip the checkpoint id
+                    let _ = self.file.read::<i64>()?;
+
+                    // skip the list of outstanding transactions
+                    let tx_count = self.file.read::<usize>()?;
+                    for _ in 0..tx_count {
+                        // skip the transaction id
+                        let _ = self.file.read::<u64>()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    }
+
+                    // skip the current offset
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::COMMIT => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::ABORT => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+            }
+
+            // in the end, seek to the start of the record
+            self.file.seek(record_start_pos)?;
+        }
+
+        Ok(())
+    }
+
+    fn get_incomplete_transactions(
+        &self,
+    ) -> Result<HashSet<u64>, SmallError> {
+        self.file.seek(0)?;
+        let last_checkpoint_position = self.file.read::<u64>()?;
+        if last_checkpoint_position != NO_CHECKPOINT {
+            todo!()
+        }
+
+        let mut incomplete_transactions = HashSet::new();
+
+        // step 5: read the log records, stop when we encounter the EOF
+        let file_size = self.file.get_size()?;
+        while self.file.get_current_position()? < file_size {
+            let record_type = self.file.read::<RecordType>()?;
+
+            match record_type {
+                RecordType::START => {
+                    let tid = self.file.read::<u64>()?;
+                    incomplete_transactions.insert(tid);
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::UPDATE => {
+                    // skip the transaction id
+                    let _ = self.file.read::<u64>()?;
+
+                    // skip the page id
+                    let _ = self.file.read::<BTreePageID>()?;
+
+                    // skip the before page
+                    let _ = self.file.read_page()?;
+
+                    // skip the after page
+                    let _ = self.file.read_page()?;
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::CHECKPOINT => {
+                    // skip the checkpoint id
+                    let _ = self.file.read::<i64>()?;
+
+                    // skip the list of outstanding transactions
+                    let tx_count = self.file.read::<usize>()?;
+                    for _ in 0..tx_count {
+                        // skip the transaction id
+                        let _ = self.file.read::<u64>()?;
+
+                        // skip the start position
+                        let _ = self.file.read::<u64>()?;
+                    }
+
+                    // skip the current offset
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::COMMIT => {
+                    let tid = self.file.read::<u64>()?;
+                    incomplete_transactions.remove(&tid);
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+                RecordType::ABORT => {
+                    let tid = self.file.read::<u64>()?;
+                    incomplete_transactions.remove(&tid);
+
+                    // skip the start position
+                    let _ = self.file.read::<u64>()?;
+                }
+            }
+        }
+
+        Ok(incomplete_transactions)
     }
 
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {
@@ -286,7 +503,6 @@ impl LogManager {
             }
 
             return Ok(());
-            // panic!("no checkpoint found");
         }
 
         // step 2: seek to the start position of the checkpoint
@@ -416,9 +632,6 @@ impl LogManager {
         let before_data = page.get_before_image();
         self.file.write(&before_data.len())?;
         self.file.write(&before_data)?;
-
-        // let page = page_pod.read().unwrap();
-        // self.file.write(&page.get_pid())?;
 
         let after_data = page.get_page_data();
         self.file.write(&after_data.len())?;
@@ -762,7 +975,7 @@ impl LogManager {
                 let iter = page.iter();
                 // let content = iter.take(3).collect::<Vec<_>>();
                 let content = iter
-                    .take(3)
+                    .take(5)
                     .map(|x| x.fields[0].to_string())
                     .collect::<Vec<_>>();
 

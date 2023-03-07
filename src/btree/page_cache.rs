@@ -301,7 +301,6 @@ impl PageCache {
     fn flush_page(
         &self,
         pid: &BTreePageID,
-
         log_manager: &mut LogManager,
     ) {
         // stage 1: get table

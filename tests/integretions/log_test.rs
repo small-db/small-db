@@ -69,7 +69,7 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
 fn crash() {
     Database::reset();
 
-    Database::mut_log_manager().recover();
+    Database::mut_log_manager().recover().unwrap();
 }
 
 // void crash()
@@ -283,11 +283,17 @@ fn test_open_commit_checkpoint_open_crash() {
     t1.start().unwrap();
     insert_row(&table_1, &t1, 12);
 
-    // defeat NO-STEAL-based abort (why?)
+    // defeat NO-STEAL-based abort
+    // (since ARIES is a steal/no-force recovery algorithm, we simulate
+    // the "steal" scenario here by flushing the buffer pool)
     Database::mut_page_cache()
         .flush_all_pages(&mut Database::mut_log_manager());
 
     insert_row(&table_1, &t1, 13);
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+
+    insert_row(&table_1, &t1, 14);
 
     crash();
 
@@ -297,6 +303,7 @@ fn test_open_commit_checkpoint_open_crash() {
     assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, 12) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 13) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 14) == 0, &table_1);
     tx.commit().unwrap();
 
     // Transaction t1 = new Transaction();
