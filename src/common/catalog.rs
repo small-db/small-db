@@ -3,7 +3,11 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::{btree::tuple::Schema, utils::HandyRwLock, BTreeTable};
+use crate::{
+    btree::tuple::{small_int_schema, Schema},
+    utils::HandyRwLock,
+    BTreeTable,
+};
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
@@ -20,6 +24,11 @@ impl Catalog {
     }
 
     pub fn load_schema(&mut self, catalog_file_path: &str) {
+        let catalog_schema = small_int_schema(3, "catalog");
+
+        let catalog_table =
+            BTreeTable::new(catalog_file_path, 0, &catalog_schema);
+
         todo!()
     }
 

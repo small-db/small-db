@@ -88,18 +88,14 @@ impl BTreeTable {
         key_field: usize,
         row_scheme: &Schema,
     ) -> Self {
-        File::create(file_path).expect("io error");
-
         let f = Mutex::new(
             OpenOptions::new()
                 .write(true)
                 .read(true)
+                .create(true)
                 .open(file_path)
                 .unwrap(),
         );
-
-        // let file_size = f.rl().metadata().unwrap().len() as usize;
-        // debug!("btree initialized, file size: {}", file_size);
 
         let mut hasher = DefaultHasher::new();
         file_path.hash(&mut hasher);
