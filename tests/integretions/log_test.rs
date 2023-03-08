@@ -72,14 +72,6 @@ fn crash() {
     Database::mut_log_manager().recover().unwrap();
 }
 
-// void crash()
-//     throws IOException {
-//     Database.reset();
-//     hf1 = Utility.openHeapFile(2, file1);
-//     hf2 = Utility.openHeapFile(2, file2);
-//     Database.getLogFile().recover();
-// }
-
 #[test]
 fn test_patch() {
     setup();
