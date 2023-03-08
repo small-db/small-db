@@ -6,6 +6,10 @@ pub struct Schema {
 }
 
 impl Schema {
+    pub fn new(fields: Vec<FieldItem>) -> Schema {
+        Schema { fields }
+    }
+
     pub fn merge(scheme1: Schema, scheme2: Schema) -> Schema {
         let mut new_scheme = Schema {
             ..Default::default()

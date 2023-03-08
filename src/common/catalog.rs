@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::{
+    field::{FieldItem, Type},
     storage::schema::{small_int_schema, Schema},
     utils::HandyRwLock,
     BTreeTable,
@@ -24,7 +25,16 @@ impl Catalog {
     }
 
     pub fn load_schema(&mut self, catalog_file_path: &str) {
-        let catalog_schema = small_int_schema(3, "catalog");
+        // let catalog_schema = small_int_schema(3, "catalog");
+
+        let catalog_schema = Schema {
+            fields: vec![
+                FieldItem::new("table_id", Type::INT),
+                // FieldItem::new("table_id", Type::INT),
+                // FieldItem::new("table_name", Type::VARCHAR),
+                // FieldItem::new("table_path", Type::VARCHAR),
+            ],
+        };
 
         let catalog_table =
             BTreeTable::new(catalog_file_path, 0, &catalog_schema);

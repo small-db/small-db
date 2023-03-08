@@ -5,6 +5,7 @@ use crate::{
     Op,
 };
 
+// TODO: add CHAR type
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     INT,
@@ -18,8 +19,17 @@ pub fn get_type_length(t: Type) -> usize {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FieldItem {
-    pub field_type: Type,
     pub field_name: String,
+    pub field_type: Type,
+}
+
+impl FieldItem {
+    pub fn new(field_name: &str, field_type: Type) -> FieldItem {
+        FieldItem {
+            field_type,
+            field_name: field_name.to_string(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]
