@@ -183,7 +183,7 @@ impl LogManager {
 
             let record_start_pos = self.file.read::<u64>()?;
             self.file.seek(record_start_pos)?;
-            debug!("record start pos: {}", record_start_pos);
+            // debug!("record start pos: {}", record_start_pos);
             let record_type = self.file.read::<RecordType>()?;
 
             match record_type {
@@ -478,15 +478,13 @@ impl LogManager {
         self.get_file().seek(std::io::SeekFrom::Start(0)).unwrap();
         self.file.write(&checkpoint_start_position)?;
 
-        // TODO: Figure out what this is used for, and if it's needed.
         self.get_file()
             .seek(std::io::SeekFrom::Start(checkpoint_end_position))
             .unwrap();
-        // TODO: why write self.current_offset instead of
-        // checkpoint_end_position?
-        self.file.write(&self.current_offset)?;
 
-        self.current_offset = checkpoint_end_position;
+        // write start position of this record
+        self.file.write(&checkpoint_start_position)?;
+        self.current_offset = self.file.get_current_position()?;
 
         return Ok(());
     }

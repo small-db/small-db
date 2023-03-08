@@ -319,9 +319,14 @@ fn test_open_commit_checkpoint_open_crash() {
     assert_true(search_key(&table_1, &tx, 12) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 13) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 14) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 26) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 27) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 28) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 29) == 0, &table_1);
+
+    assert_true(search_key(&table_2, &tx, 22) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 23) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 24) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 25) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 26) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, 27) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, 28) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 29) == 0, &table_2);
     tx.commit().unwrap();
 }
