@@ -383,43 +383,61 @@ fn test_open_commit_open_crash() {
     tx.commit().unwrap();
 }
 
-// @Test public void TestOpenCommitOpenCrash()
-//             throws IOException, DbException, TransactionAbortedException {
-//         setup();
-//         doInsert(hf1, 1, 2);
+#[test]
+fn test_open_crash() {
+    setup();
 
-//         // *** Test:
-//         // T1 inserts but does not commit
-//         // T2 inserts and commits
-//         // T3 inserts but does not commit
-//         // crash
-//         // only T2 data should be there
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
 
-//         Transaction t1 = new Transaction();
-//         t1.start();
-//         insertRow(hf1, t1, 10);
-//         Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
-//         insertRow(hf1, t1, 11);
+    commit_insert(&table_1, 1, 2);
 
-//         // T2 commits
-//         doInsert(hf2, 22, 23);
+    // T1 inserts but does not commit
+    // crash
+    // no data should not be there
 
-//         Transaction t3 = new Transaction();
-//         t3.start();
-//         insertRow(hf2, t3, 24);
-//         Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
-//         insertRow(hf2, t3, 25);
+    let tx_1 = Transaction::new();
+    tx_1.start().unwrap();
+    insert_row(&table_1, &tx_1, 8);
+    // something to UNDO (what?)
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+    insert_row(&table_1, &tx_1, 9);
 
-//         crash();
+    crash();
 
-//         Transaction t = new Transaction();
-//         t.start();
-//         look(hf1, t, 1, true);
-//         look(hf1, t, 10, false);
-//         look(hf1, t, 11, false);
-//         look(hf2, t, 22, true);
-//         look(hf2, t, 23, true);
-//         look(hf2, t, 24, false);
-//         look(hf2, t, 25, false);
-//         t.commit();
-//     }
+    let tx = Transaction::new();
+    tx.start().unwrap();
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 8) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 9) == 0, &table_1);
+    tx.commit().unwrap();
+}
+
+
+// @Test public void TestOpenCrash()
+// throws IOException, DbException, TransactionAbortedException {
+// setup();
+// doInsert(hf1, 1, 2);
+
+// // *** Test:
+// // insert but no commit
+// // crash
+// // data should not be there
+
+// Transaction t = new Transaction();
+// t.start();
+// insertRow(hf1, t, 8);
+// Database.getBufferPool().flushAllPages(); // XXX something to UNDO
+// insertRow(hf1, t, 9);
+
+// crash();
+
+// t = new Transaction();
+// t.start();
+// look(hf1, t, 1, true);
+// look(hf1, t, 8, false);
+// look(hf1, t, 9, false);
+// t.commit();
+// }
