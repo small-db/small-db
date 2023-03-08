@@ -18,12 +18,11 @@ pub struct SmallFile {
 
 impl SmallFile {
     pub fn new(file_path: &str) -> Self {
-        File::create(file_path).expect("io error");
-
         let f = Mutex::new(
             OpenOptions::new()
                 .write(true)
                 .read(true)
+                .create(true)
                 .open(file_path)
                 .unwrap(),
         );

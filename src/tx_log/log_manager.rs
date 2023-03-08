@@ -90,17 +90,26 @@ pub struct LogManager {
     /// TODO: Figure out what this is used for, and if it's needed.
     total_records: usize,
 
-    /// Migrated from java version.
-    ///
     /// no call to recover() and no append to log
-    ///
-    /// TODO: Figure out what this is used for, and if it's needed.
     recovery_undecided: bool,
 
     file_path: String,
 }
 
 impl LogManager {
+    /**
+    Constructor.
+
+    Initialize and back the log file with the specified file.
+
+    We're not sure yet whether the caller is creating a brand new DB,
+    in which case we should ignore the log file, or whether the caller
+    will eventually want to recover (after populating the Catalog).
+
+    So we make this decision lazily: if someone calls recover(), then
+    do it, while if someone starts adding log file entries, then first
+    throw out the initial log file contents.
+    */
     pub fn new(file_path: &str) -> Self {
         Self {
             tx_start_position: HashMap::new(),
@@ -154,6 +163,8 @@ impl LogManager {
     logged as well to avoid repeating them.
     */
     pub fn recover(&mut self) -> SmallResult {
+        self.recovery_undecided = false;
+
         // undo phase
 
         // get all incomplete transactions (transactions that have

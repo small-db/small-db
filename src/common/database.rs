@@ -6,8 +6,10 @@ use std::{
 use crate::{
     btree::page_cache::PageCache,
     concurrent_status::ConcurrentStatus, tx_log::LogManager,
-    types::Pod, utils::HandyRwLock, Catalog,
+    types::Pod, utils::HandyRwLock,
 };
+
+use super::Catalog;
 
 /// We collect all global variables here.
 ///
@@ -46,12 +48,14 @@ impl Database {
 
     /// Reset the database, used for unit tests only.
     pub fn reset() {
+        mem::drop(unsafe { Box::from_raw(SINGLETON) });
+
+        // Make it
+        let singleton = Self::new();
+
         unsafe {
-            let singleton: &mut Database =
-                SINGLETON.as_mut().unwrap();
-            singleton.buffer_pool =
-                Arc::new(RwLock::new(PageCache::new()));
-            singleton.concurrent_status = ConcurrentStatus::new();
+            // Put it in the heap so it can outlive this call
+            SINGLETON = mem::transmute(Box::new(singleton));
         }
     }
 

@@ -32,6 +32,8 @@ pub fn setup() {
     Database::mut_page_cache().clear();
     PageCache::set_page_size(DEFAULT_PAGE_SIZE);
     Database::mut_log_manager().reset();
+
+    Database::reset();
 }
 
 #[derive(Clone, Copy, Debug)]

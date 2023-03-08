@@ -3,8 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use super::{table::BTreeTable, tuple::Schema};
-use crate::utils::HandyRwLock;
+use crate::{btree::tuple::Schema, utils::HandyRwLock, BTreeTable};
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
