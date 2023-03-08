@@ -23,7 +23,7 @@ impl<T: ?Sized> HandyRwLock<T> for RwLock<T> {
     }
 }
 
-pub use crate::{utils::init_log};
+pub use crate::utils::init_log;
 
 pub fn lock_state<T>(lock: impl Deref<Target = RwLock<T>>) -> String {
     let is_read: bool = lock.try_read().is_err();

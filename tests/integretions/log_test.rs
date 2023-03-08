@@ -252,7 +252,8 @@ fn test_commit_crash() {
 }
 
 #[test]
-/// Skip this test since it's designed to test the heap-file implementation.
+/// Skip this test since it's designed to test the heap-file
+/// implementation.
 fn test_flush_all() {}
 
 #[test]
@@ -278,8 +279,9 @@ fn test_open_commit_checkpoint_open_crash() {
     insert_row(&table_1, &t1, 12);
 
     // defeat NO-STEAL-based abort
-    // (since ARIES is a steal/no-force recovery algorithm, we simulate
-    // the "steal" scenario here by flushing the buffer pool)
+    // (since ARIES is a steal/no-force recovery algorithm, we
+    // simulate the "steal" scenario here by flushing the buffer
+    // pool)
     Database::mut_page_cache()
         .flush_all_pages(&mut Database::mut_log_manager());
 
@@ -367,7 +369,7 @@ fn test_open_commit_open_crash() {
     assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, 10) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 11) == 0, &table_1);
-     
+
     assert_true(search_key(&table_2, &tx, 22) == 1, &table_2);
     assert_true(search_key(&table_2, &tx, 23) == 1, &table_2);
     assert_true(search_key(&table_2, &tx, 24) == 0, &table_2);
@@ -406,7 +408,6 @@ fn test_open_crash() {
     assert_true(search_key(&table_1, &tx, 9) == 0, &table_1);
     tx.commit().unwrap();
 }
-
 
 // @Test public void TestOpenCrash()
 // throws IOException, DbException, TransactionAbortedException {

@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Read, Seek, Write},
     mem::size_of,
     sync::{Arc, MutexGuard, RwLock},
 };
@@ -97,19 +97,19 @@ pub struct LogManager {
 }
 
 impl LogManager {
-    /**
-    Constructor.
-
-    Initialize and back the log file with the specified file.
-
-    We're not sure yet whether the caller is creating a brand new DB,
-    in which case we should ignore the log file, or whether the caller
-    will eventually want to recover (after populating the Catalog).
-
-    So we make this decision lazily: if someone calls recover(), then
-    do it, while if someone starts adding log file entries, then first
-    throw out the initial log file contents.
-    */
+    /// Constructor.
+    ///
+    /// Initialize and back the log file with the specified file.
+    ///
+    /// We're not sure yet whether the caller is creating a brand new
+    /// DB, in which case we should ignore the log file, or
+    /// whether the caller will eventually want to recover (after
+    /// populating the Catalog).
+    ///
+    /// So we make this decision lazily: if someone calls recover(),
+    /// then do it, while if someone starts adding log file
+    /// entries, then first throw out the initial log file
+    /// contents.
     pub fn new(file_path: &str) -> Self {
         Self {
             tx_start_position: HashMap::new(),
@@ -137,31 +137,32 @@ impl LogManager {
         self.file.get_file()
     }
 
-    /**
-    Recover the database system by ensuring that the updates of
-    committed transactions are installed and that the
-    updates of uncommitted transactions are not installed.
-
-    When the database system restarts after the crash, recovery proceeds in
-    three phases:
-
-    1. The analysis phase identifies dirty pages in the page cache and
-    transactions that were in progress at the time of a crash.
-    Information about dirty pages is used to identify the starting point
-    for the redo phase. A list of in-progress transactions is used during
-    the undo phase to roll back incomplete transactions.
-
-    2. The redo phase repeats the history up to the point of a crash and
-    restores the database to the previous state. This phase is done for
-    incomplete transactions as well as ones that were committed but
-    whose contents weren’t flushed to persistent storage.
-
-    3. The undo phase rolls back all incomplete transactions and restores
-    the database to the last consistent state. All operations are rolled
-    back in reverse chronological order. In case the database crashes
-    again during recovery, operations that undo transactions are
-    logged as well to avoid repeating them.
-    */
+    /// Recover the database system by ensuring that the updates of
+    /// committed transactions are installed and that the
+    /// updates of uncommitted transactions are not installed.
+    ///
+    /// When the database system restarts after the crash, recovery
+    /// proceeds in three phases:
+    ///
+    /// 1. The analysis phase identifies dirty pages in the page cache
+    /// and transactions that were in progress at the time of a
+    /// crash. Information about dirty pages is used to identify
+    /// the starting point for the redo phase. A list of
+    /// in-progress transactions is used during the undo phase to
+    /// roll back incomplete transactions.
+    ///
+    /// 2. The redo phase repeats the history up to the point of a
+    /// crash and restores the database to the previous state.
+    /// This phase is done for incomplete transactions as well as
+    /// ones that were committed but whose contents weren’t
+    /// flushed to persistent storage.
+    ///
+    /// 3. The undo phase rolls back all incomplete transactions and
+    /// restores the database to the last consistent state. All
+    /// operations are rolled back in reverse chronological order.
+    /// In case the database crashes again during recovery,
+    /// operations that undo transactions are logged as well to
+    /// avoid repeating them.
     pub fn recover(&mut self) -> SmallResult {
         self.recovery_undecided = false;
 
@@ -215,7 +216,8 @@ impl LogManager {
                         // skip the before page
                         let before_page = self.file.read_page()?;
 
-                        // TODO: construct a new page from the before page
+                        // TODO: construct a new page from the before
+                        // page
                         let catalog = Database::catalog();
                         let table_pod =
                             catalog.get_table(&pid.table_id).ok_or(
@@ -320,7 +322,8 @@ impl LogManager {
             let _ = self.file.read::<u64>()?;
         }
 
-        // step 5: read the log records, stop when we encounter the EOF
+        // step 5: read the log records, stop when we encounter the
+        // EOF
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
             let record_type = self.file.read::<RecordType>()?;

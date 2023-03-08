@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     field::{FieldItem, Type},
-    storage::schema::{small_int_schema, Schema},
+    storage::schema::Schema,
     utils::HandyRwLock,
     BTreeTable,
 };
@@ -36,7 +36,7 @@ impl Catalog {
             ],
         };
 
-        let catalog_table =
+        let _catalog_table =
             BTreeTable::new(catalog_file_path, 0, &catalog_schema);
 
         todo!()

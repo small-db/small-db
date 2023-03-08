@@ -4,13 +4,12 @@ use std::{
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+use super::Catalog;
 use crate::{
     btree::page_cache::PageCache,
     concurrent_status::ConcurrentStatus, tx_log::LogManager,
     types::Pod, utils::HandyRwLock,
 };
-
-use super::Catalog;
 
 /// We collect all global variables here.
 ///

@@ -8,17 +8,16 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::{
-        consts::INDEX_SIZE, page_cache::PageCache,
-    },
+    btree::{consts::INDEX_SIZE, page_cache::PageCache},
     concurrent_status::Permission,
     error::SmallError,
     field::{get_type_length, IntField},
     io::{SmallReader, SmallWriter, Vaporizable},
+    storage::schema::Schema,
     transaction::Transaction,
     types::SmallResult,
     utils::{floor_div, HandyRwLock},
-    Database, storage::schema::Schema,
+    Database,
 };
 
 /// The internal page is used to store the keys and the page id of the

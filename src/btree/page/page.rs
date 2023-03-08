@@ -1,6 +1,5 @@
-use crate::storage::schema::Schema;
-
 use super::BTreePageID;
+use crate::storage::schema::Schema;
 
 pub trait BTreePage {
     fn new(
