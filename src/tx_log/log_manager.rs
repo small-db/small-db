@@ -183,6 +183,7 @@ impl LogManager {
 
             let record_start_pos = self.file.read::<u64>()?;
             self.file.seek(record_start_pos)?;
+            debug!("record start pos: {}", record_start_pos);
             let record_type = self.file.read::<RecordType>()?;
 
             match record_type {
@@ -276,11 +277,37 @@ impl LogManager {
     ) -> Result<HashSet<u64>, SmallError> {
         self.file.seek(0)?;
         let last_checkpoint_position = self.file.read::<u64>()?;
-        if last_checkpoint_position != NO_CHECKPOINT {
-            todo!()
-        }
 
         let mut incomplete_transactions = HashSet::new();
+
+        if last_checkpoint_position != NO_CHECKPOINT {
+            self.show_log_contents();
+            self.file.seek(last_checkpoint_position)?;
+
+            // check the record type
+            let record_type = self.file.read::<RecordType>()?;
+            if record_type != RecordType::CHECKPOINT {
+                return Err(SmallError::new(
+                    "invalid checkpoint record type",
+                ));
+            }
+
+            // skip the checkpoint id
+            let _ = self.file.read::<i64>()?;
+
+            // read the list of outstanding transactions
+            let tx_count = self.file.read::<usize>()?;
+            for _ in 0..tx_count {
+                let tid = self.file.read::<u64>()?;
+                incomplete_transactions.insert(tid);
+
+                // skip the start position
+                let _ = self.file.read::<u64>()?;
+            }
+
+            // skip the start position
+            let _ = self.file.read::<u64>()?;
+        }
 
         // step 5: read the log records, stop when we encounter the EOF
         let file_size = self.file.get_size()?;
@@ -325,7 +352,7 @@ impl LogManager {
                         let _ = self.file.read::<u64>()?;
                     }
 
-                    // skip the current offset
+                    // skip the start position
                     let _ = self.file.read::<u64>()?;
                 }
                 RecordType::COMMIT => {
@@ -929,7 +956,7 @@ impl LogManager {
                     let checkpoint_end_position: u64 =
                         self.file.read().unwrap();
                     depiction.push_str(&format!(
-                        "│   └── [8 bytes] weird position: {}\n",
+                        "│   └── [8 bytes] start position: {}\n",
                         checkpoint_end_position,
                     ));
                 }

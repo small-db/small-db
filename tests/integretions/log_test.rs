@@ -269,6 +269,8 @@ fn test_open_commit_checkpoint_open_crash() {
 
     let table_pod_1 = new_empty_btree_table("table_1.db", 2);
     let table_1 = table_pod_1.rl();
+    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
 
@@ -295,6 +297,19 @@ fn test_open_commit_checkpoint_open_crash() {
 
     insert_row(&table_1, &t1, 14);
 
+    // T2 commits
+    commit_insert(&table_2, 26, 27);
+
+    Database::mut_log_manager().log_checkpoint().unwrap();
+
+    let tx_3 = Transaction::new();
+    tx_3.start().unwrap();
+    insert_row(&table_2, &tx_3, 28);
+    // defeat NO-STEAL-based abort
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+    insert_row(&table_2, &tx_3, 29);
+
     crash();
 
     let tx = Transaction::new();
@@ -304,59 +319,9 @@ fn test_open_commit_checkpoint_open_crash() {
     assert_true(search_key(&table_1, &tx, 12) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 13) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, 14) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 26) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 27) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 28) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 29) == 0, &table_1);
     tx.commit().unwrap();
-
-    // Transaction t1 = new Transaction();
-    // t1.start();
-    // insertRow(hf1, t1, 12);
-    // Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
-    // insertRow(hf1, t1, 13);
 }
-
-// @Test public void TestOpenCommitCheckpointOpenCrash()
-// throws IOException, DbException, TransactionAbortedException {
-// setup();
-// doInsert(hf1, 1, 2);
-
-// // *** Test:
-// // T1 inserts but does not commit
-// // T2 inserts and commits
-// // checkpoint
-// // T3 inserts but does not commit
-// // crash
-// // only T2 data should be there
-
-// Transaction t1 = new Transaction();
-// t1.start();
-// insertRow(hf1, t1, 12);
-// Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
-// insertRow(hf1, t1, 13);
-
-// // T2 commits
-// doInsert(hf2, 26, 27);
-
-// Database.getLogFile().logCheckpoint();
-
-// Transaction t3 = new Transaction();
-// t3.start();
-// insertRow(hf2, t3, 28);
-// Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
-// insertRow(hf2, t3, 29);
-
-// crash();
-
-// Transaction t = new Transaction();
-// t.start();
-// look(hf1, t, 1, true);
-// look(hf1, t, 12, false);
-// look(hf1, t, 13, false);
-// look(hf2, t, 22, false);
-// look(hf2, t, 23, false);
-// look(hf2, t, 24, false);
-// look(hf2, t, 25, false);
-// look(hf2, t, 26, true);
-// look(hf2, t, 27, true);
-// look(hf2, t, 28, false);
-// look(hf2, t, 29, false);
-// t.commit();
-// }
