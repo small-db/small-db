@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::{Read, Seek, Write},
+    io::{Read, Seek, SeekFrom, Write},
     mem::size_of,
     sync::{Arc, MutexGuard, RwLock},
 };
@@ -366,8 +366,10 @@ impl LogManager {
                     let tid = self.file.read::<u64>()?;
                     incomplete_transactions.remove(&tid);
 
+                    self.show_log_contents();
+
                     // skip the start position
-                    let _ = self.file.read::<u64>()?;
+                    let _ = self.file.read::<u64>().unwrap();
                 }
             }
         }
@@ -792,6 +794,9 @@ impl LogManager {
     }
 
     pub fn show_log_contents(&self) {
+        let original_offset =
+            self.file.get_current_position().unwrap();
+
         let mut depiction = String::new();
 
         {
@@ -981,6 +986,8 @@ impl LogManager {
         }
 
         debug!("log content: \n{}", depiction);
+
+        self.file.seek(original_offset).unwrap();
     }
 
     fn parsed_page_content(&self, bytes: &[u8]) -> String {
