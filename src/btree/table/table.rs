@@ -679,7 +679,7 @@ impl BTreeTable {
         self.file.lock().unwrap()
     }
 
-    /// init file in necessary
+    /// Initialize the data file when it is necessary.
     fn file_init(
         mut file: impl DerefMut<Target = File>,
         table_inex: u32,
