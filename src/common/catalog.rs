@@ -19,6 +19,10 @@ impl Catalog {
         }
     }
 
+    pub fn load_schema(&mut self, catalog_file_path: &str) {
+        todo!()
+    }
+
     pub fn get_table(&self, table_index: &Key) -> Option<&Value> {
         self.map.get(table_index)
     }
@@ -39,5 +43,8 @@ impl Catalog {
 
     pub fn add_table(&mut self, file: Value) {
         self.map.insert(file.rl().get_id(), Arc::clone(&file));
+
+        // TODO: write to catalog file
+        todo!()
     }
 }

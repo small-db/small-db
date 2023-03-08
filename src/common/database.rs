@@ -1,5 +1,6 @@
 use std::{
     mem,
+    path::Path,
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -26,6 +27,8 @@ use super::Catalog;
 ///
 /// TODO: support multiple databases
 pub struct Database {
+    path: String,
+
     buffer_pool: Pod<PageCache>,
     catalog: Pod<Catalog>,
     concurrent_status: ConcurrentStatus,
@@ -36,7 +39,11 @@ static mut SINGLETON: *mut Database = 0 as *mut Database;
 
 impl Database {
     fn new() -> Self {
+        let db_name = "default_db";
+
         Self {
+            path: db_name.to_string(),
+
             buffer_pool: Arc::new(RwLock::new(PageCache::new())),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
@@ -57,6 +64,13 @@ impl Database {
             // Put it in the heap so it can outlive this call
             SINGLETON = mem::transmute(Box::new(singleton));
         }
+
+        let catalog_file_path = Path::new(&Self::global().path)
+            .join("catalog")
+            .to_str()
+            .unwrap()
+            .to_string();
+        Self::mut_catalog().load_schema(&catalog_file_path);
     }
 
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
