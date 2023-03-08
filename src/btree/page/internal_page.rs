@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     btree::{
-        consts::INDEX_SIZE, page_cache::PageCache, tuple::Schema,
+        consts::INDEX_SIZE, page_cache::PageCache,
     },
     concurrent_status::Permission,
     error::SmallError,
@@ -18,7 +18,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::{floor_div, HandyRwLock},
-    Database,
+    Database, storage::schema::Schema,
 };
 
 /// The internal page is used to store the keys and the page id of the

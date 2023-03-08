@@ -4,10 +4,11 @@ use small_db::{
         BTreePage,
     },
     concurrent_status::Permission,
+    small_int_schema,
     transaction::Transaction,
     types::Pod,
-    utils::{small_int_schema, HandyRwLock},
-    *,
+    utils::HandyRwLock,
+    BTreeTable, Database,
 };
 
 pub fn leaf_records_cap() -> usize {

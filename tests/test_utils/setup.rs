@@ -4,17 +4,18 @@ use log::debug;
 use rand::prelude::*;
 use small_db::{
     btree::{
+        self,
         page::{
             BTreeInternalPage, BTreeLeafPage,
             BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
         },
         page_cache::{PageCache, DEFAULT_PAGE_SIZE},
-        tuple::Schema,
     },
     concurrent_status::Permission,
+    small_int_schema,
     transaction::Transaction,
-    utils::{small_int_schema, HandyRwLock},
-    *,
+    utils::{self, HandyRwLock},
+    BTreeTable, Database, Schema, Tuple,
 };
 
 use super::internal_children_cap;

@@ -9,12 +9,12 @@ use super::{
 };
 use crate::{
     btree::{
-        consts::INDEX_SIZE,
-        page_cache::PageCache,
-        tuple::{Schema, WrappedTuple},
+        consts::INDEX_SIZE, page_cache::PageCache,
+        tuple::WrappedTuple,
     },
     field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
+    storage::schema::Schema,
     utils::{ceil_div, HandyRwLock},
     Tuple,
 };

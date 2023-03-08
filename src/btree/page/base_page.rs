@@ -1,5 +1,5 @@
 use super::{BTreePage, BTreePageID, PageCategory};
-use crate::btree::{page_cache::PageCache, tuple::Schema};
+use crate::{btree::page_cache::PageCache, storage::schema::Schema};
 
 const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
 

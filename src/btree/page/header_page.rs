@@ -3,8 +3,9 @@ use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
-    btree::{page_cache::PageCache, tuple::Schema},
+    btree::page_cache::PageCache,
     io::{SmallReader, SmallWriter, Vaporizable},
+    storage::schema::Schema,
 };
 
 /// # Binary Layout

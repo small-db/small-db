@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    btree::tuple::{small_int_schema, Schema},
+    storage::schema::{small_int_schema, Schema},
     utils::HandyRwLock,
     BTreeTable,
 };
