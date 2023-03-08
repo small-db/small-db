@@ -260,7 +260,7 @@ fn test_commit_crash() {
 }
 
 #[test]
-/// Skip this test since it's aimed at testing the heap-file implementation.
+/// Skip this test since it's designed to test the heap-file implementation.
 fn test_flush_all() {}
 
 #[test]
@@ -330,3 +330,96 @@ fn test_open_commit_checkpoint_open_crash() {
     assert_true(search_key(&table_2, &tx, 29) == 0, &table_2);
     tx.commit().unwrap();
 }
+
+#[test]
+fn test_open_commit_open_crash() {
+    setup();
+
+    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_1 = table_pod_1.rl();
+    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_2 = table_pod_2.rl();
+
+    commit_insert(&table_1, 1, 2);
+
+    // T1 inserts but does not commit
+    // T2 inserts and commits
+    // T3 inserts but does not commit
+    // crash
+    // only T2 data should be there
+
+    let tx_1 = Transaction::new();
+    tx_1.start().unwrap();
+    insert_row(&table_1, &tx_1, 10);
+    // defeat NO-STEAL-based abort
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+    insert_row(&table_1, &tx_1, 11);
+
+    // T2 commits
+    commit_insert(&table_2, 22, 23);
+
+    let tx_3 = Transaction::new();
+    tx_3.start().unwrap();
+    insert_row(&table_2, &tx_3, 24);
+    // defeat NO-STEAL-based abort
+    Database::mut_page_cache()
+        .flush_all_pages(&mut Database::mut_log_manager());
+    insert_row(&table_2, &tx_3, 25);
+
+    crash();
+
+    let tx = Transaction::new();
+    tx.start().unwrap();
+    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, 10) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, 11) == 0, &table_1);
+     
+    assert_true(search_key(&table_2, &tx, 22) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, 23) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, 24) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, 25) == 0, &table_2);
+    tx.commit().unwrap();
+}
+
+// @Test public void TestOpenCommitOpenCrash()
+//             throws IOException, DbException, TransactionAbortedException {
+//         setup();
+//         doInsert(hf1, 1, 2);
+
+//         // *** Test:
+//         // T1 inserts but does not commit
+//         // T2 inserts and commits
+//         // T3 inserts but does not commit
+//         // crash
+//         // only T2 data should be there
+
+//         Transaction t1 = new Transaction();
+//         t1.start();
+//         insertRow(hf1, t1, 10);
+//         Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
+//         insertRow(hf1, t1, 11);
+
+//         // T2 commits
+//         doInsert(hf2, 22, 23);
+
+//         Transaction t3 = new Transaction();
+//         t3.start();
+//         insertRow(hf2, t3, 24);
+//         Database.getBufferPool().flushAllPages(); // XXX defeat NO-STEAL-based abort
+//         insertRow(hf2, t3, 25);
+
+//         crash();
+
+//         Transaction t = new Transaction();
+//         t.start();
+//         look(hf1, t, 1, true);
+//         look(hf1, t, 10, false);
+//         look(hf1, t, 11, false);
+//         look(hf2, t, 22, true);
+//         look(hf2, t, 23, true);
+//         look(hf2, t, 24, false);
+//         look(hf2, t, 25, false);
+//         t.commit();
+//     }
