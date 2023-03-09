@@ -5,9 +5,9 @@ use std::{
 
 use super::page::BTreePageID;
 use crate::{
-    io::{Condensable, Vaporizable},
+    io::{Condensable, SmallReader, Vaporizable},
     storage::{
-        base::{IntCell, Type, get_type_length},
+        base::{get_type_length, Cell, IntCell, Type},
         schema::{small_int_schema, Schema},
     },
 };
@@ -20,35 +20,13 @@ pub struct Tuple {
 
 impl Tuple {
     // TODO: remove this api
-    pub fn new(scheme: Schema, bytes: &[u8]) -> Tuple {
-        let mut fields: Vec<IntCell> = Vec::new();
-        let mut start: usize = 0;
-        let mut end: usize = 0;
-        for field in &scheme.fields {
-            match field.field_type {
-                Type::INT => {
-                    end += get_type_length(field.field_type);
-                    let cell_bytes = &bytes[start..end];
-
-                    let mut bytes_array = [0; 4];
-                    for i in 0..4 {
-                        bytes_array[i] = cell_bytes[i];
-                    }
-                    let value = i32::from_be_bytes(bytes_array);
-
-                    fields.push(IntCell::new(value));
-
-                    start = end;
-                }
-                Type::CHAR(_) => {
-                    todo!()
-                }
-            }
-        }
-        Tuple { scheme, fields }
+    pub fn new(scheme: Schema, bytes: &[u8]) -> Self {
+        let mut reader = SmallReader::new(bytes);
+        return Self::read_from(&mut reader, &scheme);
     }
 
-    pub fn new_default_tuple(scheme: Schema, _width: usize) -> Tuple {
+    // TODO: remove this api
+    pub fn new_default_tuple(scheme: Schema, _width: usize) -> Self {
         let mut cells: Vec<IntCell> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
