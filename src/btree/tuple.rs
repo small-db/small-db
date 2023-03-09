@@ -17,8 +17,9 @@ pub struct Tuple {
 }
 
 impl Tuple {
+    // TODO: remove this api
     pub fn new(scheme: Schema, bytes: &[u8]) -> Tuple {
-        let mut cells: Vec<IntField> = Vec::new();
+        let mut fields: Vec<IntField> = Vec::new();
         let mut start: usize = 0;
         let mut end: usize = 0;
         for field in &scheme.fields {
@@ -33,16 +34,16 @@ impl Tuple {
                     }
                     let value = i32::from_be_bytes(bytes_array);
 
-                    cells.push(IntField::new(value));
+                    fields.push(IntField::new(value));
 
                     start = end;
                 }
+                Type::CHAR(_) => {
+                    todo!()
+                }
             }
         }
-        Tuple {
-            scheme,
-            fields: cells,
-        }
+        Tuple { scheme, fields }
     }
 
     pub fn new_default_tuple(scheme: Schema, _width: usize) -> Tuple {
@@ -51,6 +52,9 @@ impl Tuple {
             match field.field_type {
                 Type::INT => {
                     cells.push(IntField::new(0));
+                }
+                Type::CHAR(_) => {
+                    todo!()
                 }
             }
         }
@@ -94,6 +98,13 @@ impl Tuple {
             match field.field_type {
                 Type::INT => {
                     cells.push(IntField::read_from(reader));
+                }
+                Type::CHAR(len) => {
+                    let mut bytes = Vec::new();
+                    for _ in 0..len {
+                        bytes.push(reader.read::<u8>());
+                    }
+                    cells.push(IntField::new(0));
                 }
             }
         }

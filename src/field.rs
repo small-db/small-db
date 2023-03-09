@@ -9,11 +9,13 @@ use crate::{
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     INT,
+    CHAR(i8),
 }
 
 pub fn get_type_length(t: Type) -> usize {
     match t {
         Type::INT => 4,
+        Type::CHAR(size) => size as usize,
     }
 }
 
@@ -31,6 +33,8 @@ impl FieldItem {
         }
     }
 }
+
+pub trait Field {}
 
 #[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]
 pub struct IntField {

@@ -94,6 +94,7 @@ impl<'a> SmallReader<'a> {
         Self { buf, cursor: 0 }
     }
 
+    // TODO: remove this api
     pub fn read_exact(&mut self, bytes_count: usize) -> &'_ [u8] {
         let start = self.cursor;
         let end = self.cursor + bytes_count;
