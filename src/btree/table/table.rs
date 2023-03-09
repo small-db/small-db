@@ -29,8 +29,7 @@ use crate::{
         tuple::{Tuple, WrappedTuple},
     },
     concurrent_status::Permission,
-    field::IntField,
-    storage::schema::Schema,
+    storage::{base::IntCell, schema::Schema},
     transaction::Transaction,
     types::{ResultPod, SmallResult},
     utils::{lock_state, HandyRwLock},
@@ -38,7 +37,7 @@ use crate::{
 };
 
 enum SearchFor {
-    IntField(IntField),
+    IntField(IntCell),
     LeftMost,
     RightMost,
 }
@@ -203,11 +202,11 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
-        field: IntField,
+        field: IntCell,
     ) -> ResultPod<BTreeLeafPage> {
         let new_sibling_rc = self.get_empty_leaf_page(tx);
         let parent_pid: BTreePageID;
-        let key: IntField;
+        let key: IntCell;
 
         // borrow of new_sibling_rc start here
         // borrow of page_rc start here
@@ -355,7 +354,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         parent_id: BTreePageID,
-        field: IntField,
+        field: IntCell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
         // create a parent node if necessary
         // this will be the new root of the tree
@@ -422,10 +421,10 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
-        field: IntField,
+        field: IntCell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
         let sibling_rc = self.get_empty_interanl_page(tx);
-        let key: IntField;
+        let key: IntCell;
         let mut parent_pid: BTreePageID;
         let mut new_entry: Entry;
 
@@ -1180,8 +1179,8 @@ impl BTreeTable {
         tx: &Transaction,
         pid: &BTreePageID,
         parent_pid: &BTreePageID,
-        mut lower_bound: Option<IntField>,
-        upper_bound: Option<IntField>,
+        mut lower_bound: Option<IntCell>,
+        upper_bound: Option<IntCell>,
         check_occupancy: bool,
         depth: usize,
     ) -> SubtreeSummary {

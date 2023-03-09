@@ -5,21 +5,23 @@ use std::{
 
 use super::page::BTreePageID;
 use crate::{
-    field::*,
     io::{Condensable, Vaporizable},
-    storage::schema::{small_int_schema, Schema},
+    storage::{
+        base::{IntCell, Type, get_type_length},
+        schema::{small_int_schema, Schema},
+    },
 };
 
 #[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
-    pub fields: Vec<IntField>,
+    pub fields: Vec<IntCell>,
 }
 
 impl Tuple {
     // TODO: remove this api
     pub fn new(scheme: Schema, bytes: &[u8]) -> Tuple {
-        let mut fields: Vec<IntField> = Vec::new();
+        let mut fields: Vec<IntCell> = Vec::new();
         let mut start: usize = 0;
         let mut end: usize = 0;
         for field in &scheme.fields {
@@ -34,7 +36,7 @@ impl Tuple {
                     }
                     let value = i32::from_be_bytes(bytes_array);
 
-                    fields.push(IntField::new(value));
+                    fields.push(IntCell::new(value));
 
                     start = end;
                 }
@@ -47,11 +49,11 @@ impl Tuple {
     }
 
     pub fn new_default_tuple(scheme: Schema, _width: usize) -> Tuple {
-        let mut cells: Vec<IntField> = Vec::new();
+        let mut cells: Vec<IntCell> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(IntField::new(0));
+                    cells.push(IntCell::new(0));
                 }
                 Type::CHAR(_) => {
                     todo!()
@@ -69,16 +71,16 @@ impl Tuple {
         let _bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
         for i in 0..tuple.fields.len() {
-            tuple.set_field(i, IntField::new(value));
+            tuple.set_field(i, IntCell::new(value));
         }
         tuple
     }
 
-    pub fn set_field(&mut self, i: usize, c: IntField) {
+    pub fn set_field(&mut self, i: usize, c: IntCell) {
         self.fields[i] = c;
     }
 
-    pub fn get_field(&self, i: usize) -> IntField {
+    pub fn get_field(&self, i: usize) -> IntCell {
         self.fields[i]
     }
 
@@ -93,18 +95,18 @@ impl Tuple {
         reader: &mut crate::io::SmallReader,
         tuple_scheme: &Schema,
     ) -> Self {
-        let mut cells: Vec<IntField> = Vec::new();
+        let mut cells: Vec<IntCell> = Vec::new();
         for field in &tuple_scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(IntField::read_from(reader));
+                    cells.push(IntCell::read_from(reader));
                 }
                 Type::CHAR(len) => {
                     let mut bytes = Vec::new();
                     for _ in 0..len {
                         bytes.push(reader.read::<u8>());
                     }
-                    cells.push(IntField::new(0));
+                    cells.push(IntCell::new(0));
                 }
             }
         }

@@ -11,9 +11,11 @@ use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
     concurrent_status::Permission,
     error::SmallError,
-    field::{get_type_length, IntField},
     io::{SmallReader, SmallWriter, Vaporizable},
-    storage::schema::Schema,
+    storage::{
+        base::{get_type_length, IntCell},
+        schema::Schema,
+    },
     transaction::Transaction,
     types::SmallResult,
     utils::{floor_div, HandyRwLock},
@@ -39,7 +41,7 @@ use crate::{
 pub struct BTreeInternalPage {
     base: BTreeBasePage,
 
-    keys: Vec<IntField>,
+    keys: Vec<IntCell>,
 
     /// Store the page id of the children.
     ///
@@ -135,10 +137,10 @@ impl BTreeInternalPage {
             let header = BitVec::read_from(&mut reader);
 
             // read keys
-            let mut keys: Vec<IntField> = Vec::new();
-            keys.push(IntField::new(0));
+            let mut keys: Vec<IntCell> = Vec::new();
+            keys.push(IntCell::new(0));
             for _ in 1..slot_count {
-                let key = IntField::read_from(&mut reader);
+                let key = IntCell::read_from(&mut reader);
                 keys.push(key);
             }
 
@@ -196,10 +198,10 @@ impl BTreeInternalPage {
         header.grow(slot_count, false);
 
         // read keys
-        let mut keys: Vec<IntField> = Vec::new();
-        keys.push(IntField::new(0));
+        let mut keys: Vec<IntCell> = Vec::new();
+        keys.push(IntCell::new(0));
         for _ in 1..slot_count {
-            let key = IntField::read_from(&mut reader);
+            let key = IntCell::read_from(&mut reader);
             keys.push(key);
         }
 
@@ -415,8 +417,8 @@ impl BTreeInternalPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<IntField>,
-        upper_bound: Option<IntField>,
+        lower_bound: Option<IntCell>,
+        upper_bound: Option<IntCell>,
         check_occupancy: bool,
         depth: usize,
     ) {
@@ -687,7 +689,7 @@ impl BTreePage for BTreeInternalPage {
 // right child page should be greater than or equal to the key.
 #[derive(Clone, Copy, Debug)]
 pub struct Entry {
-    key: IntField,
+    key: IntCell,
     left: BTreePageID,
     right: BTreePageID,
 
@@ -697,7 +699,7 @@ pub struct Entry {
 
 impl Entry {
     pub fn new(
-        key: IntField,
+        key: IntCell,
         left: &BTreePageID,
         right: &BTreePageID,
     ) -> Self {
@@ -718,11 +720,11 @@ impl Entry {
         self.record_id
     }
 
-    pub fn get_key(&self) -> IntField {
+    pub fn get_key(&self) -> IntCell {
         self.key
     }
 
-    pub fn set_key(&mut self, key: IntField) {
+    pub fn set_key(&mut self, key: IntCell) {
         self.key = key;
     }
 

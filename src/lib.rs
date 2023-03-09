@@ -1,6 +1,6 @@
 pub mod btree;
 pub mod concurrent_status;
-pub mod field;
+pub mod storage;
 pub mod transaction;
 pub mod types;
 pub mod utils;
@@ -9,7 +9,6 @@ mod common;
 mod error;
 mod io;
 mod operator;
-mod storage;
 mod tx_log;
 
 pub use btree::{table::BTreeTable, tuple::Tuple};

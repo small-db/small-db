@@ -1,4 +1,4 @@
-use crate::field::{FieldItem, Type};
+use crate::storage::base::{FieldItem, Type};
 
 #[derive(Debug)]
 pub struct Schema {

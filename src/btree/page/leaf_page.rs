@@ -12,9 +12,8 @@ use crate::{
         consts::INDEX_SIZE, page_cache::PageCache,
         tuple::WrappedTuple,
     },
-    field::IntField,
     io::{SmallReader, SmallWriter, Vaporizable},
-    storage::schema::Schema,
+    storage::{base::IntCell, schema::Schema},
     utils::{ceil_div, HandyRwLock},
     Tuple,
 };
@@ -346,8 +345,8 @@ impl BTreeLeafPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<IntField>,
-        upper_bound: Option<IntField>,
+        lower_bound: Option<IntCell>,
+        upper_bound: Option<IntCell>,
         check_occupancy: bool,
         depth: usize,
     ) {

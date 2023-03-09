@@ -1,6 +1,6 @@
 use log::error;
 use small_db::{
-    btree::table::BTreeTableSearchIterator, field::IntField,
+    btree::table::BTreeTableSearchIterator, storage::base::IntCell,
     transaction::Transaction, BTreeTable, Database, Op, Predicate,
 };
 
@@ -10,7 +10,7 @@ pub fn key_present(
     key: i32,
 ) -> bool {
     let predicate =
-        Predicate::new(small_db::Op::Equals, IntField::new(key));
+        Predicate::new(small_db::Op::Equals, IntCell::new(key));
     let mut it = BTreeTableSearchIterator::new(tx, &table, predicate);
     it.next().is_some()
 }
@@ -21,7 +21,7 @@ pub fn search_key(
     tx: &Transaction,
     key: i32,
 ) -> usize {
-    let predicate = Predicate::new(Op::Equals, IntField::new(key));
+    let predicate = Predicate::new(Op::Equals, IntCell::new(key));
     let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     return it.count();
 }

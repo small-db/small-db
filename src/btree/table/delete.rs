@@ -17,7 +17,7 @@ use crate::{
     },
     concurrent_status::Permission,
     error::SmallError,
-    field::IntField,
+    storage::base::IntCell,
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
@@ -552,7 +552,7 @@ impl BTreeTable {
         src_iter: impl Iterator<Item = Entry>,
         mut dest: impl DerefMut<Target = BTreeInternalPage>,
         move_count: usize,
-        middle_key: &mut IntField,
+        middle_key: &mut IntCell,
         mut edge_child_pid: BTreePageID,
         fn_get_edge_left_child: impl Fn(
             BTreePageID,
