@@ -1121,7 +1121,7 @@ impl BTreeTable {
             ));
         }
         depiction.push_str(&format!(
-            "{}├── key: {}\n",
+            "{}├── key: {:?}\n",
             prefix,
             entry.get_key()
         ));

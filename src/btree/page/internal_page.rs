@@ -11,10 +11,10 @@ use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
     concurrent_status::Permission,
     error::SmallError,
-    io::{SmallReader, SmallWriter, Decodeable},
+    io::{Decodeable, SmallReader, SmallWriter},
     storage::{
         schema::{get_type_length, Schema},
-        tuple::{Cell},
+        tuple::Cell,
     },
     transaction::Transaction,
     types::SmallResult,
@@ -739,7 +739,7 @@ impl Entry {
 
 impl fmt::Display for Entry {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({}, {}, {})", self.key, self.left, self.right)
+        write!(f, "({:?}, {}, {})", self.key, self.left, self.right)
     }
 }
 

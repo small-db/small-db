@@ -9,10 +9,10 @@ use super::{
 };
 use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
-    io::{SmallReader, SmallWriter, Decodeable},
+    io::{Decodeable, SmallReader, SmallWriter},
     storage::{
         schema::Schema,
-        tuple::{Cell, Cell, Tuple, WrappedTuple},
+        tuple::{Cell, Tuple, WrappedTuple},
     },
     utils::{ceil_div, HandyRwLock},
 };

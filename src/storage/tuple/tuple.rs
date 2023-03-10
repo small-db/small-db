@@ -5,14 +5,12 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Encodeable, SmallReader, Decodeable},
+    io::{Decodeable, Encodeable, SmallReader},
     storage::{
         schema::{small_int_schema, Schema, Type},
         tuple::Cell,
     },
 };
-
-use super::Cell;
 
 // #[derive(Default)]
 pub struct Tuple {

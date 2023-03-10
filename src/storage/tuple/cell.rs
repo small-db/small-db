@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::{
-    io::{Encodeable, SmallReader, Decodeable},
+    io::{Decodeable, Encodeable, SmallReader},
     Op,
 };
 
@@ -30,6 +30,15 @@ impl PartialOrd for Cell {
             (Cell::Int32(a), Cell::Int32(b)) => a.partial_cmp(b),
             (Cell::String(a), Cell::String(b)) => a.partial_cmp(b),
             _ => todo!(),
+        }
+    }
+}
+
+impl Encodeable for Cell {
+    fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Cell::Int32(v) => v.to_be_bytes().to_vec(),
+            Cell::String(v) => v.as_bytes().to_vec(),
         }
     }
 }
