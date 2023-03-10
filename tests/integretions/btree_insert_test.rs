@@ -60,7 +60,7 @@ fn test_insert_tuple() {
     // now make sure the records are sorted on the key field
     let it = BTreeTableIterator::new(&tx, &table);
     for (i, tuple) in it.enumerate() {
-        assert_eq!(i, tuple.get_field(0).value as usize);
+        assert_eq!(i, tuple.get_cell(0).value as usize);
     }
 
     tx.commit().unwrap();
@@ -209,7 +209,7 @@ fn test_split_root_page() {
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(
-            search_key(&table, &tx, tuple.get_field(0).value) >= 1,
+            search_key(&table, &tx, tuple.get_cell(0).value) >= 1,
             &table,
         );
     }
@@ -254,8 +254,8 @@ fn test_split_internal_page() {
     for t in it {
         count += 1;
 
-        let cur = t.get_field(table.key_field).value;
-        if t.get_field(table.key_field).value < pre {
+        let cur = t.get_cell(table.key_field).value;
+        if t.get_cell(table.key_field).value < pre {
             panic!(
                 "records are not sorted, i: {}, pre: {}, cur: {}",
                 count, pre, cur
@@ -276,7 +276,7 @@ fn test_split_internal_page() {
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(
-            search_key(&table, &tx, tuple.get_field(0).value) >= 1,
+            search_key(&table, &tx, tuple.get_cell(0).value) >= 1,
             &table,
         );
     }
@@ -289,8 +289,8 @@ fn test_split_internal_page() {
     for t in it {
         count += 1;
 
-        let cur = t.get_field(table.key_field).value;
-        if t.get_field(table.key_field).value < pre {
+        let cur = t.get_cell(table.key_field).value;
+        if t.get_cell(table.key_field).value < pre {
             panic!(
                 "records are not sorted, i: {}, pre: {}, cur: {}",
                 count, pre, cur

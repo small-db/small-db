@@ -659,7 +659,7 @@ impl BTreeTable {
                 for tuple in iter.take(move_count) {
                     left.insert_tuple(&tuple);
                     deleted_indexes.push(tuple.get_slot_number());
-                    key = tuple.get_field(self.key_field);
+                    key = tuple.get_cell(self.key_field);
                 }
                 for i in deleted_indexes {
                     right.delete_tuple(i);
@@ -670,7 +670,7 @@ impl BTreeTable {
                 for tuple in iter.rev().take(move_count) {
                     right.insert_tuple(&tuple);
                     deleted_indexes.push(tuple.get_slot_number());
-                    key = tuple.get_field(self.key_field);
+                    key = tuple.get_cell(self.key_field);
                 }
                 for i in deleted_indexes {
                     left.delete_tuple(i);

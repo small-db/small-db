@@ -48,7 +48,7 @@ fn deleter(
 
     let tuple = r.recv().unwrap();
     let predicate =
-        Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+        Predicate::new(small_db::Op::Equals, tuple.get_cell(0));
 
     let tx = Transaction::new();
     let table = table_pod.rl();
@@ -184,7 +184,7 @@ fn test_big_table() {
     let tx = Transaction::new();
     for tuple in receiver.iter() {
         let predicate =
-            Predicate::new(small_db::Op::Equals, tuple.get_field(0));
+            Predicate::new(small_db::Op::Equals, tuple.get_cell(0));
         let mut it = BTreeTableSearchIterator::new(
             &tx,
             &table_pod.rl(),

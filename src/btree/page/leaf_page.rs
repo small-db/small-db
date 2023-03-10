@@ -12,7 +12,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     storage::{
         schema::Schema,
-        tuple::{IntCell, Tuple, WrappedTuple},
+        tuple::{Cell, IntCell, Tuple, WrappedTuple},
     },
     utils::{ceil_div, HandyRwLock},
 };
@@ -272,8 +272,8 @@ impl BTreeLeafPage {
         let mut last_less_slot: i32 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
-                if self.tuples[i].get_field(self.key_field)
-                    < tuple.get_field(self.key_field)
+                if self.tuples[i].get_cell(self.key_field)
+                    < tuple.get_cell(self.key_field)
                 {
                     last_less_slot = i as i32;
                 } else {
@@ -344,8 +344,8 @@ impl BTreeLeafPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<IntCell>,
-        upper_bound: Option<IntCell>,
+        lower_bound: Option<Cell>,
+        upper_bound: Option<Cell>,
         check_occupancy: bool,
         depth: usize,
     ) {
@@ -367,21 +367,21 @@ impl BTreeLeafPage {
         for tuple in it {
             if let Some(previous) = previous {
                 assert!(
-                    previous <= tuple.get_field(self.key_field),
+                    previous <= tuple.get_cell(self.key_field),
                     "previous: {:?}, current: {:?}, page_id: {:?}",
                     previous,
-                    tuple.get_field(self.key_field),
+                    tuple.get_cell(self.key_field),
                     self.get_pid(),
                 );
             }
-            previous = Some(tuple.get_field(self.key_field));
+            previous = Some(tuple.get_cell(self.key_field));
         }
 
         if let Some(upper_bound) = upper_bound {
             if let Some(previous) = previous {
                 assert!(
                     previous <= upper_bound,
-                    "the last tuple exceeds upper_bound, last tuple: {}, upper bound: {}",
+                    "the last tuple exceeds upper_bound, last tuple: {:?}, upper bound: {:?}",
                     previous,
                     upper_bound,
                 );

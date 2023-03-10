@@ -92,14 +92,14 @@ pub fn new_random_btree_table(
     }
 
     tuples.sort_by(|a, b| {
-        a.get_field(key_field).cmp(&b.get_field(key_field))
+        a.get_cell(key_field).cmp(&b.get_cell(key_field))
     });
 
     if let Some(int_tuples) = int_tuples {
         for t in tuples.iter() {
             let mut row = Vec::new();
             for i in 0..columns {
-                row.push(t.get_field(i).value);
+                row.push(t.get_cell(i).value);
             }
             int_tuples.push(row);
         }
@@ -257,7 +257,7 @@ fn sequential_insert_into_table(
                 let mut it =
                     BTreeLeafPageIteratorRc::new(right_rc.clone());
                 let key =
-                    it.next().unwrap().get_field(table.key_field);
+                    it.next().unwrap().get_cell(table.key_field);
 
                 let mut internal = internal_rc.wl();
                 let mut e = Entry::new(
@@ -327,7 +327,7 @@ fn write_internal_pages(
                 let key = table
                     .get_last_tuple(tx, &left_rc.rl().get_pid())
                     .unwrap()
-                    .get_field(table.key_field);
+                    .get_cell(table.key_field);
                 // borrow of right_rc ends here
 
                 let mut root = root_rc.wl();

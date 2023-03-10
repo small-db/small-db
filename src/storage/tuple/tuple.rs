@@ -16,8 +16,8 @@ use super::Cell;
 
 // #[derive(Default)]
 pub struct Tuple {
-    pub scheme: Schema,
-    pub cells: Vec<Cell>,
+    scheme: Schema,
+    cells: Vec<Cell>,
 }
 
 impl Tuple {
@@ -70,7 +70,7 @@ impl Tuple {
         return Tuple::new_int_tuple(scheme, value);
     }
 
-    pub fn get_field(&self, i: usize) -> Cell {
+    pub fn get_cell(&self, i: usize) -> Cell {
         self.cells[i]
     }
 

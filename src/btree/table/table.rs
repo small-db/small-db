@@ -165,7 +165,7 @@ impl BTreeTable {
         // find and lock the left-most leaf page corresponding to
         // the key field, and split the leaf page if there are no
         // more slots available
-        let field = tuple.get_field(self.key_field);
+        let field = tuple.get_cell(self.key_field);
         let mut leaf_rc = self.find_leaf_page(
             tx,
             Permission::ReadWrite,
@@ -177,7 +177,7 @@ impl BTreeTable {
             leaf_rc = self.split_leaf_page(
                 tx,
                 leaf_rc,
-                tuple.get_field(self.key_field),
+                tuple.get_cell(self.key_field),
             )?;
         }
         leaf_rc.wl().insert_tuple(&tuple);
@@ -232,7 +232,7 @@ impl BTreeTable {
             }
 
             let mut it = BTreeLeafPageIterator::new(&page);
-            key = it.next_back().unwrap().get_field(self.key_field);
+            key = it.next_back().unwrap().get_cell(self.key_field);
 
             // get parent pid for use later
             parent_pid = page.get_parent_pid();
@@ -1470,7 +1470,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
             match tuple {
                 Some(t) => match self.predicate.op {
                     Op::Equals => {
-                        let field = t.get_field(self.key_field);
+                        let field = t.get_cell(self.key_field);
                         if field == self.predicate.field {
                             return Some(t);
                         } else if field > self.predicate.field {
@@ -1478,19 +1478,19 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                         }
                     }
                     Op::GreaterThan => {
-                        let field = t.get_field(self.key_field);
+                        let field = t.get_cell(self.key_field);
                         if field > self.predicate.field {
                             return Some(t);
                         }
                     }
                     Op::GreaterThanOrEq => {
-                        let field = t.get_field(self.key_field);
+                        let field = t.get_cell(self.key_field);
                         if field >= self.predicate.field {
                             return Some(t);
                         }
                     }
                     Op::LessThan => {
-                        let field = t.get_field(self.key_field);
+                        let field = t.get_cell(self.key_field);
                         if field < self.predicate.field {
                             return Some(t);
                         } else if field >= self.predicate.field {
@@ -1498,7 +1498,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                         }
                     }
                     Op::LessThanOrEq => {
-                        let field = t.get_field(self.key_field);
+                        let field = t.get_cell(self.key_field);
                         if field <= self.predicate.field {
                             return Some(t);
                         } else if field > self.predicate.field {

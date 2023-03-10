@@ -14,7 +14,7 @@ use crate::{
     io::{SmallReader, SmallWriter, Vaporizable},
     storage::{
         schema::{get_type_length, Schema},
-        tuple::IntCell,
+        tuple::{Cell, IntCell},
     },
     transaction::Transaction,
     types::SmallResult,
@@ -41,7 +41,7 @@ use crate::{
 pub struct BTreeInternalPage {
     base: BTreeBasePage,
 
-    keys: Vec<IntCell>,
+    keys: Vec<Cell>,
 
     /// Store the page id of the children.
     ///
@@ -137,11 +137,11 @@ impl BTreeInternalPage {
             let header = BitVec::read_from(&mut reader);
 
             // read keys
-            let mut keys: Vec<IntCell> = Vec::new();
-            keys.push(IntCell::new(0));
+            let mut keys: Vec<Cell> = Vec::new();
+            keys.push(Cell::Int32(0));
             for _ in 1..slot_count {
-                let key = IntCell::read_from(&mut reader);
-                keys.push(key);
+                let key = i32::read_from(&mut reader);
+                keys.push(Cell::Int32(key));
             }
 
             // read children
@@ -198,11 +198,11 @@ impl BTreeInternalPage {
         header.grow(slot_count, false);
 
         // read keys
-        let mut keys: Vec<IntCell> = Vec::new();
-        keys.push(IntCell::new(0));
+        let mut keys: Vec<Cell> = Vec::new();
+        keys.push(Cell::Int32(0));
         for _ in 1..slot_count {
-            let key = IntCell::read_from(&mut reader);
-            keys.push(key);
+            let key = i32::read_from(&mut reader);
+            keys.push(Cell::Int32(key));
         }
 
         // read children
@@ -687,9 +687,9 @@ impl BTreePage for BTreeInternalPage {
 // All of the entries or tuples in the left child page should be less
 // than or equal to the key, and all of the entries or tuples in the
 // right child page should be greater than or equal to the key.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Entry {
-    key: IntCell,
+    key: Cell,
     left: BTreePageID,
     right: BTreePageID,
 
@@ -699,7 +699,7 @@ pub struct Entry {
 
 impl Entry {
     pub fn new(
-        key: IntCell,
+        key: Cell,
         left: &BTreePageID,
         right: &BTreePageID,
     ) -> Self {
@@ -720,7 +720,7 @@ impl Entry {
         self.record_id
     }
 
-    pub fn get_key(&self) -> IntCell {
+    pub fn get_key(&self) -> Cell {
         self.key
     }
 
