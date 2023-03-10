@@ -12,10 +12,12 @@ use crate::{
     },
 };
 
-#[derive(Default)]
+use super::Cell;
+
+// #[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
-    pub cells: Vec<IntCell>,
+    pub cells: Vec<Box<dyn Cell>>,
 }
 
 impl Tuple {
@@ -27,21 +29,18 @@ impl Tuple {
 
     // TODO: remove this api
     pub fn new_default_tuple(scheme: Schema, _width: usize) -> Self {
-        let mut cells: Vec<IntCell> = Vec::new();
+        let mut cells: Vec<Box<dyn Cell>> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(IntCell::new(0));
+                    cells.push(Box::new(IntCell::new(0)));
                 }
                 Type::CHAR(_) => {
                     todo!()
                 }
             }
         }
-        Tuple {
-            scheme,
-            cells,
-        }
+        Tuple { scheme, cells }
     }
 
     pub fn new_btree_tuple(value: i32, width: usize) -> Tuple {
@@ -54,11 +53,11 @@ impl Tuple {
         tuple
     }
 
-    pub fn set_field(&mut self, i: usize, c: IntCell) {
-        self.cells[i] = c;
+    pub fn set_field<C: Cell>(&mut self, i: usize, c: C) {
+        self.cells[i] = Box::new(c);
     }
 
-    pub fn get_field(&self, i: usize) -> IntCell {
+    pub fn get_field(&self, i: usize) -> Box<dyn Cell> {
         self.cells[i]
     }
 
@@ -128,7 +127,7 @@ impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
         for cell in &self.cells {
-            let cell_str = format!("{}, ", cell.value);
+            let cell_str = format!("{:?}, ", cell);
             content.push_str(&cell_str);
         }
         content = content[..content.len() - 2].to_string();
@@ -190,14 +189,7 @@ impl Eq for WrappedTuple {}
 
 impl fmt::Display for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut content: String = "{".to_owned();
-        for cell in &self.cells {
-            let cell_str = format!("{}, ", cell.value);
-            content.push_str(&cell_str);
-        }
-        content = content[..content.len() - 2].to_string();
-        content.push_str(&"}");
-        write!(f, "{}", content,)
+        write!(f, "{}", self.cells)
     }
 }
 

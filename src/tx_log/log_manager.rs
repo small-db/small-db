@@ -1019,10 +1019,9 @@ impl LogManager {
                     &pid, bytes, &schema, key_field,
                 );
                 let iter = page.iter();
-                // let content = iter.take(3).collect::<Vec<_>>();
                 let content = iter
                     .take(5)
-                    .map(|x| x.cells[0].to_string())
+                    .map(|x| x.cells[0].to_bytes())
                     .collect::<Vec<_>>();
 
                 return format!(
