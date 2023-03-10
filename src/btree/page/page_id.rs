@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     btree::page_cache::PageCache,
-    io::{Condensable, SmallReader, SmallWriter, Vaporizable},
+    io::{Encodeable, SmallReader, SmallWriter, Decodeable},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;
@@ -15,7 +15,7 @@ pub enum PageCategory {
     Header,
 }
 
-impl Condensable for PageCategory {
+impl Encodeable for PageCategory {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
             PageCategory::RootPointer => vec![0, 0, 0, 0],
@@ -26,7 +26,7 @@ impl Condensable for PageCategory {
     }
 }
 
-impl Vaporizable for PageCategory {
+impl Decodeable for PageCategory {
     fn read_from(reader: &mut SmallReader) -> Self {
         let data = reader.read_exact(4);
         match data {
@@ -99,7 +99,7 @@ impl BTreePageID {
     }
 }
 
-impl Condensable for BTreePageID {
+impl Encodeable for BTreePageID {
     fn to_bytes(&self) -> Vec<u8> {
         let mut writer = SmallWriter::new();
         writer.write(&self.category);
@@ -109,7 +109,7 @@ impl Condensable for BTreePageID {
     }
 }
 
-impl Vaporizable for BTreePageID {
+impl Decodeable for BTreePageID {
     fn read_from(reader: &mut SmallReader) -> Self {
         let category = reader.read();
         let page_index = reader.read();

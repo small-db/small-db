@@ -1,4 +1,4 @@
-use crate::storage::tuple::IntCell;
+use crate::storage::tuple::Cell;
 
 pub enum Op {
     Equals,
@@ -12,11 +12,11 @@ pub enum Op {
 
 pub struct Predicate {
     pub op: Op,
-    pub field: IntCell,
+    pub field: Cell,
 }
 
 impl Predicate {
-    pub fn new(op: Op, field: IntCell) -> Self {
+    pub fn new(op: Op, field: Cell) -> Self {
         Self { op, field }
     }
 }

@@ -18,7 +18,7 @@ use crate::{
         page_cache::PageCache,
     },
     error::SmallError,
-    io::{Condensable, SmallFile, SmallReader, Vaporizable},
+    io::{Encodeable, SmallFile, SmallReader, Decodeable},
     storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,
@@ -55,13 +55,13 @@ impl RecordType {
     }
 }
 
-impl Condensable for RecordType {
+impl Encodeable for RecordType {
     fn to_bytes(&self) -> Vec<u8> {
         vec![*self as u8]
     }
 }
 
-impl Vaporizable for RecordType {
+impl Decodeable for RecordType {
     fn read_from(reader: &mut SmallReader) -> Self {
         let value = reader.read_exact(1);
         RecordType::from_u8(value[0])

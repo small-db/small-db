@@ -4,7 +4,7 @@ use log::debug;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::page_cache::PageCache,
-    io::{SmallReader, SmallWriter, Vaporizable},
+    io::{SmallReader, SmallWriter, Decodeable},
     storage::schema::Schema,
 };
 

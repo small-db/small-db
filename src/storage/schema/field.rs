@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::{
-    io::{Condensable, SmallReader, Vaporizable},
+    io::{Encodeable, SmallReader, Decodeable},
     Op,
 };
 

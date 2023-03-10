@@ -44,14 +44,14 @@ impl SmallFile {
         Ok(buf)
     }
 
-    pub fn write<T: Condensable>(&self, obj: &T) -> SmallResult {
+    pub fn write<T: Encodeable>(&self, obj: &T) -> SmallResult {
         match self.get_file().write(&obj.to_bytes()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
     }
 
-    pub fn read<T: Vaporizable>(&self) -> Result<T, SmallError> {
+    pub fn read<T: Decodeable>(&self) -> Result<T, SmallError> {
         let mut buf = vec![0u8; size_of::<T>()];
         self.get_file()
             .read_exact(&mut buf)
@@ -109,7 +109,7 @@ impl<'a> SmallReader<'a> {
         return &self.buf[start..end];
     }
 
-    pub fn read<T: Vaporizable>(&mut self) -> T {
+    pub fn read<T: Decodeable>(&mut self) -> T {
         T::read_from(self)
     }
 }
@@ -124,7 +124,7 @@ impl SmallWriter {
         Self { buf }
     }
 
-    pub fn write<T: Condensable>(&mut self, obj: &T) {
+    pub fn write<T: Encodeable>(&mut self, obj: &T) {
         self.buf.extend_from_slice(obj.to_bytes().as_slice());
     }
 
@@ -148,11 +148,11 @@ impl SmallWriter {
     }
 }
 
-pub trait Condensable {
+pub trait Encodeable {
     fn to_bytes(&self) -> Vec<u8>;
 }
 
-pub trait Vaporizable {
+pub trait Decodeable {
     fn read_from(reader: &mut SmallReader) -> Self;
 }
 
@@ -160,7 +160,7 @@ pub trait Vaporizable {
 ///
 /// - 2 bytes: bytes size (range: 0 - 65535) (65535 * 8 = 524280 bits)
 /// - n bytes: bit vector
-impl Condensable for BitVec {
+impl Encodeable for BitVec {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
 
@@ -177,7 +177,7 @@ impl Condensable for BitVec {
     }
 }
 
-impl Vaporizable for BitVec {
+impl Decodeable for BitVec {
     fn read_from(reader: &mut SmallReader) -> Self {
         // read size
         let size = u16::from_le_bytes(
@@ -191,13 +191,13 @@ impl Vaporizable for BitVec {
     }
 }
 
-impl Condensable for &[u8] {
+impl Encodeable for &[u8] {
     fn to_bytes(&self) -> Vec<u8> {
         self.to_vec()
     }
 }
 
-impl Condensable for Vec<u8> {
+impl Encodeable for Vec<u8> {
     fn to_bytes(&self) -> Vec<u8> {
         self.to_vec()
     }
@@ -206,13 +206,13 @@ impl Condensable for Vec<u8> {
 macro_rules! impl_serialization {
     (for $($t:ty),+) => {
         $(
-            impl Condensable for $t {
+            impl Encodeable for $t {
                 fn to_bytes(&self) -> Vec<u8> {
                     self.to_le_bytes().to_vec()
                 }
             }
 
-            impl Vaporizable for $t {
+            impl Decodeable for $t {
                 fn read_from(reader: &mut SmallReader) -> Self {
                     let buf = reader.read_exact(size_of::<Self>());
                     Self::from_le_bytes(buf.try_into().unwrap())

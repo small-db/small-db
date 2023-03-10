@@ -4,7 +4,7 @@ use small_db::{
         page_cache::PageCache,
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
-    storage::tuple::{IntCell, Tuple},
+    storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     utils::{ceil_div, HandyRwLock},
     Op, Predicate,
@@ -87,16 +87,16 @@ fn test_insert_duplicate_tuples() {
     }
 
     // now search for some ranges and make sure we find all the tuples
-    let predicate = Predicate::new(Op::Equals, IntCell::new(1));
+    let predicate = Predicate::new(Op::Equals, Cell::new(1));
     let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
-        Predicate::new(Op::GreaterThanOrEq, IntCell::new(2));
+        Predicate::new(Op::GreaterThanOrEq, Cell::new(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
-    let predicate = Predicate::new(Op::LessThan, IntCell::new(2));
+    let predicate = Predicate::new(Op::LessThan, Cell::new(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
     assert_eq!(it.count(), repetition_count * 2);
 

@@ -5,10 +5,10 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Condensable, SmallReader, Vaporizable},
+    io::{Encodeable, SmallReader, Decodeable},
     storage::{
         schema::{small_int_schema, Schema, Type},
-        tuple::IntCell,
+        tuple::Cell,
     },
 };
 
@@ -85,7 +85,7 @@ impl Tuple {
     }
 }
 
-impl Condensable for Tuple {
+impl Encodeable for Tuple {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         for cell in &self.cells {

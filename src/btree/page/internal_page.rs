@@ -11,10 +11,10 @@ use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
     concurrent_status::Permission,
     error::SmallError,
-    io::{SmallReader, SmallWriter, Vaporizable},
+    io::{SmallReader, SmallWriter, Decodeable},
     storage::{
         schema::{get_type_length, Schema},
-        tuple::{Cell, IntCell},
+        tuple::{Cell},
     },
     transaction::Transaction,
     types::SmallResult,
@@ -417,8 +417,8 @@ impl BTreeInternalPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<IntCell>,
-        upper_bound: Option<IntCell>,
+        lower_bound: Option<Cell>,
+        upper_bound: Option<Cell>,
         check_occupancy: bool,
         depth: usize,
     ) {
@@ -431,7 +431,7 @@ impl BTreeInternalPage {
             if let Some(previous) = previous {
                 assert!(
                     previous <= e.get_key(),
-                    "entries are not in order, previous (lower_bound): {}, current entry: {}, current pid: {}, parent pid: {}",
+                    "entries are not in order, previous (lower_bound): {:?}, current entry: {}, current pid: {}, parent pid: {}",
                     previous,
                     e,
                     self.get_pid(),
@@ -724,7 +724,7 @@ impl Entry {
         self.key
     }
 
-    pub fn set_key(&mut self, key: IntCell) {
+    pub fn set_key(&mut self, key: Cell) {
         self.key = key;
     }
 
