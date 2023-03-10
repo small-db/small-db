@@ -17,7 +17,7 @@ use super::Cell;
 // #[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
-    pub cells: Vec<Box<dyn Cell>>,
+    pub cells: Vec<IntCell>,
 }
 
 impl Tuple {
@@ -29,11 +29,11 @@ impl Tuple {
 
     // TODO: remove this api
     pub fn new_default_tuple(scheme: Schema, _width: usize) -> Self {
-        let mut cells: Vec<Box<dyn Cell>> = Vec::new();
+        let mut cells: Vec<IntCell> = Vec::new();
         for field in &scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(Box::new(IntCell::new(0)));
+                    cells.push(IntCell::new(0));
                 }
                 Type::CHAR(_) => {
                     todo!()
@@ -53,11 +53,11 @@ impl Tuple {
         tuple
     }
 
-    pub fn set_field<C: Cell>(&mut self, i: usize, c: C) {
-        self.cells[i] = Box::new(c);
+    pub fn set_field(&mut self, i: usize, c: IntCell) {
+        self.cells[i] = c.clone();
     }
 
-    pub fn get_field(&self, i: usize) -> Box<dyn Cell> {
+    pub fn get_field(&self, i: usize) -> IntCell{
         self.cells[i]
     }
 
@@ -189,7 +189,7 @@ impl Eq for WrappedTuple {}
 
 impl fmt::Display for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.cells)
+        write!(f, "{:?}", self.cells)
     }
 }
 

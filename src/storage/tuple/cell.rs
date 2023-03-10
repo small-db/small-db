@@ -5,14 +5,13 @@ use crate::{
     Op,
 };
 
-pub trait Cell: Debug + Ord + Condensable {}
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
+pub enum Cell {}
 
 #[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]
 pub struct IntCell {
     pub value: i32,
 }
-
-impl Cell for IntCell {}
 
 impl IntCell {
     pub fn new(v: i32) -> IntCell {
