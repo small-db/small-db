@@ -6,13 +6,11 @@ use std::{
 };
 
 use crate::{
-    btree::{
-        page::{
-            BTreeHeaderPage, BTreeInternalPage,
-            BTreeInternalPageIterator, BTreeLeafPage,
-            BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
-            PageCategory,
-        },
+    btree::page::{
+        BTreeHeaderPage, BTreeInternalPage,
+        BTreeInternalPageIterator, BTreeLeafPage,
+        BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
+        PageCategory,
     },
     concurrent_status::Permission,
     error::SmallError,
@@ -191,7 +189,7 @@ impl BTreeTable {
             // stage 1: pull down the edge entry from parent and
             // insert it into target page
             let edge_entry = Entry::new(
-                parent_entry.get_key(),
+                &parent_entry.get_key(),
                 &left.get_last_child_pid(),
                 &right.get_first_child_pid(),
             );
@@ -573,7 +571,7 @@ impl BTreeTable {
 
             // 2. insert new entry to dest page
             let new_entry = Entry::new(
-                *middle_key,
+                &middle_key,
                 &fn_get_edge_left_child(edge_child_pid, &e),
                 &fn_get_edge_right_child(edge_child_pid, &e),
             );

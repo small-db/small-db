@@ -18,7 +18,7 @@ use crate::{
         page_cache::PageCache,
     },
     error::SmallError,
-    io::{Encodeable, SmallFile, SmallReader, Decodeable},
+    io::{Decodeable, Encodeable, SmallFile, SmallReader},
     storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,
@@ -1021,7 +1021,7 @@ impl LogManager {
                 let iter = page.iter();
                 let content = iter
                     .take(5)
-                    .map(|x| x.cells[0].to_bytes())
+                    .map(|x| x.get_cell(0).to_bytes())
                     .collect::<Vec<_>>();
 
                 return format!(

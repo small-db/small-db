@@ -272,7 +272,7 @@ impl BTreeInternalPage {
     pub fn get_entry(&self, index: usize) -> Option<Entry> {
         if self.is_slot_used(index) {
             Some(Entry::new(
-                self.keys[index],
+                &self.keys[index],
                 &self.children[index - 1],
                 &self.children[index],
             ))
@@ -319,7 +319,7 @@ impl BTreeInternalPage {
 
     fn move_entry(&mut self, from: usize, to: usize) {
         if self.is_slot_used(from) && !self.is_slot_used(to) {
-            self.keys[to] = self.keys[from];
+            self.keys[to] = self.keys[from].clone();
 
             // note that we don't need to update the left child slot,
             // since the left child slot is not the
@@ -417,8 +417,8 @@ impl BTreeInternalPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<Cell>,
-        upper_bound: Option<Cell>,
+        lower_bound: &Option<Cell>,
+        upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
     ) {
@@ -699,12 +699,12 @@ pub struct Entry {
 
 impl Entry {
     pub fn new(
-        key: Cell,
+        key: &Cell,
         left: &BTreePageID,
         right: &BTreePageID,
     ) -> Self {
         Self {
-            key,
+            key: key.clone(),
             left: *left,
             right: *right,
 
@@ -721,7 +721,7 @@ impl Entry {
     }
 
     pub fn get_key(&self) -> Cell {
-        self.key
+        self.key.clone()
     }
 
     pub fn set_key(&mut self, key: Cell) {
@@ -791,7 +791,7 @@ impl Iterator for BTreeInternalPageIterator<'_> {
                 continue;
             }
             let mut e = Entry::new(
-                self.page.keys[cursor],
+                &self.page.keys[cursor],
                 &self.page.children[self.left_child_position],
                 &self.page.children[cursor],
             );
@@ -817,7 +817,7 @@ impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
                 }
 
                 let mut e = Entry::new(
-                    self.page.keys[self.right_child_position],
+                    &self.page.keys[self.right_child_position],
                     &self.page.children[left_index],
                     &self.page.children[self.right_child_position],
                 );

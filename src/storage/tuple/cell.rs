@@ -7,6 +7,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub enum Cell {
+    Null,
     Int32(i32),
     String(String),
 }

@@ -39,7 +39,7 @@ use crate::{
 };
 
 enum SearchFor {
-    IntField(Cell),
+    Target(Cell),
     LeftMost,
     RightMost,
 }
@@ -170,7 +170,7 @@ impl BTreeTable {
             tx,
             Permission::ReadWrite,
             root_pid,
-            SearchFor::IntField(field),
+            SearchFor::Target(field),
         );
 
         if leaf_rc.rl().empty_slots_count() == 0 {
@@ -248,7 +248,7 @@ impl BTreeTable {
         // once the parent page is split, a lot of children will
         // been borrowed. (may including the current leaf page)
         let parent_rc =
-            self.get_parent_with_empty_slots(tx, parent_pid, field);
+            self.get_parent_with_empty_slots(tx, parent_pid, &field);
 
         // borrow of parent_rc start here
         // borrow of page_rc start here
@@ -258,7 +258,7 @@ impl BTreeTable {
             let mut page = page_rc.wl();
             let mut new_sibling = new_sibling_rc.wl();
             let mut entry = Entry::new(
-                key,
+                &key,
                 &page.get_pid(),
                 &new_sibling.get_pid(),
             );
@@ -356,7 +356,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         parent_id: BTreePageID,
-        field: Cell,
+        field: &Cell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
         // create a parent node if necessary
         // this will be the new root of the tree
@@ -423,7 +423,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
-        field: Cell,
+        field: &Cell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
         let sibling_rc = self.get_empty_interanl_page(tx);
         let key: Cell;
@@ -479,7 +479,7 @@ impl BTreeTable {
 
             key = middle_entry.get_key();
             new_entry =
-                Entry::new(key, &page.get_pid(), &sibling.get_pid());
+                Entry::new(&key, &page.get_pid(), &sibling.get_pid());
         }
         // borrow of sibling_rc end here
         // borrow of page_rc end here
@@ -497,7 +497,7 @@ impl BTreeTable {
         }
         // borrow of parent_rc end here
 
-        if field > key {
+        if *field > key {
             sibling_rc
         } else {
             page_rc
@@ -623,8 +623,8 @@ impl BTreeTable {
                     let mut found = false;
                     for e in it {
                         match search {
-                            SearchFor::IntField(field) => {
-                                if e.get_key() >= field {
+                            SearchFor::Target(cell) => {
+                                if e.get_key() >= cell {
                                     child_pid =
                                         Some(e.get_left_child());
                                     found = true;
@@ -1433,7 +1433,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    SearchFor::IntField(index_predicate.field),
+                    SearchFor::Target(index_predicate.field),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
