@@ -32,7 +32,7 @@ fn validate_scan(
     int_tuples: &Vec<Vec<i32>>,
 ) {
     for (i, tuple) in it.enumerate() {
-        for (j, f) in tuple.fields.iter().enumerate() {
+        for (j, f) in tuple.cells.iter().enumerate() {
             assert_eq!(f.value, int_tuples[i][j]);
         }
     }

@@ -15,7 +15,7 @@ use crate::{
 #[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
-    pub fields: Vec<IntCell>,
+    pub cells: Vec<IntCell>,
 }
 
 impl Tuple {
@@ -40,7 +40,7 @@ impl Tuple {
         }
         Tuple {
             scheme,
-            fields: cells,
+            cells,
         }
     }
 
@@ -48,24 +48,24 @@ impl Tuple {
         let scheme = small_int_schema(width, "");
         let _bytes = [0];
         let mut tuple = Tuple::new_default_tuple(scheme, width);
-        for i in 0..tuple.fields.len() {
+        for i in 0..tuple.cells.len() {
             tuple.set_field(i, IntCell::new(value));
         }
         tuple
     }
 
     pub fn set_field(&mut self, i: usize, c: IntCell) {
-        self.fields[i] = c;
+        self.cells[i] = c;
     }
 
     pub fn get_field(&self, i: usize) -> IntCell {
-        self.fields[i]
+        self.cells[i]
     }
 
     pub fn clone(&self) -> Tuple {
         Tuple {
             scheme: self.scheme.clone(),
-            fields: self.fields.to_vec(),
+            cells: self.cells.to_vec(),
         }
     }
 
@@ -90,7 +90,7 @@ impl Tuple {
         }
         Tuple {
             scheme: tuple_scheme.clone(),
-            fields: cells,
+            cells,
         }
     }
 }
@@ -98,7 +98,7 @@ impl Tuple {
 impl Condensable for Tuple {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        for cell in &self.fields {
+        for cell in &self.cells {
             let mut cell_bytes = cell.to_bytes();
             bytes.append(&mut cell_bytes);
         }
@@ -112,8 +112,8 @@ impl PartialEq for Tuple {
             return false;
         }
 
-        for (i, field) in self.fields.iter().enumerate() {
-            if field != &other.fields[i] {
+        for (i, field) in self.cells.iter().enumerate() {
+            if field != &other.cells[i] {
                 return false;
             }
         }
@@ -127,7 +127,7 @@ impl Eq for Tuple {}
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
-        for cell in &self.fields {
+        for cell in &self.cells {
             let cell_str = format!("{}, ", cell.value);
             content.push_str(&cell_str);
         }
@@ -191,7 +191,7 @@ impl Eq for WrappedTuple {}
 impl fmt::Display for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
-        for cell in &self.fields {
+        for cell in &self.cells {
             let cell_str = format!("{}, ", cell.value);
             content.push_str(&cell_str);
         }

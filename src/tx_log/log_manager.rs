@@ -1022,7 +1022,7 @@ impl LogManager {
                 // let content = iter.take(3).collect::<Vec<_>>();
                 let content = iter
                     .take(5)
-                    .map(|x| x.fields[0].to_string())
+                    .map(|x| x.cells[0].to_string())
                     .collect::<Vec<_>>();
 
                 return format!(
