@@ -13,8 +13,8 @@ use crate::{
     error::SmallError,
     io::{SmallReader, SmallWriter, Vaporizable},
     storage::{
-        base::{get_type_length, IntCell},
-        schema::Schema,
+        schema::{get_type_length, Schema},
+        tuple::IntCell,
     },
     transaction::Transaction,
     types::SmallResult,

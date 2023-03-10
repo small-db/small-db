@@ -4,10 +4,7 @@ use std::{
 };
 
 use crate::{
-    storage::{
-        base::{FieldItem, Type},
-        schema::Schema,
-    },
+    storage::schema::{FieldItem, Schema, Type},
     utils::HandyRwLock,
     BTreeTable,
 };

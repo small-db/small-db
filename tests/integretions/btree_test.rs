@@ -4,10 +4,11 @@ use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
     btree::{page_cache::PageCache, table::BTreeTableSearchIterator},
+    storage::tuple::Tuple,
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Predicate, Tuple,
+    BTreeTable, Database, Predicate,
 };
 
 use crate::test_utils::{

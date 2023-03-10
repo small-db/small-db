@@ -3,12 +3,12 @@ use std::{
     usize,
 };
 
-use super::page::BTreePageID;
 use crate::{
+    btree::page::BTreePageID,
     io::{Condensable, SmallReader, Vaporizable},
     storage::{
-        base::{get_type_length, Cell, IntCell, Type},
-        schema::{small_int_schema, Schema},
+        schema::{small_int_schema, Schema, Type},
+        tuple::IntCell,
     },
 };
 
@@ -143,6 +143,7 @@ impl fmt::Debug for Tuple {
     }
 }
 
+// TODO: move this to `btree` module, or remove it
 #[derive(PartialEq)]
 pub struct WrappedTuple {
     internal: Tuple,

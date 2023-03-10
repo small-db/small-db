@@ -1,6 +1,7 @@
 use small_db::{
-    btree::page::BTreePage, transaction::Transaction,
-    utils::HandyRwLock, BTreeTable, Database, Tuple,
+    btree::page::BTreePage, storage::tuple::Tuple,
+    transaction::Transaction, utils::HandyRwLock, BTreeTable,
+    Database,
 };
 
 use crate::test_utils::{

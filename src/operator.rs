@@ -1,4 +1,4 @@
-use crate::storage::base::IntCell;
+use crate::storage::tuple::IntCell;
 
 pub enum Op {
     Equals,

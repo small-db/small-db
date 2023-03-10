@@ -1,6 +1,6 @@
 use log::error;
 use small_db::{
-    btree::table::BTreeTableSearchIterator, storage::base::IntCell,
+    btree::table::BTreeTableSearchIterator, storage::tuple::IntCell,
     transaction::Transaction, BTreeTable, Database, Op, Predicate,
 };
 

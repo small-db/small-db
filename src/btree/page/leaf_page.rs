@@ -8,14 +8,13 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::{
-        consts::INDEX_SIZE, page_cache::PageCache,
-        tuple::WrappedTuple,
-    },
+    btree::{consts::INDEX_SIZE, page_cache::PageCache},
     io::{SmallReader, SmallWriter, Vaporizable},
-    storage::{base::IntCell, schema::Schema},
+    storage::{
+        schema::Schema,
+        tuple::{IntCell, Tuple, WrappedTuple},
+    },
     utils::{ceil_div, HandyRwLock},
-    Tuple,
 };
 
 /// A leaf page in the B+ tree.

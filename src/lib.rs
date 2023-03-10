@@ -11,7 +11,7 @@ mod io;
 mod operator;
 mod tx_log;
 
-pub use btree::{table::BTreeTable, tuple::Tuple};
+pub use btree::{table::BTreeTable};
 pub use common::Database;
 pub use operator::{Op, Predicate};
 pub use storage::schema::{small_int_schema, Schema};

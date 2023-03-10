@@ -13,9 +13,10 @@ use small_db::{
     },
     concurrent_status::Permission,
     small_int_schema,
+    storage::tuple::Tuple,
     transaction::Transaction,
     utils::{self, HandyRwLock},
-    BTreeTable, Database, Schema, Tuple,
+    BTreeTable, Database, Schema,
 };
 
 use super::internal_children_cap;
