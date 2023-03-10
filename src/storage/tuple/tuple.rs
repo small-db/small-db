@@ -17,9 +17,7 @@ use super::Cell;
 // #[derive(Default)]
 pub struct Tuple {
     pub scheme: Schema,
-    pub cells: Vec<IntCell>,
-
-    // pub cells_new: Vec<Cell>,
+    pub cells: Vec<Cell>,
 }
 
 impl Tuple {
@@ -30,72 +28,59 @@ impl Tuple {
     }
 
     // TODO: remove this api
-    pub fn new_default_tuple(scheme: Schema, _width: usize) -> Self {
-        let mut cells: Vec<IntCell> = Vec::new();
-        for field in &scheme.fields {
-            match field.field_type {
-                Type::INT => {
-                    cells.push(IntCell::new(0));
-                }
-                Type::CHAR(_) => {
-                    todo!()
-                }
-            }
+    pub fn new_int_tuple(scheme: Schema, value: i32) -> Self {
+        let mut cells: Vec<Cell> = Vec::new();
+        for _ in scheme.fields {
+            cells.push(Cell::Int32(value));
         }
-        Tuple {
-            scheme,
-            cells: Vec::new(),
-            // cells_new: Vec::new(),
-        }
-    }
 
-    pub fn new_btree_tuple(value: i32, width: usize) -> Tuple {
-        let scheme = small_int_schema(width, "");
-        let _bytes = [0];
-        let mut tuple = Tuple::new_default_tuple(scheme, width);
-        for i in 0..tuple.cells.len() {
-            tuple.set_field(i, IntCell::new(value));
-        }
-        tuple
-    }
-
-    pub fn set_field(&mut self, i: usize, c: IntCell) {
-        self.cells[i] = c.clone();
-    }
-
-    pub fn get_field(&self, i: usize) -> IntCell {
-        self.cells[i]
-    }
-
-    pub fn clone(&self) -> Tuple {
-        Tuple {
-            scheme: self.scheme.clone(),
-            cells: self.cells.to_vec(),
-        }
+        Tuple { scheme, cells }
     }
 
     pub fn read_from(
         reader: &mut crate::io::SmallReader,
         tuple_scheme: &Schema,
     ) -> Self {
-        let mut cells: Vec<IntCell> = Vec::new();
+        let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
             match field.field_type {
                 Type::INT => {
-                    cells.push(IntCell::read_from(reader));
+                    cells.push(Cell::Int32(reader.read::<i32>()));
                 }
                 Type::CHAR(len) => {
                     let mut bytes = Vec::new();
                     for _ in 0..len {
                         bytes.push(reader.read::<u8>());
                     }
-                    cells.push(IntCell::new(0));
+                    cells.push(Cell::String(
+                        String::from_utf8(bytes).unwrap(),
+                    ));
                 }
             }
         }
         Tuple {
             scheme: tuple_scheme.clone(),
             cells,
+        }
+    }
+
+    // TODO: remove this api
+    pub fn new_int_tuples(value: i32, width: usize) -> Self {
+        let scheme = small_int_schema(width, "");
+        return Tuple::new_int_tuple(scheme, value);
+    }
+
+    pub fn get_field(&self, i: usize) -> Cell {
+        self.cells[i]
+    }
+
+    pub fn clone(&self) -> Tuple {
+        todo!();
+        Tuple {
+            scheme: self.scheme.clone(),
+
+            // TODO: clone cells
+            cells: Vec::new(),
         }
     }
 }
@@ -216,7 +201,7 @@ mod tests {
     fn test_tuple_clone() {
         init_log();
 
-        let tuple = Tuple::new_btree_tuple(35, 2);
+        let tuple = Tuple::new_int_tuples(35, 2);
         debug!("tuple: {}", tuple);
         let new_tuple = tuple.clone();
         debug!("new tuple: {}", new_tuple);

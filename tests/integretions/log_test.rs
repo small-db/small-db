@@ -10,7 +10,7 @@ use crate::test_utils::{
 };
 
 fn insert_row(table: &BTreeTable, tx: &Transaction, key: i32) {
-    let tuple = Tuple::new_btree_tuple(key, 2);
+    let tuple = Tuple::new_int_tuples(key, 2);
     table.insert_tuple(&tx, &tuple).unwrap();
 }
 

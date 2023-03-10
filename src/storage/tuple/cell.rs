@@ -6,8 +6,8 @@ use crate::{
 };
 
 pub enum Cell {
-    Int32Cell(i32),
-    StringCell(String),
+    Int32(i32),
+    String(String),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]

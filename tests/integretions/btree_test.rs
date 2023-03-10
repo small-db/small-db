@@ -24,7 +24,7 @@ fn inserter(
 ) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i32::MIN, i32::MAX);
-    let tuple = Tuple::new_btree_tuple(insert_value, column_count);
+    let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
     debug!("{} prepare to insert", tx);

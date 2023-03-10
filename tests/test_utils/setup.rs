@@ -87,7 +87,7 @@ pub fn new_random_btree_table(
     let mut rng = rand::thread_rng();
     for _ in 0..rows {
         let insert_value = rng.gen_range(i32::MIN, i32::MAX);
-        let tuple = Tuple::new_btree_tuple(insert_value, columns);
+        let tuple = Tuple::new_int_tuples(insert_value, columns);
         tuples.push(tuple);
     }
 
