@@ -18,6 +18,8 @@ use super::Cell;
 pub struct Tuple {
     pub scheme: Schema,
     pub cells: Vec<IntCell>,
+
+    // pub cells_new: Vec<Cell>,
 }
 
 impl Tuple {
@@ -40,7 +42,11 @@ impl Tuple {
                 }
             }
         }
-        Tuple { scheme, cells }
+        Tuple {
+            scheme,
+            cells: Vec::new(),
+            // cells_new: Vec::new(),
+        }
     }
 
     pub fn new_btree_tuple(value: i32, width: usize) -> Tuple {
@@ -57,7 +63,7 @@ impl Tuple {
         self.cells[i] = c.clone();
     }
 
-    pub fn get_field(&self, i: usize) -> IntCell{
+    pub fn get_field(&self, i: usize) -> IntCell {
         self.cells[i]
     }
 

@@ -5,8 +5,10 @@ use crate::{
     Op,
 };
 
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub enum Cell {}
+pub enum Cell {
+    Int32Cell(i32),
+    StringCell(String),
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, Ord, Debug, PartialOrd)]
 pub struct IntCell {
