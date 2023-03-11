@@ -170,7 +170,7 @@ impl BTreeTable {
             tx,
             Permission::ReadWrite,
             root_pid,
-            SearchFor::Target(field),
+            &SearchFor::Target(field),
         );
 
         if leaf_rc.rl().empty_slots_count() == 0 {
@@ -596,7 +596,7 @@ impl BTreeTable {
         tx: &Transaction,
         perm: Permission,
         page_id: BTreePageID,
-        search: SearchFor,
+        search: &SearchFor,
     ) -> Arc<RwLock<BTreeLeafPage>> {
         match page_id.category {
             PageCategory::Leaf => {
@@ -624,7 +624,7 @@ impl BTreeTable {
                     for e in it {
                         match search {
                             SearchFor::Target(cell) => {
-                                if e.get_key() >= cell {
+                                if &e.get_key() >= cell {
                                     child_pid =
                                         Some(e.get_left_child());
                                     found = true;
@@ -825,7 +825,7 @@ impl BTreeTable {
             tx,
             perm,
             page_id,
-            SearchFor::LeftMost,
+            &SearchFor::LeftMost,
         );
     }
 
@@ -839,7 +839,7 @@ impl BTreeTable {
             tx,
             perm,
             page_id,
-            SearchFor::RightMost,
+            &SearchFor::RightMost,
         );
     }
 
@@ -1433,7 +1433,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    SearchFor::Target(index_predicate.field),
+                    &SearchFor::Target(index_predicate.field),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
@@ -1441,7 +1441,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    SearchFor::LeftMost,
+                    &SearchFor::LeftMost,
                 )
             }
             Op::Like => todo!(),
