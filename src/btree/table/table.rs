@@ -1156,8 +1156,8 @@ impl BTreeTable {
             &tx,
             &root_pid,
             &root_ptr_page.rl().get_pid(),
-            None,
-            None,
+            &None,
+            &None,
             check_occupancy,
             0,
         );
@@ -1181,8 +1181,8 @@ impl BTreeTable {
         tx: &Transaction,
         pid: &BTreePageID,
         parent_pid: &BTreePageID,
-        mut lower_bound: Option<Cell>,
-        upper_bound: Option<Cell>,
+        lower_bound: &Option<Cell>,
+        upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
     ) -> SubtreeSummary {
@@ -1235,7 +1235,7 @@ impl BTreeTable {
                     &current.get_left_child(),
                     pid,
                     lower_bound,
-                    Some(current.get_key()),
+                    &Some(current.get_key()),
                     check_occupancy,
                     depth + 1,
                 );
@@ -1247,14 +1247,14 @@ impl BTreeTable {
                         &entry.get_left_child(),
                         pid,
                         lower_bound,
-                        Some(entry.get_key()),
+                        &Some(entry.get_key()),
                         check_occupancy,
                         depth + 1,
                     );
                     accumulation = accumulation
                         .check_and_merge(&current_summary);
 
-                    lower_bound = Some(entry.get_key());
+                    lower_bound = &Some(entry.get_key());
 
                     last_entry = entry;
                 }

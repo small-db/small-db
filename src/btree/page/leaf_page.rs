@@ -344,8 +344,8 @@ impl BTreeLeafPage {
     pub fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
-        lower_bound: Option<Cell>,
-        upper_bound: Option<Cell>,
+        lower_bound: &Option<Cell>,
+        upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
     ) {
@@ -362,7 +362,7 @@ impl BTreeLeafPage {
             bt,
         );
 
-        let mut previous = lower_bound;
+        let mut previous = lower_bound.clone();
         let it = BTreeLeafPageIterator::new(self);
         for tuple in it {
             if let Some(previous) = previous {
@@ -380,7 +380,7 @@ impl BTreeLeafPage {
         if let Some(upper_bound) = upper_bound {
             if let Some(previous) = previous {
                 assert!(
-                    previous <= upper_bound,
+                    &previous <= upper_bound,
                     "the last tuple exceeds upper_bound, last tuple: {:?}, upper bound: {:?}",
                     previous,
                     upper_bound,
