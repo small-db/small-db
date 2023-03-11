@@ -1222,8 +1222,8 @@ impl BTreeTable {
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,
-                    lower_bound,
-                    upper_bound,
+                    &lower_bound,
+                    &upper_bound,
                     check_occupancy,
                     depth,
                 );

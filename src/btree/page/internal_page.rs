@@ -425,7 +425,7 @@ impl BTreeInternalPage {
         assert_eq!(self.get_pid().category, PageCategory::Internal);
         assert_eq!(&self.get_parent_pid(), parent_pid);
 
-        let mut previous = lower_bound;
+        let mut previous = lower_bound.clone();
         let it = BTreeInternalPageIterator::new(self);
         for e in it {
             if let Some(previous) = previous {
@@ -443,7 +443,7 @@ impl BTreeInternalPage {
 
         if let Some(upper_bound) = upper_bound {
             if let Some(previous) = previous {
-                assert!(previous <= upper_bound);
+                assert!(previous <= upper_bound.clone());
             }
         }
 
