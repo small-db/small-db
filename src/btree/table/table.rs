@@ -1229,20 +1229,10 @@ impl BTreeTable {
                 );
 
                 let mut it = BTreeInternalPageIterator::new(&page);
-                // let current = it.next().unwrap();
-                let mut child_lower_bound = lower_bound.clone();
+
+                let mut child_lower_bound: Option<Cell> =
+                    lower_bound.clone();
                 let mut summary: Option<SubtreeSummary> = None;
-
-                // let mut accumulation = self.check_sub_tree(
-                //     tx,
-                //     &current.get_left_child(),
-                //     pid,
-                //     &child_lower_bound,
-                //     &Some(current.get_key()),
-                //     check_occupancy,
-                //     depth + 1,
-                // );
-
                 let mut last_entry: Option<Entry> = None;
 
                 for entry in it {
@@ -1273,7 +1263,7 @@ impl BTreeTable {
                     tx,
                     &last_entry.unwrap().get_right_child(),
                     pid,
-                    lower_bound,
+                    &child_lower_bound,
                     upper_bound,
                     check_occupancy,
                     depth + 1,
