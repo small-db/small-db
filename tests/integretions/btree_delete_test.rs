@@ -6,7 +6,6 @@ use small_db::{
     },
     transaction::Transaction,
     utils::{ceil_div, floor_div, HandyRwLock},
-    Op,
 };
 
 use crate::test_utils::{

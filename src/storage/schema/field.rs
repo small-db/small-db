@@ -1,9 +1,4 @@
-use std::fmt::{self, Debug};
-
-use crate::{
-    io::{Encodeable, SmallReader, Decodeable},
-    Op,
-};
+use std::fmt::Debug;
 
 // TODO: add CHAR type
 #[derive(Copy, Clone, PartialEq, Debug)]

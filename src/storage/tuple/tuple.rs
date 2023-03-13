@@ -7,7 +7,7 @@ use crate::{
     btree::page::BTreePageID,
     io::{Decodeable, Encodeable, SmallReader},
     storage::{
-        schema::{small_int_schema, Schema, Type},
+        schema::{Schema, Type},
         tuple::Cell,
     },
 };

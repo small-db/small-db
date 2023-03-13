@@ -1228,7 +1228,7 @@ impl BTreeTable {
                     depth,
                 );
 
-                let mut it = BTreeInternalPageIterator::new(&page);
+                let it = BTreeInternalPageIterator::new(&page);
 
                 let mut child_lower_bound: Option<Cell> =
                     lower_bound.clone();

@@ -1,9 +1,6 @@
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 
-use crate::{
-    io::{Decodeable, Encodeable, SmallReader},
-    Op,
-};
+use crate::io::Encodeable;
 
 #[derive(Debug, Clone)]
 pub enum Cell {
