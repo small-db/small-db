@@ -60,7 +60,7 @@ fn test_insert_tuple() {
     // now make sure the records are sorted on the key field
     let it = BTreeTableIterator::new(&tx, &table);
     for (i, tuple) in it.enumerate() {
-        assert_eq!(i, tuple.get_cell(0).value as usize);
+        assert_eq!(Cell::Int32(i as i32), tuple.get_cell(0));
     }
 
     tx.commit().unwrap();
@@ -87,17 +87,17 @@ fn test_insert_duplicate_tuples() {
     }
 
     // now search for some ranges and make sure we find all the tuples
-    let predicate = Predicate::new(Op::Equals, Cell::new(1));
-    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+    let predicate = Predicate::new(Op::Equals, Cell::Int32(1));
+    let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
-        Predicate::new(Op::GreaterThanOrEq, Cell::new(2));
-    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+        Predicate::new(Op::GreaterThanOrEq, Cell::Int32(2));
+    let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
-    let predicate = Predicate::new(Op::LessThan, Cell::new(2));
-    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+    let predicate = Predicate::new(Op::LessThan, Cell::Int32(2));
+    let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 2);
 
     tx.commit().unwrap();
@@ -209,7 +209,7 @@ fn test_split_root_page() {
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(
-            search_key(&table, &tx, tuple.get_cell(0).value) >= 1,
+            search_key(&table, &tx, &tuple.get_cell(0)) >= 1,
             &table,
         );
     }
@@ -249,20 +249,20 @@ fn test_split_internal_page() {
     // order
     let tx = Transaction::new();
     let it = BTreeTableIterator::new(&tx, &table);
-    let mut pre: i32 = i32::MIN;
+    let mut previous = Cell::Int32(i32::MIN);
     let mut count: usize = 0;
     for t in it {
         count += 1;
 
-        let cur = t.get_cell(table.key_field).value;
-        if t.get_cell(table.key_field).value < pre {
+        let current = t.get_cell(table.key_field);
+        if current < previous {
             panic!(
-                "records are not sorted, i: {}, pre: {}, cur: {}",
-                count, pre, cur
+                "records are not sorted, i: {}, pre: {:?}, cur: {:?}",
+                count, previous, current
             );
         }
 
-        pre = cur;
+        previous = current;
     }
 
     assert_eq!(count, row_count);
@@ -276,7 +276,7 @@ fn test_split_internal_page() {
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(
-            search_key(&table, &tx, tuple.get_cell(0).value) >= 1,
+            search_key(&table, &tx, &tuple.get_cell(0)) >= 1,
             &table,
         );
     }
@@ -289,10 +289,10 @@ fn test_split_internal_page() {
     for t in it {
         count += 1;
 
-        let cur = t.get_cell(table.key_field).value;
-        if t.get_cell(table.key_field).value < pre {
+        let cur = t.get_cell(table.key_field);
+        if t.get_cell(table.key_field) < pre {
             panic!(
-                "records are not sorted, i: {}, pre: {}, cur: {}",
+                "records are not sorted, i: {}, pre: {:?}, cur: {:?}",
                 count, pre, cur
             );
         }

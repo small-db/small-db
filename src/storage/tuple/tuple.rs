@@ -14,7 +14,6 @@ use crate::{
 
 // #[derive(Default)]
 pub struct Tuple {
-    scheme: Schema,
     cells: Vec<Cell>,
 }
 
@@ -32,7 +31,7 @@ impl Tuple {
             cells.push(Cell::Int32(value));
         }
 
-        Tuple { scheme, cells }
+        Tuple { cells }
     }
 
     pub fn read_from(
@@ -56,30 +55,25 @@ impl Tuple {
                 }
             }
         }
-        Tuple {
-            scheme: tuple_scheme.clone(),
-            cells,
-        }
+        Tuple { cells }
     }
 
     // TODO: remove this api
     pub fn new_int_tuples(value: i32, width: usize) -> Self {
-        let scheme = small_int_schema(width, "");
-        return Tuple::new_int_tuple(scheme, value);
+        let mut cells: Vec<Cell> = Vec::new();
+        for _ in 0..width {
+            cells.push(Cell::Int32(value));
+        }
+
+        Tuple { cells }
     }
 
     pub fn get_cell(&self, i: usize) -> Cell {
-        self.cells[i]
+        self.cells[i].clone()
     }
 
     pub fn clone(&self) -> Tuple {
         todo!();
-        Tuple {
-            scheme: self.scheme.clone(),
-
-            // TODO: clone cells
-            cells: Vec::new(),
-        }
     }
 }
 
@@ -96,10 +90,6 @@ impl Encodeable for Tuple {
 
 impl PartialEq for Tuple {
     fn eq(&self, other: &Self) -> bool {
-        if self.scheme != other.scheme {
-            return false;
-        }
-
         for (i, field) in self.cells.iter().enumerate() {
             if field != &other.cells[i] {
                 return false;

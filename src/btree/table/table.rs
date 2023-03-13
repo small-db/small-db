@@ -1429,7 +1429,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
     pub fn new(
         tx: &'t Transaction,
         table: &BTreeTable,
-        index_predicate: Predicate,
+        index_predicate: &Predicate,
     ) -> Self {
         let start_rc: Arc<RwLock<BTreeLeafPage>>;
         let root_pid = table.get_root_pid(tx);
@@ -1440,7 +1440,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    &SearchFor::Target(index_predicate.field),
+                    &SearchFor::Target(index_predicate.field.clone()),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
@@ -1461,7 +1461,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
                 &start_rc,
             )),
-            predicate: index_predicate,
+            predicate: index_predicate.clone(),
             key_field: table.key_field,
         }
     }

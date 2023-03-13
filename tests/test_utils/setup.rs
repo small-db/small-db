@@ -261,7 +261,7 @@ fn sequential_insert_into_table(
 
                 let mut internal = internal_rc.wl();
                 let mut e = Entry::new(
-                    key,
+                    &key,
                     &left_rc.rl().get_pid(),
                     &right_rc.rl().get_pid(),
                 );

@@ -38,6 +38,7 @@ impl PartialOrd for Cell {
 impl Encodeable for Cell {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
+            Cell::Null => vec![0],
             Cell::Int32(v) => v.to_be_bytes().to_vec(),
             Cell::String(v) => v.as_bytes().to_vec(),
         }

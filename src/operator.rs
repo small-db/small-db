@@ -1,5 +1,6 @@
 use crate::storage::tuple::Cell;
 
+#[derive(Clone)]
 pub enum Op {
     Equals,
     GreaterThan,
@@ -10,6 +11,7 @@ pub enum Op {
     NotEquals,
 }
 
+#[derive(Clone)]
 pub struct Predicate {
     pub op: Op,
     pub field: Cell,

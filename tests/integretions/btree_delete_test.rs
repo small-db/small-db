@@ -251,13 +251,13 @@ fn test_delete_internal_pages() {
     let second_child_pod = get_internal_page(&table, 1, 1);
     table.draw_tree(2);
     table.check_integrity(true);
-    assert!(e.get_key().compare(
-        Op::LessThanOrEq,
-        BTreeInternalPageIterator::new(&second_child_pod.rl())
-            .next()
-            .unwrap()
-            .get_key()
-    ));
+    assert!(
+        e.get_key()
+            <= BTreeInternalPageIterator::new(&second_child_pod.rl())
+                .next()
+                .unwrap()
+                .get_key()
+    );
 
     let count =
         first_child_pod.rl().children_count() * leaf_records_cap();
