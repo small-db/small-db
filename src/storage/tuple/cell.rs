@@ -35,6 +35,14 @@ impl PartialOrd for Cell {
     }
 }
 
+impl Eq for Cell {}
+
+impl Ord for Cell {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 impl Encodeable for Cell {
     fn to_bytes(&self) -> Vec<u8> {
         match self {

@@ -1,7 +1,7 @@
 use rand::Rng;
 use small_db::{
-    btree::table::BTreeTableIterator, transaction::Transaction,
-    utils::HandyRwLock, Database,
+    btree::table::BTreeTableIterator, storage::tuple::Cell,
+    transaction::Transaction, utils::HandyRwLock, Database,
 };
 
 use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
@@ -9,7 +9,7 @@ use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
 fn test_scan(rows: usize, columns: usize) {
     let tx = Transaction::new();
     let mut rng = rand::thread_rng();
-    let mut int_tuples: Vec<Vec<i32>> = Vec::new();
+    let mut int_tuples = Vec::new();
     let key_field = rng.gen_range(0, columns);
     let table_rc = new_random_btree_table(
         columns,
@@ -29,11 +29,11 @@ fn test_scan(rows: usize, columns: usize) {
 
 fn validate_scan(
     it: &mut BTreeTableIterator,
-    int_tuples: &Vec<Vec<i32>>,
+    int_tuples: &Vec<Vec<Cell>>,
 ) {
     for (i, tuple) in it.enumerate() {
-        for (j, f) in tuple.cells.iter().enumerate() {
-            assert_eq!(f.value, int_tuples[i][j]);
+        for (j, cell) in tuple.get_cells().iter().enumerate() {
+            assert_eq!(cell, &int_tuples[i][j]);
         }
     }
 }

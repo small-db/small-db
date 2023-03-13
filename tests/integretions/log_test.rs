@@ -56,8 +56,14 @@ fn abort_insert(table: &BTreeTable, key_1: i32, key_2: i32) {
     insert_row(&table, &tx, key_2);
 
     // step 3: search for the tuples
-    assert_true(search_key(table, &tx, key_1) == 1, table);
-    assert_true(search_key(table, &tx, key_2) == 1, table);
+    assert_true(
+        search_key(table, &tx, &Cell::Int32(key_1)) == 1,
+        table,
+    );
+    assert_true(
+        search_key(table, &tx, &Cell::Int32(key_2)) == 1,
+        table,
+    );
 
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {

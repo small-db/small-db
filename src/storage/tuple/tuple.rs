@@ -72,6 +72,10 @@ impl Tuple {
         self.cells[i].clone()
     }
 
+    pub fn get_cells(&self) -> Vec<Cell> {
+        self.cells.clone()
+    }
+
     pub fn clone(&self) -> Tuple {
         todo!();
     }

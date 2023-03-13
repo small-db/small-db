@@ -55,7 +55,7 @@ fn deleter(
 
     debug!("{} prepare to delete", tx);
     let mut it =
-        BTreeTableSearchIterator::new(&tx, &table, predicate);
+        BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let _target = it.next().unwrap();
     // table.delete_tuple(&tx, &target).unwrap();
 
@@ -188,7 +188,7 @@ fn test_big_table() {
         let mut it = BTreeTableSearchIterator::new(
             &tx,
             &table_pod.rl(),
-            predicate,
+            &predicate,
         );
         assert!(it.next().is_some());
     }

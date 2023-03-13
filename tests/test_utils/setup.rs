@@ -13,7 +13,7 @@ use small_db::{
     },
     concurrent_status::Permission,
     small_int_schema,
-    storage::tuple::Tuple,
+    storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     utils::{self, HandyRwLock},
     BTreeTable, Database, Schema,
@@ -71,7 +71,7 @@ pub fn new_empty_btree_table(
 pub fn new_random_btree_table(
     columns: usize,
     rows: usize,
-    int_tuples: Option<&mut Vec<Vec<i32>>>,
+    result_tuples: Option<&mut Vec<Vec<Cell>>>,
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
@@ -91,15 +91,13 @@ pub fn new_random_btree_table(
         tuples.push(tuple);
     }
 
-    tuples.sort_by(|a, b| {
-        a.get_cell(key_field).cmp(&b.get_cell(key_field))
-    });
+    tuples.sort_by_cached_key(|t| t.get_cell(key_field));
 
-    if let Some(int_tuples) = int_tuples {
+    if let Some(int_tuples) = tuples {
         for t in tuples.iter() {
             let mut row = Vec::new();
             for i in 0..columns {
-                row.push(t.get_cell(i).value);
+                row.push(t.get_cell(i));
             }
             int_tuples.push(row);
         }

@@ -284,20 +284,20 @@ fn test_split_internal_page() {
     // now make sure we have enough records and they are all in sorted
     // order
     let it = BTreeTableIterator::new(&tx, &table);
-    let mut pre: i32 = i32::MIN;
+    let mut previous = Cell::Int32(i32::MIN);
     let mut count: usize = 0;
     for t in it {
         count += 1;
 
-        let cur = t.get_cell(table.key_field);
-        if t.get_cell(table.key_field) < pre {
+        let current = t.get_cell(table.key_field);
+        if current < previous {
             panic!(
                 "records are not sorted, i: {}, pre: {:?}, cur: {:?}",
-                count, pre, cur
+                count, previous, current
             );
         }
 
-        pre = cur;
+        previous = current;
     }
 
     assert_eq!(count, row_count + rows_increment);
