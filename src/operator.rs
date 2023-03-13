@@ -18,7 +18,10 @@ pub struct Predicate {
 }
 
 impl Predicate {
-    pub fn new(op: Op, field: Cell) -> Self {
-        Self { op, field }
+    pub fn new(op: Op, field: &Cell) -> Self {
+        Self {
+            op,
+            field: field.clone(),
+        }
     }
 }

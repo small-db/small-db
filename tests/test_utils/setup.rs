@@ -93,13 +93,13 @@ pub fn new_random_btree_table(
 
     tuples.sort_by_cached_key(|t| t.get_cell(key_field));
 
-    if let Some(int_tuples) = tuples {
+    if let Some(inner_tuples) = result_tuples {
         for t in tuples.iter() {
             let mut row = Vec::new();
             for i in 0..columns {
                 row.push(t.get_cell(i));
             }
-            int_tuples.push(row);
+            inner_tuples.push(row);
         }
     }
 
@@ -330,7 +330,7 @@ fn write_internal_pages(
 
                 let mut root = root_rc.wl();
                 let mut e = Entry::new(
-                    key,
+                    &key,
                     &left_rc.rl().get_pid(),
                     &right_rc.rl().get_pid(),
                 );

@@ -10,8 +10,9 @@ pub fn key_present(
     key: i32,
 ) -> bool {
     let predicate =
-        Predicate::new(small_db::Op::Equals, Cell::Int32(key));
-    let mut it = BTreeTableSearchIterator::new(tx, &table, predicate);
+        Predicate::new(small_db::Op::Equals, &Cell::Int32(key));
+    let mut it =
+        BTreeTableSearchIterator::new(tx, &table, &predicate);
     it.next().is_some()
 }
 
@@ -21,8 +22,8 @@ pub fn search_key(
     tx: &Transaction,
     key: &Cell,
 ) -> usize {
-    let predicate = Predicate::new(Op::Equals, Cell::Int32(key));
-    let it = BTreeTableSearchIterator::new(&tx, &table, predicate);
+    let predicate = Predicate::new(Op::Equals, key);
+    let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     return it.count();
 }
 

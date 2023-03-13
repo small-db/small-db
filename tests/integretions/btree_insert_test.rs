@@ -87,16 +87,16 @@ fn test_insert_duplicate_tuples() {
     }
 
     // now search for some ranges and make sure we find all the tuples
-    let predicate = Predicate::new(Op::Equals, Cell::Int32(1));
+    let predicate = Predicate::new(Op::Equals, &Cell::Int32(1));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
-        Predicate::new(Op::GreaterThanOrEq, Cell::Int32(2));
+        Predicate::new(Op::GreaterThanOrEq, &Cell::Int32(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
-    let predicate = Predicate::new(Op::LessThan, Cell::Int32(2));
+    let predicate = Predicate::new(Op::LessThan, &Cell::Int32(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 2);
 
