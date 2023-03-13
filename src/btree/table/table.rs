@@ -1229,49 +1229,65 @@ impl BTreeTable {
                 );
 
                 let mut it = BTreeInternalPageIterator::new(&page);
-                let current = it.next().unwrap();
-                let mut accumulation = self.check_sub_tree(
-                    tx,
-                    &current.get_left_child(),
-                    pid,
-                    lower_bound,
-                    &Some(current.get_key()),
-                    check_occupancy,
-                    depth + 1,
-                );
+                // let current = it.next().unwrap();
+                let mut child_lower_bound = lower_bound.clone();
+                let mut summary: Option<SubtreeSummary> = None;
 
-                let mut last_entry = current;
+                // let mut accumulation = self.check_sub_tree(
+                //     tx,
+                //     &current.get_left_child(),
+                //     pid,
+                //     &child_lower_bound,
+                //     &Some(current.get_key()),
+                //     check_occupancy,
+                //     depth + 1,
+                // );
+
+                let mut last_entry: Option<Entry> = None;
+
                 for entry in it {
                     let current_summary = self.check_sub_tree(
                         tx,
                         &entry.get_left_child(),
                         pid,
-                        lower_bound,
+                        &child_lower_bound,
                         &Some(entry.get_key()),
                         check_occupancy,
                         depth + 1,
                     );
-                    accumulation = accumulation
-                        .check_and_merge(&current_summary);
+                    match summary {
+                        Some(ref mut s) => {
+                            s.check_and_merge(&current_summary);
+                        }
+                        None => {
+                            summary = Some(current_summary);
+                        }
+                    }
 
-                    lower_bound = &Some(entry.get_key());
+                    child_lower_bound = Some(entry.get_key());
 
-                    last_entry = entry;
+                    last_entry = Some(entry);
                 }
 
                 let last_right_summary = self.check_sub_tree(
                     tx,
-                    &last_entry.get_right_child(),
+                    &last_entry.unwrap().get_right_child(),
                     pid,
                     lower_bound,
                     upper_bound,
                     check_occupancy,
                     depth + 1,
                 );
-                accumulation =
-                    accumulation.check_and_merge(&last_right_summary);
 
-                return accumulation;
+                match summary {
+                    Some(ref mut s) => {
+                        s.check_and_merge(&last_right_summary);
+                        return s.clone();
+                    }
+                    None => {
+                        return last_right_summary;
+                    }
+                }
             }
 
             // no other page types allowed inside the tree.
@@ -1280,6 +1296,7 @@ impl BTreeTable {
     }
 }
 
+#[derive(Debug, Clone)]
 struct SubtreeSummary {
     /// The distance towards the root.
     depth: usize,
@@ -1291,10 +1308,7 @@ struct SubtreeSummary {
 }
 
 impl SubtreeSummary {
-    fn check_and_merge(
-        &mut self,
-        right: &SubtreeSummary,
-    ) -> SubtreeSummary {
+    fn check_and_merge(&mut self, right: &SubtreeSummary) {
         assert_eq!(self.depth, right.depth);
         assert_eq!(
             self.right_ptr, right.left_most_pid,
@@ -1303,14 +1317,17 @@ impl SubtreeSummary {
         );
         assert_eq!(self.right_most_pid, right.left_ptr);
 
-        let acc = SubtreeSummary {
-            depth: self.depth,
-            left_ptr: self.left_ptr,
-            left_most_pid: self.left_most_pid,
-            right_ptr: right.right_ptr,
-            right_most_pid: right.right_most_pid,
-        };
-        return acc;
+        self.right_ptr = right.right_ptr;
+        self.right_most_pid = right.right_most_pid;
+
+        // let acc = SubtreeSummary {
+        //     depth: self.depth,
+        //     left_ptr: self.left_ptr,
+        //     left_most_pid: self.left_most_pid,
+        //     right_ptr: right.right_ptr,
+        //     right_most_pid: right.right_most_pid,
+        // };
+        // return acc;
     }
 }
 
