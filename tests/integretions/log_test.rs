@@ -1,7 +1,9 @@
 use small_db::{
-    btree::page::BTreePage, storage::tuple::Tuple,
-    transaction::Transaction, utils::HandyRwLock, BTreeTable,
-    Database,
+    btree::page::BTreePage,
+    storage::tuple::{Cell, Tuple},
+    transaction::Transaction,
+    utils::HandyRwLock,
+    BTreeTable, Database,
 };
 
 use crate::test_utils::{
@@ -111,10 +113,22 @@ fn test_abort() {
     abort_insert(&table, 3, 4);
 
     let tx = Transaction::new();
-    assert_true(search_key(&table, &tx, 1) == 1, &table);
-    assert_true(search_key(&table, &tx, 2) == 1, &table);
-    assert_true(search_key(&table, &tx, 3) == 0, &table);
-    assert_true(search_key(&table, &tx, 4) == 0, &table);
+    assert_true(
+        search_key(&table, &tx, &Cell::Int32(1)) == 1,
+        &table,
+    );
+    assert_true(
+        search_key(&table, &tx, &Cell::Int32(2)) == 1,
+        &table,
+    );
+    assert_true(
+        search_key(&table, &tx, &Cell::Int32(3)) == 0,
+        &table,
+    );
+    assert_true(
+        search_key(&table, &tx, &Cell::Int32(4)) == 0,
+        &table,
+    );
     tx.commit().unwrap();
 }
 
@@ -151,12 +165,30 @@ fn test_abort_commit_interleaved() {
 
     // verify the result
     let tx = Transaction::new();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 4) == 0, &table_1);
-    assert_true(search_key(&table_2, &tx, 21) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, 22) == 1, &table_2);
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(1)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(2)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(3)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(4)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(21)) == 1,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(22)) == 1,
+        &table_2,
+    );
     tx.commit().unwrap();
 }
 
@@ -173,11 +205,26 @@ fn test_abort_crash() {
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
         tx.start().unwrap();
-        assert_true(search_key(&table, &tx, 1) == 1, &table);
-        assert_true(search_key(&table, &tx, 2) == 1, &table);
-        assert_true(search_key(&table, &tx, 3) == 0, &table);
-        assert_true(search_key(&table, &tx, 4) == 0, &table);
-        assert_true(search_key(&table, &tx, 5) == 0, &table);
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(1)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(2)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(3)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(4)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(5)) == 0,
+            &table,
+        );
         tx.commit().unwrap();
     }
 
@@ -210,16 +257,46 @@ fn test_commit_abort_commit_crash() {
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
         tx.start().unwrap();
-        assert_true(search_key(&table, &tx, 1) == 1, &table);
-        assert_true(search_key(&table, &tx, 2) == 1, &table);
-        assert_true(search_key(&table, &tx, 3) == 0, &table);
-        assert_true(search_key(&table, &tx, 4) == 0, &table);
-        assert_true(search_key(&table, &tx, 5) == 1, &table);
-        assert_true(search_key(&table, &tx, 6) == 1, &table);
-        assert_true(search_key(&table, &tx, 7) == 0, &table);
-        assert_true(search_key(&table, &tx, 8) == 0, &table);
-        assert_true(search_key(&table, &tx, 9) == 1, &table);
-        assert_true(search_key(&table, &tx, 10) == 1, &table);
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(1)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(2)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(3)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(4)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(5)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(6)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(7)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(8)) == 0,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(9)) == 1,
+            &table,
+        );
+        assert_true(
+            search_key(&table, &tx, &Cell::Int32(10)) == 1,
+            &table,
+        );
         tx.commit().unwrap();
     }
 
@@ -246,9 +323,18 @@ fn test_commit_crash() {
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 3) == 0, &table_1);
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(1)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(2)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(3)) == 0,
+        &table_1,
+    );
     tx.commit().unwrap();
 }
 
@@ -309,20 +395,59 @@ fn test_open_commit_checkpoint_open_crash() {
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 12) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 13) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 14) == 0, &table_1);
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(1)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(2)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(12)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(13)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(14)) == 0,
+        &table_1,
+    );
 
-    assert_true(search_key(&table_2, &tx, 22) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 23) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 24) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 25) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 26) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, 27) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, 28) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 29) == 0, &table_2);
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(22)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(23)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(24)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(25)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(26)) == 1,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(27)) == 1,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(28)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(29)) == 0,
+        &table_2,
+    );
     tx.commit().unwrap();
 }
 
@@ -366,15 +491,39 @@ fn test_open_commit_open_crash() {
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 10) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 11) == 0, &table_1);
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(1)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(2)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(10)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(11)) == 0,
+        &table_1,
+    );
 
-    assert_true(search_key(&table_2, &tx, 22) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, 23) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, 24) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, 25) == 0, &table_2);
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(22)) == 1,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(23)) == 1,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(24)) == 0,
+        &table_2,
+    );
+    assert_true(
+        search_key(&table_2, &tx, &Cell::Int32(25)) == 0,
+        &table_2,
+    );
     tx.commit().unwrap();
 }
 
@@ -403,10 +552,22 @@ fn test_open_crash() {
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(search_key(&table_1, &tx, 1) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 2) == 1, &table_1);
-    assert_true(search_key(&table_1, &tx, 8) == 0, &table_1);
-    assert_true(search_key(&table_1, &tx, 9) == 0, &table_1);
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(1)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(2)) == 1,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(8)) == 0,
+        &table_1,
+    );
+    assert_true(
+        search_key(&table_1, &tx, &Cell::Int32(9)) == 0,
+        &table_1,
+    );
     tx.commit().unwrap();
 }
 
