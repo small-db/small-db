@@ -138,10 +138,10 @@ impl BTreeInternalPage {
 
             // read keys
             let mut keys: Vec<Cell> = Vec::new();
-            keys.push(Cell::Int32(0));
+            keys.push(Cell::Int64(0));
             for _ in 1..slot_count {
-                let key = i32::read_from(&mut reader);
-                keys.push(Cell::Int32(key));
+                let key = i64::read_from(&mut reader);
+                keys.push(Cell::Int64(key));
             }
 
             // read children
@@ -199,10 +199,10 @@ impl BTreeInternalPage {
 
         // read keys
         let mut keys: Vec<Cell> = Vec::new();
-        keys.push(Cell::Int32(0));
+        keys.push(Cell::Int64(0));
         for _ in 1..slot_count {
-            let key = i32::read_from(&mut reader);
-            keys.push(Cell::Int32(key));
+            let key = i64::read_from(&mut reader);
+            keys.push(Cell::Int64(key));
         }
 
         // read children

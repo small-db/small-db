@@ -24,16 +24,6 @@ impl Tuple {
         return Self::read_from(&mut reader, &scheme);
     }
 
-    // TODO: remove this api
-    pub fn new_int_tuple(scheme: Schema, value: i32) -> Self {
-        let mut cells: Vec<Cell> = Vec::new();
-        for _ in scheme.fields {
-            cells.push(Cell::Int32(value));
-        }
-
-        Tuple { cells }
-    }
-
     pub fn read_from(
         reader: &mut crate::io::SmallReader,
         tuple_scheme: &Schema,
@@ -41,8 +31,11 @@ impl Tuple {
         let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
             match field.field_type {
-                Type::INT => {
-                    cells.push(Cell::Int32(reader.read::<i32>()));
+                Type::Int64 => {
+                    cells.push(Cell::Int64(reader.read::<i64>()));
+                }
+                Type::Float64 => {
+                    cells.push(Cell::Float64(reader.read::<f64>()));
                 }
                 Type::CHAR(len) => {
                     let mut bytes = Vec::new();
@@ -59,10 +52,10 @@ impl Tuple {
     }
 
     // TODO: remove this api
-    pub fn new_int_tuples(value: i32, width: usize) -> Self {
+    pub fn new_int_tuples(value: i64, width: usize) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for _ in 0..width {
-            cells.push(Cell::Int32(value));
+            cells.push(Cell::Int64(value));
         }
 
         Tuple { cells }

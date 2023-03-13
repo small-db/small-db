@@ -28,7 +28,7 @@ impl Catalog {
 
         let catalog_schema = Schema {
             fields: vec![
-                FieldItem::new("table_id", Type::INT),
+                FieldItem::new("table_id", Type::Int64),
                 // FieldItem::new("table_id", Type::INT),
                 // FieldItem::new("table_name", Type::VARCHAR),
                 // FieldItem::new("table_path", Type::VARCHAR),

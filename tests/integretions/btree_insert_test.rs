@@ -60,7 +60,7 @@ fn test_insert_tuple() {
     // now make sure the records are sorted on the key field
     let it = BTreeTableIterator::new(&tx, &table);
     for (i, tuple) in it.enumerate() {
-        assert_eq!(Cell::Int32(i as i32), tuple.get_cell(0));
+        assert_eq!(Cell::Int64(i as i64), tuple.get_cell(0));
     }
 
     tx.commit().unwrap();
@@ -87,16 +87,16 @@ fn test_insert_duplicate_tuples() {
     }
 
     // now search for some ranges and make sure we find all the tuples
-    let predicate = Predicate::new(Op::Equals, &Cell::Int32(1));
+    let predicate = Predicate::new(Op::Equals, &Cell::Int64(1));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count);
 
     let predicate =
-        Predicate::new(Op::GreaterThanOrEq, &Cell::Int32(2));
+        Predicate::new(Op::GreaterThanOrEq, &Cell::Int64(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
-    let predicate = Predicate::new(Op::LessThan, &Cell::Int32(2));
+    let predicate = Predicate::new(Op::LessThan, &Cell::Int64(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 2);
 
@@ -204,7 +204,7 @@ fn test_split_root_page() {
     let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
-        let insert_value = rng.gen_range(0, i32::MAX);
+        let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
@@ -249,7 +249,7 @@ fn test_split_internal_page() {
     // order
     let tx = Transaction::new();
     let it = BTreeTableIterator::new(&tx, &table);
-    let mut previous = Cell::Int32(i32::MIN);
+    let mut previous = Cell::Int64(i64::MIN);
     let mut count: usize = 0;
     for t in it {
         count += 1;
@@ -271,7 +271,7 @@ fn test_split_internal_page() {
     let mut rng = rand::thread_rng();
     let rows_increment = 100;
     for _i in 0..rows_increment {
-        let insert_value = rng.gen_range(0, i32::MAX);
+        let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
@@ -284,7 +284,7 @@ fn test_split_internal_page() {
     // now make sure we have enough records and they are all in sorted
     // order
     let it = BTreeTableIterator::new(&tx, &table);
-    let mut previous = Cell::Int32(i32::MIN);
+    let mut previous = Cell::Int64(i64::MIN);
     let mut count: usize = 0;
     for t in it {
         count += 1;

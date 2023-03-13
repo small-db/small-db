@@ -7,10 +7,10 @@ use small_db::{
 pub fn key_present(
     tx: &Transaction,
     table: &BTreeTable,
-    key: i32,
+    key: i64,
 ) -> bool {
     let predicate =
-        Predicate::new(small_db::Op::Equals, &Cell::Int32(key));
+        Predicate::new(small_db::Op::Equals, &Cell::Int64(key));
     let mut it =
         BTreeTableSearchIterator::new(tx, &table, &predicate);
     it.next().is_some()

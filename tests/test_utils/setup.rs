@@ -86,7 +86,7 @@ pub fn new_random_btree_table(
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
     for _ in 0..rows {
-        let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+        let insert_value = rng.gen_range(i64::MIN, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, columns);
         tuples.push(tuple);
     }

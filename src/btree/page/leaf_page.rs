@@ -256,10 +256,10 @@ impl BTreeLeafPage {
     /// tuple: The tuple to add.
     pub fn insert_tuple(&mut self, tuple: &Tuple) {
         // find the first empty slot
-        let mut first_empty_slot: i32 = 0;
+        let mut first_empty_slot: i64 = 0;
         for i in 0..self.slot_count {
             if !self.is_slot_used(i) {
-                first_empty_slot = i as i32;
+                first_empty_slot = i as i64;
                 break;
             }
         }
@@ -269,13 +269,13 @@ impl BTreeLeafPage {
         //
         // -1 indicate there is no such key less than tuple.key, so
         // the tuple should be inserted in slot 0 (-1 + 1).
-        let mut last_less_slot: i32 = -1;
+        let mut last_less_slot: i64 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
                 if self.tuples[i].get_cell(self.key_field)
                     < tuple.get_cell(self.key_field)
                 {
-                    last_less_slot = i as i32;
+                    last_less_slot = i as i64;
                 } else {
                     break;
                 }
@@ -498,8 +498,8 @@ impl BTreePage for BTreeLeafPage {
 
 pub struct BTreeLeafPageIteratorRc {
     page: Arc<RwLock<BTreeLeafPage>>,
-    cursor: i32,
-    reverse_cursor: i32,
+    cursor: i64,
+    reverse_cursor: i64,
 }
 
 impl BTreeLeafPageIteratorRc {
@@ -508,7 +508,7 @@ impl BTreeLeafPageIteratorRc {
         Self {
             page,
             cursor: -1,
-            reverse_cursor: slot_count as i32,
+            reverse_cursor: slot_count as i64,
         }
     }
 }
@@ -559,8 +559,8 @@ impl DoubleEndedIterator for BTreeLeafPageIteratorRc {
 
 pub struct BTreeLeafPageIterator<'page> {
     page: &'page BTreeLeafPage,
-    cursor: i32,
-    reverse_cursor: i32,
+    cursor: i64,
+    reverse_cursor: i64,
 }
 
 impl<'page> BTreeLeafPageIterator<'page> {
@@ -568,7 +568,7 @@ impl<'page> BTreeLeafPageIterator<'page> {
         Self {
             page,
             cursor: -1,
-            reverse_cursor: page.slot_count as i32,
+            reverse_cursor: page.slot_count as i64,
         }
     }
 }

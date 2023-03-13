@@ -946,7 +946,7 @@ impl BTreeTable {
     ///       (internal or leaf)
     ///     - ...
     ///     - -1: print all pages
-    pub fn draw_tree(&self, max_level: i32) {
+    pub fn draw_tree(&self, max_level: i64) {
         Database::concurrent_status().clear();
 
         let tx = Transaction::new();
@@ -985,7 +985,7 @@ impl BTreeTable {
         tx: &Transaction,
         pid: &BTreePageID,
         level: usize,
-        max_level: i32,
+        max_level: i64,
     ) -> String {
         match pid.category {
             PageCategory::Internal => {
@@ -1061,7 +1061,7 @@ impl BTreeTable {
         tx: &Transaction,
         pid: &BTreePageID,
         level: usize,
-        max_level: i32,
+        max_level: i64,
     ) -> String {
         let mut depiction = "".to_string();
 
@@ -1082,7 +1082,7 @@ impl BTreeTable {
                 page.get_children_capacity(),
                 lock_state,
             ));
-            if max_level != -1 && level as i32 == max_level {
+            if max_level != -1 && level as i64 == max_level {
                 return depiction;
             }
             let it = BTreeInternalPageIterator::new(&page);
@@ -1107,7 +1107,7 @@ impl BTreeTable {
         id: usize,
         entry: &Entry,
         level: usize,
-        max_level: i32,
+        max_level: i64,
     ) -> String {
         let mut depiction = "".to_string();
 

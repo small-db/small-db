@@ -23,7 +23,7 @@ fn inserter(
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
     let mut rng = rand::thread_rng();
-    let insert_value = rng.gen_range(i32::MIN, i32::MAX);
+    let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
