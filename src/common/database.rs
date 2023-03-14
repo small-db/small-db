@@ -1,6 +1,6 @@
 use std::{
     mem,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -26,7 +26,7 @@ use crate::{
 ///
 /// TODO: support multiple databases
 pub struct Database {
-    path: String,
+    path: PathBuf,
 
     buffer_pool: Pod<PageCache>,
     catalog: Pod<Catalog>,
@@ -39,9 +39,13 @@ static mut SINGLETON: *mut Database = 0 as *mut Database;
 impl Database {
     fn new() -> Self {
         let db_name = "default_db";
+        let path = PathBuf::from("data").join(db_name);
+        if !path.exists() {
+            std::fs::create_dir_all(&path).unwrap();
+        }
 
         Self {
-            path: db_name.to_string(),
+            path,
 
             buffer_pool: Arc::new(RwLock::new(PageCache::new())),
             concurrent_status: ConcurrentStatus::new(),
