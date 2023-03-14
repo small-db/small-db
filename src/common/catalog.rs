@@ -39,17 +39,20 @@ impl Catalog {
             ],
         };
 
-        // if catalog_file_path not exists, create it
-        if Path::new(catalog_file_path).exists() {
-            let _catalog_table = BTreeTable::new(
-                catalog_file_path,
-                0,
-                &catalog_schema,
-            );
-        } else {
-            error!("catalog file not exists {}", catalog_file_path);
-            todo!()
-        }
+        let _catalog_table =
+            BTreeTable::new(catalog_file_path, 0, &catalog_schema);
+
+        // // if catalog_file_path not exists, create it
+        // if Path::new(catalog_file_path).exists() {
+        //     let _catalog_table = BTreeTable::new(
+        //         catalog_file_path,
+        //         0,
+        //         &catalog_schema,
+        //     );
+        // } else {
+        //     error!("catalog file not exists {}", catalog_file_path);
+        //     todo!()
+        // }
 
         todo!()
     }
