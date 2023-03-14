@@ -191,6 +191,22 @@ impl Decodeable for BitVec {
     }
 }
 
+/// # Format
+///
+/// - false -> 0
+/// - true -> 1
+impl Encodeable for bool {
+    fn to_bytes(&self) -> Vec<u8> {
+        vec![*self as u8]
+    }
+}
+
+impl Decodeable for bool {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        reader.read::<u8>() == 1
+    }
+}
+
 impl Encodeable for &[u8] {
     fn to_bytes(&self) -> Vec<u8> {
         self.to_vec()

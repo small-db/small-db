@@ -5,6 +5,7 @@ use crate::io::Encodeable;
 #[derive(Debug, Clone)]
 pub enum Cell {
     Null,
+    Bool(bool),
     Int64(i64),
     Float64(f64),
     String(String),
@@ -44,7 +45,8 @@ impl Ord for Cell {
 impl Encodeable for Cell {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Cell::Null => vec![0],
+            Cell::Null => todo!(),
+            Cell::Bool(v) => vec![*v as u8],
             Cell::Int64(v) => v.to_be_bytes().to_vec(),
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
             Cell::String(v) => v.as_bytes().to_vec(),

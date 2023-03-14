@@ -31,13 +31,16 @@ impl Tuple {
         let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
             match field.field_type {
+                Type::Bool => {
+                    cells.push(Cell::Bool(reader.read::<bool>()));
+                }
                 Type::Int64 => {
                     cells.push(Cell::Int64(reader.read::<i64>()));
                 }
                 Type::Float64 => {
                     cells.push(Cell::Float64(reader.read::<f64>()));
                 }
-                Type::CHAR(len) => {
+                Type::Char(len) => {
                     let mut bytes = Vec::new();
                     for _ in 0..len {
                         bytes.push(reader.read::<u8>());

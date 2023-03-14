@@ -3,15 +3,17 @@ use std::fmt::Debug;
 // TODO: add CHAR type
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
+    Bool,
     Int64,
     Float64,
-    CHAR(i8),
+    Char(u8),
 }
 
 pub fn get_type_length(t: Type) -> usize {
     match t {
+        Type::Bool => 1,
         Type::Int64 | Type::Float64 => 8,
-        Type::CHAR(size) => size as usize,
+        Type::Char(size) => size as usize,
     }
 }
 
