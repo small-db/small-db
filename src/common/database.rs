@@ -44,6 +44,8 @@ impl Database {
             std::fs::create_dir_all(&path).unwrap();
         }
 
+        let log_path = path.join("wal.log");
+
         Self {
             path,
 
@@ -51,7 +53,7 @@ impl Database {
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
             log_file: Arc::new(RwLock::new(LogManager::new(
-                "wal.log",
+                log_path,
             ))),
         }
     }
@@ -69,7 +71,7 @@ impl Database {
         }
 
         let catalog_file_path = Path::new(&Self::global().path)
-            .join("catalog")
+            .join("catalog.table")
             .to_str()
             .unwrap()
             .to_string();

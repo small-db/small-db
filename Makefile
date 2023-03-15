@@ -52,6 +52,4 @@ pub:
 	cargo publish
 
 clear:
-	rm -rf out
-	rm -rf *.db
-	rm -rf *.log
+	rm -rf data

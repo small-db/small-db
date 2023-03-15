@@ -3,6 +3,7 @@ use std::{
     fs::{File, OpenOptions},
     io::{Read, Seek, Write},
     mem::size_of,
+    path::Path,
     sync::{Mutex, MutexGuard},
 };
 
@@ -17,7 +18,7 @@ pub struct SmallFile {
 }
 
 impl SmallFile {
-    pub fn new(file_path: &str) -> Self {
+    pub fn new<P: AsRef<Path>>(file_path: P) -> Self {
         let f = Mutex::new(
             OpenOptions::new()
                 .write(true)

@@ -12,10 +12,7 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     io::{Decodeable, SmallReader, SmallWriter},
-    storage::{
-        schema::{get_type_length, Schema},
-        tuple::Cell,
-    },
+    storage::{schema::Schema, tuple::Cell},
     transaction::Transaction,
     types::SmallResult,
     utils::{floor_div, HandyRwLock},
@@ -104,9 +101,8 @@ impl BTreeInternalPage {
                 key_field,
             );
         } else {
-            let key_size = get_type_length(
-                tuple_scheme.fields[key_field].field_type,
-            );
+            let key_size =
+                tuple_scheme.fields[key_field].field_type.len();
             let slot_count = Self::get_children_cap(key_size) + 1;
 
             let mut reader = SmallReader::new(&bytes);
@@ -179,9 +175,8 @@ impl BTreeInternalPage {
         tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
-        let key_size = get_type_length(
-            tuple_scheme.fields[key_field].field_type,
-        );
+        let key_size =
+            tuple_scheme.fields[key_field].field_type.len();
         let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);

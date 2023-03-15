@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::io::Encodeable;
+use crate::{error::SmallError, io::Encodeable};
 
 #[derive(Debug, Clone)]
 pub enum Cell {
@@ -8,14 +8,44 @@ pub enum Cell {
     Bool(bool),
     Int64(i64),
     Float64(f64),
-    String(String),
+    Char(String),
+}
+
+impl Cell {
+    pub fn get_bool(&self) -> Result<bool, SmallError> {
+        match self {
+            Cell::Bool(v) => Ok(*v),
+            _ => Err(SmallError::new("not bool")),
+        }
+    }
+
+    pub fn get_int64(&self) -> Result<i64, SmallError> {
+        match self {
+            Cell::Int64(v) => Ok(*v),
+            _ => Err(SmallError::new("not int64")),
+        }
+    }
+
+    pub fn get_float64(&self) -> Result<f64, SmallError> {
+        match self {
+            Cell::Float64(v) => Ok(*v),
+            _ => Err(SmallError::new("not float64")),
+        }
+    }
+
+    pub fn get_string(&self) -> Result<String, SmallError> {
+        match self {
+            Cell::Char(v) => Ok(v.clone()),
+            _ => Err(SmallError::new("not string")),
+        }
+    }
 }
 
 impl PartialEq for Cell {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Cell::Int64(a), Cell::Int64(b)) => a == b,
-            (Cell::String(a), Cell::String(b)) => a == b,
+            (Cell::Char(a), Cell::Char(b)) => a == b,
             _ => todo!(),
         }
     }
@@ -28,7 +58,7 @@ impl PartialOrd for Cell {
     ) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (Cell::Int64(a), Cell::Int64(b)) => a.partial_cmp(b),
-            (Cell::String(a), Cell::String(b)) => a.partial_cmp(b),
+            (Cell::Char(a), Cell::Char(b)) => a.partial_cmp(b),
             _ => todo!(),
         }
     }
@@ -49,7 +79,7 @@ impl Encodeable for Cell {
             Cell::Bool(v) => vec![*v as u8],
             Cell::Int64(v) => v.to_be_bytes().to_vec(),
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
-            Cell::String(v) => v.as_bytes().to_vec(),
+            Cell::Char(v) => v.as_bytes().to_vec(),
         }
     }
 }

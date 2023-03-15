@@ -3,6 +3,7 @@ use std::{
     fs::File,
     io::{Read, Seek, Write},
     mem::size_of,
+    path::{Path, PathBuf},
     sync::{Arc, MutexGuard, RwLock},
 };
 
@@ -93,7 +94,7 @@ pub struct LogManager {
     /// no call to recover() and no append to log
     recovery_undecided: bool,
 
-    file_path: String,
+    file_path: PathBuf,
 }
 
 impl LogManager {
@@ -110,14 +111,14 @@ impl LogManager {
     /// then do it, while if someone starts adding log file
     /// entries, then first throw out the initial log file
     /// contents.
-    pub fn new(file_path: &str) -> Self {
+    pub fn new<P: AsRef<Path> + Clone>(file_path: P) -> Self {
         Self {
             tx_start_position: HashMap::new(),
             file: SmallFile::new(file_path),
             current_offset: 0,
             total_records: 0,
             recovery_undecided: true,
-            file_path: file_path.to_string(),
+            file_path: todo!(),
         }
     }
 

@@ -145,6 +145,10 @@ impl BTreeTable {
     pub fn get_random_tuple(&self, _tx: &Transaction) -> Tuple {
         unimplemented!()
     }
+
+    pub fn iter(&self, tx: &Transaction) -> BTreeTableIterator {
+        BTreeTableIterator::new(tx, self)
+    }
 }
 
 // insert-related functions

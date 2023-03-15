@@ -63,6 +63,7 @@ pub fn small_int_schema(width: usize, name_prefix: &str) -> Schema {
         let field = FieldItem {
             field_name: format!("{}-{}", name_prefix, i),
             field_type: Type::Int64,
+            is_primary: false,
         };
         fields.push(field);
     }

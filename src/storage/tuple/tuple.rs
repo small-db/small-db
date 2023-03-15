@@ -45,7 +45,7 @@ impl Tuple {
                     for _ in 0..len {
                         bytes.push(reader.read::<u8>());
                     }
-                    cells.push(Cell::String(
+                    cells.push(Cell::Char(
                         String::from_utf8(bytes).unwrap(),
                     ));
                 }
