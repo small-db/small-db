@@ -48,8 +48,8 @@ impl Catalog {
             BTreeTable::new(catalog_file_path, 0, &catalog_schema);
 
         // scan the catalog table and load all the tables
-        let schemas = HashMap::new();
-        let table_names = HashMap::new();
+        let mut schemas = HashMap::new();
+        let mut table_names = HashMap::new();
 
         let tx = Transaction::new();
         tx.start()?;
