@@ -7,6 +7,7 @@ use std::{
 use log::error;
 
 use crate::{
+    btree::table::SleepyIterator,
     io::{Decodeable, SmallReader},
     storage::schema::{FieldItem, Schema, Type},
     transaction::Transaction,
@@ -54,6 +55,8 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start()?;
         let mut iter = catalog_table.iter(&tx);
+        let a = iter.next();
+        let b = iter.next();
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
             let table_name = tuple.get_cell(1).get_string()?;

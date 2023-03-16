@@ -1,6 +1,15 @@
+use std::{
+    mem,
+    sync::{Arc, RwLock, RwLockReadGuard},
+};
+
 use crate::{
-    storage::tuple::WrappedTuple, transaction::Transaction,
-    BTreeTable,
+    btree::page::{BTreeLeafPage, BTreeLeafPageIterator},
+    concurrent_status::Permission,
+    storage::tuple::WrappedTuple,
+    transaction::Transaction,
+    utils::HandyRwLock,
+    BTreeTable, Database,
 };
 
 impl<'table, 'tx> BTreeTable {
@@ -15,12 +24,15 @@ impl<'table, 'tx> BTreeTable {
     }
 }
 
-pub struct BTreeTableIterator2<'tx, 'table> {
+pub struct BTreeTableIterator2<'tx, 'page> {
     tx: &'tx Transaction,
-    table: &'table BTreeTable,
+
+    page_rc: Arc<RwLock<BTreeLeafPage>>,
+    page: RwLockReadGuard<'page, BTreeLeafPage>,
+    page_it: BTreeLeafPageIterator<'page>,
 }
 
-impl<'tx, 'table> BTreeTableIterator2<'tx, 'table> {
+impl<'tx, 'table, 'page> BTreeTableIterator2<'tx, 'page> {
     pub fn new(
         tx: &'tx Transaction,
         table: &'table BTreeTable,
@@ -29,16 +41,57 @@ impl<'tx, 'table> BTreeTableIterator2<'tx, 'table> {
     }
 }
 
-impl Iterator for BTreeTableIterator2<'_, '_> {
-    type Item = WrappedTuple;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+impl<'tx, 'page> Drop for BTreeTableIterator2<'tx, 'page> {
+    fn drop(&mut self) {
+        // println!("> Dropping {}", self.name);
     }
 }
 
-impl DoubleEndedIterator for BTreeTableIterator2<'_, '_> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        todo!()
+// impl Iterator for BTreeTableIterator2<'_, '_> {
+//     type Item = WrappedTuple;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         todo!()
+//     }
+// }
+
+pub trait SleepyIterator<'this> {
+    type Item;
+
+    fn next(&'this mut self) -> Option<Self::Item>;
+}
+
+impl<'this, 'tx, 'table, 'page> SleepyIterator<'this>
+    for BTreeTableIterator2<'tx, 'page>
+where
+    'this: 'page,
+{
+    type Item = WrappedTuple;
+
+    fn next(&'this mut self) -> Option<Self::Item> {
+        let v = self.page_it.next();
+        if !v.is_none() {
+            return v;
+        }
+
+        let right = self.page_it.page.get_right_pid();
+        match right {
+            Some(right) => {
+                let sibling_rc = Database::mut_page_cache()
+                    .get_leaf_page(
+                        &self.tx,
+                        Permission::ReadOnly,
+                        &right,
+                    )
+                    .unwrap();
+                self.page_rc = Arc::clone(&sibling_rc);
+                self.page = self.page_rc.read().unwrap();
+                self.page_it = BTreeLeafPageIterator::new(&self.page);
+                return self.page_it.next();
+            }
+            None => {
+                return None;
+            }
+        }
     }
 }

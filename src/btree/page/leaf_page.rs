@@ -558,7 +558,7 @@ impl DoubleEndedIterator for BTreeLeafPageIteratorRc {
 }
 
 pub struct BTreeLeafPageIterator<'page> {
-    page: &'page BTreeLeafPage,
+    pub page: &'page BTreeLeafPage,
     cursor: i64,
     reverse_cursor: i64,
 }
