@@ -75,7 +75,7 @@ impl Database {
             .to_str()
             .unwrap()
             .to_string();
-        Self::mut_catalog().load_schema(&catalog_file_path);
+        Self::mut_catalog().load_schema(&catalog_file_path).unwrap();
     }
 
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
