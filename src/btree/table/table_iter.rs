@@ -41,12 +41,6 @@ impl<'tx, 'table, 'page> BTreeTableIterator2<'tx, 'page> {
     }
 }
 
-impl<'tx, 'page> Drop for BTreeTableIterator2<'tx, 'page> {
-    fn drop(&mut self) {
-        // println!("> Dropping {}", self.name);
-    }
-}
-
 // impl Iterator for BTreeTableIterator2<'_, '_> {
 //     type Item = WrappedTuple;
 
@@ -86,7 +80,7 @@ where
                     .unwrap();
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page = self.page_rc.read().unwrap();
-                self.page_it = BTreeLeafPageIterator::new(&self.page);
+                // self.page_it = BTreeLeafPageIterator::new(&self.page);
                 return self.page_it.next();
             }
             None => {
