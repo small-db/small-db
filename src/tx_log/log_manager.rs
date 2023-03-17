@@ -93,8 +93,6 @@ pub struct LogManager {
 
     /// no call to recover() and no append to log
     recovery_undecided: bool,
-
-    file_path: PathBuf,
 }
 
 impl LogManager {
@@ -118,12 +116,12 @@ impl LogManager {
             current_offset: 0,
             total_records: 0,
             recovery_undecided: true,
-            file_path: todo!(),
         }
     }
 
     pub fn reset(&mut self) {
-        self.file = SmallFile::new(&self.file_path);
+        self.file.get_file().set_len(0).unwrap();
+
         self.tx_start_position.clear();
         self.current_offset = 0;
         self.total_records = 0;

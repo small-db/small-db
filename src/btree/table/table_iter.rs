@@ -32,8 +32,9 @@ pub struct BTreeTableIterator<'t> {
     tx: &'t Transaction,
 
     page_rc: Arc<RwLock<BTreeLeafPage>>,
-    last_page_rc: Arc<RwLock<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
+
+    last_page_rc: Arc<RwLock<BTreeLeafPage>>,
     last_page_it: BTreeLeafPageIteratorRc,
 }
 
@@ -45,11 +46,13 @@ impl<'t> BTreeTableIterator<'t> {
 
         Self {
             tx,
+
             page_rc: Arc::clone(&page_rc),
-            last_page_rc: Arc::clone(&last_page_rc),
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
                 &page_rc,
             )),
+
+            last_page_rc: Arc::clone(&last_page_rc),
             last_page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
                 &last_page_rc,
             )),
