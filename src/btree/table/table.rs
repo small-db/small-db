@@ -47,10 +47,6 @@ pub enum SearchFor {
 
 /// B+ Tree
 pub struct BTreeTable {
-    // the file that stores the on-disk backing store for this B+
-    // tree file.
-    file_path: PathBuf,
-
     // the field which index is keyed on
     pub key_field: usize,
 
@@ -79,7 +75,7 @@ impl fmt::Display for BTreeTable {
         write!(
             f,
             "<BTreeFile, file: {:?}, id: {}>",
-            self.file_path, self.table_id
+            "empty", self.table_id
         )
     }
 }
@@ -110,7 +106,6 @@ impl BTreeTable {
         Self::file_init(f.lock().unwrap(), table_id);
 
         Self {
-            file_path: PathBuf::from(file_path.as_ref()),
             key_field,
             tuple_scheme: row_scheme.clone(),
             file: f,

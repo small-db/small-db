@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use log::debug;
+
 use crate::{
     btree::table::NestedIterator,
     io::{Decodeable, SmallReader},
@@ -12,6 +14,8 @@ use crate::{
     utils::HandyRwLock,
     BTreeTable, Database,
 };
+
+// const SCHEMA_TABLE_NAME:
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
@@ -29,25 +33,17 @@ impl Catalog {
 
     /// Load the catalog from disk.
     pub fn load_schema() -> SmallResult {
-        let schema_table_path =
-            &Database::global().path_schema_table();
+        let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
+            Database::global().schema_table_path(),
+            0,
+            &Schema::for_schema_table(),
+        )));
 
         // add the table "schema"
         {
             let mut catalog = Database::mut_catalog();
-
-            let schema_table = BTreeTable::new(
-                Database::global().path_schema_table(),
-                0,
-                &Schema::for_schema_table(),
-            );
-            catalog.add_table(Arc::new(RwLock::new(schema_table)));
+            catalog.add_table(schema_table_rc.clone());
         }
-
-        let table_fields = Schema::for_schema_table();
-
-        let schema_table =
-            BTreeTable::new(schema_table_path, 0, &table_fields);
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
@@ -55,6 +51,7 @@ impl Catalog {
 
         let tx = Transaction::new();
         tx.start()?;
+        let schema_table = schema_table_rc.rl();
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
@@ -88,8 +85,9 @@ impl Catalog {
                 }
             }
 
+            let table_name = table_names.get(&table_id).unwrap();
             let table = BTreeTable::new(
-                &Database::global().path_schema_table(),
+                &Database::global().table_path(&table_name),
                 key_field,
                 &table_schema,
             );
@@ -121,7 +119,9 @@ impl Catalog {
         }
     }
 
-    pub fn add_table(&mut self, file: Value) {
-        self.map.insert(file.rl().get_id(), Arc::clone(&file));
+    pub fn add_table(&mut self, table: Value) {
+        let id = table.rl().get_id();
+        self.map.insert(id, Arc::clone(&table));
+        debug!("add table: {}", id);
     }
 }
