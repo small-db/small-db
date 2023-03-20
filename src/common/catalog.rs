@@ -22,16 +22,19 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
-        let map = HashMap::new();
+        let mut catalog = Self {
+            map: HashMap::new(),
+        };
 
         // add the table "schema"
-        let _catalog_table = BTreeTable::new(
+        let schema_table = BTreeTable::new(
             Database::global().path_schema_table(),
             0,
             &Schema::for_schema_table(),
         );
+        catalog.add_table(Arc::new(RwLock::new(schema_table)));
 
-        Self { map }
+        catalog
     }
 
     /// Load the catalog from disk.
