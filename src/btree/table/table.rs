@@ -5,7 +5,6 @@ use std::{
     hash::{Hash, Hasher},
     io::{Seek, SeekFrom, Write},
     ops::DerefMut,
-    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc, Mutex, MutexGuard, RwLock,

@@ -3,8 +3,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::debug;
-
 use crate::{
     btree::table::NestedIterator,
     io::{Decodeable, Encodeable, SmallReader},
@@ -121,7 +119,7 @@ impl Catalog {
         }
     }
 
-    pub fn add_table(&mut self, table: Value) {
+    pub fn add_table(&mut self, _table: Value) {
         // let id = table.rl().get_id();
         // self.map.insert(id, Arc::clone(&table));
 
@@ -132,7 +130,7 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        for (i, field) in
+        for (_i, field) in
             table.get_tuple_scheme().fields.iter().enumerate()
         {
             let cells = vec![

@@ -1,7 +1,4 @@
-use std::{
-    path::Path,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use log::debug;
 use rand::prelude::*;
