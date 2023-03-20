@@ -9,6 +9,7 @@ pub enum Type {
     Int64,
     Float64,
     Char(u8),
+    Bytes(u8),
 }
 
 impl Type {
@@ -17,6 +18,7 @@ impl Type {
             Type::Bool => 1,
             Type::Int64 | Type::Float64 => 8,
             Type::Char(size) => *size as usize,
+            Type::Bytes(size) => *size as usize,
         }
     }
 }
@@ -35,6 +37,9 @@ impl Encodeable for Type {
             }
             Type::Char(size) => {
                 vec![3, *size]
+            }
+            Type::Bytes(size) => {
+                vec![4, *size]
             }
         }
     }
@@ -55,21 +60,21 @@ impl Decodeable for Type {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct FieldItem {
-    pub field_name: String,
-    pub field_type: Type,
+pub struct Field {
+    pub name: String,
+    pub t: Type,
     pub is_primary: bool,
 }
 
-impl FieldItem {
+impl Field {
     pub fn new(
         field_name: &str,
         field_type: Type,
         is_primary: bool,
-    ) -> FieldItem {
-        FieldItem {
-            field_type,
-            field_name: field_name.to_string(),
+    ) -> Field {
+        Field {
+            t: field_type,
+            name: field_name.to_string(),
             is_primary,
         }
     }

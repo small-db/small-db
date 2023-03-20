@@ -37,7 +37,7 @@ impl Tuple {
     ) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
-            match field.field_type {
+            match field.t {
                 Type::Bool => {
                     cells.push(Cell::Bool(reader.read::<bool>()));
                 }
@@ -55,6 +55,13 @@ impl Tuple {
                     cells.push(Cell::Char(
                         String::from_utf8(bytes).unwrap(),
                     ));
+                }
+                Type::Bytes(len) => {
+                    let mut bytes = Vec::new();
+                    for _ in 0..len {
+                        bytes.push(reader.read::<u8>());
+                    }
+                    cells.push(Cell::Bytes(bytes));
                 }
             }
         }

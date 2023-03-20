@@ -9,6 +9,7 @@ pub enum Cell {
     Int64(i64),
     Float64(f64),
     Char(String),
+    Bytes(Vec<u8>),
 }
 
 impl Cell {
@@ -45,14 +46,25 @@ impl Cell {
         }
     }
 
-    pub fn new_string(v: String) -> Self {
-        Cell::Char(v)
+    pub fn new_string(v: &str) -> Self {
+        Cell::Char(v.to_string())
     }
 
     pub fn get_string(&self) -> Result<String, SmallError> {
         match self {
             Cell::Char(v) => Ok(v.clone()),
             _ => Err(SmallError::new("not string")),
+        }
+    }
+
+    pub fn new_bytes(v: &[u8]) -> Self {
+        Cell::Bytes(v.to_vec())
+    }
+
+    pub fn get_bytes(&self) -> Result<Vec<u8>, SmallError> {
+        match self {
+            Cell::Bytes(v) => Ok(v.clone()),
+            _ => Err(SmallError::new("not bytes")),
         }
     }
 }
@@ -96,6 +108,7 @@ impl Encodeable for Cell {
             Cell::Int64(v) => v.to_be_bytes().to_vec(),
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
             Cell::Char(v) => v.as_bytes().to_vec(),
+            Cell::Bytes(v) => v.clone(),
         }
     }
 }

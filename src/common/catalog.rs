@@ -7,9 +7,9 @@ use log::debug;
 
 use crate::{
     btree::table::NestedIterator,
-    io::{Decodeable, SmallReader},
+    io::{Decodeable, Encodeable, SmallReader},
     storage::{
-        schema::{FieldItem, Schema, Type},
+        schema::{Field, Schema, Type},
         tuple::{Cell, Tuple},
     },
     transaction::Transaction,
@@ -64,7 +64,7 @@ impl Catalog {
             let is_primary = tuple.get_cell(4).get_bool()?;
 
             let mut fields = Vec::new();
-            fields.push(FieldItem::new(
+            fields.push(Field::new(
                 &field_name,
                 Type::read_from(&mut SmallReader::new(
                     field_type.as_bytes(),
@@ -132,20 +132,24 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        let cells = vec![
-            // table id
-            Cell::new_int64(table.get_id() as i64),
-            // table name
-
-            // Cell::
-            // table.get_id().into(),
-            // "schema".into(),
-            // "id".into(),
-            // "int64".into(),
-            // true.into(),
-        ];
-        let tuple = Tuple::new_from_cells(&cells);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        for (i, field) in
+            table.get_tuple_scheme().fields.iter().enumerate()
+        {
+            let cells = vec![
+                // table id
+                Cell::new_int64(table.get_id() as i64),
+                // table name
+                Cell::new_string(&table.name),
+                // field name
+                Cell::new_string(&field.name),
+                // field type
+                Cell::new_bytes(&field.t.to_bytes()),
+                // is primary
+                Cell::new_bool(field.is_primary),
+            ];
+            let tuple = Tuple::new_from_cells(&cells);
+            table.insert_tuple(&tx, &tuple).unwrap();
+        }
 
         tx.commit().unwrap();
     }

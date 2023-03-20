@@ -47,7 +47,7 @@ pub enum SearchFor {
 
 /// B+ Tree
 pub struct BTreeTable {
-    pub table_name: String,
+    pub name: String,
 
     // the field which index is keyed on
     pub key_field: usize,
@@ -113,7 +113,7 @@ impl BTreeTable {
         Self::file_init(f.lock().unwrap(), table_id);
 
         Self {
-            table_name: table_name.to_string(),
+            name: table_name.to_string(),
             key_field,
             tuple_scheme: row_scheme.clone(),
             file: f,

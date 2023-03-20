@@ -1,23 +1,23 @@
-use super::{FieldItem, Type};
+use super::{Field, Type};
 
 #[derive(Debug)]
 pub struct Schema {
-    pub fields: Vec<FieldItem>,
+    pub fields: Vec<Field>,
 }
 
 impl Schema {
-    pub fn new(fields: Vec<FieldItem>) -> Schema {
+    pub fn new(fields: Vec<Field>) -> Schema {
         Schema { fields }
     }
 
     pub fn for_schema_table() -> Schema {
         Schema {
             fields: vec![
-                FieldItem::new("table_id", Type::Int64, true),
-                FieldItem::new("table_name", Type::Char(255), false),
-                FieldItem::new("field_name", Type::Char(10), false),
-                FieldItem::new("field_type", Type::Char(10), false),
-                FieldItem::new("is_primary", Type::Bool, false),
+                Field::new("table_id", Type::Int64, true),
+                Field::new("table_name", Type::Char(255), false),
+                Field::new("field_name", Type::Char(10), false),
+                Field::new("field_type", Type::Char(10), false),
+                Field::new("is_primary", Type::Bool, false),
             ],
         }
     }
@@ -70,11 +70,11 @@ impl PartialEq for Schema {
 }
 
 pub fn small_int_schema(width: usize, name_prefix: &str) -> Schema {
-    let mut fields: Vec<FieldItem> = Vec::new();
+    let mut fields: Vec<Field> = Vec::new();
     for i in 0..width {
-        let field = FieldItem {
-            field_name: format!("{}-{}", name_prefix, i),
-            field_type: Type::Int64,
+        let field = Field {
+            name: format!("{}-{}", name_prefix, i),
+            t: Type::Int64,
             is_primary: false,
         };
         fields.push(field);
