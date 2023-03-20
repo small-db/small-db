@@ -8,7 +8,10 @@ use log::debug;
 use crate::{
     btree::table::NestedIterator,
     io::{Decodeable, SmallReader},
-    storage::schema::{FieldItem, Schema, Type},
+    storage::{
+        schema::{FieldItem, Schema, Type},
+        tuple::Tuple,
+    },
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
@@ -75,7 +78,7 @@ impl Catalog {
 
         for (table_id, fields) in schemas {
             let table_schema = Schema { fields };
-            let _table_name = table_names.get(&table_id).unwrap();
+            let table_name = table_names.get(&table_id).unwrap();
 
             let mut key_field = 0;
             for (i, field) in table_schema.fields.iter().enumerate() {
@@ -85,7 +88,6 @@ impl Catalog {
                 }
             }
 
-            let table_name = table_names.get(&table_id).unwrap();
             let table = BTreeTable::new(
                 &Database::global().table_path(&table_name),
                 key_field,
@@ -120,8 +122,20 @@ impl Catalog {
     }
 
     pub fn add_table(&mut self, table: Value) {
-        let id = table.rl().get_id();
-        self.map.insert(id, Arc::clone(&table));
-        debug!("add table: {}", id);
+        // let id = table.rl().get_id();
+        // self.map.insert(id, Arc::clone(&table));
+
+        let table_index: Key = 0;
+        let table_rc = self.get_table(&table_index);
+        let table = table_rc.unwrap().rl();
+
+        let tx = Transaction::new();
+        tx.start().unwrap();
+
+        let bytes = Vec::new();
+        let tuple = Tuple::new(&table.get_tuple_scheme(), &bytes);
+        table.insert_tuple(&tx, &tuple).unwrap();
+
+        tx.commit().unwrap();
     }
 }

@@ -8,6 +8,7 @@ use std::{
 };
 
 use bit_vec::BitVec;
+use log::error;
 
 use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
@@ -102,6 +103,11 @@ impl<'a> SmallReader<'a> {
 
         // boundary check
         if end > self.buf.len() {
+            error!(
+                "read out of boundary: {} > {}",
+                end,
+                self.buf.len()
+            );
             panic!("read out of boundary");
         }
 

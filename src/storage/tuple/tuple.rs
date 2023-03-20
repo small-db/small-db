@@ -19,7 +19,7 @@ pub struct Tuple {
 
 impl Tuple {
     // TODO: remove this api
-    pub fn new(scheme: Schema, bytes: &[u8]) -> Self {
+    pub fn new(scheme: &Schema, bytes: &[u8]) -> Self {
         let mut reader = SmallReader::new(bytes);
         return Self::read_from(&mut reader, &scheme);
     }
