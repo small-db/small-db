@@ -6,7 +6,6 @@ use std::{
     io::{Seek, SeekFrom, Write},
     ops::DerefMut,
     path::{Path, PathBuf},
-    str,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc, Mutex, MutexGuard, RwLock,
@@ -17,6 +16,7 @@ use std::{
 
 use log::debug;
 
+use super::BTreeTableIterator;
 use crate::{
     btree::{
         page::{
@@ -36,10 +36,8 @@ use crate::{
     transaction::Transaction,
     types::{ResultPod, SmallResult},
     utils::{lock_state, HandyRwLock},
-    Database, Op, Predicate,
+    Database,
 };
-
-use super::{BTreeTableIterator, BTreeTableIterator2};
 
 pub enum SearchFor {
     Target(Cell),

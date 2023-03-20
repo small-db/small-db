@@ -1,14 +1,10 @@
 use std::{
     collections::HashMap,
-    path::{Path, PathBuf},
     sync::{Arc, RwLock},
 };
 
-use log::error;
-
 use crate::{
     btree::table::NestedIterator,
-    common::database,
     io::{Decodeable, SmallReader},
     storage::schema::{FieldItem, Schema, Type},
     transaction::Transaction,
@@ -26,10 +22,10 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
-        let mut map = HashMap::new();
+        let map = HashMap::new();
 
         // add the table "schema"
-        let catalog_table = BTreeTable::new(
+        let _catalog_table = BTreeTable::new(
             Database::global().path_schema_table(),
             0,
             &Schema::for_schema_table(),
@@ -78,7 +74,7 @@ impl Catalog {
 
         for (table_id, fields) in schemas {
             let table_schema = Schema { fields };
-            let table_name = table_names.get(&table_id).unwrap();
+            let _table_name = table_names.get(&table_id).unwrap();
 
             let mut key_field = 0;
             for (i, field) in table_schema.fields.iter().enumerate() {

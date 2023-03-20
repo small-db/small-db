@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io::{Read, Seek, Write},
     mem::size_of,
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Arc, MutexGuard, RwLock},
 };
 

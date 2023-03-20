@@ -1,8 +1,6 @@
-use std::{
-    mem,
-    sync::{Arc, RwLock, RwLockReadGuard},
-};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 
+use super::SearchFor;
 use crate::{
     btree::page::{
         BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc,
@@ -13,8 +11,6 @@ use crate::{
     utils::HandyRwLock,
     BTreeTable, Database, Op, Predicate,
 };
-
-use super::SearchFor;
 
 impl<'table, 'tx> BTreeTable {
     pub fn iter(
@@ -265,8 +261,8 @@ pub struct BTreeTableIterator2<'tx, 'page> {
 
 impl<'tx, 'table, 'page> BTreeTableIterator2<'tx, 'page> {
     pub fn new(
-        tx: &'tx Transaction,
-        table: &'table BTreeTable,
+        _tx: &'tx Transaction,
+        _table: &'table BTreeTable,
     ) -> Self {
         todo!()
     }

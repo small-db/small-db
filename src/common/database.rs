@@ -1,6 +1,6 @@
 use std::{
     mem,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{Arc, Once, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
