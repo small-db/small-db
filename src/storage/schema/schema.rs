@@ -10,6 +10,18 @@ impl Schema {
         Schema { fields }
     }
 
+    pub fn for_schema_table() -> Schema {
+        Schema {
+            fields: vec![
+                FieldItem::new("table_id", Type::Int64, true),
+                FieldItem::new("table_name", Type::Char(255), false),
+                FieldItem::new("field_name", Type::Char(10), false),
+                FieldItem::new("field_type", Type::Char(10), false),
+                FieldItem::new("is_primary", Type::Bool, false),
+            ],
+        }
+    }
+
     pub fn merge(scheme1: Schema, scheme2: Schema) -> Schema {
         let mut new_scheme = Schema {
             ..Default::default()

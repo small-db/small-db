@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, RwLock},
+};
 
 use log::debug;
 use rand::prelude::*;
@@ -45,8 +48,8 @@ pub enum TreeLayout {
     LastTwoEvenlyDistributed,
 }
 
-pub fn new_empty_btree_table(
-    path: &str,
+pub fn new_empty_btree_table<P: AsRef<Path>>(
+    path: P,
     columns: usize,
 ) -> Arc<RwLock<BTreeTable>> {
     let row_scheme = small_int_schema(columns, "");

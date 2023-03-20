@@ -70,12 +70,7 @@ impl Database {
             SINGLETON = mem::transmute(Box::new(singleton));
         }
 
-        let catalog_file_path = Path::new(&Self::global().path)
-            .join("catalog.table")
-            .to_str()
-            .unwrap()
-            .to_string();
-        Self::mut_catalog().load_schema(&catalog_file_path).unwrap();
+        Catalog::load_schema().unwrap();
     }
 
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
@@ -131,5 +126,9 @@ impl Database {
             // concurrently.
             SINGLETON.as_ref().unwrap()
         }
+    }
+
+    pub fn path_schema_table(&self) -> PathBuf {
+        PathBuf::from(&self.path).join("catalog.table")
     }
 }

@@ -5,6 +5,7 @@ use std::{
     hash::{Hash, Hasher},
     io::{Seek, SeekFrom, Write},
     ops::DerefMut,
+    path::{Path, PathBuf},
     str,
     sync::{
         atomic::{AtomicU32, Ordering},
@@ -50,7 +51,7 @@ pub enum SearchFor {
 pub struct BTreeTable {
     // the file that stores the on-disk backing store for this B+
     // tree file.
-    file_path: String,
+    file_path: PathBuf,
 
     // the field which index is keyed on
     pub key_field: usize,
@@ -79,7 +80,7 @@ impl fmt::Display for BTreeTable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "<BTreeFile, file: {}, id: {}>",
+            "<BTreeFile, file: {:?}, id: {}>",
             self.file_path, self.table_id
         )
     }
@@ -87,8 +88,8 @@ impl fmt::Display for BTreeTable {
 
 // init functions
 impl BTreeTable {
-    pub fn new(
-        file_path: &str,
+    pub fn new<P: AsRef<Path>>(
+        file_path: P,
         key_field: usize,
         row_scheme: &Schema,
     ) -> Self {
@@ -97,12 +98,12 @@ impl BTreeTable {
                 .write(true)
                 .read(true)
                 .create(true)
-                .open(file_path)
+                .open(file_path.as_ref())
                 .unwrap(),
         );
 
         let mut hasher = DefaultHasher::new();
-        file_path.hash(&mut hasher);
+        file_path.as_ref().hash(&mut hasher);
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
 
@@ -111,7 +112,7 @@ impl BTreeTable {
         Self::file_init(f.lock().unwrap(), table_id);
 
         Self {
-            file_path: file_path.to_string(),
+            file_path: PathBuf::from(file_path.as_ref()),
             key_field,
             tuple_scheme: row_scheme.clone(),
             file: f,

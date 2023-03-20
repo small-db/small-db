@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, RwLock},
 };
 
@@ -8,12 +8,13 @@ use log::error;
 
 use crate::{
     btree::table::NestedIterator,
+    common::database,
     io::{Decodeable, SmallReader},
     storage::schema::{FieldItem, Schema, Type},
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable,
+    BTreeTable, Database,
 };
 
 pub struct Catalog {
@@ -25,28 +26,27 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
+        let mut map = HashMap::new();
+
+        // add the table "schema"
+        let catalog_table = BTreeTable::new(
+            Database::global().path_schema_table(),
+            0,
+            &Schema::for_schema_table(),
+        );
+
+        Self { map }
     }
 
     /// Load the catalog from disk.
-    pub fn load_schema(
-        &mut self,
-        catalog_file_path: &str,
-    ) -> SmallResult {
-        let catalog_schema = Schema {
-            fields: vec![
-                FieldItem::new("table_id", Type::Int64, true),
-                FieldItem::new("table_name", Type::Char(255), false),
-                FieldItem::new("field_name", Type::Char(10), false),
-                FieldItem::new("field_type", Type::Char(10), false),
-                FieldItem::new("is_primary", Type::Bool, false),
-            ],
-        };
+    pub fn load_schema() -> SmallResult {
+        let schema_table_path =
+            &Database::global().path_schema_table();
 
-        let catalog_table =
-            BTreeTable::new(catalog_file_path, 0, &catalog_schema);
+        let table_fields = Schema::for_schema_table();
+
+        let schema_table =
+            BTreeTable::new(schema_table_path, 0, &table_fields);
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
@@ -54,7 +54,7 @@ impl Catalog {
 
         let tx = Transaction::new();
         tx.start()?;
-        let mut iter = catalog_table.iter(&tx);
+        let mut iter = schema_table.iter(&tx);
 
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
@@ -80,12 +80,6 @@ impl Catalog {
             let table_schema = Schema { fields };
             let table_name = table_names.get(&table_id).unwrap();
 
-            let table_file_path = Path::new(catalog_file_path)
-                .parent()
-                .unwrap()
-                .join(table_name);
-            let table_file_path = table_file_path.to_str().unwrap();
-
             let mut key_field = 0;
             for (i, field) in table_schema.fields.iter().enumerate() {
                 if field.is_primary {
@@ -95,11 +89,15 @@ impl Catalog {
             }
 
             let table = BTreeTable::new(
-                table_file_path,
+                &Database::global().path_schema_table(),
                 key_field,
                 &table_schema,
             );
-            self.add_table(Arc::new(RwLock::new(table)));
+
+            {
+                let mut catalog = Database::mut_catalog();
+                catalog.add_table(Arc::new(RwLock::new(table)));
+            }
         }
 
         todo!()
