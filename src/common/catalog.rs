@@ -22,25 +22,27 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
-        let mut catalog = Self {
+        Self {
             map: HashMap::new(),
-        };
-
-        // add the table "schema"
-        let schema_table = BTreeTable::new(
-            Database::global().path_schema_table(),
-            0,
-            &Schema::for_schema_table(),
-        );
-        catalog.add_table(Arc::new(RwLock::new(schema_table)));
-
-        catalog
+        }
     }
 
     /// Load the catalog from disk.
     pub fn load_schema() -> SmallResult {
         let schema_table_path =
             &Database::global().path_schema_table();
+
+        // add the table "schema"
+        {
+            let mut catalog = Database::mut_catalog();
+
+            let schema_table = BTreeTable::new(
+                Database::global().path_schema_table(),
+                0,
+                &Schema::for_schema_table(),
+            );
+            catalog.add_table(Arc::new(RwLock::new(schema_table)));
+        }
 
         let table_fields = Schema::for_schema_table();
 
@@ -54,7 +56,6 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start()?;
         let mut iter = schema_table.iter(&tx);
-
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
             let table_name = tuple.get_cell(1).get_string()?;
@@ -122,8 +123,5 @@ impl Catalog {
 
     pub fn add_table(&mut self, file: Value) {
         self.map.insert(file.rl().get_id(), Arc::clone(&file));
-
-        // TODO: write to catalog file
-        todo!()
     }
 }
