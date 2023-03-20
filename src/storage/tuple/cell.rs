@@ -12,11 +12,19 @@ pub enum Cell {
 }
 
 impl Cell {
+    pub fn new_bool(v: bool) -> Self {
+        Cell::Bool(v)
+    }
+
     pub fn get_bool(&self) -> Result<bool, SmallError> {
         match self {
             Cell::Bool(v) => Ok(*v),
             _ => Err(SmallError::new("not bool")),
         }
+    }
+
+    pub fn new_int64(v: i64) -> Self {
+        Cell::Int64(v)
     }
 
     pub fn get_int64(&self) -> Result<i64, SmallError> {
@@ -26,11 +34,19 @@ impl Cell {
         }
     }
 
+    pub fn new_float64(v: f64) -> Self {
+        Cell::Float64(v)
+    }
+
     pub fn get_float64(&self) -> Result<f64, SmallError> {
         match self {
             Cell::Float64(v) => Ok(*v),
             _ => Err(SmallError::new("not float64")),
         }
+    }
+
+    pub fn new_string(v: String) -> Self {
+        Cell::Char(v)
     }
 
     pub fn get_string(&self) -> Result<String, SmallError> {

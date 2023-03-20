@@ -47,6 +47,8 @@ pub enum SearchFor {
 
 /// B+ Tree
 pub struct BTreeTable {
+    pub table_name: String,
+
     // the field which index is keyed on
     pub key_field: usize,
 
@@ -82,22 +84,27 @@ impl fmt::Display for BTreeTable {
 
 // init functions
 impl BTreeTable {
-    pub fn new<P: AsRef<Path>>(
-        file_path: P,
+    pub fn new(
+        table_name: &str,
         key_field: usize,
         row_scheme: &Schema,
     ) -> Self {
+        let db_path = Database::global().get_path();
+
+        let table_path =
+            db_path.join(table_name).with_extension("table");
+
         let f = Mutex::new(
             OpenOptions::new()
                 .write(true)
                 .read(true)
                 .create(true)
-                .open(file_path.as_ref())
+                .open(table_path)
                 .unwrap(),
         );
 
         let mut hasher = DefaultHasher::new();
-        file_path.as_ref().hash(&mut hasher);
+        table_name.hash(&mut hasher);
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
 
@@ -106,6 +113,7 @@ impl BTreeTable {
         Self::file_init(f.lock().unwrap(), table_id);
 
         Self {
+            table_name: table_name.to_string(),
             key_field,
             tuple_scheme: row_scheme.clone(),
             file: f,

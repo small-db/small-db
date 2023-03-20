@@ -128,13 +128,7 @@ impl Database {
         }
     }
 
-    pub fn schema_table_path(&self) -> PathBuf {
-        PathBuf::from(&self.path).join("catalog.table")
-    }
-
-    pub fn table_path(&self, table_name: &str) -> PathBuf {
-        let mut table_name = table_name.to_owned();
-        table_name.push_str(".table");
-        PathBuf::from(&self.path).join(table_name)
+    pub fn get_path(&self) -> PathBuf {
+        self.path.clone()
     }
 }

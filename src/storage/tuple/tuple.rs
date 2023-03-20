@@ -17,11 +17,18 @@ pub struct Tuple {
     cells: Vec<Cell>,
 }
 
+// constructors
 impl Tuple {
     // TODO: remove this api
     pub fn new(scheme: &Schema, bytes: &[u8]) -> Self {
         let mut reader = SmallReader::new(bytes);
         return Self::read_from(&mut reader, &scheme);
+    }
+
+    pub fn new_from_cells(cells: &Vec<Cell>) -> Self {
+        Self {
+            cells: cells.to_vec(),
+        }
     }
 
     pub fn read_from(
@@ -63,7 +70,9 @@ impl Tuple {
 
         Tuple { cells }
     }
+}
 
+impl Tuple {
     pub fn get_cell(&self, i: usize) -> Cell {
         self.cells[i].clone()
     }

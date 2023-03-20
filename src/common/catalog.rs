@@ -10,7 +10,7 @@ use crate::{
     io::{Decodeable, SmallReader},
     storage::{
         schema::{FieldItem, Schema, Type},
-        tuple::Tuple,
+        tuple::{Cell, Tuple},
     },
     transaction::Transaction,
     types::SmallResult,
@@ -18,7 +18,7 @@ use crate::{
     BTreeTable, Database,
 };
 
-// const SCHEMA_TABLE_NAME:
+const SCHEMA_TBALE_NAME: &str = "schemas";
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
@@ -37,7 +37,7 @@ impl Catalog {
     /// Load the catalog from disk.
     pub fn load_schema() -> SmallResult {
         let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
-            Database::global().schema_table_path(),
+            SCHEMA_TBALE_NAME,
             0,
             &Schema::for_schema_table(),
         )));
@@ -89,7 +89,7 @@ impl Catalog {
             }
 
             let table = BTreeTable::new(
-                &Database::global().table_path(&table_name),
+                &table_name,
                 key_field,
                 &table_schema,
             );
@@ -132,8 +132,19 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        let bytes = Vec::new();
-        let tuple = Tuple::new(&table.get_tuple_scheme(), &bytes);
+        let cells = vec![
+            // table id
+            Cell::new_int64(table.get_id() as i64),
+            // table name
+
+            // Cell::
+            // table.get_id().into(),
+            // "schema".into(),
+            // "id".into(),
+            // "int64".into(),
+            // true.into(),
+        ];
+        let tuple = Tuple::new_from_cells(&cells);
         table.insert_tuple(&tx, &tuple).unwrap();
 
         tx.commit().unwrap();

@@ -24,7 +24,7 @@ use small_db::{
 
 use super::internal_children_cap;
 
-pub const DB_DEFAULT_PATH: &str = "./btree.db";
+pub const TEST_DB: &str = "test";
 
 /// # Conduct the initialization
 ///
@@ -48,13 +48,16 @@ pub enum TreeLayout {
     LastTwoEvenlyDistributed,
 }
 
-pub fn new_empty_btree_table<P: AsRef<Path>>(
-    path: P,
+pub fn new_empty_btree_table(
+    table_name: &str,
     columns: usize,
 ) -> Arc<RwLock<BTreeTable>> {
     let row_scheme = small_int_schema(columns, "");
-    let table_rc =
-        Arc::new(RwLock::new(BTreeTable::new(path, 0, &row_scheme)));
+    let table_rc = Arc::new(RwLock::new(BTreeTable::new(
+        table_name,
+        0,
+        &row_scheme,
+    )));
     Database::mut_catalog().add_table(Arc::clone(&table_rc));
     return table_rc;
 }
@@ -80,7 +83,7 @@ pub fn new_random_btree_table(
 ) -> Arc<RwLock<BTreeTable>> {
     let row_scheme = small_int_schema(columns, "");
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        DB_DEFAULT_PATH,
+        TEST_DB,
         key_field,
         &row_scheme,
     )));

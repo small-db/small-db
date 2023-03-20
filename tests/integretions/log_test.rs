@@ -142,9 +142,9 @@ fn test_abort() {
 fn test_abort_commit_interleaved() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
-    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_pod_2 = new_empty_btree_table("table_2", 2);
     let table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
@@ -202,7 +202,7 @@ fn test_abort_commit_interleaved() {
 fn test_abort_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
 
     commit_insert(&table_1, 1, 2);
@@ -246,7 +246,7 @@ fn test_abort_crash() {
 fn test_commit_abort_commit_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
 
     commit_insert(&table_1, 1, 2);
@@ -318,7 +318,7 @@ fn test_commit_abort_commit_crash() {
 fn test_commit_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
 
     // insert, crash, recover: data should still be there
@@ -353,9 +353,9 @@ fn test_flush_all() {}
 fn test_open_commit_checkpoint_open_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
-    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_pod_2 = new_empty_btree_table("table_2", 2);
     let table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
@@ -461,9 +461,9 @@ fn test_open_commit_checkpoint_open_crash() {
 fn test_open_commit_open_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
-    let table_pod_2 = new_empty_btree_table("table_2.db", 2);
+    let table_pod_2 = new_empty_btree_table("table_2", 2);
     let table_2 = table_pod_2.rl();
 
     commit_insert(&table_1, 1, 2);
@@ -537,7 +537,7 @@ fn test_open_commit_open_crash() {
 fn test_open_crash() {
     setup();
 
-    let table_pod_1 = new_empty_btree_table("table_1.db", 2);
+    let table_pod_1 = new_empty_btree_table("table_1", 2);
     let table_1 = table_pod_1.rl();
 
     commit_insert(&table_1, 1, 2);
