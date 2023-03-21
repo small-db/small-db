@@ -1,9 +1,6 @@
 use std::fmt::Debug;
 
-use crate::io::{Decodeable, Encodeable, SmallReader};
-
 use super::Type;
-
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Field {

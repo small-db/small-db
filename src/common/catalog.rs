@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     btree::table::NestedIterator,
-    io::{Decodeable, Encodeable, SmallReader},
+    io::{Decodeable, Encodeable},
     storage::{
         schema::{Field, Schema, Type},
         tuple::{Cell, Tuple},

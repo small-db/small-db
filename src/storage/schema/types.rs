@@ -18,7 +18,8 @@ impl Type {
             Type::Bytes(_) => {
                 // The first byte is the size of the bytes.
                 //
-                // We use fixed size now to calculate the size of the tuple.
+                // We use fixed size now to calculate the size of the
+                // tuple.
                 1 + MAX_BYTES_SIZE
             }
         }
