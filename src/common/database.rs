@@ -70,7 +70,7 @@ impl Database {
             SINGLETON = mem::transmute(Box::new(singleton));
         }
 
-        Catalog::load_schema().unwrap();
+        Catalog::load_schemas().unwrap();
     }
 
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {

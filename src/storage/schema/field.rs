@@ -8,7 +8,6 @@ pub enum Type {
     Bool,
     Int64,
     Float64,
-    Char(u8),
     Bytes(u8),
 }
 
@@ -17,8 +16,7 @@ impl Type {
         match self {
             Type::Bool => 1,
             Type::Int64 | Type::Float64 => 8,
-            Type::Char(size) => *size as usize,
-            Type::Bytes(size) => *size as usize,
+            Type::Bytes(size) => 1 + *size as usize,
         }
     }
 }
@@ -35,9 +33,6 @@ impl Encodeable for Type {
             Type::Float64 => {
                 vec![2, 8]
             }
-            Type::Char(size) => {
-                vec![3, *size]
-            }
             Type::Bytes(size) => {
                 vec![4, *size]
             }
@@ -53,7 +48,7 @@ impl Decodeable for Type {
             [0, 1] => Type::Bool,
             [1, 8] => Type::Int64,
             [2, 8] => Type::Float64,
-            [3, size] => Type::Char(*size),
+            [4, size] => Type::Bytes(*size),
             _ => panic!("invalid type"),
         }
     }

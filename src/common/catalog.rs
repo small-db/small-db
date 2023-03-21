@@ -33,7 +33,7 @@ impl Catalog {
     }
 
     /// Load the catalog from disk.
-    pub fn load_schema() -> SmallResult {
+    pub fn load_schemas() -> SmallResult {
         let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
             SCHEMA_TBALE_NAME,
             0,
@@ -56,17 +56,18 @@ impl Catalog {
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
-            let table_name = tuple.get_cell(1).get_string()?;
-            let field_name = tuple.get_cell(2).get_string()?;
-            let field_type = tuple.get_cell(3).get_string()?;
+            let table_name =
+                String::from_bytes(tuple.get_cell(1).get_bytes()?);
+            let field_name =
+                String::from_bytes(tuple.get_cell(2).get_bytes()?);
+            let field_type =
+                Type::from_bytes(tuple.get_cell(3).get_bytes()?);
             let is_primary = tuple.get_cell(4).get_bool()?;
 
             let mut fields = Vec::new();
             fields.push(Field::new(
                 &field_name,
-                Type::read_from(&mut SmallReader::new(
-                    field_type.as_bytes(),
-                )),
+                field_type,
                 is_primary,
             ));
 
@@ -137,9 +138,9 @@ impl Catalog {
                 // table id
                 Cell::new_int64(table.get_id() as i64),
                 // table name
-                Cell::new_string(&table.name),
+                Cell::new_bytes(&table.name),
                 // field name
-                Cell::new_string(&field.name),
+                Cell::new_bytes(&field.name),
                 // field type
                 Cell::new_bytes(&field.t.to_bytes()),
                 // is primary

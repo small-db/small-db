@@ -161,6 +161,14 @@ pub trait Encodeable {
 
 pub trait Decodeable {
     fn read_from(reader: &mut SmallReader) -> Self;
+
+    fn from_bytes(buf: Vec<u8>) -> Self
+    where
+        Self: Sized,
+    {
+        let mut reader = SmallReader::new(&buf);
+        Self::read_from(&mut reader)
+    }
 }
 
 /// # Format
@@ -200,8 +208,7 @@ impl Decodeable for BitVec {
 
 /// # Format
 ///
-/// - false -> 0
-/// - true -> 1
+/// - 1 byte (0 for false, 1 for true)
 impl Encodeable for bool {
     fn to_bytes(&self) -> Vec<u8> {
         vec![*self as u8]
@@ -211,6 +218,41 @@ impl Encodeable for bool {
 impl Decodeable for bool {
     fn read_from(reader: &mut SmallReader) -> Self {
         reader.read::<u8>() == 1
+    }
+}
+
+// # Format
+//
+// - 1 byte: size of the string (range: 0 - 255)
+// - n bytes: string
+impl Encodeable for String {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+
+        let payload = self.as_bytes();
+
+        // write size
+        let len = payload.len() as u8;
+        buf.extend_from_slice(&len.to_le_bytes());
+
+        // write payload
+        buf.extend_from_slice(&payload);
+
+        buf
+    }
+}
+
+impl Decodeable for String {
+    fn read_from(reader: &mut SmallReader) -> Self {
+        // read size
+        let size = u8::from_le_bytes(
+            reader.read_exact(1).try_into().unwrap(),
+        );
+
+        // read payload
+        let buf = reader.read_exact(size as usize);
+
+        String::from_utf8(buf.to_vec()).unwrap()
     }
 }
 

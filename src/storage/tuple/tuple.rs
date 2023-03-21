@@ -47,15 +47,6 @@ impl Tuple {
                 Type::Float64 => {
                     cells.push(Cell::Float64(reader.read::<f64>()));
                 }
-                Type::Char(len) => {
-                    let mut bytes = Vec::new();
-                    for _ in 0..len {
-                        bytes.push(reader.read::<u8>());
-                    }
-                    cells.push(Cell::Char(
-                        String::from_utf8(bytes).unwrap(),
-                    ));
-                }
                 Type::Bytes(len) => {
                     let mut bytes = Vec::new();
                     for _ in 0..len {
