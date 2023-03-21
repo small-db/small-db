@@ -1,11 +1,11 @@
 pub mod btree;
+pub mod common;
 pub mod concurrent_status;
 pub mod storage;
 pub mod transaction;
 pub mod types;
 pub mod utils;
 
-mod common;
 mod error;
 mod io;
 mod operator;

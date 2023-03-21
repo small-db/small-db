@@ -11,6 +11,7 @@ use small_db::{
         },
         page_cache::{PageCache, DEFAULT_PAGE_SIZE},
     },
+    common::Catalog,
     concurrent_status::Permission,
     small_int_schema,
     storage::tuple::{Cell, Tuple},
@@ -55,7 +56,7 @@ pub fn new_empty_btree_table(
         0,
         &row_scheme,
     )));
-    Database::mut_catalog().add_table(Arc::clone(&table_rc));
+    Catalog::add_table(Arc::clone(&table_rc));
     return table_rc;
 }
 
@@ -84,7 +85,7 @@ pub fn new_random_btree_table(
         key_field,
         &row_scheme,
     )));
-    Database::mut_catalog().add_table(Arc::clone(&table_rc));
+    Catalog::add_table(Arc::clone(&table_rc));
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();

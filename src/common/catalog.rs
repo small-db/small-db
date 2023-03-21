@@ -40,11 +40,8 @@ impl Catalog {
             &Schema::for_schema_table(),
         )));
 
-        // add the table "schema"
-        {
-            let mut catalog = Database::mut_catalog();
-            catalog.add_table(schema_table_rc.clone());
-        }
+        // add the system-table "schema"
+        Catalog::add_table(schema_table_rc.clone());
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
@@ -93,10 +90,7 @@ impl Catalog {
                 &table_schema,
             );
 
-            {
-                let mut catalog = Database::mut_catalog();
-                catalog.add_table(Arc::new(RwLock::new(table)));
-            }
+            Catalog::add_table(Arc::new(RwLock::new(table)));
         }
 
         todo!()
@@ -120,13 +114,13 @@ impl Catalog {
         }
     }
 
-    pub fn add_table(&mut self, _table: Value) {
-        // let id = table.rl().get_id();
-        // self.map.insert(id, Arc::clone(&table));
+    fn add_table_to_memory(&mut self, table_rc: Value) {
+        let id = table_rc.rl().get_id();
+        self.map.insert(id, Arc::clone(&table_rc));
+    }
 
-        let table_index: Key = 0;
-        let table_rc = self.get_table(&table_index);
-        let table = table_rc.unwrap().rl();
+    fn add_table_to_disk(table_rc: Value) {
+        let table = table_rc.rl();
 
         let tx = Transaction::new();
         tx.start().unwrap();
@@ -151,5 +145,14 @@ impl Catalog {
         }
 
         tx.commit().unwrap();
+    }
+
+    pub fn add_table(table_rc: Value) {
+        {
+            let mut catalog = Database::mut_catalog();
+            catalog.add_table_to_memory(table_rc.clone());
+        }
+
+        Self::add_table_to_disk(table_rc);
     }
 }
