@@ -40,7 +40,8 @@ impl Catalog {
 
     /// Load the catalog from disk.
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc = Self::get_schema_table();
+        let schema_table_rc =
+            Database::mut_catalog().get_schema_table();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
@@ -105,10 +106,10 @@ impl Catalog {
         self.map.get(table_index)
     }
 
-    pub fn get_schema_table() -> Value {
+    pub fn get_schema_table(&mut self) -> Value {
         let schema_table_rc;
 
-        match &Database::catalog().schema_table {
+        match &self.schema_table {
             Some(rc) => rc.clone(),
             None => {
                 schema_table_rc =
@@ -117,8 +118,7 @@ impl Catalog {
                         0,
                         &Schema::for_schema_table(),
                     )));
-                Database::mut_catalog().schema_table =
-                    Some(schema_table_rc.clone());
+                self.schema_table = Some(schema_table_rc.clone());
                 schema_table_rc
             }
         }
@@ -146,7 +146,8 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
-        let schema_table_rc = Self::get_schema_table();
+        let schema_table_rc =
+            Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
