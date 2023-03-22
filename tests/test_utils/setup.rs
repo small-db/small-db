@@ -56,7 +56,7 @@ pub fn new_empty_btree_table(
         0,
         &row_scheme,
     )));
-    Catalog::add_table(Arc::clone(&table_rc));
+    Catalog::add_table(Arc::clone(&table_rc), true);
     return table_rc;
 }
 
@@ -85,7 +85,7 @@ pub fn new_random_btree_table(
         key_field,
         &row_scheme,
     )));
-    Catalog::add_table(Arc::clone(&table_rc));
+    Catalog::add_table(Arc::clone(&table_rc), true);
 
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();

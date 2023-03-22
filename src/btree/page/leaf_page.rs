@@ -5,6 +5,7 @@ use std::{
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
+use log::debug;
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,

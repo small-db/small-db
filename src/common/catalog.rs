@@ -43,7 +43,7 @@ impl Catalog {
         schema_table_rc.rl().clear();
 
         // add the system-table "schema"
-        Catalog::add_table(schema_table_rc.clone());
+        Catalog::add_table(schema_table_rc.clone(), false);
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
@@ -56,21 +56,24 @@ impl Catalog {
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
             let table_name =
-                String::from_bytes(tuple.get_cell(1).get_bytes()?);
+                String::from_utf8(tuple.get_cell(1).get_bytes()?)
+                    .unwrap();
             let field_name =
-                String::from_bytes(tuple.get_cell(2).get_bytes()?);
+                String::from_utf8(tuple.get_cell(2).get_bytes()?)
+                    .unwrap();
             let field_type =
                 Type::from_bytes(tuple.get_cell(3).get_bytes()?);
             let is_primary = tuple.get_cell(4).get_bool()?;
 
-            let mut fields = Vec::new();
-            fields.push(Field::new(
-                &field_name,
-                field_type,
-                is_primary,
-            ));
+            let field =
+                Field::new(&field_name, field_type, is_primary);
 
-            schemas.insert(table_id, fields);
+            // insert the field into the schema, if "table_id" is not
+            // in the map, then insert a new vector
+            schemas
+                .entry(table_id)
+                .or_insert_with(Vec::new)
+                .push(field);
             table_names.insert(table_id, table_name);
         }
 
@@ -92,10 +95,10 @@ impl Catalog {
                 &table_schema,
             );
 
-            Catalog::add_table(Arc::new(RwLock::new(table)));
+            Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
 
-        todo!()
+        Ok(())
     }
 
     pub fn get_table(&self, table_index: &Key) -> Option<&Value> {
@@ -149,12 +152,14 @@ impl Catalog {
         tx.commit().unwrap();
     }
 
-    pub fn add_table(table_rc: Value) {
+    pub fn add_table(table_rc: Value, persist: bool) {
         {
             let mut catalog = Database::mut_catalog();
             catalog.add_table_to_memory(table_rc.clone());
         }
 
-        Self::add_table_to_disk(table_rc);
+        if persist {
+            Self::add_table_to_disk(table_rc);
+        }
     }
 }
