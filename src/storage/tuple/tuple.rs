@@ -4,8 +4,6 @@ use std::{
     usize,
 };
 
-use log::debug;
-
 use crate::{
     btree::page::BTreePageID,
     io::{Decodeable, Encodeable},
