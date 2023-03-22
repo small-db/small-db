@@ -40,6 +40,8 @@ impl Catalog {
             &Schema::for_schema_table(),
         )));
 
+        schema_table_rc.rl().clear();
+
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone());
 

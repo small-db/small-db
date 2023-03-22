@@ -109,9 +109,7 @@ impl BTreeTable {
 
         let table_id = hasher.finish() as u32;
 
-        Self::file_init(f.lock().unwrap(), table_id);
-
-        Self {
+        let instance = Self {
             name: table_name.to_string(),
             key_field,
             tuple_scheme: row_scheme.clone(),
@@ -122,7 +120,10 @@ impl BTreeTable {
             //
             // TODO: init it according to actual condition
             page_index: AtomicU32::new(1),
-        }
+        };
+
+        instance.file_init();
+        instance
     }
 }
 
@@ -635,6 +636,7 @@ impl BTreeTable {
 
     pub fn clear(&self) {
         self.get_file().set_len(0).expect("io error");
+        self.file_init();
     }
 }
 
@@ -798,17 +800,17 @@ impl BTreeTable {
     }
 
     /// Initialize the data file when it is necessary.
-    fn file_init(
-        mut file: impl DerefMut<Target = File>,
-        table_inex: u32,
-    ) {
+    fn file_init(&self) {
+        let mut file = self.get_file();
+        let table_index = self.get_id();
+
         // if db file is empty, create root pointer page at first
         if file.metadata().unwrap().len() == 0 {
             // write root pointer page
             {
                 let pid = BTreePageID::new(
                     PageCategory::RootPointer,
-                    table_inex,
+                    table_index,
                     0,
                 );
 
