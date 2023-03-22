@@ -4,7 +4,6 @@ use std::{
     fs::{File, OpenOptions},
     hash::{Hash, Hasher},
     io::{Seek, SeekFrom, Write},
-    ops::DerefMut,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc, Mutex, MutexGuard, RwLock,

@@ -8,7 +8,6 @@ use std::{
 };
 
 use bit_vec::BitVec;
-use log::error;
 
 use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
