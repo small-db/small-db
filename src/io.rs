@@ -86,37 +86,6 @@ impl SmallFile {
     }
 }
 
-pub struct SmallReader<'a> {
-    buf: &'a [u8],
-    cursor: usize,
-}
-
-impl<'a> SmallReader<'a> {
-    pub fn new(buf: &'a [u8]) -> Self {
-        Self { buf, cursor: 0 }
-    }
-
-    // TODO: remove this api
-    pub fn read_exact(&mut self, bytes_count: usize) -> &'_ [u8] {
-        let start = self.cursor;
-        let end = self.cursor + bytes_count;
-
-        // boundary check
-        if end > self.buf.len() {
-            error!(
-                "read out of boundary: {} > {}",
-                end,
-                self.buf.len()
-            );
-            panic!("read out of boundary");
-        }
-
-        self.cursor += bytes_count;
-
-        return &self.buf[start..end];
-    }
-}
-
 pub fn read<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
     T::read_from(reader)
 }
