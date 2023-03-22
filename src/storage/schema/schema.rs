@@ -73,11 +73,11 @@ impl PartialEq for Schema {
     }
 }
 
-pub fn small_int_schema(width: usize, name_prefix: &str) -> Schema {
+pub fn small_int_schema(width: usize) -> Schema {
     let mut fields: Vec<Field> = Vec::new();
     for i in 0..width {
         let field = Field {
-            name: format!("{}-{}", name_prefix, i),
+            name: format!("int-column-{}", i),
             t: Type::Int64,
             is_primary: false,
         };

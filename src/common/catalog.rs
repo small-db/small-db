@@ -40,8 +40,6 @@ impl Catalog {
             &Schema::for_schema_table(),
         )));
 
-        schema_table_rc.rl().clear();
-
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
 
@@ -130,9 +128,7 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        for (_i, field) in
-            table.get_tuple_scheme().fields.iter().enumerate()
-        {
+        for field in table.get_tuple_scheme().fields {
             let cells = vec![
                 // table id
                 Cell::new_int64(table.get_id() as i64),

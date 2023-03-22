@@ -2,8 +2,6 @@ use std::convert::TryInto;
 
 use crate::io::{read_exact, Decodeable, Encodeable};
 
-const MAX_BYTES_SIZE: usize = 100;
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
     Bool,

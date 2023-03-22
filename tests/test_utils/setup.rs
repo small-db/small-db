@@ -50,7 +50,7 @@ pub fn new_empty_btree_table(
     table_name: &str,
     columns: usize,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_schema(columns, "");
+    let row_scheme = small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         table_name,
         0,
@@ -79,7 +79,7 @@ pub fn new_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_schema(columns, "");
+    let row_scheme = small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         TEST_DB,
         key_field,

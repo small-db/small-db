@@ -12,7 +12,7 @@ use small_db::{
 };
 
 pub fn leaf_records_cap() -> usize {
-    let scheme = small_int_schema(2, "");
+    let scheme = small_int_schema(2);
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 
