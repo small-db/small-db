@@ -1,4 +1,4 @@
-use std::{convert::TryInto, fmt};
+use std::convert::TryInto;
 
 use crate::io::{read_exact, Decodeable, Encodeable};
 

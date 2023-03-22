@@ -118,6 +118,10 @@ impl SmallWriter {
         self.buf.clone()
     }
 
+    pub fn size(&self) -> usize {
+        self.buf.len()
+    }
+
     pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
         let mut buf = self.buf.clone();
 

@@ -20,6 +20,8 @@ const SCHEMA_TBALE_NAME: &str = "schemas";
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
+
+    schema_table: Arc<RwLock<BTreeTable>>,
 }
 
 type Key = u32;
@@ -27,18 +29,22 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
+        let schema_table = Arc::new(RwLock::new(BTreeTable::new(
+            SCHEMA_TBALE_NAME,
+            0,
+            &Schema::for_schema_table(),
+        )));
+
         Self {
             map: HashMap::new(),
+            schema_table,
         }
     }
 
     /// Load the catalog from disk.
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
-            SCHEMA_TBALE_NAME,
-            0,
-            &Schema::for_schema_table(),
-        )));
+        let schema_table_rc =
+            Database::catalog().schema_table.clone();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
@@ -125,6 +131,10 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
+        let schema_table_rc =
+            Database::catalog().schema_table.clone();
+        let schema_table = schema_table_rc.rl();
+
         let tx = Transaction::new();
         tx.start().unwrap();
 
@@ -142,7 +152,7 @@ impl Catalog {
                 Cell::new_bool(field.is_primary),
             ];
             let tuple = Tuple::new_from_cells(&cells);
-            table.insert_tuple(&tx, &tuple).unwrap();
+            schema_table.insert_tuple(&tx, &tuple).unwrap();
         }
 
         tx.commit().unwrap();

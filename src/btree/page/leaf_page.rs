@@ -5,6 +5,7 @@ use std::{
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
+use log::debug;
 
 use super::{
     BTreeBasePage, BTreePage, BTreePageID, PageCategory,
@@ -246,13 +247,6 @@ impl BTreeLeafPage {
         self.slot_count - self.empty_slots_count()
     }
 
-    // Computes the number of bytes in the header of
-    // a page in a BTreeFile with each tuple occupying
-    // tupleSize bytes
-    pub fn calculate_header_size(slot_count: usize) -> usize {
-        slot_count / 8 + 1
-    }
-
     /// Adds the specified tuple to the page such that all records
     /// remain in sorted order; the tuple should be updated to
     /// reflect that it is now stored on this page.
@@ -457,23 +451,44 @@ impl BTreePage for BTreeLeafPage {
 
         // write page category
         writer.write(&self.get_pid().category);
+        debug!("writer filled bytes: {}", writer.size());
 
         // write parent page index
         writer.write(&self.get_parent_pid().page_index);
+        debug!("writer filled bytes: {}", writer.size());
 
         // write left sibling page index
         writer.write(&self.left_sibling_id);
+        debug!("writer filled bytes: {}", writer.size());
 
         // write right sibling page index
         writer.write(&self.right_sibling_id);
+        debug!("writer filled bytes: {}", writer.size());
 
         // write header
         writer.write(&self.header);
+        debug!("writer filled bytes: {}", writer.size());
+
+        let mut previous_len = writer.size();
 
         // write tuples
         for tuple in &self.tuples {
             writer.write(tuple);
+
+            if writer.size() - previous_len == 33 {
+                panic!(
+                    "tuple size mismatch, expected: {}, actual: {}",
+                    16,
+                    writer.size() - previous_len,
+                );
+            }
+
+            debug!("writer filled bytes: {}", writer.size());
+
+            previous_len = writer.size();
         }
+        debug!("tuples count: {}", self.tuples.len());
+        debug!("writer filled bytes: {}", writer.size());
 
         return writer.to_padded_bytes(PageCache::get_page_size());
     }
