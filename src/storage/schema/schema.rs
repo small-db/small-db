@@ -14,8 +14,8 @@ impl Schema {
         Schema {
             fields: vec![
                 Field::new("table_id", Type::Int64, true),
-                Field::new("table_name", Type::Bytes(255), false),
-                Field::new("field_name", Type::Bytes(10), false),
+                Field::new("table_name", Type::Bytes(20), false),
+                Field::new("field_name", Type::Bytes(20), false),
                 Field::new("field_type", Type::Bytes(10), false),
                 Field::new("is_primary", Type::Bool, false),
             ],

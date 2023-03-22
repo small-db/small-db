@@ -15,12 +15,12 @@ impl Type {
         match self {
             Type::Bool => 1,
             Type::Int64 | Type::Float64 => 8,
-            Type::Bytes(_) => {
+            Type::Bytes(size) => {
                 // The first byte is the size of the bytes.
                 //
                 // We use fixed size now to calculate the size of the
                 // tuple.
-                1 + MAX_BYTES_SIZE
+                1 + *size as usize
             }
         }
     }
@@ -39,7 +39,7 @@ impl Encodeable for Type {
                 vec![2, 8]
             }
             Type::Bytes(size) => {
-                vec![4, *size]
+                vec![3, *size]
             }
         }
     }
@@ -53,7 +53,7 @@ impl Decodeable for Type {
             [0, 1] => Type::Bool,
             [1, 8] => Type::Int64,
             [2, 8] => Type::Float64,
-            [4, size] => Type::Bytes(*size),
+            [3, size] => Type::Bytes(*size),
             _ => panic!("invalid type"),
         }
     }
