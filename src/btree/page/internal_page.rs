@@ -107,7 +107,7 @@ impl BTreeInternalPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::decode(&mut reader);
+            let category = PageCategory::decode_from(&mut reader);
             if category != PageCategory::Internal {
                 panic!(
                     "The page category of the internal page is not
@@ -121,21 +121,21 @@ impl BTreeInternalPage {
             let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
                 pid.get_table_id(),
-                u32::decode(&mut reader),
+                u32::decode_from(&mut reader),
             );
 
             // read children category
             let children_category =
-                PageCategory::decode(&mut reader);
+                PageCategory::decode_from(&mut reader);
 
             // read header
-            let header = BitVec::decode(&mut reader);
+            let header = BitVec::decode_from(&mut reader);
 
             // read keys
             let mut keys: Vec<Cell> = Vec::new();
             keys.push(Cell::Int64(0));
             for _ in 1..slot_count {
-                let key = i64::decode(&mut reader);
+                let key = i64::decode_from(&mut reader);
                 keys.push(Cell::Int64(key));
             }
 
@@ -145,7 +145,7 @@ impl BTreeInternalPage {
                 let child = BTreePageID::new(
                     children_category,
                     pid.get_table_id(),
-                    u32::decode(&mut reader),
+                    u32::decode_from(&mut reader),
                 );
                 children.push(child);
             }
@@ -194,7 +194,7 @@ impl BTreeInternalPage {
         let mut keys: Vec<Cell> = Vec::new();
         keys.push(Cell::Int64(0));
         for _ in 1..slot_count {
-            let key = i64::decode(&mut reader);
+            let key = i64::decode_from(&mut reader);
             keys.push(Cell::Int64(key));
         }
 
@@ -204,7 +204,7 @@ impl BTreeInternalPage {
             let child = BTreePageID::new(
                 children_category,
                 pid.get_table_id(),
-                u32::decode(&mut reader),
+                u32::decode_from(&mut reader),
             );
             children.push(child);
         }

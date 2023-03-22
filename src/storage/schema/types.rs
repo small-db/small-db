@@ -47,7 +47,7 @@ impl Encodeable for Type {
 }
 
 impl Decodeable for Type {
-    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         let bytes: [u8; 2] =
             read_exact(reader, 2).try_into().unwrap();
 

@@ -63,7 +63,7 @@ impl Catalog {
             let field_name =
                 String::from_utf8(tuple.get_cell(2).get_bytes()?)
                     .unwrap();
-            let field_type = Type::decode(&mut Cursor::new(
+            let field_type = Type::decode_from(&mut Cursor::new(
                 tuple.get_cell(3).get_bytes()?,
             ));
             let is_primary = tuple.get_cell(4).get_bool()?;

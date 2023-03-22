@@ -16,7 +16,7 @@ pub enum PageCategory {
 }
 
 impl Decodeable for PageCategory {
-    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         let mut buffer = [0; 4];
         reader.read_exact(&mut buffer).unwrap();
         match buffer {
@@ -124,7 +124,7 @@ impl Encodeable for BTreePageID {
 }
 
 impl Decodeable for BTreePageID {
-    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         // let category = PageCategory::read_from(reader);
         // let page_index = u32::read_from(reader);
         // let table_id = u32::read_from(reader);

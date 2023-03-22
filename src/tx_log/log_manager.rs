@@ -63,7 +63,7 @@ impl Encodeable for RecordType {
 }
 
 impl Decodeable for RecordType {
-    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         let value = read_exact(reader, 1);
         RecordType::from_u8(value[0])
     }
@@ -1005,7 +1005,7 @@ impl LogManager {
 
     fn parsed_page_content(&self, bytes: &[u8]) -> String {
         let page_category =
-            PageCategory::decode(&mut Cursor::new(bytes));
+            PageCategory::decode_from(&mut Cursor::new(bytes));
 
         match page_category {
             PageCategory::Leaf => {

@@ -78,7 +78,7 @@ impl BTreeLeafPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::decode(&mut reader);
+            let category = PageCategory::decode_from(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -90,17 +90,17 @@ impl BTreeLeafPage {
             let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
                 pid.get_table_id(),
-                u32::decode(&mut reader),
+                u32::decode_from(&mut reader),
             );
 
             // read left sibling page index
-            let left_sibling_id = u32::decode(&mut reader);
+            let left_sibling_id = u32::decode_from(&mut reader);
 
             // read right sibling page index
-            let right_sibling_id = u32::decode(&mut reader);
+            let right_sibling_id = u32::decode_from(&mut reader);
 
             // read header
-            let header = BitVec::decode(&mut reader);
+            let header = BitVec::decode_from(&mut reader);
 
             // read tuples
             let mut tuples = Vec::new();
