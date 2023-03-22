@@ -39,7 +39,10 @@ impl SmallFile {
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
         let offset = self.get_current_position().unwrap();
         let page_size = self.read::<usize>()?;
-        debug!("offset: {:02x}, page_size: {}", offset, page_size);
+        debug!(
+            "offset: {:02x}/{}, page_size: {}",
+            offset, offset, page_size
+        );
 
         let mut buf: Vec<u8> = vec![0; page_size];
         self.get_file().read_exact(&mut buf).unwrap();
@@ -230,6 +233,10 @@ impl Encodeable for &[u8] {
 
 // - 1 byte: size of the string (range: 0 - 255)
 // - n bytes: string
+//
+// Fixme: this implementation is wrong, should be coupled with
+// the "decode" function. (The process of encoding and decoding
+// should be symmetric)
 impl Encodeable for Vec<u8> {
     fn encode(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
