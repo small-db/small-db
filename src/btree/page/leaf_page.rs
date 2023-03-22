@@ -408,12 +408,12 @@ impl BTreeLeafPage {
             scheme.get_size() * 8 + 1;
 
         // extraBits:
-        // - page category
-        // - parent pointer
-        // - left sibling pointer
-        // - right sibling pointer
-        // - header size
-        let extra_bits = (4 * INDEX_SIZE + 2) * 8;
+        // - page category (4 bytes)
+        // - parent pointer (`INDEX_SIZE` bytes)
+        // - left sibling pointer (`INDEX_SIZE` bytes)
+        // - right sibling pointer (`INDEX_SIZE` bytes)
+        // - header size (2 bytes)
+        let extra_bits = (4 + 3 * INDEX_SIZE + 2) * 8;
 
         (PageCache::get_page_size() * 8 - extra_bits)
             / bits_per_tuple_including_header

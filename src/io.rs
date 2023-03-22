@@ -221,26 +221,26 @@ impl Decodeable for bool {
     }
 }
 
-// # Format
-//
-// - 1 byte: size of the string (range: 0 - 255)
-// - n bytes: string
-impl Encodeable for String {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
+// // # Format
+// //
+// // - 1 byte: size of the string (range: 0 - 255)
+// // - n bytes: string
+// // impl Encodeable for String {
+// //     fn to_bytes(&self) -> Vec<u8> {
+// //         let mut buf = Vec::new();
 
-        let payload = self.as_bytes();
+// //         let payload = self.as_bytes();
 
-        // write size
-        let len = payload.len() as u8;
-        buf.extend_from_slice(&len.to_le_bytes());
+// //         // write size
+// //         let len = payload.len() as u8;
+// //         buf.extend_from_slice(&len.to_le_bytes());
 
-        // write payload
-        buf.extend_from_slice(&payload);
+// //         // write payload
+// //         buf.extend_from_slice(&payload);
 
-        buf
-    }
-}
+// //         buf
+// //     }
+// // }
 
 impl Decodeable for String {
     fn read_from(reader: &mut SmallReader) -> Self {

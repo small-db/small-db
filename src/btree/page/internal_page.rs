@@ -101,7 +101,7 @@ impl BTreeInternalPage {
                 key_field,
             );
         } else {
-            let key_size = tuple_scheme.fields[key_field].t.len();
+            let key_size = tuple_scheme.fields[key_field].t.size();
             let slot_count = Self::get_children_cap(key_size) + 1;
 
             let mut reader = SmallReader::new(&bytes);
@@ -174,7 +174,7 @@ impl BTreeInternalPage {
         tuple_scheme: &Schema,
         key_field: usize,
     ) -> Self {
-        let key_size = tuple_scheme.fields[key_field].t.len();
+        let key_size = tuple_scheme.fields[key_field].t.size();
         let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = SmallReader::new(&bytes);

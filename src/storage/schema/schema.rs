@@ -39,7 +39,11 @@ impl Schema {
 
     /// get tuple size in bytes
     pub fn get_size(&self) -> usize {
-        self.fields.len() * 4
+        let mut size = 0;
+        for field in &self.fields {
+            size += field.t.size();
+        }
+        size
     }
 }
 

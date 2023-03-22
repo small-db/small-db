@@ -11,7 +11,8 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn len(&self) -> usize {
+    /// Get the size of the type in bytes.
+    pub fn size(&self) -> usize {
         match self {
             Type::Bool => 1,
             Type::Int64 | Type::Float64 => 8,

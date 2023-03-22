@@ -45,8 +45,8 @@ impl Cell {
         }
     }
 
-    pub fn new_bytes<T: Encodeable>(v: &T) -> Self {
-        Cell::Bytes(v.to_bytes())
+    pub fn new_bytes(v: &[u8]) -> Self {
+        Cell::Bytes(v.to_vec())
     }
 
     pub fn get_bytes(&self) -> Result<Vec<u8>, SmallError> {
@@ -93,7 +93,7 @@ impl Encodeable for Cell {
             Cell::Bool(v) => vec![*v as u8],
             Cell::Int64(v) => v.to_be_bytes().to_vec(),
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
-            Cell::Bytes(v) => v.clone(),
+            Cell::Bytes(v) => v.to_bytes(),
         }
     }
 }

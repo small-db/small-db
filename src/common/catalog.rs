@@ -132,9 +132,9 @@ impl Catalog {
                 // table id
                 Cell::new_int64(table.get_id() as i64),
                 // table name
-                Cell::new_bytes(&table.name),
+                Cell::new_bytes(&table.name.as_bytes()),
                 // field name
-                Cell::new_bytes(&field.name),
+                Cell::new_bytes(&field.name.as_bytes()),
                 // field type
                 Cell::new_bytes(&field.t.to_bytes()),
                 // is primary

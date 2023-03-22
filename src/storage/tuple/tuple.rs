@@ -80,7 +80,9 @@ impl Tuple {
     }
 
     pub fn clone(&self) -> Tuple {
-        todo!();
+        Tuple {
+            cells: self.cells.clone(),
+        }
     }
 }
 
