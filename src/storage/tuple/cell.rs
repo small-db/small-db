@@ -87,13 +87,13 @@ impl Ord for Cell {
 }
 
 impl Encodeable for Cell {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => vec![*v as u8],
             Cell::Int64(v) => v.to_be_bytes().to_vec(),
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
-            Cell::Bytes(v) => v.to_bytes(),
+            Cell::Bytes(v) => v.encode(),
         }
     }
 }

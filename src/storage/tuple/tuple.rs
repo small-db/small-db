@@ -88,10 +88,10 @@ impl Tuple {
 }
 
 impl Encodeable for Tuple {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         for cell in &self.cells {
-            let mut cell_bytes = cell.to_bytes();
+            let mut cell_bytes = cell.encode();
             bytes.append(&mut cell_bytes);
         }
         bytes

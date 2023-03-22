@@ -30,7 +30,7 @@ impl Decodeable for PageCategory {
 }
 
 impl Encodeable for PageCategory {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         match self {
             PageCategory::RootPointer => vec![0, 0, 0, 0],
             PageCategory::Internal => vec![0, 0, 0, 1],
@@ -114,7 +114,7 @@ impl BTreePageID {
 }
 
 impl Encodeable for BTreePageID {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         let mut writer = SmallWriter::new();
         writer.write(&self.category);
         writer.write(&self.page_index);

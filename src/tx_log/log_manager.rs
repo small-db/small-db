@@ -57,7 +57,7 @@ impl RecordType {
 }
 
 impl Encodeable for RecordType {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         vec![*self as u8]
     }
 }
@@ -1020,7 +1020,7 @@ impl LogManager {
                 let iter = page.iter();
                 let content = iter
                     .take(5)
-                    .map(|x| x.get_cell(0).to_bytes())
+                    .map(|x| x.get_cell(0).encode())
                     .collect::<Vec<_>>();
 
                 return format!(

@@ -136,7 +136,7 @@ impl Catalog {
                 // field name
                 Cell::new_bytes(&field.name.as_bytes()),
                 // field type
-                Cell::new_bytes(&field.t.to_bytes()),
+                Cell::new_bytes(&field.t.encode()),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];

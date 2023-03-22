@@ -30,7 +30,7 @@ impl Type {
 }
 
 impl Encodeable for Type {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         match self {
             Type::Bool => {
                 vec![0, 1]

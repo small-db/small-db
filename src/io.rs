@@ -47,7 +47,7 @@ impl SmallFile {
     }
 
     pub fn write<T: Encodeable>(&self, obj: &T) -> SmallResult {
-        match self.get_file().write(&obj.to_bytes()) {
+        match self.get_file().write(&obj.encode()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
@@ -110,7 +110,7 @@ impl SmallWriter {
     }
 
     pub fn write<T: Encodeable>(&mut self, obj: &T) {
-        self.buf.extend_from_slice(obj.to_bytes().as_slice());
+        self.buf.extend_from_slice(obj.encode().as_slice());
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -134,7 +134,7 @@ impl SmallWriter {
 }
 
 pub trait Encodeable {
-    fn to_bytes(&self) -> Vec<u8>;
+    fn encode(&self) -> Vec<u8>;
 }
 
 pub trait Decodeable {
@@ -154,7 +154,7 @@ pub trait Decodeable {
 /// - 2 bytes: bytes size (range: 0 - 65535) (65535 * 8 = 524280 bits)
 /// - n bytes: bit vector
 impl Encodeable for BitVec {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         let mut buf = Vec::new();
 
         let payload = self.to_bytes();
@@ -190,7 +190,7 @@ impl Decodeable for BitVec {
 ///
 /// - 1 byte (0 for false, 1 for true)
 impl Encodeable for bool {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         vec![*self as u8]
     }
 }
@@ -236,13 +236,13 @@ impl Decodeable for String {
 }
 
 impl Encodeable for &[u8] {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         self.to_vec()
     }
 }
 
 impl Encodeable for Vec<u8> {
-    fn to_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         self.to_vec()
     }
 }
@@ -251,7 +251,7 @@ macro_rules! impl_serialization {
     (for $($t:ty),+) => {
         $(
             impl Encodeable for $t {
-                fn to_bytes(&self) -> Vec<u8> {
+                fn encode(&self) -> Vec<u8> {
                     self.to_le_bytes().to_vec()
                 }
             }
