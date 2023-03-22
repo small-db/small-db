@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     btree::page_cache::PageCache,
-    io::{Decodeable, Encodeable, SmallReader, SmallWriter},
+    io::{Decodeable, Encodeable, SmallWriter},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;

@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::io::{read_exact, Decodeable, Encodeable, SmallReader};
+use crate::io::{read_exact, Decodeable, Encodeable};
 
 const MAX_BYTES_SIZE: usize = 100;
 

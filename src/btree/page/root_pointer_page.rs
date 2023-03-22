@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     btree::page_cache::PageCache,
-    io::{Decodeable, SmallReader, SmallWriter},
+    io::{Decodeable, SmallWriter},
     storage::schema::Schema,
 };
 

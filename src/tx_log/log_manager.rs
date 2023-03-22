@@ -1,6 +1,5 @@
 use std::{
     collections::{HashMap, HashSet},
-    convert::TryInto,
     fs::File,
     io::{Cursor, Read, Seek, Write},
     mem::size_of,
@@ -20,9 +19,7 @@ use crate::{
         page_cache::PageCache,
     },
     error::SmallError,
-    io::{
-        read_exact, Decodeable, Encodeable, SmallFile, SmallReader,
-    },
+    io::{read_exact, Decodeable, Encodeable, SmallFile},
     storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,

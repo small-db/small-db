@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
-    io::{Decodeable, SmallReader, SmallWriter},
+    io::{Decodeable, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},

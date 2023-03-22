@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Decodeable, Encodeable, SmallReader},
+    io::{Decodeable, Encodeable},
     storage::{
         schema::{Schema, Type},
         tuple::Cell,

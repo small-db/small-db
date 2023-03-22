@@ -11,7 +11,7 @@ use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
     concurrent_status::Permission,
     error::SmallError,
-    io::{Decodeable, SmallReader, SmallWriter},
+    io::{Decodeable, SmallWriter},
     storage::{schema::Schema, tuple::Cell},
     transaction::Transaction,
     types::SmallResult,
