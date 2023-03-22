@@ -201,27 +201,6 @@ impl Decodeable for bool {
     }
 }
 
-// // # Format
-// //
-// // - 1 byte: size of the string (range: 0 - 255)
-// // - n bytes: string
-// // impl Encodeable for String {
-// //     fn to_bytes(&self) -> Vec<u8> {
-// //         let mut buf = Vec::new();
-
-// //         let payload = self.as_bytes();
-
-// //         // write size
-// //         let len = payload.len() as u8;
-// //         buf.extend_from_slice(&len.to_le_bytes());
-
-// //         // write payload
-// //         buf.extend_from_slice(&payload);
-
-// //         buf
-// //     }
-// // }
-
 impl Decodeable for String {
     fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
@@ -241,9 +220,28 @@ impl Encodeable for &[u8] {
     }
 }
 
+// impl Encodeable for Vec<u8> {
+//     fn encode(&self) -> Vec<u8> {
+//         self.to_vec()
+//     }
+// }
+
+// # Format
+
+// - 1 byte: size of the string (range: 0 - 255)
+// - n bytes: string
 impl Encodeable for Vec<u8> {
     fn encode(&self) -> Vec<u8> {
-        self.to_vec()
+        let mut buffer = Vec::new();
+
+        // write size
+        let len = self.len() as u8;
+        buffer.extend_from_slice(&len.to_le_bytes());
+
+        // write payload
+        buffer.extend_from_slice(&self);
+
+        buffer
     }
 }
 
