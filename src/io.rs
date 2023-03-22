@@ -234,7 +234,7 @@ impl Encodeable for &[u8] {
 // - 1 byte: size of the string (range: 0 - 255)
 // - n bytes: string
 //
-// Fixme: this implementation is wrong, should be coupled with
+// BUG: this implementation is wrong, should be coupled with
 // the "decode" function. (The process of encoding and decoding
 // should be symmetric)
 impl Encodeable for Vec<u8> {
