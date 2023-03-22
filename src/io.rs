@@ -58,7 +58,7 @@ impl SmallFile {
             .read_exact(&mut bytes)
             .or(Err(SmallError::new("io error")))?;
         let mut reader = Cursor::new(bytes);
-        Ok(T::read_from(&mut reader))
+        Ok(T::decode(&mut reader))
     }
 
     pub fn get_size(&self) -> Result<u64, SmallError> {
@@ -85,8 +85,10 @@ impl SmallFile {
     }
 }
 
-pub fn read<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
-    T::read_from(reader)
+pub fn read_into<T: Decodeable, R: std::io::Read>(
+    reader: &mut R,
+) -> T {
+    T::decode(reader)
 }
 
 pub fn read_exact<R: std::io::Read>(
@@ -143,15 +145,7 @@ pub trait Encodeable {
 }
 
 pub trait Decodeable {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self;
-
-    fn from_bytes(bytes: Vec<u8>) -> Self
-    where
-        Self: Sized,
-    {
-        let mut reader = Cursor::new(bytes);
-        Self::read_from(&mut reader)
-    }
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self;
 }
 
 /// # Format
@@ -176,7 +170,7 @@ impl Encodeable for BitVec {
 }
 
 impl Decodeable for BitVec {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
         // let buffer = [0u8; 2];
         // reader.read_exact(&mut buffer).unwrap();
@@ -201,13 +195,13 @@ impl Encodeable for bool {
 }
 
 impl Decodeable for bool {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
-        u8::read_from(reader) == 1
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+        u8::decode(reader) == 1
     }
 }
 
 impl Decodeable for String {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
         let size = u8::from_le_bytes(
             read_exact(reader, 1).try_into().unwrap(),
@@ -260,7 +254,7 @@ macro_rules! impl_serialization {
             }
 
             impl Decodeable for $t {
-                fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+                fn decode<R: std::io::Read>(reader: &mut R) -> Self {
                     let bytes = read_exact(reader, size_of::<Self>());
                     Self::from_le_bytes(bytes.try_into().unwrap())
                 }

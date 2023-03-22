@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     btree::page_cache::PageCache,
-    io::{read, Decodeable, Encodeable, SmallWriter},
+    io::{read_into, Decodeable, Encodeable, SmallWriter},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;
@@ -16,7 +16,7 @@ pub enum PageCategory {
 }
 
 impl Decodeable for PageCategory {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
         let mut buffer = [0; 4];
         reader.read_exact(&mut buffer).unwrap();
         match buffer {
@@ -124,13 +124,13 @@ impl Encodeable for BTreePageID {
 }
 
 impl Decodeable for BTreePageID {
-    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
         // let category = PageCategory::read_from(reader);
         // let page_index = u32::read_from(reader);
         // let table_id = u32::read_from(reader);
-        let category = read(reader);
-        let page_index = read(reader);
-        let table_id = read(reader);
+        let category = read_into(reader);
+        let page_index = read_into(reader);
+        let table_id = read_into(reader);
         Self {
             category,
             page_index,

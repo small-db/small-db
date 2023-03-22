@@ -36,13 +36,13 @@ impl BTreeHeaderPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let page_category = PageCategory::read_from(&mut reader);
+            let page_category = PageCategory::decode(&mut reader);
             if page_category != PageCategory::Header {
                 panic!("invalid page category: {:?}", page_category);
             }
 
             // read header
-            let header = BitVec::read_from(&mut reader);
+            let header = BitVec::decode(&mut reader);
 
             let slot_count = header.len();
 

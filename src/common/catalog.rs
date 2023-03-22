@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    io::Cursor,
     sync::{Arc, RwLock},
 };
 
@@ -62,8 +63,9 @@ impl Catalog {
             let field_name =
                 String::from_utf8(tuple.get_cell(2).get_bytes()?)
                     .unwrap();
-            let field_type =
-                Type::from_bytes(tuple.get_cell(3).get_bytes()?);
+            let field_type = Type::decode(&mut Cursor::new(
+                tuple.get_cell(3).get_bytes()?,
+            ));
             let is_primary = tuple.get_cell(4).get_bool()?;
 
             let field =
@@ -98,6 +100,8 @@ impl Catalog {
 
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
+
+        tx.commit().unwrap();
 
         Ok(())
     }

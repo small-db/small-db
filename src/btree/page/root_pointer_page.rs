@@ -42,19 +42,19 @@ impl BTreeRootPointerPage {
         let mut reader = Cursor::new(bytes);
 
         // read page category
-        let page_category = PageCategory::read_from(&mut reader);
+        let page_category = PageCategory::decode(&mut reader);
         if page_category != PageCategory::RootPointer {
             panic!("invalid page category: {:?}", page_category);
         }
 
         // read root page index
-        let root_page_index = u32::read_from(&mut reader);
+        let root_page_index = u32::decode(&mut reader);
 
         // read root page category
-        let root_page_category = PageCategory::read_from(&mut reader);
+        let root_page_category = PageCategory::decode(&mut reader);
 
         // read header page index
-        let header_page_index = u32::read_from(&mut reader);
+        let header_page_index = u32::decode(&mut reader);
 
         let root_pid = BTreePageID {
             category: root_page_category,

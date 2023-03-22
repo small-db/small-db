@@ -78,7 +78,7 @@ impl BTreeLeafPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::read_from(&mut reader);
+            let category = PageCategory::decode(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -90,17 +90,17 @@ impl BTreeLeafPage {
             let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
                 pid.get_table_id(),
-                u32::read_from(&mut reader),
+                u32::decode(&mut reader),
             );
 
             // read left sibling page index
-            let left_sibling_id = u32::read_from(&mut reader);
+            let left_sibling_id = u32::decode(&mut reader);
 
             // read right sibling page index
-            let right_sibling_id = u32::read_from(&mut reader);
+            let right_sibling_id = u32::decode(&mut reader);
 
             // read header
-            let header = BitVec::read_from(&mut reader);
+            let header = BitVec::decode(&mut reader);
 
             // read tuples
             let mut tuples = Vec::new();
@@ -451,44 +451,23 @@ impl BTreePage for BTreeLeafPage {
 
         // write page category
         writer.write(&self.get_pid().category);
-        debug!("writer filled bytes: {}", writer.size());
 
         // write parent page index
         writer.write(&self.get_parent_pid().page_index);
-        debug!("writer filled bytes: {}", writer.size());
 
         // write left sibling page index
         writer.write(&self.left_sibling_id);
-        debug!("writer filled bytes: {}", writer.size());
 
         // write right sibling page index
         writer.write(&self.right_sibling_id);
-        debug!("writer filled bytes: {}", writer.size());
 
         // write header
         writer.write(&self.header);
-        debug!("writer filled bytes: {}", writer.size());
-
-        let mut previous_len = writer.size();
 
         // write tuples
         for tuple in &self.tuples {
             writer.write(tuple);
-
-            if writer.size() - previous_len == 33 {
-                panic!(
-                    "tuple size mismatch, expected: {}, actual: {}",
-                    16,
-                    writer.size() - previous_len,
-                );
-            }
-
-            debug!("writer filled bytes: {}", writer.size());
-
-            previous_len = writer.size();
         }
-        debug!("tuples count: {}", self.tuples.len());
-        debug!("writer filled bytes: {}", writer.size());
 
         return writer.to_padded_bytes(PageCache::get_page_size());
     }
