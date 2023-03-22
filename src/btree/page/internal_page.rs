@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, io::Cursor};
 
 use bit_vec::BitVec;
 use log::{debug, error};
@@ -104,7 +104,7 @@ impl BTreeInternalPage {
             let key_size = tuple_scheme.fields[key_field].t.size();
             let slot_count = Self::get_children_cap(key_size) + 1;
 
-            let mut reader = SmallReader::new(&bytes);
+            let mut reader = Cursor::new(bytes);
 
             // read page category
             let category = PageCategory::read_from(&mut reader);
@@ -177,7 +177,7 @@ impl BTreeInternalPage {
         let key_size = tuple_scheme.fields[key_field].t.size();
         let slot_count = Self::get_children_cap(key_size) + 1;
 
-        let mut reader = SmallReader::new(&bytes);
+        let mut reader = Cursor::new(bytes);
 
         let parent_pid = BTreePageID::new(
             PageCategory::Internal,

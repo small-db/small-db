@@ -1,7 +1,8 @@
 use std::{
     collections::{HashMap, HashSet},
+    convert::TryInto,
     fs::File,
-    io::{Read, Seek, Write},
+    io::{Cursor, Read, Seek, Write},
     mem::size_of,
     path::Path,
     sync::{Arc, MutexGuard, RwLock},
@@ -19,7 +20,9 @@ use crate::{
         page_cache::PageCache,
     },
     error::SmallError,
-    io::{Decodeable, Encodeable, SmallFile, SmallReader},
+    io::{
+        read_exact, Decodeable, Encodeable, SmallFile, SmallReader,
+    },
     storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,
@@ -63,8 +66,8 @@ impl Encodeable for RecordType {
 }
 
 impl Decodeable for RecordType {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let value = reader.read_exact(1);
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+        let value = read_exact(reader, 1);
         RecordType::from_u8(value[0])
     }
 }
@@ -1005,7 +1008,7 @@ impl LogManager {
 
     fn parsed_page_content(&self, bytes: &[u8]) -> String {
         let page_category =
-            PageCategory::read_from(&mut SmallReader::new(&bytes));
+            PageCategory::read_from(&mut Cursor::new(bytes));
 
         match page_category {
             PageCategory::Leaf => {

@@ -1,7 +1,7 @@
 use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
-    io::{Read, Seek, Write},
+    io::{Cursor, Read, Seek, Write},
     mem::size_of,
     path::Path,
     sync::{Mutex, MutexGuard},
@@ -54,11 +54,11 @@ impl SmallFile {
     }
 
     pub fn read<T: Decodeable>(&self) -> Result<T, SmallError> {
-        let mut buf = vec![0u8; size_of::<T>()];
+        let mut bytes = vec![0u8; size_of::<T>()];
         self.get_file()
-            .read_exact(&mut buf)
+            .read_exact(&mut bytes)
             .or(Err(SmallError::new("io error")))?;
-        let mut reader = SmallReader::new(&buf);
+        let mut reader = Cursor::new(bytes);
         Ok(T::read_from(&mut reader))
     }
 
@@ -115,10 +115,19 @@ impl<'a> SmallReader<'a> {
 
         return &self.buf[start..end];
     }
+}
 
-    pub fn read<T: Decodeable>(&mut self) -> T {
-        T::read_from(self)
-    }
+pub fn read<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
+    T::read_from(reader)
+}
+
+pub fn read_exact<R: std::io::Read>(
+    reader: &mut R,
+    bytes_count: usize,
+) -> Vec<u8> {
+    let mut buffer = vec![0u8; bytes_count];
+    reader.read_exact(&mut buffer).unwrap();
+    buffer
 }
 
 pub struct SmallWriter {
@@ -160,13 +169,13 @@ pub trait Encodeable {
 }
 
 pub trait Decodeable {
-    fn read_from(reader: &mut SmallReader) -> Self;
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self;
 
-    fn from_bytes(buf: Vec<u8>) -> Self
+    fn from_bytes(bytes: Vec<u8>) -> Self
     where
         Self: Sized,
     {
-        let mut reader = SmallReader::new(&buf);
+        let mut reader = Cursor::new(bytes);
         Self::read_from(&mut reader)
     }
 }
@@ -193,16 +202,18 @@ impl Encodeable for BitVec {
 }
 
 impl Decodeable for BitVec {
-    fn read_from(reader: &mut SmallReader) -> Self {
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
+        // let buffer = [0u8; 2];
+        // reader.read_exact(&mut buffer).unwrap();
         let size = u16::from_le_bytes(
-            reader.read_exact(2).try_into().unwrap(),
+            read_exact(reader, 2).try_into().unwrap(),
         );
 
         // read payload
-        let buf = reader.read_exact(size as usize);
+        let buf = read_exact(reader, size as usize);
 
-        BitVec::from_bytes(buf)
+        BitVec::from_bytes(&buf)
     }
 }
 
@@ -216,8 +227,8 @@ impl Encodeable for bool {
 }
 
 impl Decodeable for bool {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        reader.read::<u8>() == 1
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+        u8::read_from(reader) == 1
     }
 }
 
@@ -243,16 +254,15 @@ impl Decodeable for bool {
 // // }
 
 impl Decodeable for String {
-    fn read_from(reader: &mut SmallReader) -> Self {
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
         let size = u8::from_le_bytes(
-            reader.read_exact(1).try_into().unwrap(),
+            read_exact(reader, 1).try_into().unwrap(),
         );
 
         // read payload
-        let buf = reader.read_exact(size as usize);
-
-        String::from_utf8(buf.to_vec()).unwrap()
+        let bytes = read_exact(reader, size as usize);
+        String::from_utf8(bytes).unwrap()
     }
 }
 
@@ -278,9 +288,9 @@ macro_rules! impl_serialization {
             }
 
             impl Decodeable for $t {
-                fn read_from(reader: &mut SmallReader) -> Self {
-                    let buf = reader.read_exact(size_of::<Self>());
-                    Self::from_le_bytes(buf.try_into().unwrap())
+                fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+                    let bytes = read_exact(reader, size_of::<Self>());
+                    Self::from_le_bytes(bytes.try_into().unwrap())
                 }
             }
         )*

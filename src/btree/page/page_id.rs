@@ -15,6 +15,20 @@ pub enum PageCategory {
     Header,
 }
 
+impl Decodeable for PageCategory {
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+        let mut buffer = [0; 4];
+        reader.read_exact(&mut buffer).unwrap();
+        match buffer {
+            [0, 0, 0, 0] => PageCategory::RootPointer,
+            [0, 0, 0, 1] => PageCategory::Internal,
+            [0, 0, 0, 2] => PageCategory::Leaf,
+            [0, 0, 0, 3] => PageCategory::Header,
+            _ => panic!("invalid page category: {:?}", buffer),
+        }
+    }
+}
+
 impl Encodeable for PageCategory {
     fn to_bytes(&self) -> Vec<u8> {
         match self {
@@ -26,18 +40,18 @@ impl Encodeable for PageCategory {
     }
 }
 
-impl Decodeable for PageCategory {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let data = reader.read_exact(4);
-        match data {
-            [0, 0, 0, 0] => PageCategory::RootPointer,
-            [0, 0, 0, 1] => PageCategory::Internal,
-            [0, 0, 0, 2] => PageCategory::Leaf,
-            [0, 0, 0, 3] => PageCategory::Header,
-            _ => panic!("invalid page category: {:?}", data),
-        }
-    }
-}
+// impl Decodeable for PageCategory {
+//     fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+//         let data = reader.read_exact(4);
+//         match data {
+//             [0, 0, 0, 0] => PageCategory::RootPointer,
+//             [0, 0, 0, 1] => PageCategory::Internal,
+//             [0, 0, 0, 2] => PageCategory::Leaf,
+//             [0, 0, 0, 3] => PageCategory::Header,
+//             _ => panic!("invalid page category: {:?}", data),
+//         }
+//     }
+// }
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
@@ -110,10 +124,10 @@ impl Encodeable for BTreePageID {
 }
 
 impl Decodeable for BTreePageID {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let category = reader.read();
-        let page_index = reader.read();
-        let table_id = reader.read();
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+        let category = PageCategory::read_from(reader);
+        let page_index = u32::read_from(reader);
+        let table_id = u32::read_from(reader);
         Self {
             category,
             page_index,

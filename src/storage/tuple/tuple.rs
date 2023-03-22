@@ -1,5 +1,6 @@
 use std::{
     fmt::{self},
+    io::Cursor,
     usize,
 };
 
@@ -21,7 +22,7 @@ pub struct Tuple {
 impl Tuple {
     // TODO: remove this api
     pub fn new(scheme: &Schema, bytes: &[u8]) -> Self {
-        let mut reader = SmallReader::new(bytes);
+        let mut reader = Cursor::new(bytes);
         return Self::read_from(&mut reader, &scheme);
     }
 
@@ -31,26 +32,26 @@ impl Tuple {
         }
     }
 
-    pub fn read_from(
-        reader: &mut crate::io::SmallReader,
+    pub fn read_from<R: std::io::Read>(
+        reader: &mut R,
         tuple_scheme: &Schema,
     ) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
             match field.t {
                 Type::Bool => {
-                    cells.push(Cell::Bool(reader.read::<bool>()));
+                    cells.push(Cell::Bool(bool::read_from(reader)));
                 }
                 Type::Int64 => {
-                    cells.push(Cell::Int64(reader.read::<i64>()));
+                    cells.push(Cell::Int64(i64::read_from(reader)));
                 }
                 Type::Float64 => {
-                    cells.push(Cell::Float64(reader.read::<f64>()));
+                    cells.push(Cell::Float64(f64::read_from(reader)));
                 }
                 Type::Bytes(len) => {
                     let mut bytes = Vec::new();
                     for _ in 0..len {
-                        bytes.push(reader.read::<u8>());
+                        bytes.push(u8::read_from(reader));
                     }
                     cells.push(Cell::Bytes(bytes));
                 }

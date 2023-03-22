@@ -1,4 +1,6 @@
-use crate::io::{Decodeable, Encodeable, SmallReader};
+use std::convert::TryInto;
+
+use crate::io::{read_exact, Decodeable, Encodeable, SmallReader};
 
 const MAX_BYTES_SIZE: usize = 100;
 
@@ -47,14 +49,15 @@ impl Encodeable for Type {
 }
 
 impl Decodeable for Type {
-    fn read_from(reader: &mut SmallReader) -> Self {
-        let bytes = reader.read_exact(2);
+    fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
+        let bytes: [u8; 2] =
+            read_exact(reader, 2).try_into().unwrap();
 
         match bytes {
             [0, 1] => Type::Bool,
             [1, 8] => Type::Int64,
             [2, 8] => Type::Float64,
-            [3, size] => Type::Bytes(*size),
+            [3, size] => Type::Bytes(size),
             _ => panic!("invalid type"),
         }
     }

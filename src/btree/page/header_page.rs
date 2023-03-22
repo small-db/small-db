@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use bit_vec::BitVec;
 use log::debug;
 
@@ -30,7 +32,8 @@ impl BTreeHeaderPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid);
         } else {
-            let mut reader = SmallReader::new(&bytes);
+            // let mut reader = Cursor::new(bytes);
+            let mut reader = Cursor::new(bytes);
 
             // read page category
             let page_category = PageCategory::read_from(&mut reader);

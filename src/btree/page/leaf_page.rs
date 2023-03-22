@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    io::Cursor,
+    sync::{Arc, RwLock},
+};
 
 use backtrace::Backtrace;
 use bit_vec::BitVec;
@@ -71,10 +74,10 @@ impl BTreeLeafPage {
             let slot_count =
                 Self::calculate_slots_count(&tuple_scheme);
 
-            let mut reader = SmallReader::new(&bytes);
+            let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = reader.read::<PageCategory>();
+            let category = PageCategory::read_from(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -133,7 +136,7 @@ impl BTreeLeafPage {
     ) -> Self {
         let slot_count = Self::calculate_slots_count(&tuple_scheme);
 
-        let mut reader = SmallReader::new(&bytes);
+        let mut reader = Cursor::new(bytes);
 
         let parent_pid = BTreePageID::new(
             PageCategory::Internal,

@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use log::debug;
 
 use super::{
@@ -37,7 +39,7 @@ pub struct BTreeRootPointerPage {
 
 impl BTreeRootPointerPage {
     fn new(pid: &BTreePageID, bytes: &[u8]) -> Self {
-        let mut reader = SmallReader::new(&bytes);
+        let mut reader = Cursor::new(bytes);
 
         // read page category
         let page_category = PageCategory::read_from(&mut reader);
