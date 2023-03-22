@@ -95,7 +95,9 @@ pub fn read_exact<R: std::io::Read>(
     bytes_count: usize,
 ) -> Vec<u8> {
     let mut buffer = vec![0u8; bytes_count];
-    reader.read_exact(&mut buffer).unwrap();
+    reader
+        .read_exact(&mut buffer)
+        .expect(&format!("io error, expect {}", bytes_count));
     buffer
 }
 

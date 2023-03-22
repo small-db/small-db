@@ -525,6 +525,119 @@ impl BTreeTable {
     pub fn get_page(&self) {}
 }
 
+// Methods interacting with disk directly
+impl BTreeTable {
+    fn get_empty_leaf_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeLeafPage>> {
+        // create the new page
+        let page_index = self.get_empty_page_index(tx);
+        let page_id = BTreePageID::new(
+            PageCategory::Leaf,
+            self.table_id,
+            page_index,
+        );
+        let page = BTreeLeafPage::new(
+            &page_id,
+            &BTreeBasePage::empty_page_data(),
+            &self.tuple_scheme,
+            self.key_field,
+        );
+
+        self.write_empty_page_to_disk(&page_id);
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this
+        // time
+        Database::mut_page_cache()
+            .leaf_buffer
+            .insert(page_id, page_rc.clone());
+        page_rc
+    }
+
+    fn get_empty_interanl_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeInternalPage>> {
+        // create the new page
+        let page_index = self.get_empty_page_index(tx);
+        let page_id = BTreePageID::new(
+            PageCategory::Internal,
+            self.table_id,
+            page_index,
+        );
+        let page = BTreeInternalPage::new(
+            &page_id,
+            &BTreeBasePage::empty_page_data(),
+            &self.tuple_scheme,
+            self.key_field,
+        );
+
+        self.write_empty_page_to_disk(&page_id);
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this
+        // time
+        Database::mut_page_cache()
+            .internal_buffer
+            .insert(page_id, page_rc.clone());
+        page_rc
+    }
+
+    pub(super) fn get_empty_header_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeHeaderPage>> {
+        // create the new page
+        let page_index = self.get_empty_page_index(tx);
+        let page_id = BTreePageID::new(
+            PageCategory::Header,
+            self.table_id,
+            page_index,
+        );
+        let page = BTreeHeaderPage::new(
+            &page_id,
+            &BTreeBasePage::empty_page_data(),
+        );
+
+        self.write_empty_page_to_disk(&page_id);
+
+        let page_rc = Arc::new(RwLock::new(page));
+        // insert to buffer pool because it's a dirty page at this
+        // time
+        Database::mut_page_cache()
+            .header_buffer
+            .insert(page_id, page_rc.clone());
+        page_rc
+    }
+
+    pub fn write_empty_page_to_disk(&self, page_id: &BTreePageID) {
+        self.write_page_to_disk(
+            page_id,
+            &BTreeBasePage::empty_page_data(),
+        )
+    }
+
+    pub fn write_page_to_disk(
+        &self,
+        page_id: &BTreePageID,
+        data: &Vec<u8>,
+    ) {
+        let start_pos: usize =
+            page_id.page_index as usize * PageCache::get_page_size();
+        self.get_file()
+            .seek(SeekFrom::Start(start_pos as u64))
+            .expect("io error");
+        self.get_file().write(&data).expect("io error");
+        self.get_file().flush().expect("io error");
+    }
+
+    pub fn clear(&self) {
+        self.get_file().set_len(0).expect("io error");
+    }
+}
+
 impl BTreeTable {
     pub fn set_root_pid(
         &self,
@@ -710,112 +823,6 @@ impl BTreeTable {
                 file.write(&data).unwrap();
             }
         }
-    }
-
-    fn get_empty_leaf_page(
-        &self,
-        tx: &Transaction,
-    ) -> Arc<RwLock<BTreeLeafPage>> {
-        // create the new page
-        let page_index = self.get_empty_page_index(tx);
-        let page_id = BTreePageID::new(
-            PageCategory::Leaf,
-            self.table_id,
-            page_index,
-        );
-        let page = BTreeLeafPage::new(
-            &page_id,
-            &BTreeBasePage::empty_page_data(),
-            &self.tuple_scheme,
-            self.key_field,
-        );
-
-        self.write_empty_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-        // insert to buffer pool because it's a dirty page at this
-        // time
-        Database::mut_page_cache()
-            .leaf_buffer
-            .insert(page_id, page_rc.clone());
-        page_rc
-    }
-
-    fn get_empty_interanl_page(
-        &self,
-        tx: &Transaction,
-    ) -> Arc<RwLock<BTreeInternalPage>> {
-        // create the new page
-        let page_index = self.get_empty_page_index(tx);
-        let page_id = BTreePageID::new(
-            PageCategory::Internal,
-            self.table_id,
-            page_index,
-        );
-        let page = BTreeInternalPage::new(
-            &page_id,
-            &BTreeBasePage::empty_page_data(),
-            &self.tuple_scheme,
-            self.key_field,
-        );
-
-        self.write_empty_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-        // insert to buffer pool because it's a dirty page at this
-        // time
-        Database::mut_page_cache()
-            .internal_buffer
-            .insert(page_id, page_rc.clone());
-        page_rc
-    }
-
-    pub(super) fn get_empty_header_page(
-        &self,
-        tx: &Transaction,
-    ) -> Arc<RwLock<BTreeHeaderPage>> {
-        // create the new page
-        let page_index = self.get_empty_page_index(tx);
-        let page_id = BTreePageID::new(
-            PageCategory::Header,
-            self.table_id,
-            page_index,
-        );
-        let page = BTreeHeaderPage::new(
-            &page_id,
-            &BTreeBasePage::empty_page_data(),
-        );
-
-        self.write_empty_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-        // insert to buffer pool because it's a dirty page at this
-        // time
-        Database::mut_page_cache()
-            .header_buffer
-            .insert(page_id, page_rc.clone());
-        page_rc
-    }
-
-    pub fn write_empty_page_to_disk(&self, page_id: &BTreePageID) {
-        self.write_page_to_disk(
-            page_id,
-            &BTreeBasePage::empty_page_data(),
-        )
-    }
-
-    pub fn write_page_to_disk(
-        &self,
-        page_id: &BTreePageID,
-        data: &Vec<u8>,
-    ) {
-        let start_pos: usize =
-            page_id.page_index as usize * PageCache::get_page_size();
-        self.get_file()
-            .seek(SeekFrom::Start(start_pos as u64))
-            .expect("io error");
-        self.get_file().write(&data).expect("io error");
-        self.get_file().flush().expect("io error");
     }
 
     pub fn get_first_page(
