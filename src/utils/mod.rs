@@ -6,6 +6,3 @@ pub use console_log::*;
 
 mod number;
 pub use number::*;
-
-mod serialize;
-pub use serialize::*;

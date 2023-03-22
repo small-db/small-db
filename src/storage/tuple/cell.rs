@@ -117,8 +117,8 @@ impl Encodeable for Cell {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => vec![*v as u8],
-            Cell::Int64(v) => v.to_be_bytes().to_vec(),
-            Cell::Float64(v) => v.to_be_bytes().to_vec(),
+            Cell::Int64(v) => v.to_le_bytes().to_vec(),
+            Cell::Float64(v) => v.to_le_bytes().to_vec(),
             Cell::Bytes(v) => v.encode(),
         }
     }

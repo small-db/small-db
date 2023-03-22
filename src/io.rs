@@ -8,6 +8,7 @@ use std::{
 };
 
 use bit_vec::BitVec;
+use log::debug;
 
 use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
@@ -36,12 +37,12 @@ impl SmallFile {
     }
 
     pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
+        let offset = self.get_current_position().unwrap();
         let page_size = self.read::<usize>()?;
+        debug!("offset: {:02x}, page_size: {}", offset, page_size);
 
         let mut buf: Vec<u8> = vec![0; page_size];
-        self.get_file()
-            .read_exact(&mut buf)
-            .or(Err(SmallError::new("io error")))?;
+        self.get_file().read_exact(&mut buf).unwrap();
         Ok(buf)
     }
 
