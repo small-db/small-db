@@ -20,8 +20,7 @@ const SCHEMA_TBALE_NAME: &str = "schemas";
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
-
-    schema_table: Arc<RwLock<BTreeTable>>,
+    schema_table: Option<Arc<RwLock<BTreeTable>>>,
 }
 
 type Key = u32;
@@ -29,22 +28,19 @@ type Value = Arc<RwLock<BTreeTable>>;
 
 impl Catalog {
     pub fn new() -> Self {
-        let schema_table = Arc::new(RwLock::new(BTreeTable::new(
-            SCHEMA_TBALE_NAME,
-            0,
-            &Schema::for_schema_table(),
-        )));
-
         Self {
             map: HashMap::new(),
-            schema_table,
+
+            // Lazy initialization it in `load_schemas()`, since the
+            // construction of `Table` relies on `Database` instance,
+            // which is not initialized yet.
+            schema_table: None,
         }
     }
 
     /// Load the catalog from disk.
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc =
-            Database::catalog().schema_table.clone();
+        let schema_table_rc = Self::get_schema_table();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
@@ -109,6 +105,25 @@ impl Catalog {
         self.map.get(table_index)
     }
 
+    pub fn get_schema_table() -> Value {
+        let schema_table_rc;
+
+        match &Database::catalog().schema_table {
+            Some(rc) => rc.clone(),
+            None => {
+                schema_table_rc =
+                    Arc::new(RwLock::new(BTreeTable::new(
+                        SCHEMA_TBALE_NAME,
+                        0,
+                        &Schema::for_schema_table(),
+                    )));
+                Database::mut_catalog().schema_table =
+                    Some(schema_table_rc.clone());
+                schema_table_rc
+            }
+        }
+    }
+
     pub fn get_tuple_scheme(
         &self,
         table_index: &Key,
@@ -131,8 +146,7 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
-        let schema_table_rc =
-            Database::catalog().schema_table.clone();
+        let schema_table_rc = Self::get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
