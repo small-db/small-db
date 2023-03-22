@@ -38,24 +38,8 @@ impl Tuple {
     ) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in &tuple_scheme.fields {
-            match field.t {
-                Type::Bool => {
-                    cells.push(Cell::Bool(bool::decode(reader)));
-                }
-                Type::Int64 => {
-                    cells.push(Cell::Int64(i64::decode(reader)));
-                }
-                Type::Float64 => {
-                    cells.push(Cell::Float64(f64::decode(reader)));
-                }
-                Type::Bytes(len) => {
-                    let mut bytes = Vec::new();
-                    for _ in 0..len {
-                        bytes.push(u8::decode(reader));
-                    }
-                    cells.push(Cell::Bytes(bytes));
-                }
-            }
+            let cell = Cell::read_from(reader, &field.t);
+            cells.push(cell);
         }
         Tuple { cells }
     }

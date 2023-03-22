@@ -1,6 +1,10 @@
 use std::fmt::Debug;
 
-use crate::{error::SmallError, io::Encodeable};
+use crate::{
+    error::SmallError,
+    io::{Decodeable, Encodeable},
+    storage::schema::Type,
+};
 
 #[derive(Debug, Clone)]
 pub enum Cell {
@@ -55,6 +59,28 @@ impl Cell {
             _ => Err(SmallError::new("not bytes")),
         }
     }
+
+    pub fn read_from<R: std::io::Read>(
+        reader: &mut R,
+        t: &Type,
+    ) -> Self {
+        match t {
+            Type::Bool => Cell::Bool(bool::decode(reader)),
+            Type::Int64 => Cell::Int64(i64::decode(reader)),
+            Type::Float64 => Cell::Float64(f64::decode(reader)),
+            Type::Bytes(_) => {
+                // read size
+                let len = u8::decode(reader);
+
+                // read bytes
+                let mut bytes = Vec::new();
+                for _ in 0..len {
+                    bytes.push(u8::decode(reader));
+                }
+                Cell::Bytes(bytes)
+            }
+        }
+    }
 }
 
 impl PartialEq for Cell {
@@ -95,5 +121,11 @@ impl Encodeable for Cell {
             Cell::Float64(v) => v.to_be_bytes().to_vec(),
             Cell::Bytes(v) => v.encode(),
         }
+    }
+}
+
+impl Decodeable for Cell {
+    fn decode<R: std::io::Read>(reader: &mut R) -> Self {
+        todo!()
     }
 }
