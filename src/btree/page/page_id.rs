@@ -125,9 +125,6 @@ impl Encodeable for BTreePageID {
 
 impl Decodeable for BTreePageID {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-        // let category = PageCategory::read_from(reader);
-        // let page_index = u32::read_from(reader);
-        // let table_id = u32::read_from(reader);
         let category = read_into(reader);
         let page_index = read_into(reader);
         let table_id = read_into(reader);

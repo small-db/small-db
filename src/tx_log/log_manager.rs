@@ -549,7 +549,8 @@ impl LogManager {
 
         // step 3: read checkpoint, get the position of the specific
         // tx
-        let record_type: RecordType = read_into(&mut self.file);
+        let record_type = RecordType::decode_from(&mut self.file);
+        // let record_type: RecordType = read_into(&mut self.file);
         if record_type != RecordType::CHECKPOINT {
             panic!("invalid checkpoint");
         }

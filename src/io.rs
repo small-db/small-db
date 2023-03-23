@@ -88,6 +88,8 @@ impl std::io::Read for SmallFile {
     }
 }
 
+// The reason we have a wrapper for `decode_from` is it always require
+// explicit type annotation, which can be annoying in some cases.
 pub fn read_into<T: Decodeable, R: std::io::Read>(
     reader: &mut R,
 ) -> T {
@@ -218,20 +220,10 @@ impl Encodeable for &[u8] {
     }
 }
 
-// impl Encodeable for Vec<u8> {
-//     fn encode(&self) -> Vec<u8> {
-//         self.to_vec()
-//     }
-// }
-
 // # Format
 
 // - 2 byte: size of the string (range: 0 - 64 KB)
 // - n bytes: string
-//
-// BUG: this implementation is wrong, should be coupled with
-// the "decode" function. (The process of encoding and decoding
-// should be symmetric)
 impl Encodeable for Vec<u8> {
     fn encode(&self) -> Vec<u8> {
         // boundary check
