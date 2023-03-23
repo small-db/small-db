@@ -901,8 +901,7 @@ impl LogManager {
                         tid,
                     ));
 
-                    let pid =
-                        self.file.read::<BTreePageID>().unwrap();
+                    let pid: BTreePageID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] pid: {:?}\n",
                         pid,
