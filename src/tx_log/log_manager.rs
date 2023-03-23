@@ -248,10 +248,10 @@ impl LogManager {
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _ = self.file.read::<i64>()?;
+                    let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count = self.file.read::<usize>()?;
+                    let tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -308,10 +308,10 @@ impl LogManager {
             }
 
             // skip the checkpoint id
-            let _ = self.file.read::<i64>()?;
+            let _: i64 = read_into(&mut self.file);
 
             // read the list of outstanding transactions
-            let tx_count = self.file.read::<usize>()?;
+            let tx_count: u64 = read_into(&mut self.file);
             for _ in 0..tx_count {
                 let tid = read_into(&mut self.file);
                 incomplete_transactions.insert(tid);
@@ -356,10 +356,10 @@ impl LogManager {
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _ = self.file.read::<i64>()?;
+                    let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count = self.file.read::<usize>()?;
+                    let tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -557,9 +557,9 @@ impl LogManager {
             panic!("invalid checkpoint");
         }
         // checkpoint id
-        let _ = self.file.read::<i64>().unwrap();
+        let _: i64 = read_into(&mut self.file);
         // read list of outstanding(active) transactions
-        let tx_count = self.file.read::<usize>()?;
+        let tx_count: u64 = read_into(&mut self.file);
         let mut tx_start_position = 0;
         for _ in 0..tx_count {
             let tx_id: u64 = read_into(&mut self.file);
@@ -632,10 +632,10 @@ impl LogManager {
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _ = self.file.read::<i64>()?;
+                    let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count = self.file.read::<usize>()?;
+                    let tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -851,18 +851,15 @@ impl LogManager {
 
             let record_type: RecordType;
 
-            if let Ok(byte) = self.file.read() {
-                match byte {
-                    0..=4 => {
-                        record_type = RecordType::from_u8(byte);
-                    }
-                    _ => {
-                        debug!("invalid record type: {}", byte);
-                        break;
-                    }
+            let byte = read_into(&mut self.file);
+            match byte {
+                0..=4 => {
+                    record_type = RecordType::from_u8(byte);
                 }
-            } else {
-                break;
+                _ => {
+                    debug!("invalid record type: {}", byte);
+                    break;
+                }
             }
             depiction.push_str(&format!(
                 "├── {:?}-[pos {}]-[record {}]\n",
@@ -953,8 +950,8 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let checkpoint_id =
-                        self.file.read::<i64>().unwrap();
+                    let checkpoint_id: i64 =
+                        read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] checkpoint id: {}\n",
                         checkpoint_id,

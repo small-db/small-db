@@ -38,15 +38,6 @@ impl SmallFile {
         }
     }
 
-    pub fn read<T: Decodeable>(&mut self) -> Result<T, SmallError> {
-        let mut bytes = vec![0u8; size_of::<T>()];
-        self.file
-            .read_exact(&mut bytes)
-            .or(Err(SmallError::new("io error")))?;
-        let mut reader = Cursor::new(bytes);
-        Ok(T::decode_from(&mut reader))
-    }
-
     pub fn get_size(&self) -> Result<u64, SmallError> {
         let metadata = self
             .file
