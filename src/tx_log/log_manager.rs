@@ -385,7 +385,7 @@ impl LogManager {
                     self.show_log_contents();
 
                     // skip the start position
-                    let _ = self.file.read::<u64>().unwrap();
+                    let _: u64 = read_into(&mut self.file);
                 }
             }
         }
@@ -830,7 +830,7 @@ impl LogManager {
 
         self.file.seek(SeekFrom::Start(0)).unwrap();
 
-        let last_checkpoint = self.file.read::<u64>().unwrap();
+        let last_checkpoint: u64 = read_into(&mut self.file);
 
         if last_checkpoint != NO_CHECKPOINT {
             depiction.push_str(&format!(
@@ -876,7 +876,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read::<u64>().unwrap();
+                    let tid: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
@@ -895,7 +895,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read::<u64>().unwrap();
+                    let tid: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
@@ -937,7 +937,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read::<u64>().unwrap();
+                    let tid: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
@@ -997,7 +997,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid = self.file.read::<u64>().unwrap();
+                    let tid: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] tid: {}\n",
                         tid,
