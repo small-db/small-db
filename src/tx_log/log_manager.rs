@@ -882,8 +882,8 @@ impl LogManager {
                         tid,
                     ));
 
-                    let start_offset =
-                        self.file.read::<u64>().unwrap();
+                    let start_offset: u64 = read_into(&mut self.file);
+                    // read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -923,8 +923,7 @@ impl LogManager {
                         self.parsed_page_content(&after_page),
                     ));
 
-                    let start_offset =
-                        self.file.read::<u64>().unwrap();
+                    let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -942,8 +941,7 @@ impl LogManager {
                         tid,
                     ));
 
-                    let start_offset =
-                        self.file.read::<u64>().unwrap();
+                    let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -1002,8 +1000,7 @@ impl LogManager {
                         tid,
                     ));
 
-                    let start_offset =
-                        self.file.read::<u64>().unwrap();
+                    let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
