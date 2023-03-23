@@ -26,6 +26,7 @@ use crate::{
     Database,
 };
 
+// TODO: add docs for it
 static START_RECORD_LEN: u64 = 17;
 
 /// see:
@@ -73,6 +74,7 @@ impl Decodeable for RecordType {
 /// TODO: Figure out what this is used for, and if it's needed.
 static NO_CHECKPOINT: u64 = 0;
 
+// TODO: change type of `checkpoint` to u64
 pub struct LogManager {
     /// Record the start position of each transaction.
     ///
@@ -190,10 +192,8 @@ impl LogManager {
                 .seek(SeekFrom::Current(-word_size))
                 .or(Err(SmallError::new("io error")))?;
 
-            // let record_start_pos = read_into(&mut self.file);
             let record_start_pos = read_into(&mut self.file);
             self.file.seek(SeekFrom::Start(record_start_pos))?;
-            // let record_type = read_into(&mut self.file);
             let record_type = read_into(&mut self.file);
 
             match record_type {
