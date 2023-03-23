@@ -193,8 +193,6 @@ impl LogManager {
                 .or(Err(SmallError::new("io error")))?;
 
             let record_start_pos = self.file.read::<u64>()?;
-            // let record_start_pos =
-            //     read_into(&mut self.file.get_file());
             self.file.seek(record_start_pos)?;
             let record_type = self.file.read::<RecordType>()?;
 
