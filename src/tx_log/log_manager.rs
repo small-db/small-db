@@ -1,10 +1,10 @@
 use std::{
     collections::{HashMap, HashSet},
-    fs::File,
-    io::{Cursor, Read, Seek, Write},
+    fs::{File, OpenOptions},
+    io::{Cursor, Read, Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
-    sync::{Arc, MutexGuard, RwLock},
+    sync::{Arc, Mutex, MutexGuard, RwLock},
 };
 
 use log::debug;
@@ -63,7 +63,7 @@ impl Encodeable for RecordType {
 }
 
 impl Decodeable for RecordType {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: Read>(reader: &mut R) -> Self {
         let value = read_exact(reader, 1);
         RecordType::from_u8(value[0])
     }
@@ -110,9 +110,11 @@ impl LogManager {
     /// entries, then first throw out the initial log file
     /// contents.
     pub fn new<P: AsRef<Path> + Clone>(file_path: P) -> Self {
+        let file = SmallFile::new(file_path);
+
         Self {
             tx_start_position: HashMap::new(),
-            file: SmallFile::new(file_path),
+            file,
             current_offset: 0,
             total_records: 0,
             recovery_undecided: true,
@@ -120,7 +122,8 @@ impl LogManager {
     }
 
     pub fn reset(&mut self) {
-        self.file.get_file().set_len(0).unwrap();
+        // self.file.file.set_len(0).unwrap();
+        self.file.set_len(0).unwrap();
 
         self.tx_start_position.clear();
         self.current_offset = 0;
@@ -130,10 +133,6 @@ impl LogManager {
 
     pub fn records_count(&self) -> usize {
         self.total_records
-    }
-
-    fn get_file(&self) -> MutexGuard<'_, File> {
-        self.file.get_file()
     }
 
     /// Recover the database system by ensuring that the updates of
@@ -177,23 +176,23 @@ impl LogManager {
             incomplete_transactions
         );
 
-        self.get_file()
-            .seek(std::io::SeekFrom::End(0))
+        self.file
+            .seek(SeekFrom::End(0))
             .or(Err(SmallError::new("io error")))?;
 
         debug!(
             "current offset: {}",
-            self.file.get_current_position()?
+            self.file.get_current_position()?,
         );
 
         while self.file.get_current_position()? >= START_RECORD_LEN {
             let word_size = size_of::<u64>() as i64;
-            self.get_file()
-                .seek(std::io::SeekFrom::Current(-word_size))
+            self.file
+                .seek(SeekFrom::Current(-word_size))
                 .or(Err(SmallError::new("io error")))?;
 
             let record_start_pos = self.file.read::<u64>()?;
-            self.file.seek(record_start_pos)?;
+            self.file.seek(SeekFrom::Start(record_start_pos))?;
             let record_type = self.file.read::<RecordType>()?;
 
             match record_type {
@@ -277,23 +276,24 @@ impl LogManager {
             }
 
             // in the end, seek to the start of the record
-            self.file.seek(record_start_pos)?;
+            self.file.seek(SeekFrom::Start(record_start_pos))?;
         }
 
         Ok(())
     }
 
     fn get_incomplete_transactions(
-        &self,
+        &mut self,
     ) -> Result<HashSet<u64>, SmallError> {
-        self.file.seek(0)?;
+        self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = self.file.read::<u64>()?;
 
         let mut incomplete_transactions = HashSet::new();
 
         if last_checkpoint_position != NO_CHECKPOINT {
             self.show_log_contents();
-            self.file.seek(last_checkpoint_position)?;
+            self.file
+                .seek(SeekFrom::Start(last_checkpoint_position))?;
 
             // check the record type
             let record_type = self.file.read::<RecordType>()?;
@@ -446,10 +446,7 @@ impl LogManager {
         self.write_page(page_pod)?;
         self.file.write(&self.current_offset)?;
 
-        let current_offset = self
-            .get_file()
-            .seek(std::io::SeekFrom::Current(0))
-            .unwrap();
+        let current_offset = self.file.get_current_position()?;
         self.current_offset = current_offset;
 
         return Ok(());
@@ -461,7 +458,7 @@ impl LogManager {
 
         self.pre_append()?;
 
-        self.get_file().flush().unwrap();
+        self.file.flush().unwrap();
 
         // Unique::mut_buffer_pool().flush_all_pages();
         // Unique::buffer_pool_pod().wl().flush_all_pages();
@@ -489,11 +486,11 @@ impl LogManager {
 
         // once the CP is written, make sure the CP location at the
         // beginning of the log file is updated
-        self.get_file().seek(std::io::SeekFrom::Start(0)).unwrap();
+        self.file.seek(SeekFrom::Start(0)).unwrap();
         self.file.write(&checkpoint_start_position)?;
 
-        self.get_file()
-            .seek(std::io::SeekFrom::Start(checkpoint_end_position))
+        self.file
+            .seek(SeekFrom::Start(checkpoint_end_position))
             .unwrap();
 
         // write start position of this record
@@ -528,7 +525,7 @@ impl LogManager {
     ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
-        self.file.seek(0)?;
+        self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = self.file.read::<u64>()?;
         if last_checkpoint_position == NO_CHECKPOINT {
             // page_cache.discard_page(pid)
@@ -545,7 +542,8 @@ impl LogManager {
         }
 
         // step 2: seek to the start position of the checkpoint
-        self.file.seek(last_checkpoint_position)?;
+        // self.file.seek(last_checkpoint_position)?;
+        self.file.seek(SeekFrom::Start(last_checkpoint_position))?;
 
         // step 3: read checkpoint, get the position of the specific
         // tx
@@ -573,7 +571,7 @@ impl LogManager {
         }
 
         // step 4: seek to the start position of the transaction
-        self.file.seek(tx_start_position)?;
+        self.file.seek(SeekFrom::Start(tx_start_position))?;
 
         // step 5: read the log records of the transaction, stop when
         // we encounter the EOF
@@ -805,10 +803,10 @@ impl LogManager {
 
         if self.recovery_undecided {
             self.recovery_undecided = false;
-            self.get_file()
+            self.file
                 .set_len(0)
                 .or(Err(SmallError::new("set_len failed")))?;
-            self.file.seek(0)?;
+            self.file.seek(SeekFrom::Start(0))?;
             self.file.write(&NO_CHECKPOINT)?;
             self.current_offset = self.file.get_current_position()?;
         }
@@ -816,16 +814,13 @@ impl LogManager {
         return Ok(());
     }
 
-    pub fn show_log_contents(&self) {
+    pub fn show_log_contents(&mut self) {
         let original_offset =
             self.file.get_current_position().unwrap();
 
         let mut depiction = String::new();
 
-        {
-            let mut file = self.get_file();
-            file.seek(std::io::SeekFrom::Start(0)).unwrap();
-        }
+        self.file.seek(SeekFrom::Start(0)).unwrap();
 
         let last_checkpoint = self.file.read::<u64>().unwrap();
 
@@ -1010,7 +1005,7 @@ impl LogManager {
 
         debug!("log content: \n{}", depiction);
 
-        self.file.seek(original_offset).unwrap();
+        self.file.seek(SeekFrom::Start(original_offset)).unwrap();
     }
 
     fn parsed_page_content(&self, bytes: &[u8]) -> String {

@@ -1,7 +1,7 @@
 use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
-    io::{Cursor, Read, Seek, Write},
+    io::{Cursor, Read, Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
     sync::{Mutex, MutexGuard},
@@ -15,44 +15,38 @@ use crate::{
 };
 
 pub struct SmallFile {
-    file: Mutex<File>,
+    file: File,
 }
 
 impl SmallFile {
     pub fn new<P: AsRef<Path>>(file_path: P) -> Self {
-        let f = Mutex::new(
-            OpenOptions::new()
-                .write(true)
-                .read(true)
-                .create(true)
-                .open(file_path)
-                .unwrap(),
-        );
+        let file = OpenOptions::new()
+            .write(true)
+            .read(true)
+            .create(true)
+            .open(file_path)
+            .unwrap();
 
-        Self { file: f }
-    }
-
-    pub fn get_file(&self) -> MutexGuard<'_, File> {
-        self.file.lock().unwrap()
+        Self { file }
     }
 
     pub fn write<T: Encodeable>(&self, obj: &T) -> SmallResult {
-        match self.get_file().write(&obj.encode()) {
+        match self.write(&obj.encode()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
     }
 
-    pub fn read<T: Decodeable>(&self) -> Result<T, SmallError> {
+    pub fn read<T: Decodeable>(&mut self) -> Result<T, SmallError> {
         let mut bytes = vec![0u8; size_of::<T>()];
-        self.get_file()
+        self.file
             .read_exact(&mut bytes)
             .or(Err(SmallError::new("io error")))?;
         let mut reader = Cursor::new(bytes);
         Ok(T::decode_from(&mut reader))
     }
 
-    pub fn read_page(&self) -> Result<Vec<u8>, SmallError> {
+    pub fn read_page(&mut self) -> Result<Vec<u8>, SmallError> {
         let offset = self.get_current_position().unwrap();
         let page_size = self.read::<usize>()?;
         debug!(
@@ -61,30 +55,41 @@ impl SmallFile {
         );
 
         let mut buf: Vec<u8> = vec![0; page_size];
-        self.get_file().read_exact(&mut buf).unwrap();
+        self.file.read_exact(&mut buf).unwrap();
         Ok(buf)
     }
 
     pub fn get_size(&self) -> Result<u64, SmallError> {
         let metadata = self
-            .get_file()
+            .file
             .metadata()
             .or(Err(SmallError::new("io error")))?;
         Ok(metadata.len())
     }
 
-    pub fn get_current_position(&self) -> Result<u64, SmallError> {
+    pub fn get_current_position(
+        &mut self,
+    ) -> Result<u64, SmallError> {
         let offset = self
-            .get_file()
+            .file
             .seek(std::io::SeekFrom::Current(0))
             .or(Err(SmallError::new("io error")))?;
         Ok(offset)
     }
 
-    pub fn seek(&self, offset: u64) -> SmallResult {
-        self.get_file()
-            .seek(std::io::SeekFrom::Start(offset))
+    pub fn set_len(&self, len: u64) -> SmallResult {
+        self.file
+            .set_len(len)
             .or(Err(SmallError::new("io error")))?;
+        Ok(())
+    }
+
+    pub fn seek(&mut self, pos: SeekFrom) -> Result<u64, SmallError> {
+        self.file.seek(pos).or(Err(SmallError::new("io error")))
+    }
+
+    pub fn flush(&mut self) -> SmallResult {
+        self.file.flush().or(Err(SmallError::new("io error")))?;
         Ok(())
     }
 }
