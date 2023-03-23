@@ -47,19 +47,6 @@ impl SmallFile {
         Ok(T::decode_from(&mut reader))
     }
 
-    pub fn read_page(&mut self) -> Result<Vec<u8>, SmallError> {
-        let offset = self.get_current_position().unwrap();
-        let page_size = self.read::<usize>()?;
-        debug!(
-            "offset: {:02x}/{}, page_size: {}",
-            offset, offset, page_size
-        );
-
-        let mut buf: Vec<u8> = vec![0; page_size];
-        self.file.read_exact(&mut buf).unwrap();
-        Ok(buf)
-    }
-
     pub fn get_size(&self) -> Result<u64, SmallError> {
         let metadata = self
             .file
