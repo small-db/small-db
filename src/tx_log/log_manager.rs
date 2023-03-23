@@ -209,7 +209,8 @@ impl LogManager {
 
                     if incomplete_transactions.contains(&tid) {
                         // skip the page id
-                        let pid = self.file.read::<BTreePageID>()?;
+                        let pid: BTreePageID =
+                            read_into(&mut self.file);
 
                         // skip the before page
                         let before_page: Vec<u8> =
@@ -232,7 +233,8 @@ impl LogManager {
                         let _: u64 = read_into(&mut self.file);
                     } else {
                         // skip the page id
-                        let _ = self.file.read::<BTreePageID>()?;
+                        let _: BTreePageID =
+                            read_into(&mut self.file);
 
                         // skip the before page
                         let _: Vec<u8> = read_into(&mut self.file);
@@ -341,7 +343,7 @@ impl LogManager {
                     let _: u64 = read_into(&mut self.file);
 
                     // skip the page id
-                    let _ = self.file.read::<BTreePageID>()?;
+                    let _: BTreePageID = read_into(&mut self.file);
 
                     // skip the before page
                     let _: Vec<u8> = read_into(&mut self.file);
@@ -594,7 +596,8 @@ impl LogManager {
                 RecordType::UPDATE => {
                     let tid: u64 = read_into(&mut self.file);
                     if tid == tx.get_id() {
-                        let pid = self.file.read::<BTreePageID>()?;
+                        let pid: BTreePageID =
+                            read_into(&mut self.file);
 
                         // skip the before page
                         let before_image: Vec<u8> =
@@ -614,7 +617,8 @@ impl LogManager {
                         // skip this record
 
                         // skip the page id
-                        let _ = self.file.read::<BTreePageID>()?;
+                        let _: BTreePageID =
+                            read_into(&mut self.file);
 
                         // skip the before page
                         let _: Vec<u8> = read_into(&mut self.file);
@@ -762,7 +766,7 @@ impl LogManager {
         &mut self,
         pid: &BTreePageID,
     ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
-        // let pid = self.file.read::<BTreePageID>()?;
+        // let pid: BTreePageID = read_into(&mut self.file);
 
         let data: Vec<u8> = read_into(&mut self.file);
 
