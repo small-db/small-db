@@ -19,7 +19,7 @@ use crate::{
         page_cache::PageCache,
     },
     error::SmallError,
-    io::{read_exact, Decodeable, Encodeable, SmallFile},
+    io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
     storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,
@@ -193,8 +193,9 @@ impl LogManager {
                 .or(Err(SmallError::new("io error")))?;
 
             let record_start_pos = self.file.read::<u64>()?;
+            // let record_start_pos =
+            //     read_into(&mut self.file.get_file());
             self.file.seek(record_start_pos)?;
-            // debug!("record start pos: {}", record_start_pos);
             let record_type = self.file.read::<RecordType>()?;
 
             match record_type {
