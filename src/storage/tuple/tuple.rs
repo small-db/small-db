@@ -6,11 +6,8 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Decodeable, Encodeable},
-    storage::{
-        schema::{Schema, Type},
-        tuple::Cell,
-    },
+    io::Encodeable,
+    storage::{schema::Schema, tuple::Cell},
 };
 
 // #[derive(Default)]

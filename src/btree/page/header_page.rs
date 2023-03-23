@@ -36,7 +36,8 @@ impl BTreeHeaderPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let page_category = PageCategory::decode_from(&mut reader);
+            let page_category =
+                PageCategory::decode_from(&mut reader);
             if page_category != PageCategory::Header {
                 panic!("invalid page category: {:?}", page_category);
             }

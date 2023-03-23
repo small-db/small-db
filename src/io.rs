@@ -4,7 +4,6 @@ use std::{
     io::{Cursor, Read, Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
-    sync::{Mutex, MutexGuard},
 };
 
 use bit_vec::BitVec;

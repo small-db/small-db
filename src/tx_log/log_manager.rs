@@ -1,10 +1,9 @@
 use std::{
     collections::{HashMap, HashSet},
-    fs::{File, OpenOptions},
     io::{Cursor, Read, Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
-    sync::{Arc, Mutex, MutexGuard, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use log::debug;

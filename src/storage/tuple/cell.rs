@@ -125,7 +125,7 @@ impl Encodeable for Cell {
 }
 
 impl Decodeable for Cell {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode_from<R: std::io::Read>(_reader: &mut R) -> Self {
         todo!()
     }
 }
