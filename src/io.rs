@@ -14,6 +14,8 @@ use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
 };
 
+const MAX_BYTES_SIZE: usize = u16::MAX as usize;
+
 pub struct SmallFile {
     file: File,
 }
@@ -30,8 +32,8 @@ impl SmallFile {
         Self { file }
     }
 
-    pub fn write<T: Encodeable>(&self, obj: &T) -> SmallResult {
-        match self.write(&obj.encode()) {
+    pub fn write<T: Encodeable>(&mut self, obj: &T) -> SmallResult {
+        match self.file.write(&obj.encode()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
@@ -94,6 +96,12 @@ impl SmallFile {
     }
 }
 
+impl std::io::Read for SmallFile {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.file.read(buf)
+    }
+}
+
 pub fn read_into<T: Decodeable, R: std::io::Read>(
     reader: &mut R,
 ) -> T {
@@ -127,10 +135,6 @@ impl SmallWriter {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         self.buf.clone()
-    }
-
-    pub fn size(&self) -> usize {
-        self.buf.len()
     }
 
     pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
@@ -236,7 +240,7 @@ impl Encodeable for &[u8] {
 
 // # Format
 
-// - 1 byte: size of the string (range: 0 - 255)
+// - 2 byte: size of the string (range: 0 - 64 KB)
 // - n bytes: string
 //
 // BUG: this implementation is wrong, should be coupled with
@@ -244,16 +248,33 @@ impl Encodeable for &[u8] {
 // should be symmetric)
 impl Encodeable for Vec<u8> {
     fn encode(&self) -> Vec<u8> {
+        // boundary check
+        if self.len() > MAX_BYTES_SIZE {
+            panic!("string size is larger than 255");
+        }
+
         let mut buffer = Vec::new();
 
         // write size
-        let len = self.len() as u8;
+        let len = self.len() as u16;
         buffer.extend_from_slice(&len.to_le_bytes());
 
         // write payload
         buffer.extend_from_slice(&self);
 
         buffer
+    }
+}
+
+impl Decodeable for Vec<u8> {
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+        // read size
+        let size = u16::from_le_bytes(
+            read_exact(reader, 2).try_into().unwrap(),
+        );
+
+        // read payload
+        read_exact(reader, size as usize)
     }
 }
 

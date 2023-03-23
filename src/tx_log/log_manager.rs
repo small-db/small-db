@@ -211,7 +211,8 @@ impl LogManager {
                         let pid = self.file.read::<BTreePageID>()?;
 
                         // skip the before page
-                        let before_page = self.file.read_page()?;
+                        let before_page: Vec<u8> =
+                            read_into(&mut self.file);
 
                         // TODO: construct a new page from the before
                         // page
@@ -224,7 +225,7 @@ impl LogManager {
                         table.write_page_to_disk(&pid, &before_page);
 
                         // skip the after page
-                        let _ = self.file.read_page()?;
+                        let _: Vec<u8> = read_into(&mut self.file);
 
                         // skip the start position
                         let _ = self.file.read::<u64>()?;
@@ -233,10 +234,10 @@ impl LogManager {
                         let _ = self.file.read::<BTreePageID>()?;
 
                         // skip the before page
-                        let _ = self.file.read_page()?;
+                        let _: Vec<u8> = read_into(&mut self.file);
 
                         // skip the after page
-                        let _ = self.file.read_page()?;
+                        let _: Vec<u8> = read_into(&mut self.file);
 
                         // skip the start position
                         let _ = self.file.read::<u64>()?;
@@ -342,10 +343,10 @@ impl LogManager {
                     let _ = self.file.read::<BTreePageID>()?;
 
                     // skip the before page
-                    let _ = self.file.read_page()?;
+                    let _: Vec<u8> = read_into(&mut self.file);
 
                     // skip the after page
-                    let _ = self.file.read_page()?;
+                    let _: Vec<u8> = read_into(&mut self.file);
 
                     // skip the start position
                     let _ = self.file.read::<u64>()?;
@@ -594,7 +595,8 @@ impl LogManager {
                         let pid = self.file.read::<BTreePageID>()?;
 
                         // skip the before page
-                        let before_image = self.file.read_page()?;
+                        let before_image: Vec<u8> =
+                            read_into(&mut self.file);
                         self.recover_page(
                             &pid,
                             &before_image,
@@ -613,10 +615,10 @@ impl LogManager {
                         let _ = self.file.read::<BTreePageID>()?;
 
                         // skip the before page
-                        let _ = self.file.read_page()?;
+                        let _: Vec<u8> = read_into(&mut self.file);
 
                         // skip the after page
-                        let _ = self.file.read_page()?;
+                        let _: Vec<u8> = read_into(&mut self.file);
 
                         // skip the start position
                         let _ = self.file.read::<u64>()?;
@@ -760,7 +762,7 @@ impl LogManager {
     ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
         // let pid = self.file.read::<BTreePageID>()?;
 
-        let data = self.file.read_page()?;
+        let data: Vec<u8> = read_into(&mut self.file);
 
         let catalog = Database::catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
@@ -900,14 +902,16 @@ impl LogManager {
                         pid,
                     ));
 
-                    let before_page = self.file.read_page().unwrap();
+                    let before_page: Vec<u8> =
+                        read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] before page: {}\n",
                         before_page.len(),
                         self.parsed_page_content(&before_page),
                     ));
 
-                    let after_page = self.file.read_page().unwrap();
+                    let after_page: Vec<u8> =
+                        read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] after page: {}\n",
                         after_page.len(),
