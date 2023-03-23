@@ -675,21 +675,10 @@ impl LogManager {
         self.file.write(&page.get_pid())?;
 
         let before_data = page.get_before_image();
-        debug!(
-            "write_page: before_data.len() = {}, current position = {}",
-            before_data.len(),
-            self.file.get_current_position()?,
-        );
         self.file.write(&before_data.len())?;
         self.file.write(&before_data)?;
 
         let after_data = page.get_page_data();
-        debug!(
-            "write_page: after_data.len() = {}, current position = {}",
-            after_data.len(),
-            self.file.get_current_position()?,
-        );
-
         self.file.write(&after_data.len())?;
         self.file.write(&after_data)?;
 

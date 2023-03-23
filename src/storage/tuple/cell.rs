@@ -68,17 +68,7 @@ impl Cell {
             Type::Bool => Cell::Bool(bool::decode_from(reader)),
             Type::Int64 => Cell::Int64(i64::decode_from(reader)),
             Type::Float64 => Cell::Float64(f64::decode_from(reader)),
-            Type::Bytes(_) => {
-                // read size
-                let len = u8::decode_from(reader);
-
-                // read bytes
-                let mut bytes = Vec::new();
-                for _ in 0..len {
-                    bytes.push(u8::decode_from(reader));
-                }
-                Cell::Bytes(bytes)
-            }
+            Type::Bytes(_) => Cell::Bytes(Vec::decode_from(reader)),
         }
     }
 }
