@@ -193,7 +193,8 @@ impl LogManager {
             // let record_start_pos = read_into(&mut self.file);
             let record_start_pos = read_into(&mut self.file);
             self.file.seek(SeekFrom::Start(record_start_pos))?;
-            let record_type = self.file.read::<RecordType>()?;
+            // let record_type = read_into(&mut self.file);
+            let record_type = read_into(&mut self.file);
 
             match record_type {
                 RecordType::START => {
@@ -297,7 +298,7 @@ impl LogManager {
                 .seek(SeekFrom::Start(last_checkpoint_position))?;
 
             // check the record type
-            let record_type = self.file.read::<RecordType>()?;
+            let record_type: RecordType = read_into(&mut self.file);
             if record_type != RecordType::CHECKPOINT {
                 return Err(SmallError::new(
                     "invalid checkpoint record type",
@@ -325,7 +326,7 @@ impl LogManager {
         // EOF
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
-            let record_type = self.file.read::<RecordType>()?;
+            let record_type = read_into(&mut self.file);
 
             match record_type {
                 RecordType::START => {
@@ -548,7 +549,7 @@ impl LogManager {
 
         // step 3: read checkpoint, get the position of the specific
         // tx
-        let record_type = self.file.read::<RecordType>()?;
+        let record_type: RecordType = read_into(&mut self.file);
         if record_type != RecordType::CHECKPOINT {
             panic!("invalid checkpoint");
         }
@@ -578,7 +579,7 @@ impl LogManager {
         // we encounter the EOF
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
-            let record_type = self.file.read::<RecordType>()?;
+            let record_type = read_into(&mut self.file);
             // debug!("record_type: {:?}", record_type);
 
             match record_type {
