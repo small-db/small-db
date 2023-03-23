@@ -963,20 +963,20 @@ impl LogManager {
                     ));
 
                     // read list of outstanding(active) transactions
-                    let tx_count: usize = self.file.read().unwrap();
+                    let tx_count: usize = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] active tx count: {}\n",
                         std::mem::size_of::<usize>(),
                         tx_count,
                     ));
                     for _ in 0..tx_count {
-                        let tx_id: u64 = self.file.read().unwrap();
+                        let tx_id: u64 = read_into(&mut self.file);
                         depiction.push_str(&format!(
                             "│   │   ├── [8 bytes] tx id: {}\n",
                             tx_id,
                         ));
                         let tx_start_offset: u64 =
-                            self.file.read().unwrap();
+                            read_into(&mut self.file);
                         depiction.push_str(&format!(
                             "│   │   └── [8 bytes] tx start offset: {}\n",
                             tx_start_offset,
@@ -984,7 +984,7 @@ impl LogManager {
                     }
 
                     let checkpoint_end_position: u64 =
-                        self.file.read().unwrap();
+                        read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start position: {}\n",
                         checkpoint_end_position,
