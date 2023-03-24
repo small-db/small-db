@@ -78,8 +78,11 @@ impl std::io::Read for SmallFile {
     }
 }
 
-// The reason we have a wrapper for `decode_from` is it always require
-// explicit type annotation, which can be annoying in some cases.
+/// A wrapper for `std::io::Read` to read a `Decodeable` object.
+///
+/// The advantage of this wrapper is doesn't require explicit type
+/// annotation when type inference is possible. This makes some code
+/// more concise.
 pub fn read_into<T: Decodeable, R: std::io::Read>(
     reader: &mut R,
 ) -> T {
@@ -139,40 +142,16 @@ pub trait Decodeable {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self;
 }
 
-/// # Format
-///
-/// - 2 bytes: bytes size (range: 0 - 65535) (65535 * 8 = 524280 bits)
-/// - n bytes: bit vector
 impl Encodeable for BitVec {
     fn encode(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
-
-        let payload = self.to_bytes();
-
-        // write size
-        let len = payload.len() as u16;
-        buf.extend_from_slice(&len.to_le_bytes());
-
-        // write payload
-        buf.extend_from_slice(&payload);
-
-        buf
+        self.to_bytes().encode()
     }
 }
 
 impl Decodeable for BitVec {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-        // read size
-        // let buffer = [0u8; 2];
-        // reader.read_exact(&mut buffer).unwrap();
-        let size = u16::from_le_bytes(
-            read_exact(reader, 2).try_into().unwrap(),
-        );
-
-        // read payload
-        let buf = read_exact(reader, size as usize);
-
-        BitVec::from_bytes(&buf)
+        let buffer: Vec<u8> = read_into(reader);
+        BitVec::from_bytes(&buffer)
     }
 }
 
@@ -237,9 +216,7 @@ impl Encodeable for Vec<u8> {
 impl Decodeable for Vec<u8> {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
-        let size = u16::from_le_bytes(
-            read_exact(reader, 2).try_into().unwrap(),
-        );
+        let size: u16 = read_into(reader);
 
         // read payload
         read_exact(reader, size as usize)

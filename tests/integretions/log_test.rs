@@ -31,9 +31,6 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    // let page_cache = Unique::mut_page_cache();
-    // let mut log_manager = Unique::mut_log_manager();
-    // page_cache.flush_all_pages(&mut log_manager);
     Database::mut_page_cache()
         .flush_all_pages(&mut Database::mut_log_manager());
 
@@ -541,6 +538,9 @@ fn test_open_crash() {
     let table_1 = table_pod_1.rl();
 
     commit_insert(&table_1, 1, 2);
+
+    Database::mut_log_manager().show_log_contents();
+    return;
 
     // T1 inserts but does not commit
     // crash

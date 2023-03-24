@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
-    io::{Decodeable, SmallWriter},
+    io::{read_into, Decodeable, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
@@ -77,7 +77,7 @@ impl BTreeLeafPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::decode_from(&mut reader);
+            let category: PageCategory = read_into(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
                 "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -86,20 +86,22 @@ impl BTreeLeafPage {
             }
 
             // read parent page index
+            let parent_id = read_into(&mut reader);
             let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
                 pid.get_table_id(),
-                u32::decode_from(&mut reader),
+                parent_id,
             );
 
             // read left sibling page index
-            let left_sibling_id = u32::decode_from(&mut reader);
+            let left_sibling_id = read_into(&mut reader);
 
             // read right sibling page index
-            let right_sibling_id = u32::decode_from(&mut reader);
+            let right_sibling_id = read_into(&mut reader);
 
             // read header
-            let header = BitVec::decode_from(&mut reader);
+            // let header = BitVec::decode_from(&mut reader);
+            let header = read_into(&mut reader);
 
             // read tuples
             let mut tuples = Vec::new();
