@@ -133,7 +133,7 @@ impl BTreeTable {
             // TODO: init it according to actual condition
             page_index: AtomicU32::new(1),
 
-            key_field: schema.get_key_field_pos(),
+            key_field: schema.get_key_pos(),
         };
 
         instance.file_init();

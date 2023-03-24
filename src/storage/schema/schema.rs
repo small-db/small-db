@@ -2,7 +2,7 @@ use super::{Field, Type};
 
 #[derive(Debug, Clone)]
 pub struct Schema {
-    pub fields: Vec<Field>,
+    fields: Vec<Field>,
 }
 
 // Constructors
@@ -40,22 +40,26 @@ impl Schema {
 }
 
 impl Schema {
-    /// get tuple size in bytes
+    /// Get tuple size in bytes.
     pub fn get_size(&self) -> usize {
         let mut size = 0;
-        for field in &self.fields {
+        for field in self.get_fields() {
             size += field.t.size();
         }
         size
     }
 
-    /// Get the position of the key field
-    pub fn get_key_field_pos(&self) -> usize {
-        for (i, field) in self.fields.iter().enumerate() {
+    /// Get the position of the key field.
+    pub fn get_key_pos(&self) -> usize {
+        for (i, field) in self.get_fields().iter().enumerate() {
             if field.is_primary {
                 return i;
             }
         }
         panic!("no key field found");
+    }
+
+    pub fn get_fields(&self) -> &Vec<Field> {
+        &self.get_fields()
     }
 }

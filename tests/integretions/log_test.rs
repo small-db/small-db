@@ -539,8 +539,8 @@ fn test_open_crash() {
 
     commit_insert(&table_1, 1, 2);
 
-    Database::mut_log_manager().show_log_contents();
-    return;
+    // Database::mut_log_manager().show_log_contents();
+    // return;
 
     // T1 inserts but does not commit
     // crash

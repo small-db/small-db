@@ -110,7 +110,7 @@ impl BTreeLeafPage {
                 schema: schema.clone(),
                 right_sibling_id,
                 left_sibling_id,
-                key_field: schema.get_key_field_pos(),
+                key_field: schema.get_key_pos(),
                 old_data: Vec::new(),
             };
         }
@@ -155,7 +155,7 @@ impl BTreeLeafPage {
             schema: schema.clone(),
             right_sibling_id: EMPTY_PAGE_ID,
             left_sibling_id: EMPTY_PAGE_ID,
-            key_field: schema.get_key_field_pos(),
+            key_field: schema.get_key_pos(),
             old_data: Vec::new(),
         }
     }

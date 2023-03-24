@@ -83,21 +83,13 @@ impl Catalog {
         }
 
         for (table_id, fields) in schemas {
-            let table_schema = Schema { fields };
+            let schema = Schema::new(fields);
             let table_name = table_names.get(&table_id).unwrap();
-
-            let mut key_field = 0;
-            for (i, field) in table_schema.fields.iter().enumerate() {
-                if field.is_primary {
-                    key_field = i;
-                    break;
-                }
-            }
 
             let table = BTreeTable::new(
                 &table_name,
                 Some(table_id as u32),
-                &table_schema,
+                &schema,
             );
 
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
@@ -162,7 +154,7 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        for field in table.get_schema().fields {
+        for field in table.get_schema().get_fields() {
             let cells = vec![
                 // table id
                 Cell::new_int64(table.get_id() as i64),

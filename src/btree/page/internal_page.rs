@@ -91,8 +91,8 @@ impl BTreeInternalPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid, bytes, schema);
         } else {
-            let key_field = schema.get_key_field_pos();
-            let key_size = schema.fields[key_field].t.size();
+            let key_field = schema.get_key_pos();
+            let key_size = schema.get_fields()[key_field].t.size();
             let slot_count = Self::get_children_cap(key_size) + 1;
 
             let mut reader = Cursor::new(bytes);
@@ -164,8 +164,8 @@ impl BTreeInternalPage {
         bytes: &[u8],
         schema: &Schema,
     ) -> Self {
-        let key_field = schema.get_key_field_pos();
-        let key_size = schema.fields[key_field].t.size();
+        let key_field = schema.get_key_pos();
+        let key_size = schema.get_fields()[key_field].t.size();
         let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = Cursor::new(bytes);
