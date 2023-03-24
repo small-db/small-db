@@ -123,7 +123,7 @@ impl BTreeTable {
 
         let instance = Self {
             name: table_name.to_string(),
-            
+
             schema: schema.clone(),
             file: f,
             table_id,

@@ -88,11 +88,7 @@ impl PageCache {
             .or(Err(SmallError::new("read page content failed")))?;
 
         // stage 3: page instantiation
-        let page = PAGE::new(
-            pid,
-            &buf,
-            &table.schema,
-        );
+        let page = PAGE::new(pid, &buf, &table.schema);
 
         // stage 4: return
         return Ok(Arc::new(RwLock::new(page)));

@@ -60,6 +60,6 @@ impl Schema {
     }
 
     pub fn get_fields(&self) -> &Vec<Field> {
-        &self.get_fields()
+        &self.fields
     }
 }

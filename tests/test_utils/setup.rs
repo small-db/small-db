@@ -84,7 +84,7 @@ pub fn new_random_btree_table(
 ) -> Arc<RwLock<BTreeTable>> {
     let schema = Schema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        TEST_DB, None,  &schema,
+        TEST_DB, None, &schema,
     )));
     Catalog::add_table(Arc::clone(&table_rc), true);
 

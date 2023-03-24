@@ -2,11 +2,7 @@ use super::BTreePageID;
 use crate::storage::schema::Schema;
 
 pub trait BTreePage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        schema: &Schema,
-    ) -> Self
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self
     where
         Self: Sized;
 

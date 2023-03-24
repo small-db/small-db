@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     btree::{consts::INDEX_SIZE, page_cache::PageCache},
-    io::{read_into, Decodeable, SmallWriter},
+    io::{read_into, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
@@ -407,11 +407,7 @@ impl BTreeLeafPage {
 }
 
 impl BTreePage for BTreeLeafPage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        schema: &Schema,
-    ) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
         Self::new(pid, &bytes, schema)
     }
 

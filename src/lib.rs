@@ -14,4 +14,4 @@ mod tx_log;
 pub use btree::table::BTreeTable;
 pub use common::Database;
 pub use operator::{Op, Predicate};
-pub use storage::schema::{Schema};
+pub use storage::schema::Schema;

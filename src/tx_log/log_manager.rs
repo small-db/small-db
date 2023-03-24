@@ -22,7 +22,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    Database, Schema,
+    Database,
 };
 
 // TODO: add docs for it
@@ -692,7 +692,7 @@ impl LogManager {
         let table = table_pod.rl();
 
         let schema = table.get_schema();
-        let key_field = table.key_field;
+        let _key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {
@@ -754,7 +754,7 @@ impl LogManager {
         let table = table_pod.rl();
 
         let schema = table.get_schema();
-        let key_field = table.key_field;
+        let _key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {
