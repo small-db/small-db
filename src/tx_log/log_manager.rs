@@ -691,16 +691,13 @@ impl LogManager {
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 
-        let schema = table.get_tuple_scheme();
+        let schema = table.get_schema();
         let key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {
-                let page = BTreeLeafPage::new(
-                    &pid,
-                    &before_image,
-                    &schema,
-                );
+                let page =
+                    BTreeLeafPage::new(&pid, &before_image, &schema);
                 page_cache.recover_page(
                     &pid,
                     page,
@@ -756,26 +753,22 @@ impl LogManager {
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 
-        let schema = table.get_tuple_scheme();
+        let schema = table.get_schema();
         let key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {
-                let page = BTreeLeafPage::new(
-                    &pid, &data, &schema, 
-                );
+                let page = BTreeLeafPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::RootPointer => {
-                let page = BTreeRootPointerPage::new(
-                    &pid, &data, &schema, 
-                );
+                let page =
+                    BTreeRootPointerPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Internal => {
-                let page = BTreeInternalPage::new(
-                    &pid, &data, &schema, 
-                );
+                let page =
+                    BTreeInternalPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Header => {
@@ -830,19 +823,12 @@ impl LogManager {
             record_id += 1;
 
             offset = self.file.get_current_position().unwrap();
-
-            let record_type: RecordType;
-
-            let byte = read_into(&mut self.file);
-            match byte {
-                0..=4 => {
-                    record_type = RecordType::from_u8(byte);
-                }
-                _ => {
-                    debug!("invalid record type: {}", byte);
-                    break;
-                }
+            if offset == self.file.get_size().unwrap() {
+                break;
             }
+
+            let record_type = read_into(&mut self.file);
+
             depiction.push_str(&format!(
                 "├── {:?}-[pos {}]-[record {}]\n",
                 record_type, offset, record_id,
@@ -891,7 +877,7 @@ impl LogManager {
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] before page: {}\n",
                         before_page.len(),
-                        self.parsed_page_content(&before_page),
+                        self.parsed_page_content(&before_page, &pid),
                     ));
 
                     let after_page: Vec<u8> =
@@ -899,7 +885,7 @@ impl LogManager {
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] after page: {}\n",
                         after_page.len(),
-                        self.parsed_page_content(&after_page),
+                        self.parsed_page_content(&after_page, &pid),
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -993,7 +979,11 @@ impl LogManager {
         self.file.seek(SeekFrom::Start(original_offset)).unwrap();
     }
 
-    fn parsed_page_content(&self, bytes: &[u8]) -> String {
+    fn parsed_page_content(
+        &self,
+        bytes: &[u8],
+        pid: &BTreePageID,
+    ) -> String {
         let page_category =
             PageCategory::decode_from(&mut Cursor::new(bytes));
 
@@ -1001,16 +991,11 @@ impl LogManager {
             PageCategory::Leaf => {
                 // TODO: use real value for schema, key_field and pid
                 let catalog = Database::catalog();
-                todo!();
-                todo!();
+                let table_rc =
+                    catalog.get_table(&pid.table_id).unwrap();
+                let schema = table_rc.rl().get_schema();
 
-                let schema = Schema::small_int_schema(2);
-                let key_field = 0;
-                let pid = BTreePageID::new(page_category, 0, 0);
-
-                let page = BTreeLeafPage::new(
-                    &pid, bytes, &schema, 
-                );
+                let page = BTreeLeafPage::new(&pid, bytes, &schema);
                 let iter = page.iter();
                 let content = iter
                     .take(5)

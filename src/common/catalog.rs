@@ -141,7 +141,7 @@ impl Catalog {
         match table_rc {
             Some(table_rc) => {
                 let table = table_rc.rl();
-                Some(table.get_tuple_scheme())
+                Some(table.get_schema())
             }
             None => None,
         }
@@ -162,7 +162,7 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        for field in table.get_tuple_scheme().fields {
+        for field in table.get_schema().fields {
             let cells = vec![
                 // table id
                 Cell::new_int64(table.get_id() as i64),

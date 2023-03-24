@@ -147,7 +147,7 @@ impl BTreeTable {
         self.table_id
     }
 
-    pub fn get_tuple_scheme(&self) -> Schema {
+    pub fn get_schema(&self) -> Schema {
         self.schema.clone()
     }
 
