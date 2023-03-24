@@ -10,7 +10,10 @@ fn test_scan(rows: usize, columns: usize) {
     let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     let mut int_tuples = Vec::new();
+
+    // TODO: remove this
     let key_field = rng.gen_range(0, columns);
+
     let table_rc = new_random_btree_table(
         columns,
         rows,

@@ -57,7 +57,7 @@ pub fn new_empty_btree_table(
 ) -> Arc<RwLock<BTreeTable>> {
     let schema = Schema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        table_name, None, 0, &schema,
+        table_name, None, &schema,
     )));
     Catalog::add_table(Arc::clone(&table_rc), true);
     return table_rc;
@@ -84,7 +84,7 @@ pub fn new_random_btree_table(
 ) -> Arc<RwLock<BTreeTable>> {
     let schema = Schema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        TEST_DB, None, key_field, &schema,
+        TEST_DB, None,  &schema,
     )));
     Catalog::add_table(Arc::clone(&table_rc), true);
 
@@ -149,7 +149,7 @@ fn sequential_insert_into_table(
     tx: &Transaction,
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
-    tuple_scheme: &Schema,
+    schema: &Schema,
     tree_layout: TreeLayout,
 ) -> u32 {
     // stage 1: write leaf pages
@@ -157,7 +157,7 @@ fn sequential_insert_into_table(
 
     let leaf_buckets = get_buckets(
         tuples.len(),
-        BTreeLeafPage::calculate_slots_count(&tuple_scheme),
+        BTreeLeafPage::calculate_slots_count(&schema),
         tree_layout,
     );
 

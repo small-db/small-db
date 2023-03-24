@@ -31,10 +31,10 @@ impl Tuple {
 
     pub fn read_from<R: std::io::Read>(
         reader: &mut R,
-        tuple_scheme: &Schema,
+        schema: &Schema,
     ) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
-        for field in &tuple_scheme.fields {
+        for field in &schema.fields {
             let cell = Cell::read_from(reader, &field.t);
             cells.push(cell);
         }

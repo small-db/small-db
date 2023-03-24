@@ -91,8 +91,7 @@ impl PageCache {
         let page = PAGE::new(
             pid,
             &buf,
-            &table.tuple_scheme,
-            table.key_field,
+            &table.schema,
         );
 
         // stage 4: return

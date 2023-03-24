@@ -85,23 +85,14 @@ pub struct BTreeInternalPage {
 }
 
 impl BTreeInternalPage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
-    ) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(
-                pid,
-                bytes,
-                tuple_scheme,
-                key_field,
-            );
+            instance = Self::new_empty_page(pid, bytes, schema);
         } else {
-            let key_size = tuple_scheme.fields[key_field].t.size();
+            let key_field = schema.get_key_field_pos();
+            let key_size = schema.fields[key_field].t.size();
             let slot_count = Self::get_children_cap(key_size) + 1;
 
             let mut reader = Cursor::new(bytes);
@@ -171,10 +162,10 @@ impl BTreeInternalPage {
     fn new_empty_page(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
+        schema: &Schema,
     ) -> Self {
-        let key_size = tuple_scheme.fields[key_field].t.size();
+        let key_field = schema.get_key_field_pos();
+        let key_size = schema.fields[key_field].t.size();
         let slot_count = Self::get_children_cap(key_size) + 1;
 
         let mut reader = Cursor::new(bytes);
@@ -607,13 +598,8 @@ impl BTreeInternalPage {
 }
 
 impl BTreePage for BTreeInternalPage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
-    ) -> Self {
-        Self::new(pid, bytes, tuple_scheme, key_field)
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+        Self::new(pid, bytes, schema)
     }
 
     fn get_pid(&self) -> BTreePageID {

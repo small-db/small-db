@@ -42,7 +42,7 @@ pub struct BTreeLeafPage {
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
 
-    pub tuple_scheme: Schema,
+    pub schema: Schema,
 
     // use u32 instead of Option<BTreePageID> to reduce memory
     // footprint
@@ -55,24 +55,13 @@ pub struct BTreeLeafPage {
 }
 
 impl BTreeLeafPage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
-    ) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(
-                pid,
-                bytes,
-                tuple_scheme,
-                key_field,
-            );
+            instance = Self::new_empty_page(pid, bytes, schema);
         } else {
-            let slot_count =
-                Self::calculate_slots_count(&tuple_scheme);
+            let slot_count = Self::calculate_slots_count(&schema);
 
             let mut reader = Cursor::new(bytes);
 
@@ -106,7 +95,7 @@ impl BTreeLeafPage {
             // read tuples
             let mut tuples = Vec::new();
             for _ in 0..slot_count {
-                let t = Tuple::read_from(&mut reader, tuple_scheme);
+                let t = Tuple::read_from(&mut reader, schema);
                 tuples.push(t);
             }
 
@@ -118,10 +107,10 @@ impl BTreeLeafPage {
                 slot_count,
                 header,
                 tuples,
-                tuple_scheme: tuple_scheme.clone(),
+                schema: schema.clone(),
                 right_sibling_id,
                 left_sibling_id,
-                key_field,
+                key_field: schema.get_key_field_pos(),
                 old_data: Vec::new(),
             };
         }
@@ -133,10 +122,9 @@ impl BTreeLeafPage {
     fn new_empty_page(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
+        schema: &Schema,
     ) -> Self {
-        let slot_count = Self::calculate_slots_count(&tuple_scheme);
+        let slot_count = Self::calculate_slots_count(&schema);
 
         let mut reader = Cursor::new(bytes);
 
@@ -152,7 +140,7 @@ impl BTreeLeafPage {
         // read tuples
         let mut tuples = Vec::new();
         for _ in 0..slot_count {
-            let t = Tuple::read_from(&mut reader, tuple_scheme);
+            let t = Tuple::read_from(&mut reader, schema);
             tuples.push(t);
         }
 
@@ -164,10 +152,10 @@ impl BTreeLeafPage {
             slot_count,
             header,
             tuples,
-            tuple_scheme: tuple_scheme.clone(),
+            schema: schema.clone(),
             right_sibling_id: EMPTY_PAGE_ID,
             left_sibling_id: EMPTY_PAGE_ID,
-            key_field,
+            key_field: schema.get_key_field_pos(),
             old_data: Vec::new(),
         }
     }
@@ -422,10 +410,9 @@ impl BTreePage for BTreeLeafPage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
+        schema: &Schema,
     ) -> Self {
-        Self::new(pid, &bytes, tuple_scheme, key_field)
+        Self::new(pid, &bytes, schema)
     }
 
     fn get_pid(&self) -> BTreePageID {

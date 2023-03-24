@@ -700,7 +700,6 @@ impl LogManager {
                     &pid,
                     &before_image,
                     &schema,
-                    key_field,
                 );
                 page_cache.recover_page(
                     &pid,
@@ -713,7 +712,6 @@ impl LogManager {
                     &pid,
                     &before_image,
                     &schema,
-                    key_field,
                 );
                 page_cache.recover_page(
                     &pid,
@@ -726,7 +724,6 @@ impl LogManager {
                     &pid,
                     &before_image,
                     &schema,
-                    key_field,
                 );
                 page_cache.recover_page(
                     &pid,
@@ -765,19 +762,19 @@ impl LogManager {
         match pid.category {
             PageCategory::Leaf => {
                 let page = BTreeLeafPage::new(
-                    &pid, &data, &schema, key_field,
+                    &pid, &data, &schema, 
                 );
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::RootPointer => {
                 let page = BTreeRootPointerPage::new(
-                    &pid, &data, &schema, key_field,
+                    &pid, &data, &schema, 
                 );
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Internal => {
                 let page = BTreeInternalPage::new(
-                    &pid, &data, &schema, key_field,
+                    &pid, &data, &schema, 
                 );
                 return Ok(Arc::new(RwLock::new(page)));
             }
@@ -1012,7 +1009,7 @@ impl LogManager {
                 let pid = BTreePageID::new(page_category, 0, 0);
 
                 let page = BTreeLeafPage::new(
-                    &pid, bytes, &schema, key_field,
+                    &pid, bytes, &schema, 
                 );
                 let iter = page.iter();
                 let content = iter

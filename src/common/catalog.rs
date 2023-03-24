@@ -97,7 +97,6 @@ impl Catalog {
             let table = BTreeTable::new(
                 &table_name,
                 Some(table_id as u32),
-                key_field,
                 &table_schema,
             );
 
@@ -126,7 +125,6 @@ impl Catalog {
                     Arc::new(RwLock::new(BTreeTable::new(
                         SCHEMA_TBALE_NAME,
                         Some(123),
-                        0,
                         &Schema::for_schema_table(),
                     )));
                 self.schema_table = Some(schema_table_rc.clone());

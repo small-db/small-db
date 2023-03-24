@@ -51,7 +51,7 @@ pub struct BTreeTable {
     pub key_field: usize,
 
     // the tuple descriptor of tuples in the file
-    pub tuple_scheme: Schema,
+    pub schema: Schema,
 
     file: Mutex<File>,
 
@@ -85,7 +85,6 @@ impl BTreeTable {
     pub fn new(
         table_name: &str,
         table_id: Option<u32>,
-        key_field: usize,
         schema: &Schema,
     ) -> Self {
         let db_path = Database::global().get_path();
@@ -124,8 +123,8 @@ impl BTreeTable {
 
         let instance = Self {
             name: table_name.to_string(),
-            key_field,
-            tuple_scheme: schema.clone(),
+            
+            schema: schema.clone(),
             file: f,
             table_id,
 
@@ -133,6 +132,8 @@ impl BTreeTable {
             //
             // TODO: init it according to actual condition
             page_index: AtomicU32::new(1),
+
+            key_field: schema.get_key_field_pos(),
         };
 
         instance.file_init();
@@ -147,7 +148,7 @@ impl BTreeTable {
     }
 
     pub fn get_tuple_scheme(&self) -> Schema {
-        self.tuple_scheme.clone()
+        self.schema.clone()
     }
 
     /// Calculate the number of tuples in the table. Require S_LOCK on
@@ -555,8 +556,7 @@ impl BTreeTable {
         let page = BTreeLeafPage::new(
             &page_id,
             &BTreeBasePage::empty_page_data(),
-            &self.tuple_scheme,
-            self.key_field,
+            &self.schema,
         );
 
         self.write_empty_page_to_disk(&page_id);
@@ -584,8 +584,7 @@ impl BTreeTable {
         let page = BTreeInternalPage::new(
             &page_id,
             &BTreeBasePage::empty_page_data(),
-            &self.tuple_scheme,
-            self.key_field,
+            &self.schema,
         );
 
         self.write_empty_page_to_disk(&page_id);

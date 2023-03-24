@@ -101,7 +101,6 @@ impl BTreePage for BTreeHeaderPage {
         pid: &BTreePageID,
         bytes: &[u8],
         _tuple_scheme: &Schema,
-        _key_field: usize,
     ) -> Self {
         Self::new(pid, bytes)
     }

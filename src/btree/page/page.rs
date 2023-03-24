@@ -5,8 +5,7 @@ pub trait BTreePage {
     fn new(
         pid: &BTreePageID,
         bytes: &[u8],
-        tuple_scheme: &Schema,
-        key_field: usize,
+        schema: &Schema,
     ) -> Self
     where
         Self: Sized;

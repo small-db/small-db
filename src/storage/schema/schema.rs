@@ -49,7 +49,8 @@ impl Schema {
         size
     }
 
-    pub fn get_key_field(&self) -> usize {
+    /// Get the position of the key field
+    pub fn get_key_field_pos(&self) -> usize {
         for (i, field) in self.fields.iter().enumerate() {
             if field.is_primary {
                 return i;
