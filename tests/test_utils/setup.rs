@@ -16,7 +16,6 @@ use small_db::{
     },
     common::Catalog,
     concurrent_status::Permission,
-    small_int_schema,
     storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     utils::{self, HandyRwLock},
@@ -56,12 +55,9 @@ pub fn new_empty_btree_table(
     table_name: &str,
     columns: usize,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_schema(columns);
+    let schema = Schema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        table_name,
-        None,
-        0,
-        &row_scheme,
+        table_name, None, 0, &schema,
     )));
     Catalog::add_table(Arc::clone(&table_rc), true);
     return table_rc;
@@ -86,12 +82,9 @@ pub fn new_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
-    let row_scheme = small_int_schema(columns);
+    let schema = Schema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        TEST_DB,
-        None,
-        key_field,
-        &row_scheme,
+        TEST_DB, None, key_field, &schema,
     )));
     Catalog::add_table(Arc::clone(&table_rc), true);
 
@@ -132,7 +125,7 @@ pub fn new_random_btree_table(
                     &write_tx,
                     &table,
                     &tuples,
-                    &row_scheme,
+                    &schema,
                     tree_layout,
                 );
                 table.set_page_index(page_index);

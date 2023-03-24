@@ -4,15 +4,14 @@ use small_db::{
         BTreePage,
     },
     concurrent_status::Permission,
-    small_int_schema,
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable, Database, Schema,
 };
 
 pub fn leaf_records_cap() -> usize {
-    let scheme = small_int_schema(2);
+    let scheme = Schema::small_int_schema(2);
     BTreeLeafPage::calculate_slots_count(&scheme)
 }
 

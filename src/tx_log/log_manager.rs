@@ -19,11 +19,10 @@ use crate::{
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
-    storage::schema::small_int_schema,
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    Database,
+    Database, Schema,
 };
 
 // TODO: add docs for it
@@ -1004,7 +1003,11 @@ impl LogManager {
         match page_category {
             PageCategory::Leaf => {
                 // TODO: use real value for schema, key_field and pid
-                let schema = small_int_schema(2);
+                let catalog = Database::catalog();
+                todo!();
+                todo!();
+
+                let schema = Schema::small_int_schema(2);
                 let key_field = 0;
                 let pid = BTreePageID::new(page_category, 0, 0);
 

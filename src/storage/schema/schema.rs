@@ -1,17 +1,18 @@
 use super::{Field, Type};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Schema {
     pub fields: Vec<Field>,
 }
 
+// Constructors
 impl Schema {
-    pub fn new(fields: Vec<Field>) -> Schema {
-        Schema { fields }
+    pub fn new(fields: Vec<Field>) -> Self {
+        Self { fields }
     }
 
-    pub fn for_schema_table() -> Schema {
-        Schema {
+    pub fn for_schema_table() -> Self {
+        Self {
             fields: vec![
                 Field::new("table_id", Type::Int64, true),
                 Field::new("table_name", Type::Bytes(20), false),
@@ -22,21 +23,22 @@ impl Schema {
         }
     }
 
-    pub fn merge(scheme1: Schema, scheme2: Schema) -> Schema {
-        let mut new_scheme = Schema {
-            ..Default::default()
-        };
-
-        for f in scheme1.fields {
-            new_scheme.fields.push(f);
+    pub fn small_int_schema(width: usize) -> Self {
+        let mut fields: Vec<Field> = Vec::new();
+        for i in 0..width {
+            let field = Field {
+                name: format!("int-column-{}", i),
+                t: Type::Int64,
+                is_primary: false,
+            };
+            fields.push(field);
         }
-        for f in scheme2.fields {
-            new_scheme.fields.push(f);
-        }
 
-        new_scheme
+        Self { fields }
     }
+}
 
+impl Schema {
     /// get tuple size in bytes
     pub fn get_size(&self) -> usize {
         let mut size = 0;
@@ -45,44 +47,4 @@ impl Schema {
         }
         size
     }
-}
-
-impl Clone for Schema {
-    fn clone(&self) -> Self {
-        Self {
-            fields: self.fields.to_vec(),
-        }
-    }
-}
-
-impl Default for Schema {
-    fn default() -> Schema {
-        Schema { fields: Vec::new() }
-    }
-}
-
-impl PartialEq for Schema {
-    fn eq(&self, other: &Self) -> bool {
-        let matching = self
-            .fields
-            .iter()
-            .zip(&other.fields)
-            .filter(|&(a, b)| a == b)
-            .count();
-        self.fields.len() == matching
-    }
-}
-
-pub fn small_int_schema(width: usize) -> Schema {
-    let mut fields: Vec<Field> = Vec::new();
-    for i in 0..width {
-        let field = Field {
-            name: format!("int-column-{}", i),
-            t: Type::Int64,
-            is_primary: false,
-        };
-        fields.push(field);
-    }
-
-    Schema { fields: fields }
 }
