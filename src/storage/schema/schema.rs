@@ -29,8 +29,9 @@ impl Schema {
             let field = Field {
                 name: format!("int-column-{}", i),
                 t: Type::Int64,
-                is_primary: false,
+                is_primary: i == 0,
             };
+
             fields.push(field);
         }
 
@@ -46,5 +47,14 @@ impl Schema {
             size += field.t.size();
         }
         size
+    }
+
+    pub fn get_key_field(&self) -> usize {
+        for (i, field) in self.fields.iter().enumerate() {
+            if field.is_primary {
+                return i;
+            }
+        }
+        panic!("no key field found");
     }
 }

@@ -86,7 +86,7 @@ impl BTreeTable {
         table_name: &str,
         table_id: Option<u32>,
         key_field: usize,
-        row_scheme: &Schema,
+        schema: &Schema,
     ) -> Self {
         let db_path = Database::global().get_path();
 
@@ -125,7 +125,7 @@ impl BTreeTable {
         let instance = Self {
             name: table_name.to_string(),
             key_field,
-            tuple_scheme: row_scheme.clone(),
+            tuple_scheme: schema.clone(),
             file: f,
             table_id,
 
