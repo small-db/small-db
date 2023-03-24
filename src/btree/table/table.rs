@@ -84,6 +84,7 @@ impl fmt::Display for BTreeTable {
 impl BTreeTable {
     pub fn new(
         table_name: &str,
+        table_id: Option<u32>,
         key_field: usize,
         row_scheme: &Schema,
     ) -> Self {
@@ -101,12 +102,25 @@ impl BTreeTable {
                 .unwrap(),
         );
 
+        let table_id = match table_id {
+            Some(id) => id,
+            None => {
+                let mut hasher = DefaultHasher::new();
+                table_name.hash(&mut hasher);
+
+                let unix_time = SystemTime::now();
+                unix_time.hash(&mut hasher);
+
+                hasher.finish() as u32
+            }
+        };
+
         let mut hasher = DefaultHasher::new();
         table_name.hash(&mut hasher);
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
 
-        let table_id = hasher.finish() as u32;
+        // let table_id = hasher.finish() as u32;
 
         let instance = Self {
             name: table_name.to_string(),

@@ -1,4 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    fs,
+    sync::{Arc, RwLock},
+};
 
 use log::debug;
 use rand::prelude::*;
@@ -32,6 +35,9 @@ pub const TEST_DB: &str = "test";
 /// - Reset log manager.
 pub fn setup() {
     utils::init_log();
+
+    fs::remove_dir_all("./data").unwrap();
+
     Database::mut_page_cache().clear();
     PageCache::set_page_size(DEFAULT_PAGE_SIZE);
     Database::mut_log_manager().reset();
@@ -53,6 +59,7 @@ pub fn new_empty_btree_table(
     let row_scheme = small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         table_name,
+        None,
         0,
         &row_scheme,
     )));
@@ -82,6 +89,7 @@ pub fn new_random_btree_table(
     let row_scheme = small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(
         TEST_DB,
+        None,
         key_field,
         &row_scheme,
     )));

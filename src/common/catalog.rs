@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use log::debug;
+
 use crate::{
     btree::table::NestedIterator,
     io::{Decodeable, Encodeable},
@@ -94,12 +96,16 @@ impl Catalog {
 
             let table = BTreeTable::new(
                 &table_name,
+                Some(table_id as u32),
                 key_field,
                 &table_schema,
             );
 
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
+
+        let catalog = Database::catalog();
+        debug!("catalog: {:?}", catalog.map.keys());
 
         tx.commit().unwrap();
 
@@ -119,6 +125,7 @@ impl Catalog {
                 schema_table_rc =
                     Arc::new(RwLock::new(BTreeTable::new(
                         SCHEMA_TBALE_NAME,
+                        Some(123),
                         0,
                         &Schema::for_schema_table(),
                     )));

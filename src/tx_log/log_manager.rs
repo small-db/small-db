@@ -212,7 +212,6 @@ impl LogManager {
                         let pid: BTreePageID =
                             read_into(&mut self.file);
 
-                        // skip the before page
                         let before_page: Vec<u8> =
                             read_into(&mut self.file);
 
@@ -675,11 +674,9 @@ impl LogManager {
         self.file.write(&page.get_pid())?;
 
         let before_data = page.get_before_image();
-        self.file.write(&before_data.len())?;
         self.file.write(&before_data)?;
 
         let after_data = page.get_page_data();
-        self.file.write(&after_data.len())?;
         self.file.write(&after_data)?;
 
         return Ok(());
