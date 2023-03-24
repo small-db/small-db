@@ -122,7 +122,6 @@ impl LogManager {
     }
 
     pub fn reset(&mut self) {
-        // self.file.file.set_len(0).unwrap();
         self.file.set_len(0).unwrap();
 
         self.tx_start_position.clear();
