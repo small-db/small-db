@@ -1,13 +1,12 @@
 use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
-    io::{Cursor, Read, Seek, SeekFrom, Write},
+    io::{Read, Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
 };
 
 use bit_vec::BitVec;
-use log::debug;
 
 use crate::{
     btree::page::BTreePage, error::SmallError, types::SmallResult,
