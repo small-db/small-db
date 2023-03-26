@@ -69,25 +69,22 @@ impl Database {
     /// - Status of `log_manager` will be reset, but the log file
     ///  itself will keep unchanged.
     pub fn reset() {
-        BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
-
-        // Drop the singleton if it's already initialized
-        unsafe {
-            if !SINGLETON.is_null() {
-                mem::drop(Box::from_raw(SINGLETON));
-            }
-        }
-
-        // Make it
+        // Initialize the new db instance.
         let singleton = Self::new();
 
         unsafe {
-            // Put it in the heap so it can outlive this call
+            if !SINGLETON.is_null() {
+                // Drop the previous db instance if it's already initialized.
+                mem::drop(Box::from_raw(SINGLETON));
+            }
+
+            // Put it in the heap so it can outlive this call.
             SINGLETON = mem::transmute(Box::new(singleton));
         }
     }
 
-    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
+    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool>
+    {
         Self::global().buffer_pool.wl()
     }
 

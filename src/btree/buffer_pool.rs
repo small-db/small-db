@@ -43,6 +43,8 @@ type Key = BTreePageID;
 
 impl BufferPool {
     pub fn new() -> Self {
+        BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
+
         Self {
             root_pointer_buffer: ConcurrentHashMap::new(),
             header_buffer: ConcurrentHashMap::new(),
