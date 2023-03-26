@@ -146,7 +146,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    &SearchFor::Target(index_predicate.field.clone()),
+                    &SearchFor::Target(index_predicate.cell.clone()),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
@@ -184,37 +184,37 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                 Some(t) => match self.predicate.op {
                     Op::Equals => {
                         let field = t.get_cell(self.key_field);
-                        if field == self.predicate.field {
+                        if field == self.predicate.cell {
                             return Some(t);
-                        } else if field > self.predicate.field {
+                        } else if field > self.predicate.cell {
                             return None;
                         }
                     }
                     Op::GreaterThan => {
                         let field = t.get_cell(self.key_field);
-                        if field > self.predicate.field {
+                        if field > self.predicate.cell {
                             return Some(t);
                         }
                     }
                     Op::GreaterThanOrEq => {
                         let field = t.get_cell(self.key_field);
-                        if field >= self.predicate.field {
+                        if field >= self.predicate.cell {
                             return Some(t);
                         }
                     }
                     Op::LessThan => {
                         let field = t.get_cell(self.key_field);
-                        if field < self.predicate.field {
+                        if field < self.predicate.cell {
                             return Some(t);
-                        } else if field >= self.predicate.field {
+                        } else if field >= self.predicate.cell {
                             return None;
                         }
                     }
                     Op::LessThanOrEq => {
                         let field = t.get_cell(self.key_field);
-                        if field <= self.predicate.field {
+                        if field <= self.predicate.cell {
                             return Some(t);
-                        } else if field > self.predicate.field {
+                        } else if field > self.predicate.cell {
                             return None;
                         }
                     }

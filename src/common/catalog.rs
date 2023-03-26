@@ -44,6 +44,8 @@ impl Catalog {
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
 
+        return Ok(());
+
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
         let mut table_names = HashMap::new();
@@ -99,10 +101,18 @@ impl Catalog {
     }
 
     pub fn get_table(&self, table_index: &Key) -> Option<&Value> {
+        let schema_tabel_rc = self.get_schema_table();
+        let schema_table = schema_tabel_rc.rl();
+
+        let tx = Transaction::new();
+        tx.start().unwrap();
+
+        let mut iter = schema_table.iter(&tx);
+
         self.map.get(table_index)
     }
 
-    pub fn get_schema_table(&mut self) -> Value {
+    pub fn get_schema_table(&self) -> Value {
         match self.get_table(&SCHEMA_TBALE_ID) {
             Some(rc) => rc.clone(),
             None => {
@@ -132,9 +142,11 @@ impl Catalog {
         }
     }
 
-    fn add_table_to_memory(&mut self, table_rc: Value) {
-        let id = table_rc.rl().get_id();
-        self.map.insert(id, Arc::clone(&table_rc));
+    fn add_table_to_memory(&self, table_rc: Value) {
+        // let id = table_rc.rl().get_id();
+        // self.map.insert(id, Arc::clone(&table_rc));
+
+        todo!()
     }
 
     fn add_table_to_disk(table_rc: Value) {

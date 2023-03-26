@@ -9,15 +9,9 @@ pub struct SmallError {
 
 impl SmallError {
     pub fn new(msg: &str) -> SmallError {
-        // panic!("msg: [{}]", msg);
-
-        let bt = Backtrace::new();
-        // error!("msg: [{}], backtrace: {:?}", msg, bt);
-
-        let details = format!("msg: [{}], backtrace: {:?}", msg, bt);
-
-        // let details = "abc\n123".to_string();
-
+        // let bt = Backtrace::new();
+        // let details = format!("msg: [{}], backtrace: {:?}", msg, bt);
+        let details = format!("msg: [{}]", msg);
         SmallError { details }
     }
 }

@@ -7,7 +7,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, get_leaf_page, new_empty_btree_table,
+    assert_true, crash, get_leaf_page, new_empty_btree_table,
     new_random_btree_table, search_key, setup, TreeLayout,
 };
 
@@ -67,19 +67,6 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
         panic!("abort failed: {}", e);
     }
     // assert_true(tx.abort().is_ok(), table);
-}
-
-/// Simulate crash.
-/// 1. restart Database
-/// 2. run log recovery
-fn crash() {
-    // BUG:
-    // The question here is there should not have any transaction
-    // before `recover` is called. But `reset` will call `load_schemas`,
-    // which will create a transaction.
-    Database::reset();
-
-    Database::mut_log_manager().recover().unwrap();
 }
 
 #[test]

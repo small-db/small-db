@@ -14,14 +14,14 @@ pub enum Op {
 #[derive(Clone)]
 pub struct Predicate {
     pub op: Op,
-    pub field: Cell,
+    pub cell: Cell,
 }
 
 impl Predicate {
-    pub fn new(op: Op, field: &Cell) -> Self {
+    pub fn new(op: Op, cell: &Cell) -> Self {
         Self {
             op,
-            field: field.clone(),
+            cell: cell.clone(),
         }
     }
 }

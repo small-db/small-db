@@ -10,12 +10,12 @@ use log::debug;
 
 use crate::{
     btree::{
+        buffer_pool::BufferPool,
         page::{
             BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
-        buffer_pool::BufferPool,
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
@@ -216,10 +216,14 @@ impl LogManager {
                         // TODO: construct a new page from the before
                         // page
                         let catalog = Database::catalog();
-                        let table_pod =
-                            catalog.get_table(&pid.table_id).ok_or(
-                                SmallError::new("table not found"),
-                            )?;
+                        let table_pod = catalog
+                            .get_table(&pid.table_id)
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "table {} not found",
+                                    pid.table_id
+                                )
+                            });
                         let table = table_pod.rl();
                         table.write_page_to_disk(&pid, &before_page);
 
