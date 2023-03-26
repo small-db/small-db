@@ -7,8 +7,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    btree::table::NestedIterator,
-    io::{Decodeable, Encodeable},
+    btree::table::{BTreeTableSearchIterator, NestedIterator},
+    io::{read_into, Decodeable, Encodeable},
     storage::{
         schema::{Field, Schema, Type},
         tuple::{Cell, Tuple},
@@ -16,7 +16,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable, Database, Op, Predicate,
 };
 
 const SCHEMA_TBALE_NAME: &str = "schemas";
@@ -38,8 +38,9 @@ impl Catalog {
 
     /// Load the catalog from disk.
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc =
-            Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog()
+            .get_table(&SCHEMA_TBALE_ID)
+            .unwrap();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
@@ -100,32 +101,68 @@ impl Catalog {
         Ok(())
     }
 
-    pub fn get_table(&self, table_index: &Key) -> Option<&Value> {
-        let schema_tabel_rc = self.get_schema_table();
-        let schema_table = schema_tabel_rc.rl();
+    /// Get the table from the catalog.
+    ///
+    /// If the table is not in the cached map of the catalog, then
+    /// search it in the `schemas` table and load it into the map.
+    ///
+    /// Return the table if it exists, otherwise return `None`.
+    pub fn get_table(&self, table_index: &Key) -> Option<Value> {
+        let schema_table_rc =
+            self.get_table(&SCHEMA_TBALE_ID).unwrap();
+        let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        let mut iter = schema_table.iter(&tx);
+        let predicate = Predicate::new(
+            Op::Equals,
+            &Cell::Int64(*table_index as i64),
+        );
+        let iter = BTreeTableSearchIterator::new(
+            &tx,
+            &schema_table,
+            &predicate,
+        );
+        let mut fields = Vec::new();
+        let mut table_name: Option<String> = None;
+        for tuple in iter {
+            table_name = Some(read_into(&mut Cursor::new(
+                tuple.get_cell(1).get_bytes().unwrap(),
+            )));
 
-        self.map.get(table_index)
+            let field_name: String = read_into(&mut Cursor::new(
+                tuple.get_cell(2).get_bytes().unwrap(),
+            ));
+            let field_type = read_into(&mut Cursor::new(
+                tuple.get_cell(3).get_bytes().unwrap(),
+            ));
+            let is_primary = tuple.get_cell(4).get_bool().unwrap();
+
+            let field =
+                Field::new(&field_name, field_type, is_primary);
+            fields.push(field);
+        }
+
+        let schema = Schema::new(fields);
+        let table = BTreeTable::new(
+            &table_name.unwrap(),
+            Some(*table_index),
+            &schema,
+        );
+
+        let table_rc = Arc::new(RwLock::new(table));
+
+        Some(table_rc)
     }
 
-    pub fn get_schema_table(&self) -> Value {
-        match self.get_table(&SCHEMA_TBALE_ID) {
-            Some(rc) => rc.clone(),
-            None => {
-                let schema_table_rc =
-                    Arc::new(RwLock::new(BTreeTable::new(
-                        SCHEMA_TBALE_NAME,
-                        Some(SCHEMA_TBALE_ID),
-                        &Schema::for_schema_table(),
-                    )));
-                self.add_table_to_memory(schema_table_rc.clone());
-                schema_table_rc
-            }
-        }
+    pub fn init_schema_table(&mut self) {
+        let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
+            SCHEMA_TBALE_NAME,
+            Some(SCHEMA_TBALE_ID),
+            &Schema::for_schema_table(),
+        )));
+        self.add_table_to_memory(schema_table_rc.clone());
     }
 
     pub fn get_tuple_scheme(
@@ -152,8 +189,9 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
-        let schema_table_rc =
-            Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog()
+            .get_table(&SCHEMA_TBALE_ID)
+            .unwrap();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
