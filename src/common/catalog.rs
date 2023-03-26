@@ -37,6 +37,8 @@ impl Catalog {
     }
 
     /// Load the catalog from disk.
+    /// 
+    /// TODO: remove this api
     pub fn load_schemas() -> SmallResult {
         let schema_table_rc = Database::mut_catalog()
             .get_table(&SCHEMA_TBALE_ID)
@@ -182,25 +184,9 @@ impl Catalog {
             .clone()
     }
 
-    pub fn get_tuple_scheme(
-        &self,
-        table_index: &Key,
-    ) -> Option<Schema> {
-        let table_rc = self.map.get(table_index);
-        match table_rc {
-            Some(table_rc) => {
-                let table = table_rc.rl();
-                Some(table.get_schema())
-            }
-            None => None,
-        }
-    }
-
-    fn add_table_to_memory(&self, table_rc: Value) {
-        // let id = table_rc.rl().get_id();
-        // self.map.insert(id, Arc::clone(&table_rc));
-
-        todo!()
+    fn add_table_to_memory(&mut self, table_rc: Value) {
+        let id = table_rc.rl().get_id();
+        self.map.insert(id, Arc::clone(&table_rc));
     }
 
     fn add_table_to_disk(table_rc: Value) {
