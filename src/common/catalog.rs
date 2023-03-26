@@ -37,7 +37,7 @@ impl Catalog {
     }
 
     /// Load the catalog from disk.
-    /// 
+    ///
     /// TODO: remove this api
     pub fn load_schemas() -> SmallResult {
         let schema_table_rc = Database::mut_catalog()
@@ -192,9 +192,8 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
-        let schema_table_rc = Database::mut_catalog()
-            .get_table(&SCHEMA_TBALE_ID)
-            .unwrap();
+        let schema_table_rc =
+            Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();

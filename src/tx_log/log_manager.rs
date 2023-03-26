@@ -175,6 +175,8 @@ impl LogManager {
             incomplete_transactions
         );
 
+        // let v = self.file.clone();
+
         self.file
             .seek(SeekFrom::End(0))
             .or(Err(SmallError::new("io error")))?;
