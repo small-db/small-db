@@ -12,7 +12,7 @@ use small_db::{
             BTreeInternalPage, BTreeLeafPage,
             BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
         },
-        page_cache::{PageCache, DEFAULT_PAGE_SIZE},
+        buffer_pool::{PageCache, DEFAULT_PAGE_SIZE},
     },
     common::Catalog,
     concurrent_status::Permission,

@@ -24,7 +24,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage, Entry,
             PageCategory,
         },
-        page_cache::PageCache,
+        buffer_pool::PageCache,
     },
     concurrent_status::Permission,
     storage::{

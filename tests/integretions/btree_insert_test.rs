@@ -1,7 +1,7 @@
 use rand::Rng;
 use small_db::{
     btree::{
-        page_cache::PageCache,
+        buffer_pool::PageCache,
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
     storage::tuple::{Cell, Tuple},

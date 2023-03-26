@@ -6,7 +6,7 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::page_cache::{PageCache, DEFAULT_PAGE_SIZE},
+    btree::buffer_pool::{PageCache, DEFAULT_PAGE_SIZE},
     concurrent_status::ConcurrentStatus,
     tx_log::LogManager,
     types::Pod,

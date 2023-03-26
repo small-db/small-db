@@ -15,7 +15,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
-        page_cache::PageCache,
+        buffer_pool::PageCache,
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},

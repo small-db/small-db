@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::{
-    btree::page_cache::PageCache,
+    btree::buffer_pool::PageCache,
     io::{read_into, Decodeable, Encodeable, SmallWriter},
 };
 

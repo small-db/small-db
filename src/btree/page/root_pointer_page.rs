@@ -7,7 +7,7 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::page_cache::PageCache,
+    btree::buffer_pool::PageCache,
     io::{Decodeable, SmallWriter},
     storage::schema::Schema,
 };

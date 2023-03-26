@@ -8,7 +8,7 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::{consts::INDEX_SIZE, page_cache::PageCache},
+    btree::{consts::INDEX_SIZE, buffer_pool::PageCache},
     concurrent_status::Permission,
     error::SmallError,
     io::{Decodeable, SmallWriter},
