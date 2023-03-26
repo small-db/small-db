@@ -107,9 +107,12 @@ impl Catalog {
     /// search it in the `schemas` table and load it into the map.
     ///
     /// Return the table if it exists, otherwise return `None`.
-    pub fn get_table(&self, table_index: &Key) -> Option<Value> {
-        let schema_table_rc =
-            self.get_table(&SCHEMA_TBALE_ID).unwrap();
+    pub fn get_table(&mut self, table_index: &Key) -> Option<Value> {
+        if let Some(table_rc) = self.map.get(table_index) {
+            return Some(table_rc.clone());
+        }
+
+        let schema_table_rc = self.get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
@@ -125,9 +128,9 @@ impl Catalog {
             &predicate,
         );
         let mut fields = Vec::new();
-        let mut table_name: Option<String> = None;
+        let mut table_name_option: Option<String> = None;
         for tuple in iter {
-            table_name = Some(read_into(&mut Cursor::new(
+            table_name_option = Some(read_into(&mut Cursor::new(
                 tuple.get_cell(1).get_bytes().unwrap(),
             )));
 
@@ -144,25 +147,39 @@ impl Catalog {
             fields.push(field);
         }
 
-        let schema = Schema::new(fields);
-        let table = BTreeTable::new(
-            &table_name.unwrap(),
-            Some(*table_index),
-            &schema,
-        );
+        match table_name_option {
+            Some(table_name) => {
+                let schema = Schema::new(fields);
+                let table = BTreeTable::new(
+                    &table_name,
+                    Some(*table_index),
+                    &schema,
+                );
 
-        let table_rc = Arc::new(RwLock::new(table));
+                let table_rc = Arc::new(RwLock::new(table));
 
-        Some(table_rc)
+                self.map.insert(*table_index, table_rc.clone());
+                Some(table_rc)
+            }
+            None => {
+                return None;
+            }
+        }
     }
 
-    pub fn init_schema_table(&mut self) {
-        let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
-            SCHEMA_TBALE_NAME,
-            Some(SCHEMA_TBALE_ID),
-            &Schema::for_schema_table(),
-        )));
-        self.add_table_to_memory(schema_table_rc.clone());
+    pub fn get_schema_table(&mut self) -> Value {
+        self.map
+            .entry(SCHEMA_TBALE_ID)
+            .or_insert_with(|| {
+                let schema_table_rc =
+                    Arc::new(RwLock::new(BTreeTable::new(
+                        SCHEMA_TBALE_NAME,
+                        Some(SCHEMA_TBALE_ID),
+                        &Schema::for_schema_table(),
+                    )));
+                schema_table_rc
+            })
+            .clone()
     }
 
     pub fn get_tuple_scheme(

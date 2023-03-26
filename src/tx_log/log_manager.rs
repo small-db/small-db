@@ -215,7 +215,7 @@ impl LogManager {
 
                         // TODO: construct a new page from the before
                         // page
-                        let catalog = Database::catalog();
+                        let mut catalog = Database::mut_catalog();
                         let table_pod = catalog
                             .get_table(&pid.table_id)
                             .unwrap_or_else(|| {
@@ -690,7 +690,7 @@ impl LogManager {
         before_image: &Vec<u8>,
         page_cache: &BufferPool,
     ) -> SmallResult {
-        let catalog = Database::catalog();
+        let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 
@@ -752,7 +752,7 @@ impl LogManager {
 
         let data: Vec<u8> = read_into(&mut self.file);
 
-        let catalog = Database::catalog();
+        let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
         let table = table_pod.rl();
 
@@ -993,7 +993,7 @@ impl LogManager {
         match page_category {
             PageCategory::Leaf => {
                 // TODO: use real value for schema, key_field and pid
-                let catalog = Database::catalog();
+                let mut catalog = Database::mut_catalog();
                 let table_rc =
                     catalog.get_table(&pid.table_id).unwrap();
                 let schema = table_rc.rl().get_schema();

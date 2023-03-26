@@ -78,7 +78,7 @@ impl BufferPool {
         PAGE: BTreePage,
     {
         // stage 1: get table
-        let catalog = Database::catalog();
+        let mut catalog = Database::mut_catalog();
         let v = catalog.get_table(&pid.get_table_id()).expect(
             &format!("table {} not found", pid.get_table_id()),
         );
@@ -301,7 +301,7 @@ impl BufferPool {
         log_manager: &mut LogManager,
     ) {
         // stage 1: get table
-        let catalog = Database::catalog();
+        let mut catalog = Database::mut_catalog();
         let table_pod =
             catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
@@ -378,7 +378,7 @@ impl BufferPool {
         buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         // step 1: get table
-        let catalog = Database::catalog();
+        let mut catalog = Database::mut_catalog();
         let table_pod =
             catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
