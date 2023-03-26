@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::{
-    btree::buffer_pool::PageCache,
+    btree::buffer_pool::BufferPool,
     io::{read_into, Decodeable, Encodeable, SmallWriter},
 };
 
@@ -137,6 +137,6 @@ impl Decodeable for BTreePageID {
 }
 
 pub fn empty_page_data() -> Vec<u8> {
-    let data: Vec<u8> = vec![0; PageCache::get_page_size()];
+    let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
     data
 }

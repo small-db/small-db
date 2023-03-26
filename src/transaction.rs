@@ -2,7 +2,7 @@ use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    btree::buffer_pool::PageCache, types::SmallResult, Database,
+    btree::buffer_pool::BufferPool, types::SmallResult, Database,
 };
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -25,23 +25,23 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        self.complete(true, &Database::mut_page_cache())
+        self.complete(true, &Database::mut_buffer_pool())
     }
 
     pub fn manual_commit(
         &self,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         self.complete(true, page_cache)
     }
 
     pub fn abort(&self) -> SmallResult {
-        self.complete(false, &Database::mut_page_cache())
+        self.complete(false, &Database::mut_buffer_pool())
     }
 
     pub fn manual_abort(
         &self,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         self.complete(false, page_cache)
     }
@@ -49,7 +49,7 @@ impl Transaction {
     fn complete(
         &self,
         commit: bool,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         // write abort log record and rollback transaction
         if !commit {

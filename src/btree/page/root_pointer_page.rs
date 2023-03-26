@@ -7,7 +7,7 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::buffer_pool::PageCache,
+    btree::buffer_pool::BufferPool,
     io::{Decodeable, SmallWriter},
     storage::schema::Schema,
 };
@@ -153,7 +153,7 @@ impl BTreePage for BTreeRootPointerPage {
         // write header page index
         writer.write(&self.header_page_index);
 
-        return writer.to_padded_bytes(PageCache::get_page_size());
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
     fn set_before_image(&mut self) {

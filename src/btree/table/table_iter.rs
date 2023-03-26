@@ -68,7 +68,7 @@ impl Iterator for BTreeTableIterator<'_> {
         let right = self.page_rc.rl().get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = Database::mut_page_cache()
+                let sibling_rc = Database::mut_buffer_pool()
                     .get_leaf_page(
                         &self.tx,
                         Permission::ReadOnly,
@@ -100,7 +100,7 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
         let left = self.last_page_rc.rl().get_left_pid();
         match left {
             Some(left) => {
-                let sibling_rc = Database::mut_page_cache()
+                let sibling_rc = Database::mut_buffer_pool()
                     .get_leaf_page(
                         self.tx,
                         Permission::ReadOnly,
@@ -227,7 +227,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                         (*self.current_page_rc).rl().get_right_pid();
                     match right {
                         Some(pid) => {
-                            let rc = Database::mut_page_cache()
+                            let rc = Database::mut_buffer_pool()
                                 .get_leaf_page(
                                     self.tx,
                                     Permission::ReadOnly,
@@ -290,7 +290,7 @@ where
         let right = self.page_it.page.get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = Database::mut_page_cache()
+                let sibling_rc = Database::mut_buffer_pool()
                     .get_leaf_page(
                         &self.tx,
                         Permission::ReadOnly,

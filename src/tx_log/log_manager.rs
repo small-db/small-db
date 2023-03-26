@@ -15,7 +15,7 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage,
             PageCategory,
         },
-        buffer_pool::PageCache,
+        buffer_pool::BufferPool,
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
@@ -408,7 +408,7 @@ impl LogManager {
     pub fn log_abort(
         &mut self,
         tx: &Transaction,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         // must have page cache lock before proceeding, since this
         // calls rollback let cache =
@@ -455,7 +455,7 @@ impl LogManager {
 
     pub fn log_checkpoint(&mut self) -> SmallResult {
         // make sure we have buffer pool lock before proceeding
-        let cache = Database::mut_page_cache();
+        let cache = Database::mut_buffer_pool();
 
         self.pre_append()?;
 
@@ -522,7 +522,7 @@ impl LogManager {
     fn rollback(
         &mut self,
         tx: &Transaction,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
@@ -684,7 +684,7 @@ impl LogManager {
         &mut self,
         pid: &BTreePageID,
         before_image: &Vec<u8>,
-        page_cache: &PageCache,
+        page_cache: &BufferPool,
     ) -> SmallResult {
         let catalog = Database::catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();

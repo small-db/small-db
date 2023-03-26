@@ -24,7 +24,7 @@ use crate::{
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
-pub struct PageCache {
+pub struct BufferPool {
     pub root_pointer_buffer: ConcurrentHashMap<
         BTreePageID,
         Arc<RwLock<BTreeRootPointerPage>>,
@@ -41,7 +41,7 @@ pub struct PageCache {
 
 type Key = BTreePageID;
 
-impl PageCache {
+impl BufferPool {
     pub fn new() -> Self {
         Self {
             root_pointer_buffer: ConcurrentHashMap::new(),

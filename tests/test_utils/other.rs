@@ -26,7 +26,7 @@ pub fn get_internal_page(
 ) -> Pod<BTreeInternalPage> {
     let tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
-    let root_pod = Database::mut_page_cache()
+    let root_pod = Database::mut_buffer_pool()
         .get_internal_page(&tx, Permission::ReadOnly, &root_pid)
         .unwrap();
 
@@ -41,7 +41,7 @@ pub fn get_internal_page(
                     BTreeInternalPageIterator::new(&root_pod.rl())
                         .next()
                         .unwrap();
-                let left_child_rc = Database::mut_page_cache()
+                let left_child_rc = Database::mut_buffer_pool()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -57,7 +57,7 @@ pub fn get_internal_page(
                         .skip(index - 1)
                         .next()
                         .unwrap();
-                let left_child_rc = Database::mut_page_cache()
+                let left_child_rc = Database::mut_buffer_pool()
                     .get_internal_page(
                         &tx,
                         Permission::ReadOnly,
@@ -81,7 +81,7 @@ pub fn get_leaf_page(
         0 => {
             let tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
-            let root_pod = Database::mut_page_cache()
+            let root_pod = Database::mut_buffer_pool()
                 .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
                 .unwrap();
             tx.commit().unwrap();
@@ -95,7 +95,7 @@ pub fn get_leaf_page(
                 BTreeInternalPageIterator::new(&internal_pod.rl())
                     .next()
                     .unwrap();
-            let leaf_pod = Database::mut_page_cache()
+            let leaf_pod = Database::mut_buffer_pool()
                 .get_leaf_page(
                     &tx,
                     Permission::ReadOnly,

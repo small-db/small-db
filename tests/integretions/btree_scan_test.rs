@@ -26,7 +26,7 @@ fn test_scan(rows: usize, columns: usize) {
     validate_scan(&mut it, &int_tuples);
 
     // TODO: find a better solution
-    Database::mut_page_cache().clear();
+    Database::mut_buffer_pool().clear();
     Database::concurrent_status().clear();
 }
 

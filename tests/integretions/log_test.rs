@@ -31,14 +31,14 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);
 
     // step 5: commit the transaction
-    tx.manual_commit(&Database::mut_page_cache()).unwrap();
+    tx.manual_commit(&Database::mut_buffer_pool()).unwrap();
 }
 
 /// Insert two tuples into the table, then abort the transaction.
@@ -376,11 +376,11 @@ fn test_open_commit_checkpoint_open_crash() {
     // (since ARIES is a steal/no-force recovery algorithm, we
     // simulate the "steal" scenario here by flushing the buffer
     // pool)
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
 
     insert_row(&table_1, &t1, 13);
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
 
     insert_row(&table_1, &t1, 14);
@@ -394,7 +394,7 @@ fn test_open_commit_checkpoint_open_crash() {
     tx_3.start().unwrap();
     insert_row(&table_2, &tx_3, 28);
     // defeat NO-STEAL-based abort
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_2, &tx_3, 29);
 
@@ -479,7 +479,7 @@ fn test_open_commit_open_crash() {
     tx_1.start().unwrap();
     insert_row(&table_1, &tx_1, 10);
     // defeat NO-STEAL-based abort
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &tx_1, 11);
 
@@ -490,7 +490,7 @@ fn test_open_commit_open_crash() {
     tx_3.start().unwrap();
     insert_row(&table_2, &tx_3, 24);
     // defeat NO-STEAL-based abort
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_2, &tx_3, 25);
 
@@ -554,7 +554,7 @@ fn test_open_crash() {
     tx_1.start().unwrap();
     insert_row(&table_1, &tx_1, 8);
     // something to UNDO (what?)
-    Database::mut_page_cache()
+    Database::mut_buffer_pool()
         .flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &tx_1, 9);
 

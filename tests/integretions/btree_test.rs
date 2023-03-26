@@ -3,7 +3,7 @@ use std::thread;
 use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
-    btree::{buffer_pool::PageCache, table::BTreeTableSearchIterator},
+    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
     transaction::Transaction,
     types::Pod,
@@ -70,7 +70,7 @@ fn test_big_table() {
 
     // For this test we will decrease the size of the Buffer Pool
     // pages.
-    PageCache::set_page_size(1024);
+    BufferPool::set_page_size(1024);
 
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.

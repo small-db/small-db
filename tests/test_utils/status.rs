@@ -12,7 +12,7 @@ use small_db::{
             BTreeInternalPage, BTreeLeafPage,
             BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
         },
-        buffer_pool::{PageCache, DEFAULT_PAGE_SIZE},
+        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
     },
     common::Catalog,
     concurrent_status::Permission,
@@ -169,7 +169,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let leaf_rc = Database::mut_page_cache()
+        let leaf_rc = Database::mut_buffer_pool()
             .get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         leaves.push(leaf_rc.clone());
@@ -243,7 +243,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let internal_rc = Database::mut_page_cache()
+        let internal_rc = Database::mut_buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
         internals.push(internal_rc.clone());
@@ -311,7 +311,7 @@ fn write_internal_pages(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let root_rc = Database::mut_page_cache()
+        let root_rc = Database::mut_buffer_pool()
             .get_internal_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
 

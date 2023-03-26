@@ -6,7 +6,7 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::buffer_pool::{PageCache, DEFAULT_PAGE_SIZE},
+    btree::buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
     concurrent_status::ConcurrentStatus,
     tx_log::LogManager,
     types::Pod,
@@ -30,7 +30,7 @@ use crate::{
 pub struct Database {
     path: PathBuf,
 
-    buffer_pool: Pod<PageCache>,
+    buffer_pool: Pod<BufferPool>,
     catalog: Pod<Catalog>,
     concurrent_status: ConcurrentStatus,
     log_file: Pod<LogManager>,
@@ -51,7 +51,7 @@ impl Database {
         Self {
             path: db_path,
 
-            buffer_pool: Arc::new(RwLock::new(PageCache::new())),
+            buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
             log_file: Arc::new(RwLock::new(LogManager::new(
@@ -69,7 +69,7 @@ impl Database {
     /// - Status of `log_manager` will be reset, but the log file
     ///  itself will keep unchanged.
     pub fn reset() {
-        PageCache::set_page_size(DEFAULT_PAGE_SIZE);
+        BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 
         // Drop the singleton if it's already initialized
         unsafe {
@@ -87,12 +87,8 @@ impl Database {
         }
     }
 
-    pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {
+    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
         Self::global().buffer_pool.wl()
-    }
-
-    pub fn buffer_pool_pod() -> Arc<RwLock<PageCache>> {
-        Self::global().buffer_pool.clone()
     }
 
     pub fn concurrent_status() -> &'static ConcurrentStatus {
