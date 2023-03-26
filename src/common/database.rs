@@ -82,7 +82,7 @@ impl Database {
             SINGLETON = mem::transmute(Box::new(singleton));
         }
 
-        // Catalog::load_schemas().unwrap();
+        Catalog::load_schemas().unwrap();
     }
 
     pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool>

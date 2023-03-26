@@ -40,21 +40,22 @@ impl Catalog {
     ///
     /// TODO: remove this api
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc = Database::mut_catalog()
-            .get_table(&SCHEMA_TBALE_ID)
-            .unwrap();
+        let schema_table_rc =
+            Database::mut_catalog().get_schema_table();
+        // .get_table(&SCHEMA_TBALE_ID)
+        // .unwrap();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
 
-        return Ok(());
+        // return Ok(());
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
         let mut table_names = HashMap::new();
 
         let tx = Transaction::new();
-        tx.start()?;
+        // tx.start()?;
         let schema_table = schema_table_rc.rl();
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
@@ -98,7 +99,7 @@ impl Catalog {
         let catalog = Database::catalog();
         debug!("catalog: {:?}", catalog.map.keys());
 
-        tx.commit().unwrap();
+        // tx.commit().unwrap();
 
         Ok(())
     }
