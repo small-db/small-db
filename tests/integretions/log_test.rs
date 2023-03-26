@@ -74,9 +74,9 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 /// 2. run log recovery
 fn crash() {
     // BUG:
-    // The question here is there should not have any tx before
-    // `recover` is called. But `reset` will call `load_schemas`,
-    // which will create a tx.
+    // The question here is there should not have any transaction
+    // before `recover` is called. But `reset` will call `load_schemas`,
+    // which will create a transaction.
     Database::reset();
 
     Database::mut_log_manager().recover().unwrap();

@@ -6,9 +6,11 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::page_cache::PageCache,
-    concurrent_status::ConcurrentStatus, tx_log::LogManager,
-    types::Pod, utils::HandyRwLock,
+    btree::page_cache::{PageCache, DEFAULT_PAGE_SIZE},
+    concurrent_status::ConcurrentStatus,
+    tx_log::LogManager,
+    types::Pod,
+    utils::HandyRwLock,
 };
 
 /// We collect all global variables here.
@@ -39,15 +41,15 @@ static mut SINGLETON: *mut Database = 0 as *mut Database;
 impl Database {
     fn new() -> Self {
         let db_name = "default_db";
-        let path = PathBuf::from("data").join(db_name);
-        if !path.exists() {
-            std::fs::create_dir_all(&path).unwrap();
+        let db_path = PathBuf::from("data").join(db_name);
+        if !db_path.exists() {
+            std::fs::create_dir_all(&db_path).unwrap();
         }
 
-        let log_path = path.join("wal.log");
+        let log_path = db_path.join("wal.log");
 
         Self {
-            path,
+            path: db_path,
 
             buffer_pool: Arc::new(RwLock::new(PageCache::new())),
             concurrent_status: ConcurrentStatus::new(),
@@ -58,9 +60,23 @@ impl Database {
         }
     }
 
-    /// Reset the database, used for unit tests only.
+    /// Reset the memory status of the database, used for tests
+    /// mostly.
+    ///
+    /// Actions:
+    /// - Page cache will be cleared.
+    /// - Catalog will be cleared.
+    /// - Status of `log_manager` will be reset, but the log file
+    ///  itself will keep unchanged.
     pub fn reset() {
-        mem::drop(unsafe { Box::from_raw(SINGLETON) });
+        PageCache::set_page_size(DEFAULT_PAGE_SIZE);
+
+        // Drop the singleton if it's already initialized
+        unsafe {
+            if !SINGLETON.is_null() {
+                mem::drop(Box::from_raw(SINGLETON));
+            }
+        }
 
         // Make it
         let singleton = Self::new();
@@ -69,8 +85,6 @@ impl Database {
             // Put it in the heap so it can outlive this call
             SINGLETON = mem::transmute(Box::new(singleton));
         }
-
-        Catalog::load_schemas().unwrap();
     }
 
     pub fn mut_page_cache() -> RwLockWriteGuard<'static, PageCache> {

@@ -20,10 +20,10 @@ use crate::{
 };
 
 const SCHEMA_TBALE_NAME: &str = "schemas";
+const SCHEMA_TBALE_ID: u32 = 123;
 
 pub struct Catalog {
     map: HashMap<Key, Value>,
-    schema_table: Option<Arc<RwLock<BTreeTable>>>,
 }
 
 type Key = u32;
@@ -33,11 +33,6 @@ impl Catalog {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
-
-            // Lazy initialization it in `load_schemas()`, since the
-            // construction of `Table` relies on `Database` instance,
-            // which is not initialized yet.
-            schema_table: None,
         }
     }
 
@@ -108,18 +103,16 @@ impl Catalog {
     }
 
     pub fn get_schema_table(&mut self) -> Value {
-        let schema_table_rc;
-
-        match &self.schema_table {
+        match self.get_table(&SCHEMA_TBALE_ID) {
             Some(rc) => rc.clone(),
             None => {
-                schema_table_rc =
+                let schema_table_rc =
                     Arc::new(RwLock::new(BTreeTable::new(
                         SCHEMA_TBALE_NAME,
-                        Some(123),
+                        Some(SCHEMA_TBALE_ID),
                         &Schema::for_schema_table(),
                     )));
-                self.schema_table = Some(schema_table_rc.clone());
+                self.add_table_to_memory(schema_table_rc.clone());
                 schema_table_rc
             }
         }

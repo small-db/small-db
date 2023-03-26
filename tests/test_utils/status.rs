@@ -35,11 +35,8 @@ pub const TEST_DB: &str = "test";
 pub fn setup() {
     utils::init_log();
 
-    fs::remove_dir_all("./data").unwrap();
-
-    Database::mut_page_cache().clear();
-    PageCache::set_page_size(DEFAULT_PAGE_SIZE);
-    Database::mut_log_manager().reset();
+    // Remote the data directory, ignore the error
+    let _ = fs::remove_dir_all("./data");
 
     Database::reset();
 }

@@ -19,6 +19,10 @@ pub struct SmallFile {
 }
 
 impl SmallFile {
+    /// Create a new `SmallFile` from the given file path and open it
+    /// with read and write mode.
+    ///
+    /// If the file doesn't exist, it will be created.
     pub fn new<P: AsRef<Path>>(file_path: P) -> Self {
         let file = OpenOptions::new()
             .write(true)
