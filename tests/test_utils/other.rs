@@ -11,12 +11,13 @@ use small_db::{
 };
 
 pub fn leaf_records_cap() -> usize {
-    let scheme = Schema::small_int_schema(2);
-    BTreeLeafPage::calculate_slots_count(&scheme)
+    let schema = Schema::small_int_schema(2);
+    BTreeLeafPage::get_children_cap(&schema)
 }
 
 pub fn internal_children_cap() -> usize {
-    BTreeInternalPage::get_children_cap(4) + 1
+    let schema = Schema::small_int_schema(2);
+    BTreeInternalPage::get_children_cap(&schema)
 }
 
 pub fn get_internal_page(

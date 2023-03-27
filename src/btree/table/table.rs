@@ -1062,7 +1062,7 @@ impl BTreeTable {
                 prefix,
                 page.get_pid(),
                 page.tuples_count(),
-                page.slot_count,
+                page.get_slots_count(),
                 lock_state,
             ));
         }

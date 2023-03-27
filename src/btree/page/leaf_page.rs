@@ -34,7 +34,7 @@ use crate::{
 pub struct BTreeLeafPage {
     base: BTreeBasePage,
 
-    pub slot_count: usize,
+    slot_count: usize,
 
     // indicate slots' status: true means occupied, false means empty
     header: BitVec<u32>,
@@ -61,7 +61,7 @@ impl BTreeLeafPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid, bytes, schema);
         } else {
-            let slot_count = Self::calculate_slots_count(&schema);
+            let slot_count = Self::get_children_cap(&schema);
 
             let mut reader = Cursor::new(bytes);
 
@@ -124,7 +124,7 @@ impl BTreeLeafPage {
         bytes: &[u8],
         schema: &Schema,
     ) -> Self {
-        let slot_count = Self::calculate_slots_count(&schema);
+        let slot_count = Self::get_children_cap(&schema);
 
         let mut reader = Cursor::new(bytes);
 
@@ -386,12 +386,12 @@ impl BTreeLeafPage {
     }
 }
 
-// Methods for accessing const attributes.
+/// Methods for accessing const attributes.
 impl BTreeLeafPage {
-    /// Retrieve the maximum number of tuples this page can hold.
-    pub fn calculate_slots_count(scheme: &Schema) -> usize {
+    /// Get the capacity of children (tuples) in this page.
+    pub fn get_children_cap(schema: &Schema) -> usize {
         let bits_per_tuple_including_header =
-            scheme.get_disk_size() * 8 + 1;
+            schema.get_disk_size() * 8 + 1;
 
         // extraBits:
         // - page category (4 bytes)

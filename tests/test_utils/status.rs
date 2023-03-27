@@ -160,7 +160,7 @@ fn sequential_insert_into_table(
 
     let leaf_buckets = get_buckets(
         tuples.len(),
-        BTreeLeafPage::calculate_slots_count(&schema),
+        BTreeLeafPage::get_children_cap(&schema),
         tree_layout,
     );
 

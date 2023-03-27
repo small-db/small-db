@@ -62,4 +62,13 @@ impl Schema {
     pub fn get_fields(&self) -> &Vec<Field> {
         &self.fields
     }
+
+    pub fn get_pkey(&self) -> &Field {
+        for field in self.get_fields() {
+            if field.is_primary {
+                return field;
+            }
+        }
+        panic!("no key field found");
+    }
 }

@@ -68,6 +68,9 @@ pub struct BTreeInternalPage {
 
     /// The number of slots in the page, including the empty slots.
     ///
+    /// Also including the dummy slots. (So the capacity of entries
+    /// is `slot_count - 1`.)
+    ///
     /// This filed should never be changed after the page is created.
     slot_count: usize,
 
@@ -91,11 +94,7 @@ impl BTreeInternalPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid, bytes, schema);
         } else {
-            let key_field = schema.get_key_pos();
-            let key_size = schema.get_fields()[key_field]
-                .get_type()
-                .get_disk_size();
-            let slot_count = Self::get_children_cap(key_size) + 1;
+            let slot_count = Self::get_children_cap(schema);
 
             let mut reader = Cursor::new(bytes);
 
@@ -166,10 +165,7 @@ impl BTreeInternalPage {
         bytes: &[u8],
         schema: &Schema,
     ) -> Self {
-        let key_field = schema.get_key_pos();
-        let key_size =
-            schema.get_fields()[key_field].get_type().get_disk_size();
-        let slot_count = Self::get_children_cap(key_size) + 1;
+        let slot_count = Self::get_children_cap(schema);
 
         let mut reader = Cursor::new(bytes);
 
@@ -251,9 +247,7 @@ impl BTreeInternalPage {
             return true;
         }
 
-        let max_empty_slots =
-            floor_div(self.get_children_capacity(), 2);
-        return self.empty_slots_count() <= max_empty_slots;
+        self.children_count() >= self.get_stable_threshold()
     }
 
     pub fn get_entry(&self, index: usize) -> Option<Entry> {
@@ -436,11 +430,10 @@ impl BTreeInternalPage {
 
         if check_occupancy && depth > 0 {
             assert!(
-                self.children_count()
-                    >= Self::get_stable_threshold(4),
+                self.children_count() >= self.slot_count / 2,
                 "children count: {}, max children: {}, pid: {:?}",
                 self.children_count(),
-                Self::get_children_cap(4),
+                self.slot_count / 2,
                 self.get_pid(),
             );
         }
@@ -558,28 +551,40 @@ impl BTreeInternalPage {
     }
 
     pub fn children_count(&self) -> usize {
-        self.slot_count - self.empty_slots_count()
+        let children_count =
+            self.slot_count - self.empty_slots_count();
+
+        // The minimum number of children is 2. (Since a single child
+        // cannot form an entry.)
+        if children_count < 2 {
+            return 0;
+        }
+
+        children_count
     }
 
     pub fn entries_count(&self) -> usize {
         self.slot_count - self.empty_slots_count() - 1
     }
+
+    /// Get the minimum number of children (pages) needed to keep this
+    /// page stable.
+    pub fn get_stable_threshold(&self) -> usize {
+        floor_div(self.slot_count, 2)
+    }
 }
 
-// Methods for accessing const attributes.
+/// Associated functions.
 impl BTreeInternalPage {
     pub fn get_children_capacity(&self) -> usize {
         self.slot_count
     }
 
-    /// Retrive the minimum number of children needed to keep this
-    /// page stable.
-    pub fn get_stable_threshold(key_size: usize) -> usize {
-        floor_div(Self::get_children_cap(key_size), 2)
-    }
+    /// Get the capacity of children (pages) in this page. The
+    /// capacity of entries is one less than it.
+    pub fn get_children_cap(schema: &Schema) -> usize {
+        let key_size = schema.get_pkey().get_type().get_disk_size();
 
-    /// Retrieve the maximum number of children this page can hold.
-    pub fn get_children_cap(key_size: usize) -> usize {
         let bits_per_entry_including_header =
             key_size * 8 + INDEX_SIZE * 8 + 1;
 
@@ -596,7 +601,7 @@ impl BTreeInternalPage {
         let entries_per_page = (BufferPool::get_page_size() * 8
             - extra_bits)
             / bits_per_entry_including_header; // round down
-        return entries_per_page;
+        return entries_per_page + 1;
     }
 }
 
