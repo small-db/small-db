@@ -83,6 +83,7 @@ impl Database {
         }
 
         Catalog::load_schemas().unwrap();
+        Database::mut_log_manager().recover().unwrap();
     }
 
     pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool>

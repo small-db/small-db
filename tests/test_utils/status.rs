@@ -45,13 +45,7 @@ pub fn setup() {
 /// 1. restart Database
 /// 2. run log recovery
 pub fn crash() {
-    // BUG:
-    // The question here is there should not have any transaction
-    // before `recover` is called. But `reset` will call `load_schemas`,
-    // which will create a transaction.
     Database::reset();
-
-    Database::mut_log_manager().recover().unwrap();
 }
 
 #[derive(Clone, Copy, Debug)]

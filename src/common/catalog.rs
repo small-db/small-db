@@ -42,13 +42,9 @@ impl Catalog {
     pub fn load_schemas() -> SmallResult {
         let schema_table_rc =
             Database::mut_catalog().get_schema_table();
-        // .get_table(&SCHEMA_TBALE_ID)
-        // .unwrap();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
-
-        // return Ok(());
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
@@ -96,8 +92,10 @@ impl Catalog {
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
 
-        let catalog = Database::catalog();
-        debug!("catalog: {:?}", catalog.map.keys());
+        {
+            let catalog = Database::catalog();
+            debug!("catalog: {:?}", catalog.map.keys());
+        }
 
         tx.commit().unwrap();
 

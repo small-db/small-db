@@ -109,14 +109,19 @@ impl LogManager {
     /// entries, then first throw out the initial log file
     /// contents.
     pub fn new<P: AsRef<Path> + Clone>(file_path: P) -> Self {
-        let file = SmallFile::new(file_path);
+        let mut file = SmallFile::new(file_path);
+
+        let size = file.get_size().unwrap();
+        file.seek(SeekFrom::End(0)).unwrap();
 
         Self {
             tx_start_position: HashMap::new(),
             file,
-            current_offset: 0,
+
+            // init current_offset to the end of the file
+            current_offset: size,
+
             total_records: 0,
-            // recovery_undecided: true,
         }
     }
 
@@ -799,6 +804,11 @@ impl LogManager {
     // the DB wants to do recovery, we're sure now -- it didn't.
     // So truncate the log.
     fn pre_append(&mut self) -> SmallResult {
+        // let size = self.file.seek(pos)
+        if self.file.get_size()? == 0 {
+            self.reset_file()?;
+        }
+
         // self.total_records += 1;
 
         // if self.recovery_undecided {
@@ -865,7 +875,6 @@ impl LogManager {
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
-                    // read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
