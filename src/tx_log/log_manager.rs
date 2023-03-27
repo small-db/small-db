@@ -90,9 +90,8 @@ pub struct LogManager {
     ///
     /// TODO: Figure out what this is used for, and if it's needed.
     total_records: usize,
-
-    /// no call to recover() and no append to log
-    recovery_undecided: bool,
+    // no call to recover() and no append to log
+    // recovery_undecided: bool,
 }
 
 impl LogManager {
@@ -117,7 +116,7 @@ impl LogManager {
             file,
             current_offset: 0,
             total_records: 0,
-            recovery_undecided: true,
+            // recovery_undecided: true,
         }
     }
 
@@ -127,7 +126,7 @@ impl LogManager {
         self.tx_start_position.clear();
         self.current_offset = 0;
         self.total_records = 0;
-        self.recovery_undecided = true;
+        // self.recovery_undecided = true;
     }
 
     pub fn records_count(&self) -> usize {
@@ -161,7 +160,7 @@ impl LogManager {
     /// operations that undo transactions are logged as well to
     /// avoid repeating them.
     pub fn recover(&mut self) -> SmallResult {
-        self.recovery_undecided = false;
+        // self.recovery_undecided = false;
 
         // undo phase
 
@@ -286,6 +285,19 @@ impl LogManager {
             self.file.seek(SeekFrom::Start(record_start_pos))?;
         }
 
+        self.reset_file()?;
+
+        Ok(())
+    }
+
+    /// Resets the log file to the initial state.
+    fn reset_file(&mut self) -> SmallResult {
+        self.file
+            .set_len(0)
+            .or(Err(SmallError::new("set_len failed")))?;
+        self.file.seek(SeekFrom::Start(0))?;
+        self.file.write(&NO_CHECKPOINT)?;
+        self.current_offset = self.file.get_current_position()?;
         Ok(())
     }
 
@@ -787,17 +799,17 @@ impl LogManager {
     // the DB wants to do recovery, we're sure now -- it didn't.
     // So truncate the log.
     fn pre_append(&mut self) -> SmallResult {
-        self.total_records += 1;
+        // self.total_records += 1;
 
-        if self.recovery_undecided {
-            self.recovery_undecided = false;
-            self.file
-                .set_len(0)
-                .or(Err(SmallError::new("set_len failed")))?;
-            self.file.seek(SeekFrom::Start(0))?;
-            self.file.write(&NO_CHECKPOINT)?;
-            self.current_offset = self.file.get_current_position()?;
-        }
+        // if self.recovery_undecided {
+        //     self.recovery_undecided = false;
+        //     self.file
+        //         .set_len(0)
+        //         .or(Err(SmallError::new("set_len failed")))?;
+        //     self.file.seek(SeekFrom::Start(0))?;
+        //     self.file.write(&NO_CHECKPOINT)?;
+        //     self.current_offset = self.file.get_current_position()?;
+        // }
 
         return Ok(());
     }

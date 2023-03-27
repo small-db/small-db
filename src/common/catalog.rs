@@ -55,7 +55,7 @@ impl Catalog {
         let mut table_names = HashMap::new();
 
         let tx = Transaction::new();
-        // tx.start()?;
+        tx.start()?;
         let schema_table = schema_table_rc.rl();
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
@@ -99,7 +99,7 @@ impl Catalog {
         let catalog = Database::catalog();
         debug!("catalog: {:?}", catalog.map.keys());
 
-        // tx.commit().unwrap();
+        tx.commit().unwrap();
 
         Ok(())
     }
