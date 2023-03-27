@@ -165,8 +165,6 @@ impl LogManager {
     /// operations that undo transactions are logged as well to
     /// avoid repeating them.
     pub fn recover(&mut self) -> SmallResult {
-        // self.recovery_undecided = false;
-
         // undo phase
 
         // get all incomplete transactions (transactions that have
@@ -174,21 +172,8 @@ impl LogManager {
         // crash)
         let incomplete_transactions =
             self.get_incomplete_transactions()?;
-        debug!(
-            "incomplete transactions: {:?}",
-            incomplete_transactions
-        );
 
-        // let v = self.file.clone();
-
-        self.file
-            .seek(SeekFrom::End(0))
-            .or(Err(SmallError::new("io error")))?;
-
-        debug!(
-            "current offset: {}",
-            self.file.get_current_position()?,
-        );
+        self.file.seek(SeekFrom::End(0))?;
 
         while self.file.get_current_position()? >= START_RECORD_LEN {
             let word_size = size_of::<u64>() as i64;

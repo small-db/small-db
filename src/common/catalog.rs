@@ -92,11 +92,6 @@ impl Catalog {
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
 
-        {
-            let catalog = Database::catalog();
-            debug!("catalog: {:?}", catalog.map.keys());
-        }
-
         tx.commit().unwrap();
 
         Ok(())
