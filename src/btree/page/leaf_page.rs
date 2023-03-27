@@ -11,7 +11,7 @@ use super::{
     EMPTY_PAGE_ID,
 };
 use crate::{
-    btree::{consts::INDEX_SIZE, buffer_pool::BufferPool},
+    btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     io::{read_into, SmallWriter},
     storage::{
         schema::Schema,

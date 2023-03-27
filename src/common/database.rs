@@ -6,11 +6,9 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
-    concurrent_status::ConcurrentStatus,
-    tx_log::LogManager,
-    types::Pod,
-    utils::HandyRwLock,
+    btree::buffer_pool::BufferPool,
+    concurrent_status::ConcurrentStatus, tx_log::LogManager,
+    types::Pod, utils::HandyRwLock,
 };
 
 /// We collect all global variables here.
@@ -74,7 +72,8 @@ impl Database {
 
         unsafe {
             if !SINGLETON.is_null() {
-                // Drop the previous db instance if it's already initialized.
+                // Drop the previous db instance if it's already
+                // initialized.
                 mem::drop(Box::from_raw(SINGLETON));
             }
 

@@ -23,6 +23,6 @@ impl Field {
     }
 
     pub fn get_type(&self) -> Type {
-        self.get_type()
+        self.t
     }
 }

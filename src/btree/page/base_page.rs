@@ -1,5 +1,7 @@
 use super::{BTreePage, BTreePageID, PageCategory};
-use crate::{btree::buffer_pool::BufferPool, storage::schema::Schema};
+use crate::{
+    btree::buffer_pool::BufferPool, storage::schema::Schema,
+};
 
 const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
 

@@ -8,7 +8,6 @@ use rand::prelude::*;
 use small_db::{
     btree::{
         self,
-        buffer_pool::{BufferPool, DEFAULT_PAGE_SIZE},
         page::{
             BTreeInternalPage, BTreeLeafPage,
             BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,

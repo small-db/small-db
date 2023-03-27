@@ -17,6 +17,7 @@ use log::debug;
 use super::BTreeTableIterator;
 use crate::{
     btree::{
+        buffer_pool::BufferPool,
         page::{
             BTreeBasePage, BTreeHeaderPage, BTreeInternalPage,
             BTreeInternalPageIterator, BTreeLeafPage,
@@ -24,7 +25,6 @@ use crate::{
             BTreePage, BTreePageID, BTreeRootPointerPage, Entry,
             PageCategory,
         },
-        buffer_pool::BufferPool,
     },
     concurrent_status::Permission,
     storage::{

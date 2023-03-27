@@ -4,8 +4,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::debug;
-
 use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
     io::{read_into, Decodeable, Encodeable},

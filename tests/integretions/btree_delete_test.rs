@@ -1,7 +1,7 @@
 use small_db::{
     btree::{
-        page::{BTreeInternalPageIterator, BTreePage},
         buffer_pool::BufferPool,
+        page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
     transaction::Transaction,
