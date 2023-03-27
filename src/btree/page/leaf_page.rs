@@ -391,7 +391,7 @@ impl BTreeLeafPage {
     /// Retrieve the maximum number of tuples this page can hold.
     pub fn calculate_slots_count(scheme: &Schema) -> usize {
         let bits_per_tuple_including_header =
-            scheme.get_size() * 8 + 1;
+            scheme.get_disk_size() * 8 + 1;
 
         // extraBits:
         // - page category (4 bytes)

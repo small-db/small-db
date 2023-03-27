@@ -193,16 +193,25 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
+        let schema_fields = schema_table.schema.get_fields();
+        let table_name_type = schema_fields[1].get_type();
+        let field_name_type = schema_fields[2].get_type();
+        let field_type_type = schema_fields[3].get_type();
+
         for field in table.get_schema().get_fields() {
+            // let t = field.get_type();
             let cells = vec![
                 // table id
                 Cell::new_int64(table.get_id() as i64),
                 // table name
-                Cell::new_bytes(&table.name.as_bytes()),
+                table_name_type
+                    .new_cell_bytes(&table.name.as_bytes()),
                 // field name
-                Cell::new_bytes(&field.name.as_bytes()),
+                field_name_type
+                    .new_cell_bytes(&field.name.as_bytes()),
                 // field type
-                Cell::new_bytes(&field.t.encode()),
+                field_type_type
+                    .new_cell_bytes(&field.get_type().encode()),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];

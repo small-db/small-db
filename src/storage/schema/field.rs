@@ -5,7 +5,7 @@ use super::Type;
 #[derive(PartialEq, Debug, Clone)]
 pub struct Field {
     pub name: String,
-    pub t: Type,
+    t: Type,
     pub is_primary: bool,
 }
 
@@ -20,5 +20,9 @@ impl Field {
             name: field_name.to_string(),
             is_primary,
         }
+    }
+
+    pub fn get_type(&self) -> Type {
+        self.get_type()
     }
 }

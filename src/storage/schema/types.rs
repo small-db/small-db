@@ -1,6 +1,9 @@
 use std::convert::TryInto;
 
-use crate::io::{read_exact, Decodeable, Encodeable};
+use crate::{
+    io::{read_exact, Decodeable, Encodeable},
+    storage::tuple::Cell,
+};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
@@ -10,18 +13,34 @@ pub enum Type {
     Bytes(u8),
 }
 
+/// Cell generators
+impl Type {
+    pub fn new_cell_bytes(&self, v: &[u8]) -> Cell {
+        match self {
+            Type::Bytes(size) => {
+                if v.len() > *size as usize {
+                    panic!("bytes size too large");
+                }
+
+                Cell::Bytes(v.to_vec())
+            }
+            _ => panic!("not bytes"),
+        }
+    }
+}
+
 impl Type {
     /// Get the size of the type in bytes.
-    pub fn size(&self) -> usize {
+    pub fn get_disk_size(&self) -> usize {
         match self {
             Type::Bool => 1,
             Type::Int64 | Type::Float64 => 8,
             Type::Bytes(size) => {
-                // The first byte is the size of the bytes.
+                // The first two bytes is the size of the bytes.
                 //
                 // We use fixed size now to calculate the size of the
                 // tuple.
-                1 + *size as usize
+                2 + *size as usize
             }
         }
     }

@@ -35,7 +35,7 @@ impl Tuple {
     ) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in schema.get_fields() {
-            let cell = Cell::read_from(reader, &field.t);
+            let cell = Cell::read_from(reader, &field.get_type());
             cells.push(cell);
         }
         Tuple { cells }

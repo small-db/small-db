@@ -26,11 +26,11 @@ impl Schema {
     pub fn small_int_schema(width: usize) -> Self {
         let mut fields: Vec<Field> = Vec::new();
         for i in 0..width {
-            let field = Field {
-                name: format!("int-column-{}", i),
-                t: Type::Int64,
-                is_primary: i == 0,
-            };
+            let field = Field::new(
+                &format!("int-column-{}", i),
+                Type::Int64,
+                i == 0,
+            );
 
             fields.push(field);
         }
@@ -41,10 +41,10 @@ impl Schema {
 
 impl Schema {
     /// Get tuple size in bytes.
-    pub fn get_size(&self) -> usize {
+    pub fn get_disk_size(&self) -> usize {
         let mut size = 0;
         for field in self.get_fields() {
-            size += field.t.size();
+            size += field.get_type().get_disk_size();
         }
         size
     }

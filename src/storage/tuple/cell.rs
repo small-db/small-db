@@ -49,10 +49,6 @@ impl Cell {
         }
     }
 
-    pub fn new_bytes(v: &[u8]) -> Self {
-        Cell::Bytes(v.to_vec())
-    }
-
     pub fn get_bytes(&self) -> Result<Vec<u8>, SmallError> {
         match self {
             Cell::Bytes(v) => Ok(v.clone()),
