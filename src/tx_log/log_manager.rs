@@ -22,7 +22,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    Database,
+    BTreeTable, Database,
 };
 
 // TODO: add docs for it
@@ -694,12 +694,14 @@ impl LogManager {
         before_image: &Vec<u8>,
         page_cache: &BufferPool,
     ) -> SmallResult {
-        let mut catalog = Database::mut_catalog();
-        let table_pod = catalog.get_table(&pid.table_id).unwrap();
-        let table = table_pod.rl();
+        let table_rc: Arc<RwLock<BTreeTable>>;
+        {
+            let mut catalog = Database::mut_catalog();
+            table_rc = catalog.get_table(&pid.table_id).unwrap();
+        }
+        let table = table_rc.rl();
 
         let schema = table.get_schema();
-        let _key_field = table.key_field;
 
         match pid.category {
             PageCategory::Leaf => {

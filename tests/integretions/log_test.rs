@@ -152,13 +152,11 @@ fn test_abort_commit_interleaved() {
 
     insert_row(&table_1, &tx_1, 4);
 
-    // Unique::log_file().show_log_contents();
-    // return;
-
     tx_1.abort().unwrap();
 
     // verify the result
     let tx = Transaction::new();
+    tx.start().unwrap();
     assert_true(
         search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
         &table_1,
