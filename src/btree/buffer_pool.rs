@@ -258,10 +258,6 @@ impl BufferPool {
         for pid in self.all_keys() {
             match pid.category {
                 PageCategory::Internal => {
-                    debug!(
-                        "setting before image for internal page {}",
-                        pid
-                    );
                     self.set_before_image(
                         &pid,
                         &self.internal_buffer,
@@ -271,22 +267,16 @@ impl BufferPool {
                     self.set_before_image(&pid, &self.leaf_buffer);
                 }
                 PageCategory::RootPointer => {
-                    debug!(
-                        "setting before image for root pointer page"
-                    );
                     self.set_before_image(
                         &pid,
                         &self.root_pointer_buffer,
                     );
                 }
                 PageCategory::Header => {
-                    debug!("setting before image for header page");
                     self.set_before_image(&pid, &self.header_buffer);
                 }
             }
         }
-
-        debug!("going to exit tx_complete")
     }
 
     fn set_before_image<PAGE: BTreePage>(

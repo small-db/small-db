@@ -171,7 +171,6 @@ fn test_redistribute_internal_pages() {
         // - root page should have (internal_cap - 2) empty slots
         let root_rc = get_internal_page(&table, 0, 0);
         let root = root_rc.rl();
-        debug!("pid of root page: {}", root.get_pid());
         assert_true(root.children_count() == 2, &table);
         assert_true(
             root.empty_slots_count() == internal_children_cap() - 2,
@@ -185,7 +184,7 @@ fn test_redistribute_internal_pages() {
     // step 1: bring the left internal page to minimum occupancy
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
-    for t in it.by_ref().take(49 * leaf_records_cap() + 1) {
+    for t in it.by_ref().take(50 * leaf_records_cap()) {
         table.delete_tuple(&tx, &t).unwrap();
     }
 
@@ -203,6 +202,14 @@ fn test_redistribute_internal_pages() {
     //   half + 50 (since it gives to the left child)
     let left_child_rc = get_internal_page(&table, 1, 0);
     let right_child_rc = get_internal_page(&table, 1, 1);
+    // debug!(
+    //     "left child children count: {}, right child children count: {}, cap: {}",
+    //     left_child_rc.rl().children_count(),
+    //     right_child_rc.rl().children_count(),
+    //     internal_children_cap(),
+    // );
+    // table.draw_tree(2);
+    // return;
     assert_true(
         left_child_rc.rl().children_count()
             > internal_children_cap() / 2,
