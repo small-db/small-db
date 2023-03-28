@@ -1,3 +1,4 @@
+use log::debug;
 use rand::Rng;
 use small_db::{
     btree::{
@@ -166,6 +167,7 @@ fn test_split_root_page() {
         table.pages_count() == internal_children_cap() + 1,
         &table,
     );
+    table.draw_tree(1);
 
     insert_tuples(&table, 1);
 
@@ -186,22 +188,15 @@ fn test_split_root_page() {
         &table,
     );
 
-    // each child should have half of the entries
+    // each child should have be stable
     let leaf_pod = get_internal_page(&table, 1, 0);
-    assert_true(
-        leaf_pod.rl().empty_slots_count()
-            <= internal_children_cap() / 2,
-        &table,
-    );
+    assert_true(leaf_pod.rl().stable(), &table);
     let right_pod = get_internal_page(&table, 1, 1);
-    assert_true(
-        right_pod.rl().empty_slots_count()
-            <= internal_children_cap() / 2,
-        &table,
-    );
+    assert_true(right_pod.rl().stable(), &table);
 
     // now insert some random tuples and make sure we can find them
     let tx = Transaction::new();
+    tx.start().unwrap();
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i64::MAX);
