@@ -1,3 +1,4 @@
+use log::debug;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
@@ -164,16 +165,19 @@ fn test_redistribute_internal_pages() {
     );
     let table = table_rc.rl();
 
-    // verify the tree structure:
-    // - root page should have 2 children
-    // - root page should have (internal_cap - 2) empty slots
-    let root_rc = get_internal_page(&table, 0, 0);
-    let root = root_rc.rl();
-    assert_true(root.children_count() == 2, &table);
-    assert_true(
-        root.empty_slots_count() == internal_children_cap() - 2,
-        &table,
-    );
+    {
+        // verify the tree structure:
+        // - root page should have 2 children
+        // - root page should have (internal_cap - 2) empty slots
+        let root_rc = get_internal_page(&table, 0, 0);
+        let root = root_rc.rl();
+        debug!("pid of root page: {}", root.get_pid());
+        assert_true(root.children_count() == 2, &table);
+        assert_true(
+            root.empty_slots_count() == internal_children_cap() - 2,
+            &table,
+        );
+    }
 
     // delete from the right child to test redistribution from the
     // left
