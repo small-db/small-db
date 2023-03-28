@@ -7,6 +7,8 @@ use small_db::{
 use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
 
 fn test_scan(rows: usize, columns: usize) {
+    setup();
+
     let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     let mut int_tuples = Vec::new();
@@ -24,10 +26,6 @@ fn test_scan(rows: usize, columns: usize) {
     let table = table_rc.rl();
     let mut it = BTreeTableIterator::new(&tx, &table);
     validate_scan(&mut it, &int_tuples);
-
-    // TODO: find a better solution
-    Database::mut_buffer_pool().clear();
-    Database::concurrent_status().clear();
 }
 
 fn validate_scan(
