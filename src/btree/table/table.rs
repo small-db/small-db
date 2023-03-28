@@ -974,6 +974,8 @@ impl BTreeTable {
         Database::concurrent_status().clear();
 
         let tx = Transaction::new();
+        tx.start().unwrap();
+
         let mut depiction = "".to_string();
 
         depiction.push_str(
