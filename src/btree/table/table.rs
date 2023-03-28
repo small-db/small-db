@@ -1169,6 +1169,8 @@ impl BTreeTable {
     /// require s_lock on all pages.
     ///
     /// panic on any error found.
+    ///
+    /// TODO: remove argument `check_occupancy` and always check occupancy.
     pub fn check_integrity(&self, check_occupancy: bool) {
         Database::concurrent_status().clear();
 

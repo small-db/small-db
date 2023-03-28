@@ -150,8 +150,6 @@ fn test_reuse_deleted_pages() {
 fn test_redistribute_internal_pages() {
     setup();
 
-    BufferPool::set_page_size(1024);
-
     // Create a B+ tree with:
     // - 1st level: a root internal node
     // - 2nd level: 2 internal nodes
@@ -166,8 +164,11 @@ fn test_redistribute_internal_pages() {
     );
     let table = table_rc.rl();
 
-    let root_pod = get_internal_page(&table, 0, 0);
-    let root = root_pod.rl();
+    // verify the tree structure:
+    // - root page should have 2 children
+    // - root page should have (internal_cap - 2) empty slots
+    let root_rc = get_internal_page(&table, 0, 0);
+    let root = root_rc.rl();
     assert_true(root.children_count() == 2, &table);
     assert_true(
         root.empty_slots_count() == internal_children_cap() - 2,
@@ -176,20 +177,41 @@ fn test_redistribute_internal_pages() {
 
     // delete from the right child to test redistribution from the
     // left
-    todo!();
-
-    // bring the left internal page to minimum occupancy
+    //
+    // step 1: bring the left internal page to minimum occupancy
     let tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
-    for t in it.by_ref().take(49 * 502 + 1) {
+    for t in it.by_ref().take(49 * leaf_records_cap() + 1) {
         table.delete_tuple(&tx, &t).unwrap();
     }
 
-    // deleting a page of tuples should bring the internal page below
+    // step 2: deleting a page of tuples should bring the internal page below
     // minimum occupancy and cause the entries to be redistributed
-    for t in it.by_ref().take(502) {
+    for t in it.by_ref().take(leaf_records_cap()) {
         table.delete_tuple(&tx, &t).unwrap();
     }
+    tx.commit().unwrap();
+
+    // verify the tree structure:
+    // - the left child of the root page should have more children than
+    //   half (since it steals from the right child)
+    // - the right child of the root page should have less children than
+    //   half + 50 (since it gives to the left child)
+    let left_child_rc = get_internal_page(&table, 1, 0);
+    let right_child_rc = get_internal_page(&table, 1, 1);
+    assert_true(
+        left_child_rc.rl().children_count()
+            > internal_children_cap() / 2,
+        &table,
+    );
+    assert_true(
+        right_child_rc.rl().children_count()
+            < internal_children_cap() / 2 + 50,
+        &table,
+    );
+
+    // Perform a complete verification
+    table.check_integrity(true);
 }
 
 #[test]
