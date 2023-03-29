@@ -422,7 +422,9 @@ impl LogManager {
         // calls rollback let cache =
         // Unique::mut_page_cache();
 
+        let original_offset = self.file.get_current_position()?;
         self.rollback(tx, page_cache)?;
+        self.file.seek(SeekFrom::Start(original_offset))?;
 
         self.file.write(&RecordType::ABORT)?;
         self.file.write(&tx.get_id())?;

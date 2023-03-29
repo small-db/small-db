@@ -42,7 +42,6 @@ pub fn setup() {
 
 /// Simulate crash.
 /// 1. restart Database
-/// 2. run log recovery
 pub fn crash() {
     Database::reset();
 }

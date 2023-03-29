@@ -194,6 +194,7 @@ fn test_abort_crash() {
     commit_insert(&table_1, 1, 2);
     abort_insert(&table_1, 4, 5);
 
+    /// Check if the table is in the expected state.
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
         tx.start().unwrap();
