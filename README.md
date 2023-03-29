@@ -9,16 +9,12 @@ A small database.
 
 ### Implemented
 
-- B+ tree storage structure
-- B+ tree insert
-- B+ tree delete
+- B+ tree storage (insert, delete, search)
 - Buffer pool
-- Iterator
-- Search by condition
+- Write ahead log (ARIES)
 
-### TODO
+### Todo
 
-- WAL
 - Code coverage (https://blog.rng0.io/how-to-do-code-coverage-in-rust)
 
 ## License
@@ -55,4 +51,5 @@ open flamegraph.svg
 ```
 
 > Here I agree with someone who wrote "If you need recursive locks, your code is too complex." After experiencing several deadlocks stemming from ridiculously complex code, I can say that all operations within a critical section should only be memory operations - assignment, memcpy etc - no syscalls, no locks and no calls of complex functions.
-> <https://www.reddit.com/r/rust/comments/a2jht3/comment/eb3dhak/?utm_source=share&utm_medium=web2x&context=3>
+>
+> [Is there a crate that implements a reentrant rwlock? : rust](https://www.reddit.com/r/rust/comments/a2jht3/comment/eb3dhak/?utm_source=share&utm_medium=web2x&context=3)
