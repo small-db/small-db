@@ -1,7 +1,7 @@
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, storage::tuple::Cell,
-    transaction::Transaction, utils::HandyRwLock, Database,
+    transaction::Transaction, utils::HandyRwLock,
 };
 
 use crate::test_utils::{new_random_btree_table, setup, TreeLayout};

@@ -800,7 +800,6 @@ impl LogManager {
             self.reset_file()?;
         }
 
-
         // if self.recovery_undecided {
         //     self.recovery_undecided = false;
         //     self.file

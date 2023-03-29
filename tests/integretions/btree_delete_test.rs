@@ -1,4 +1,3 @@
-use log::debug;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
@@ -188,23 +187,24 @@ fn test_redistribute_internal_pages() {
         table.delete_tuple(&tx, &t).unwrap();
     }
 
-    // step 2: deleting a page of tuples should bring the internal page below
-    // minimum occupancy and cause the entries to be redistributed
+    // step 2: deleting a page of tuples should bring the internal
+    // page below minimum occupancy and cause the entries to be
+    // redistributed
     for t in it.by_ref().take(leaf_records_cap()) {
         table.delete_tuple(&tx, &t).unwrap();
     }
     tx.commit().unwrap();
 
     // verify the tree structure:
-    // - the left child of the root page should have more children than
-    //   half (since it steals from the right child)
-    // - the right child of the root page should have less children than
-    //   half + 50 (since it gives to the left child)
+    // - the left child of the root page should have more children
+    //   than half (since it steals from the right child)
+    // - the right child of the root page should have less children
+    //   than half + 50 (since it gives to the left child)
     let left_child_rc = get_internal_page(&table, 1, 0);
     let right_child_rc = get_internal_page(&table, 1, 1);
     // debug!(
-    //     "left child children count: {}, right child children count: {}, cap: {}",
-    //     left_child_rc.rl().children_count(),
+    //     "left child children count: {}, right child children count:
+    // {}, cap: {}",     left_child_rc.rl().children_count(),
     //     right_child_rc.rl().children_count(),
     //     internal_children_cap(),
     // );
