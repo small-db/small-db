@@ -793,12 +793,13 @@ impl LogManager {
     // the DB wants to do recovery, we're sure now -- it didn't.
     // So truncate the log.
     fn pre_append(&mut self) -> SmallResult {
+        self.total_records += 1;
+
         // let size = self.file.seek(pos)
         if self.file.get_size()? == 0 {
             self.reset_file()?;
         }
 
-        // self.total_records += 1;
 
         // if self.recovery_undecided {
         //     self.recovery_undecided = false;

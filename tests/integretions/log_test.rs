@@ -81,13 +81,26 @@ fn test_patch() {
 
     commit_insert(&table, 1, 2);
 
-    // check that BufferPool.flushPage() calls LogFile.logWrite().
-    assert_true(Database::log_file().records_count() == 6, &table);
+    // check that `buffer_pool::flush_page calls log_manager::log_write.
+
+    // Check flush action writes "UPDATE" record to log.
+    // 
+    // There should be 6 records in the log:
+    // - tx start - "START"
+    // - flush action - "UPDATE" (root pointer page)
+    // - flush action - "UPDATE" (leaf page)
+    // - tx commit - "UPDATE" (root pointer page)
+    // - tx commit - "UPDATE" (leaf page)
+    // - tx commit - "COMMIT"
+    // 
+    // We don't use `assert_true` here because it requires a write lock
+    // on the log manager.
+    assert_eq!(Database::log_file().records_count(), 6);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().
-    let page_pod = get_leaf_page(&table, 0, 0);
-    let page = page_pod.rl();
+    let page_rc = get_leaf_page(&table, 0, 0);
+    let page = page_rc.rl();
     assert_eq!(page.get_page_data(), page.get_before_image());
 }
 
