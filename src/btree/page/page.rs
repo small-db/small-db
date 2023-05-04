@@ -1,5 +1,15 @@
-use super::BTreePageID;
+use super::{
+    BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePageID,
+    BTreeRootPointerPage,
+};
 use crate::storage::schema::Schema;
+
+pub enum BTreePageType {
+    RootPointer(BTreeRootPointerPage),
+    Header(BTreeHeaderPage),
+    Internal(BTreeInternalPage),
+    Leaf(BTreeLeafPage),
+}
 
 pub trait BTreePage {
     fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self
