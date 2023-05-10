@@ -17,6 +17,30 @@ A small database.
 
 - Code coverage (https://blog.rng0.io/how-to-do-code-coverage-in-rust)
 
+## Development
+
+### Run all tests
+
+```bash
+make test
+```
+
+### Run a specific test
+
+```bash
+make <test_name>
+# e.g:
+make btree_test
+```
+
+### Run a specific test with flamegraph
+
+```bash
+CARGO_PROFILE_BENCH_DEBUG=true sudo cargo flamegraph --test <target> -- <test_path>
+# e.g.
+CARGO_PROFILE_BENCH_DEBUG=true sudo cargo flamegraph --test mod -- integretions::btree_test::test_big_table
+```
+
 ## License
 
 
