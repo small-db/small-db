@@ -238,12 +238,3 @@ fn test_big_table() {
     tx.commit().unwrap();
     table_pod.rl().check_integrity(true);
 }
-
-#[test]
-fn test_thread_name() {
-    thread::Builder::new().name("thread1".to_string()).spawn(
-        move || {
-            println!("Hello, world!");
-        },
-    );
-}
