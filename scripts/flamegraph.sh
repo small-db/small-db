@@ -1,5 +1,7 @@
 #!/bin/bash
+# 
 # Used to generate flamegraphs for a specific test.
+# 
 # Usage:
 #   ./scripts/flamegraph.sh <test_name>
 
