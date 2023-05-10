@@ -79,7 +79,7 @@ impl ConcurrentStatus {
                 return Ok(());
             }
 
-            sleep(std::time::Duration::from_micros(500));
+            sleep(std::time::Duration::from_millis(10));
         }
 
         error!(
