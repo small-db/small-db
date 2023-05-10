@@ -8,20 +8,14 @@ use std::{
     },
 };
 
-use itertools::Itertools;
-
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
     BTreePageID, BTreeRootPointerPage, PageCategory,
 };
 use crate::{
-    concurrent_status::Permission,
-    error::SmallError,
-    transaction::Transaction,
-    tx_log::LogManager,
-    types::{ConcurrentHashMap, ResultPod},
-    utils::HandyRwLock,
-    BTreeTable, Database,
+    concurrent_status::Permission, error::SmallError,
+    transaction::Transaction, tx_log::LogManager, types::ResultPod,
+    utils::HandyRwLock, BTreeTable, Database,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -111,7 +105,8 @@ impl BufferPool {
         key: &Key,
         get_pool_fn: fn(
             &mut BufferPool,
-        ) -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
+        )
+            -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
     ) -> ResultPod<PAGE> {
         // We need to request lock before request the access to buffer
         // pool. Otherwise, there are some problems:
@@ -377,8 +372,8 @@ impl BufferPool {
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
-    /// Set the page content of "pid" to the specified "page", both in the
-    /// buffer pool and on disk.
+    /// Set the page content of "pid" to the specified "page", both in
+    /// the buffer pool and on disk.
     pub fn recover_page<PAGE: BTreePage>(
         pid: &BTreePageID,
         page: PAGE,
@@ -432,7 +427,6 @@ impl BufferPool {
         for (k, _) in &self.leaf_buffer {
             keys.push(k.clone());
         }
-
 
         keys
     }
