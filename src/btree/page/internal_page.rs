@@ -16,7 +16,6 @@ use crate::{
     transaction::Transaction,
     types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
-    Database,
 };
 
 /// The internal page is used to store the keys and the page id of the
@@ -354,11 +353,11 @@ impl BTreeInternalPage {
         // hold buffer pool
         {
             parent_rc = BufferPool::get_internal_page(
-                    tx,
-                    Permission::ReadOnly,
-                    &parent_pid,
-                )
-                .unwrap();
+                tx,
+                Permission::ReadOnly,
+                &parent_pid,
+            )
+            .unwrap();
         }
         // release buffer pool
 
@@ -383,11 +382,11 @@ impl BTreeInternalPage {
         // hold buffer pool
         {
             parent_rc = BufferPool::get_internal_page(
-                    tx,
-                    Permission::ReadOnly,
-                    &parent_pid,
-                )
-                .unwrap();
+                tx,
+                Permission::ReadOnly,
+                &parent_pid,
+            )
+            .unwrap();
         }
         // release buffer pool
 

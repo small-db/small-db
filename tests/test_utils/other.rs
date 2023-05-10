@@ -1,13 +1,16 @@
 use small_db::{
-    btree::{page::{
-        BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
-        BTreePage,
-    }, buffer_pool::BufferPool},
+    btree::{
+        buffer_pool::BufferPool,
+        page::{
+            BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeLeafPage, BTreePage,
+        },
+    },
     concurrent_status::Permission,
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Schema,
+    BTreeTable, Schema,
 };
 
 pub fn leaf_records_cap() -> usize {
@@ -27,8 +30,12 @@ pub fn get_internal_page(
 ) -> Pod<BTreeInternalPage> {
     let tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
-    let root_pod = BufferPool::get_internal_page(&tx, Permission::ReadOnly, &root_pid)
-        .unwrap();
+    let root_pod = BufferPool::get_internal_page(
+        &tx,
+        Permission::ReadOnly,
+        &root_pid,
+    )
+    .unwrap();
 
     match level {
         0 => {
@@ -42,11 +49,11 @@ pub fn get_internal_page(
                         .next()
                         .unwrap();
                 let left_child_rc = BufferPool::get_internal_page(
-                        &tx,
-                        Permission::ReadOnly,
-                        &e.get_left_child(),
-                    )
-                    .unwrap();
+                    &tx,
+                    Permission::ReadOnly,
+                    &e.get_left_child(),
+                )
+                .unwrap();
                 tx.commit().unwrap();
                 return left_child_rc;
             }
@@ -57,11 +64,11 @@ pub fn get_internal_page(
                         .next()
                         .unwrap();
                 let left_child_rc = BufferPool::get_internal_page(
-                        &tx,
-                        Permission::ReadOnly,
-                        &e.get_right_child(),
-                    )
-                    .unwrap();
+                    &tx,
+                    Permission::ReadOnly,
+                    &e.get_right_child(),
+                )
+                .unwrap();
                 tx.commit().unwrap();
                 return left_child_rc;
             }
@@ -79,8 +86,12 @@ pub fn get_leaf_page(
         0 => {
             let tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
-            let root_pod = BufferPool::get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
-                .unwrap();
+            let root_pod = BufferPool::get_leaf_page(
+                &tx,
+                Permission::ReadOnly,
+                &root_pid,
+            )
+            .unwrap();
             tx.commit().unwrap();
             return root_pod;
         }
@@ -93,11 +104,11 @@ pub fn get_leaf_page(
                     .next()
                     .unwrap();
             let leaf_pod = BufferPool::get_leaf_page(
-                    &tx,
-                    Permission::ReadOnly,
-                    &e.get_left_child(),
-                )
-                .unwrap();
+                &tx,
+                Permission::ReadOnly,
+                &e.get_left_child(),
+            )
+            .unwrap();
             tx.commit().unwrap();
             return leaf_pod;
         }

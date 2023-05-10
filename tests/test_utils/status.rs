@@ -8,10 +8,11 @@ use rand::prelude::*;
 use small_db::{
     btree::{
         self,
+        buffer_pool::BufferPool,
         page::{
             BTreeInternalPage, BTreeLeafPage,
             BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
-        }, buffer_pool::BufferPool,
+        },
     },
     common::Catalog,
     concurrent_status::Permission,
@@ -174,8 +175,12 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid)
-            .unwrap();
+        let leaf_rc = BufferPool::get_leaf_page(
+            tx,
+            Permission::ReadWrite,
+            &pid,
+        )
+        .unwrap();
         leaves.push(leaf_rc.clone());
         // borrow of leaf_rc start here
         {
@@ -247,8 +252,12 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let internal_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid)
-            .unwrap();
+        let internal_rc = BufferPool::get_internal_page(
+            tx,
+            Permission::ReadWrite,
+            &pid,
+        )
+        .unwrap();
         internals.push(internal_rc.clone());
 
         let entries_count = children_count - 1;
@@ -314,8 +323,12 @@ fn write_internal_pages(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let root_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid)
-            .unwrap();
+        let root_rc = BufferPool::get_internal_page(
+            tx,
+            Permission::ReadWrite,
+            &pid,
+        )
+        .unwrap();
 
         // insert entries
         let entries_count = internals.len() - 1;

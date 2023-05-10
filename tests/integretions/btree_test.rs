@@ -1,6 +1,6 @@
 use std::thread;
 
-use log::{debug, info};
+use log::debug;
 use rand::prelude::*;
 use small_db::{
     btree::{
@@ -155,7 +155,9 @@ fn test_big_table() {
             let local_receiver = receiver.clone();
 
             let delete_worker = thread::Builder::new()
-                .name(format!("thread-delete-{}", local_i).to_string())
+                .name(
+                    format!("thread-delete-{}", local_i).to_string(),
+                )
                 .spawn_scoped(s, move || {
                     deleter(local_i, &local_table, &local_receiver)
                 })
@@ -184,7 +186,9 @@ fn test_big_table() {
             let local_table = table_pod.clone();
             let local_receiver = receiver.clone();
 
-            let handle = s.spawn(move || deleter(i, &local_table, &local_receiver));
+            let handle = s.spawn(move || {
+                deleter(i, &local_table, &local_receiver)
+            });
             threads.push(handle);
         }
 

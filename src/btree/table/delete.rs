@@ -6,12 +6,15 @@ use std::{
 };
 
 use crate::{
-    btree::{page::{
-        BTreeHeaderPage, BTreeInternalPage,
-        BTreeInternalPageIterator, BTreeLeafPage,
-        BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
-        PageCategory,
-    }, buffer_pool::BufferPool},
+    btree::{
+        buffer_pool::BufferPool,
+        page::{
+            BTreeHeaderPage, BTreeInternalPage,
+            BTreeInternalPageIterator, BTreeLeafPage,
+            BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
+            PageCategory,
+        },
+    },
     concurrent_status::Permission,
     error::SmallError,
     storage::tuple::{Cell, WrappedTuple},
@@ -33,8 +36,12 @@ impl BTreeTable {
         tuple: &WrappedTuple,
     ) -> SmallResult {
         let pid = tuple.get_pid();
-        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid)
-            .unwrap();
+        let leaf_rc = BufferPool::get_leaf_page(
+            tx,
+            Permission::ReadWrite,
+            &pid,
+        )
+        .unwrap();
 
         // hold the leaf page
         {
@@ -71,12 +78,20 @@ impl BTreeTable {
         let right_pid = page_rc.rl().get_right_pid();
 
         if let Some(left_pid) = left_pid {
-            let left_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &left_pid)
-                .unwrap();
+            let left_rc = BufferPool::get_leaf_page(
+                tx,
+                Permission::ReadWrite,
+                &left_pid,
+            )
+            .unwrap();
             self.balancing_two_leaf_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &right_pid)
-                .unwrap();
+            let right_rc = BufferPool::get_leaf_page(
+                tx,
+                Permission::ReadWrite,
+                &right_pid,
+            )
+            .unwrap();
             self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
             return Err(SmallError::new(
@@ -112,19 +127,19 @@ impl BTreeTable {
         let right_pid = page_rc.rl().get_right_sibling_pid(tx);
         if let Some(left_pid) = left_pid {
             let left_rc = BufferPool::get_internal_page(
-                    tx,
-                    Permission::ReadWrite,
-                    &left_pid,
-                )
-                .unwrap();
+                tx,
+                Permission::ReadWrite,
+                &left_pid,
+            )
+            .unwrap();
             self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
             let right_rc = BufferPool::get_internal_page(
-                    tx,
-                    Permission::ReadWrite,
-                    &right_pid,
-                )
-                .unwrap();
+                tx,
+                Permission::ReadWrite,
+                &right_pid,
+            )
+            .unwrap();
             self.balancing_two_internal_pages(tx, page_rc, right_rc)?;
         } else {
             panic!("Cannot find the left/right sibling of the page");
@@ -142,20 +157,20 @@ impl BTreeTable {
         match child_pid.category {
             PageCategory::Leaf => {
                 let child_rc = BufferPool::get_leaf_page(
-                        tx,
-                        Permission::ReadWrite,
-                        child_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    child_pid,
+                )
+                .unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             PageCategory::Internal => {
                 let child_rc = BufferPool::get_internal_page(
-                        tx,
-                        Permission::ReadOnly,
-                        child_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadOnly,
+                    child_pid,
+                )
+                .unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             _ => panic!("Invalid page category"),
@@ -264,11 +279,11 @@ impl BTreeTable {
             // set the left pointer for the newer right page
             if let Some(newer_right_pid) = right.get_right_pid() {
                 let newer_right_rc = BufferPool::get_leaf_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &newer_right_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &newer_right_pid,
+                )
+                .unwrap();
                 newer_right_rc
                     .wl()
                     .set_left_pid(Some(left.get_pid()));
@@ -364,11 +379,11 @@ impl BTreeTable {
         match root_ptr_rc.rl().get_header_pid() {
             Some(header_pid) => {
                 header_rc = BufferPool::get_header_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &header_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &header_pid,
+                )
+                .unwrap();
             }
             None => {
                 // if there are no header pages, create the first
@@ -410,11 +425,11 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> SmallResult {
         let parent_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadWrite,
-                &left_rc.rl().get_parent_pid(),
-            )
-            .unwrap();
+            tx,
+            Permission::ReadWrite,
+            &left_rc.rl().get_parent_pid(),
+        )
+        .unwrap();
         let mut parent_entry = parent_rc
             .rl()
             .get_entry_by_children(
@@ -601,11 +616,11 @@ impl BTreeTable {
         right_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SmallResult {
         let parent_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadWrite,
-                &left_rc.rl().get_parent_pid(),
-            )
-            .unwrap();
+            tx,
+            Permission::ReadWrite,
+            &left_rc.rl().get_parent_pid(),
+        )
+        .unwrap();
         let mut entry = parent_rc
             .rl()
             .get_entry_by_children(

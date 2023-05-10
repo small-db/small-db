@@ -2,14 +2,18 @@ use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 use super::SearchFor;
 use crate::{
-    btree::{page::{
-        BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc,
-    }, buffer_pool::BufferPool},
+    btree::{
+        buffer_pool::BufferPool,
+        page::{
+            BTreeLeafPage, BTreeLeafPageIterator,
+            BTreeLeafPageIteratorRc,
+        },
+    },
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,
     transaction::Transaction,
     utils::HandyRwLock,
-    BTreeTable, Database, Op, Predicate,
+    BTreeTable, Op, Predicate,
 };
 
 impl<'table, 'tx> BTreeTable {
@@ -69,11 +73,11 @@ impl Iterator for BTreeTableIterator<'_> {
         match right {
             Some(right) => {
                 let sibling_rc = BufferPool::get_leaf_page(
-                        &self.tx,
-                        Permission::ReadOnly,
-                        &right,
-                    )
-                    .unwrap();
+                    &self.tx,
+                    Permission::ReadOnly,
+                    &right,
+                )
+                .unwrap();
                 let page_it = BTreeLeafPageIteratorRc::new(
                     Arc::clone(&sibling_rc),
                 );
@@ -100,11 +104,11 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
         match left {
             Some(left) => {
                 let sibling_rc = BufferPool::get_leaf_page(
-                        self.tx,
-                        Permission::ReadOnly,
-                        &left,
-                    )
-                    .unwrap();
+                    self.tx,
+                    Permission::ReadOnly,
+                    &left,
+                )
+                .unwrap();
                 let page_it = BTreeLeafPageIteratorRc::new(
                     Arc::clone(&sibling_rc),
                 );
@@ -226,11 +230,11 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                     match right {
                         Some(pid) => {
                             let rc = BufferPool::get_leaf_page(
-                                    self.tx,
-                                    Permission::ReadOnly,
-                                    &pid,
-                                )
-                                .unwrap();
+                                self.tx,
+                                Permission::ReadOnly,
+                                &pid,
+                            )
+                            .unwrap();
                             self.current_page_rc = Arc::clone(&rc);
                             self.page_it =
                                 BTreeLeafPageIteratorRc::new(
@@ -288,11 +292,11 @@ where
         match right {
             Some(right) => {
                 let sibling_rc = BufferPool::get_leaf_page(
-                        &self.tx,
-                        Permission::ReadOnly,
-                        &right,
-                    )
-                    .unwrap();
+                    &self.tx,
+                    Permission::ReadOnly,
+                    &right,
+                )
+                .unwrap();
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page = self.page_rc.read().unwrap();
                 self.page_it = BTreeLeafPageIterator::new(&self.page);

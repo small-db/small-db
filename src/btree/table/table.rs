@@ -286,11 +286,11 @@ impl BTreeTable {
             // set left pointer for the old right sibling
             if let Some(old_right_pid) = page.get_right_pid() {
                 let old_right_rc = BufferPool::get_leaf_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &old_right_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &old_right_pid,
+                )
+                .unwrap();
                 old_right_rc
                     .wl()
                     .set_left_pid(Some(new_sibling.get_pid()));
@@ -324,11 +324,11 @@ impl BTreeTable {
             let header_pid = root_ptr.get_header_pid();
             if let Some(header_pid) = header_pid {
                 let header_rc = BufferPool::get_header_page(
-                        tx,
-                        Permission::ReadOnly,
-                        &header_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadOnly,
+                    &header_pid,
+                )
+                .unwrap();
                 // borrow of header_rc start here
                 {
                     let header = header_rc.rl();
@@ -377,11 +377,11 @@ impl BTreeTable {
             }
             PageCategory::Internal => {
                 let parent_rc = BufferPool::get_internal_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &parent_id,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &parent_id,
+                )
+                .unwrap();
                 let empty_slots_count: usize;
 
                 // borrow of parent_rc start here
@@ -658,11 +658,11 @@ impl BTreeTable {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
                 let left_rc = BufferPool::get_internal_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &child_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &child_pid,
+                )
+                .unwrap();
 
                 // borrow of left_rc start here
                 {
@@ -673,11 +673,11 @@ impl BTreeTable {
             }
             PageCategory::Leaf => {
                 let child_rc = BufferPool::get_leaf_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &child_pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &child_pid,
+                )
+                .unwrap();
 
                 // borrow of left_rc start here
                 {
@@ -721,11 +721,11 @@ impl BTreeTable {
             }
             PageCategory::Internal => {
                 let page_rc = BufferPool::get_internal_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &page_id,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &page_id,
+                )
+                .unwrap();
                 let mut child_pid: Option<BTreePageID> = None;
 
                 // borrow of page_rc start here
@@ -910,8 +910,12 @@ impl BTreeTable {
         match pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
-                let page_rc = BufferPool::get_internal_page(tx, Permission::ReadOnly, pid)
-                    .unwrap();
+                let page_rc = BufferPool::get_internal_page(
+                    tx,
+                    Permission::ReadOnly,
+                    pid,
+                )
+                .unwrap();
 
                 // borrow of page_rc start here
                 let child_pid: BTreePageID;
@@ -926,8 +930,12 @@ impl BTreeTable {
                 self.get_last_tuple(tx, &child_pid)
             }
             PageCategory::Leaf => {
-                let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, pid)
-                    .unwrap();
+                let page_rc = BufferPool::get_leaf_page(
+                    tx,
+                    Permission::ReadWrite,
+                    pid,
+                )
+                .unwrap();
 
                 let page = page_rc.rl();
                 let mut it = BTreeLeafPageIterator::new(&page);
@@ -1015,8 +1023,9 @@ impl BTreeTable {
         let print_sibling = false;
 
         let mut prefix = "│   ".repeat(level);
-        let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid)
-            .unwrap();
+        let page_rc =
+            BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid)
+                .unwrap();
         let lock_state = lock_state(page_rc.clone());
 
         let mut it =
@@ -1071,8 +1080,12 @@ impl BTreeTable {
         let mut depiction = "".to_string();
 
         let prefix = "│   ".repeat(level);
-        let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid)
-            .unwrap();
+        let page_rc = BufferPool::get_internal_page(
+            tx,
+            Permission::ReadWrite,
+            &pid,
+        )
+        .unwrap();
         let lock_state = lock_state(page_rc.clone());
 
         // borrow of page_rc start here
@@ -1196,8 +1209,12 @@ impl BTreeTable {
     ) -> SubtreeSummary {
         match pid.category {
             PageCategory::Leaf => {
-                let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid)
-                    .unwrap();
+                let page_rc = BufferPool::get_leaf_page(
+                    tx,
+                    Permission::ReadOnly,
+                    &pid,
+                )
+                .unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,
@@ -1220,11 +1237,11 @@ impl BTreeTable {
 
             PageCategory::Internal => {
                 let page_rc = BufferPool::get_internal_page(
-                        tx,
-                        Permission::ReadWrite,
-                        &pid,
-                    )
-                    .unwrap();
+                    tx,
+                    Permission::ReadWrite,
+                    &pid,
+                )
+                .unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,
