@@ -1,6 +1,6 @@
 use std::thread;
 
-use log::debug;
+use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
     btree::{
@@ -237,4 +237,9 @@ fn test_big_table() {
     }
     tx.commit().unwrap();
     table_pod.rl().check_integrity(true);
+}
+
+#[test]
+fn cxc() {
+    info!("cxc");
 }
