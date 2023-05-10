@@ -2,9 +2,9 @@ use std::sync::{Arc, RwLock, RwLockReadGuard};
 
 use super::SearchFor;
 use crate::{
-    btree::page::{
+    btree::{page::{
         BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc,
-    },
+    }, buffer_pool::BufferPool},
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,
     transaction::Transaction,
@@ -68,8 +68,7 @@ impl Iterator for BTreeTableIterator<'_> {
         let right = self.page_rc.rl().get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = Database::mut_buffer_pool()
-                    .get_leaf_page(
+                let sibling_rc = BufferPool::get_leaf_page(
                         &self.tx,
                         Permission::ReadOnly,
                         &right,
@@ -100,8 +99,7 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
         let left = self.last_page_rc.rl().get_left_pid();
         match left {
             Some(left) => {
-                let sibling_rc = Database::mut_buffer_pool()
-                    .get_leaf_page(
+                let sibling_rc = BufferPool::get_leaf_page(
                         self.tx,
                         Permission::ReadOnly,
                         &left,
@@ -227,8 +225,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                         (*self.current_page_rc).rl().get_right_pid();
                     match right {
                         Some(pid) => {
-                            let rc = Database::mut_buffer_pool()
-                                .get_leaf_page(
+                            let rc = BufferPool::get_leaf_page(
                                     self.tx,
                                     Permission::ReadOnly,
                                     &pid,
@@ -290,8 +287,7 @@ where
         let right = self.page_it.page.get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = Database::mut_buffer_pool()
-                    .get_leaf_page(
+                let sibling_rc = BufferPool::get_leaf_page(
                         &self.tx,
                         Permission::ReadOnly,
                         &right,

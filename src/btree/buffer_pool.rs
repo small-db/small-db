@@ -70,10 +70,7 @@ impl BufferPool {
     /// returned.  If there is insufficient space in the buffer
     /// pool, a page should be evicted and the new page
     /// should be added in its place.
-    ///
-    /// reference:
-    /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BufferPool.java?L88:17&subtree=true
-    fn load_page<PAGE>(&self, pid: &Key) -> ResultPod<PAGE>
+    fn load_page<PAGE>(pid: &Key) -> ResultPod<PAGE>
     where
         PAGE: BTreePage,
     {
@@ -85,8 +82,7 @@ impl BufferPool {
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
-        let buf = self
-            .read_page(&mut table.get_file(), pid)
+        let buf = Self::read_page(&mut table.get_file(), pid)
             .or(Err(SmallError::new("read page content failed")))?;
 
         // stage 3: page instantiation
@@ -96,11 +92,7 @@ impl BufferPool {
         return Ok(Arc::new(RwLock::new(page)));
     }
 
-    fn read_page(
-        &self,
-        file: &mut File,
-        key: &Key,
-    ) -> io::Result<Vec<u8>> {
+    fn read_page(file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
         let page_size = Self::get_page_size();
         let start_pos = key.page_index as usize * page_size;
         file.seek(SeekFrom::Start(start_pos as u64))
@@ -111,72 +103,73 @@ impl BufferPool {
         Ok(buf)
     }
 
+    fn get_page<PAGE: BTreePage>(
+        tx: &Transaction,
+        perm: Permission,
+        key: &Key,
+        get_pool_fn: fn(
+            &mut BufferPool,
+        )
+            -> &ConcurrentHashMap<Key, Arc<RwLock<PAGE>>>,
+    ) -> ResultPod<PAGE> {
+        // step 1: request lock from concurrent status
+        //
+        // We need to request lock before request the access to buffer pool.
+        // Otherwise, there are some problems:
+        // 1. If we request the lock after we get the access to buffer pool,
+        //    the request may be blocked by other transactions. But we have
+        //    already hold the access to buffer pool, which leads to deadlock.
+        //    e.g:
+        //    T1: hold page1, request page2 from buffer pool
+        //    T2: hold buffer pool, request page1
+        //    => deadlock
+        Database::concurrent_status().request_lock(
+            tx,
+            &perm.to_lock(),
+            key,
+        )?;
+
+        // step 2: get root pointer page from buffer pool
+        let mut bp = Database::mut_buffer_pool();
+        let pool = get_pool_fn(&mut bp);
+        pool.get_or_insert(key, |key| {
+            let page = Self::load_page(key)?;
+            Ok(page.clone())
+        })
+    }
+
     pub fn get_root_ptr_page(
-        &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        Database::concurrent_status().request_lock(
-            tx,
-            &perm.to_lock(),
-            key,
-        )?;
-        self.root_pointer_buffer.get_or_insert(key, |key| {
-            let page = self.load_page(key)?;
-            Ok(page.clone())
+        Self::get_page(tx, perm, key, |bp| {
+            &mut bp.root_pointer_buffer
         })
     }
 
     pub fn get_header_page(
-        &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeHeaderPage> {
-        Database::concurrent_status().request_lock(
-            tx,
-            &perm.to_lock(),
-            key,
-        )?;
-        self.header_buffer.get_or_insert(key, |key| {
-            let page = self.load_page(key)?;
-            Ok(page.clone())
-        })
+        Self::get_page(tx, perm, key, |bp| &mut bp.header_buffer)
     }
 
     pub fn get_internal_page(
-        &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeInternalPage> {
-        Database::concurrent_status().request_lock(
-            tx,
-            &perm.to_lock(),
-            key,
-        )?;
-        self.internal_buffer.get_or_insert(key, |key| {
-            let page = self.load_page(key)?;
-            Ok(page.clone())
-        })
+        Self::get_page(tx, perm, key, |bp| &mut bp.internal_buffer)
     }
 
     pub fn get_leaf_page(
-        &self,
         tx: &Transaction,
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeLeafPage> {
-        Database::concurrent_status().request_lock(
-            tx,
-            &perm.to_lock(),
-            key,
-        )?;
-        self.leaf_buffer.get_or_insert(key, |key| {
-            let page = self.load_page(key)?;
-            Ok(page.clone())
-        })
+        Self::get_page(tx, perm, key, |bp| &mut bp.leaf_buffer)
     }
 
     /// Remove the specific page id from the buffer pool.

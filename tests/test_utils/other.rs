@@ -1,8 +1,8 @@
 use small_db::{
-    btree::page::{
+    btree::{page::{
         BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
         BTreePage,
-    },
+    }, buffer_pool::BufferPool},
     concurrent_status::Permission,
     transaction::Transaction,
     types::Pod,
@@ -27,8 +27,7 @@ pub fn get_internal_page(
 ) -> Pod<BTreeInternalPage> {
     let tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
-    let root_pod = Database::mut_buffer_pool()
-        .get_internal_page(&tx, Permission::ReadOnly, &root_pid)
+    let root_pod = BufferPool::get_internal_page(&tx, Permission::ReadOnly, &root_pid)
         .unwrap();
 
     match level {
@@ -42,8 +41,7 @@ pub fn get_internal_page(
                     BTreeInternalPageIterator::new(&root_pod.rl())
                         .next()
                         .unwrap();
-                let left_child_rc = Database::mut_buffer_pool()
-                    .get_internal_page(
+                let left_child_rc = BufferPool::get_internal_page(
                         &tx,
                         Permission::ReadOnly,
                         &e.get_left_child(),
@@ -58,8 +56,7 @@ pub fn get_internal_page(
                         .skip(index - 1)
                         .next()
                         .unwrap();
-                let left_child_rc = Database::mut_buffer_pool()
-                    .get_internal_page(
+                let left_child_rc = BufferPool::get_internal_page(
                         &tx,
                         Permission::ReadOnly,
                         &e.get_right_child(),
@@ -82,8 +79,7 @@ pub fn get_leaf_page(
         0 => {
             let tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
-            let root_pod = Database::mut_buffer_pool()
-                .get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
+            let root_pod = BufferPool::get_leaf_page(&tx, Permission::ReadOnly, &root_pid)
                 .unwrap();
             tx.commit().unwrap();
             return root_pod;
@@ -96,8 +92,7 @@ pub fn get_leaf_page(
                 BTreeInternalPageIterator::new(&internal_pod.rl())
                     .next()
                     .unwrap();
-            let leaf_pod = Database::mut_buffer_pool()
-                .get_leaf_page(
+            let leaf_pod = BufferPool::get_leaf_page(
                     &tx,
                     Permission::ReadOnly,
                     &e.get_left_child(),

@@ -6,12 +6,12 @@ use std::{
 };
 
 use crate::{
-    btree::page::{
+    btree::{page::{
         BTreeHeaderPage, BTreeInternalPage,
         BTreeInternalPageIterator, BTreeLeafPage,
         BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
         PageCategory,
-    },
+    }, buffer_pool::BufferPool},
     concurrent_status::Permission,
     error::SmallError,
     storage::tuple::{Cell, WrappedTuple},
@@ -33,8 +33,7 @@ impl BTreeTable {
         tuple: &WrappedTuple,
     ) -> SmallResult {
         let pid = tuple.get_pid();
-        let leaf_rc = Database::mut_buffer_pool()
-            .get_leaf_page(tx, Permission::ReadWrite, &pid)
+        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid)
             .unwrap();
 
         // hold the leaf page
@@ -72,13 +71,11 @@ impl BTreeTable {
         let right_pid = page_rc.rl().get_right_pid();
 
         if let Some(left_pid) = left_pid {
-            let left_rc = Database::mut_buffer_pool()
-                .get_leaf_page(tx, Permission::ReadWrite, &left_pid)
+            let left_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &left_pid)
                 .unwrap();
             self.balancing_two_leaf_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc = Database::mut_buffer_pool()
-                .get_leaf_page(tx, Permission::ReadWrite, &right_pid)
+            let right_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &right_pid)
                 .unwrap();
             self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
@@ -114,8 +111,7 @@ impl BTreeTable {
         let left_pid = page_rc.rl().get_left_sibling_pid(tx);
         let right_pid = page_rc.rl().get_right_sibling_pid(tx);
         if let Some(left_pid) = left_pid {
-            let left_rc = Database::mut_buffer_pool()
-                .get_internal_page(
+            let left_rc = BufferPool::get_internal_page(
                     tx,
                     Permission::ReadWrite,
                     &left_pid,
@@ -123,8 +119,7 @@ impl BTreeTable {
                 .unwrap();
             self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc = Database::mut_buffer_pool()
-                .get_internal_page(
+            let right_rc = BufferPool::get_internal_page(
                     tx,
                     Permission::ReadWrite,
                     &right_pid,
@@ -146,8 +141,7 @@ impl BTreeTable {
     ) {
         match child_pid.category {
             PageCategory::Leaf => {
-                let child_rc = Database::mut_buffer_pool()
-                    .get_leaf_page(
+                let child_rc = BufferPool::get_leaf_page(
                         tx,
                         Permission::ReadWrite,
                         child_pid,
@@ -156,8 +150,7 @@ impl BTreeTable {
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             PageCategory::Internal => {
-                let child_rc = Database::mut_buffer_pool()
-                    .get_internal_page(
+                let child_rc = BufferPool::get_internal_page(
                         tx,
                         Permission::ReadOnly,
                         child_pid,
@@ -270,8 +263,7 @@ impl BTreeTable {
 
             // set the left pointer for the newer right page
             if let Some(newer_right_pid) = right.get_right_pid() {
-                let newer_right_rc = Database::mut_buffer_pool()
-                    .get_leaf_page(
+                let newer_right_rc = BufferPool::get_leaf_page(
                         tx,
                         Permission::ReadWrite,
                         &newer_right_pid,
@@ -371,8 +363,7 @@ impl BTreeTable {
         // let mut root_ptr = root_ptr_rc.wl();
         match root_ptr_rc.rl().get_header_pid() {
             Some(header_pid) => {
-                header_rc = Database::mut_buffer_pool()
-                    .get_header_page(
+                header_rc = BufferPool::get_header_page(
                         tx,
                         Permission::ReadWrite,
                         &header_pid,
@@ -418,8 +409,7 @@ impl BTreeTable {
         left_rc: Arc<RwLock<BTreeInternalPage>>,
         right_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> SmallResult {
-        let parent_rc = Database::mut_buffer_pool()
-            .get_internal_page(
+        let parent_rc = BufferPool::get_internal_page(
                 tx,
                 Permission::ReadWrite,
                 &left_rc.rl().get_parent_pid(),
@@ -610,8 +600,7 @@ impl BTreeTable {
         left_rc: Arc<RwLock<BTreeLeafPage>>,
         right_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SmallResult {
-        let parent_rc = Database::mut_buffer_pool()
-            .get_internal_page(
+        let parent_rc = BufferPool::get_internal_page(
                 tx,
                 Permission::ReadWrite,
                 &left_rc.rl().get_parent_pid(),

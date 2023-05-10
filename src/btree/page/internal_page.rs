@@ -14,7 +14,7 @@ use crate::{
     io::{Decodeable, SmallWriter},
     storage::{schema::Schema, tuple::Cell},
     transaction::Transaction,
-    types::SmallResult,
+    types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
     Database,
 };
@@ -348,9 +348,20 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Database::mut_buffer_pool()
-            .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
-            .unwrap();
+
+        let parent_rc: Pod<BTreeInternalPage>;
+
+        // hold buffer pool
+        {
+            parent_rc = BufferPool::get_internal_page(
+                    tx,
+                    Permission::ReadOnly,
+                    &parent_pid,
+                )
+                .unwrap();
+        }
+        // release buffer pool
+
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
@@ -366,9 +377,20 @@ impl BTreeInternalPage {
         tx: &Transaction,
     ) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
-        let parent_rc = Database::mut_buffer_pool()
-            .get_internal_page(tx, Permission::ReadOnly, &parent_pid)
-            .unwrap();
+
+        let parent_rc: Pod<BTreeInternalPage>;
+
+        // hold buffer pool
+        {
+            parent_rc = BufferPool::get_internal_page(
+                    tx,
+                    Permission::ReadOnly,
+                    &parent_pid,
+                )
+                .unwrap();
+        }
+        // release buffer pool
+
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
         for e in it {
