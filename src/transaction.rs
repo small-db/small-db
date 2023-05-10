@@ -20,6 +20,10 @@ impl Transaction {
         }
     }
 
+    pub fn new_specific_id(id: u64) -> Self {
+        Self { uuid: id }
+    }
+
     pub fn start(&self) -> SmallResult {
         Database::mut_log_manager().log_start(self)
     }

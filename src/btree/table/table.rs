@@ -281,16 +281,6 @@ impl BTreeTable {
                 &new_sibling.get_pid(),
             );
 
-            debug!(
-                "split start, page: {}, lock status: {}, new_sibling: {}, lock status: {}, parent: {}, lock status: {}",
-                page.get_pid(),
-                lock_state(page_rc.clone()),
-                new_sibling.get_pid(),
-                lock_state(new_sibling_rc.clone()),
-                parent.get_pid(),
-                lock_state(parent_rc.clone()),
-            );
-
             parent.insert_entry(&mut entry)?;
 
             // set left pointer for the old right sibling

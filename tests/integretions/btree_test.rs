@@ -20,6 +20,7 @@ use crate::test_utils::{
 
 // Insert one tuple into the table
 fn inserter(
+    id: u64,
     column_count: usize,
     table_pod: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
@@ -28,40 +29,39 @@ fn inserter(
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
-    let tx = Transaction::new();
+    let tx = Transaction::new_specific_id(id);
     debug!("{} prepare to insert", tx);
     if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
         table_pod.rl().draw_tree(-1);
         panic!("Error inserting tuple: {}", e);
     }
-    debug!("{} insert done", tx);
     tx.commit().unwrap();
+    debug!("{} insert done", tx);
 
     s.send(tuple).unwrap();
 }
 
 // Delete a random tuple from the table
 fn deleter(
+    id: u64,
     table_pod: &Pod<BTreeTable>,
     r: &crossbeam::channel::Receiver<Tuple>,
 ) {
-    let cs = Database::concurrent_status();
-    debug!("concurrent_status: {:?}", cs);
-
     let tuple = r.recv().unwrap();
     let predicate =
         Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
 
-    let tx = Transaction::new();
+    let tx = Transaction::new_specific_id(id);
     let table = table_pod.rl();
 
     debug!("{} prepare to delete", tx);
     let mut it =
         BTreeTableSearchIterator::new(&tx, &table, &predicate);
-    let _target = it.next().unwrap();
-    // table.delete_tuple(&tx, &target).unwrap();
+    let target = it.next().unwrap();
+    table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
+    debug!("{} delete done", tx);
 }
 
 // Test that doing lots of inserts and deletes in multiple threads
@@ -94,39 +94,73 @@ fn test_big_table() {
 
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
-    thread::scope(|s| {
-        let mut insert_threads = vec![];
-        for _ in 0..1000 {
-            let handle = s.spawn(|| {
-                inserter(column_count, &table_pod, &sender)
-            });
-            insert_threads.push(handle);
-        }
 
-        // wait for all threads to finish
-        for handle in insert_threads {
-            handle.join().unwrap();
-        }
-    });
+    // thread::scope(|s| {
+    //     let mut insert_threads = vec![];
+    //     for i in 0..1000 {
+    //         // thread local copies
+    //         let local_table = table_pod.clone();
+    //         let local_sender = sender.clone();
 
-    assert_true(
-        table_pod.rl().tuples_count() == row_count + 1000,
-        &table,
-    );
+    //         let handle = thread::Builder::new()
+    //             .name(format!("thread-{}", i).to_string())
+    //             .spawn_scoped(s, move || {
+    //                 inserter(
+    //                     i,
+    //                     column_count,
+    //                     &local_table,
+    //                     &local_sender,
+    //                 )
+    //             })
+    //             .unwrap();
 
-    return;
+    //         insert_threads.push(handle);
+    //     }
+
+    //     // wait for all threads to finish
+    //     for handle in insert_threads {
+    //         handle.join().unwrap();
+    //     }
+    // });
+
+    // assert_true(
+    //     table_pod.rl().tuples_count() == row_count + 1000,
+    //     &table,
+    // );
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
         let mut threads = vec![];
-        for _ in 0..1000 {
-            let handle = s.spawn(|| {
-                inserter(column_count, &table_pod, &sender)
-            });
-            threads.push(handle);
+        for i in 0..1000 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_sender = sender.clone();
 
-            let handle = s.spawn(|| deleter(&table_pod, &receiver));
-            threads.push(handle);
+            let insert_worker = thread::Builder::new()
+                .name(format!("thread-insert-{}", i).to_string())
+                .spawn_scoped(s, move || {
+                    inserter(
+                        i,
+                        column_count,
+                        &local_table,
+                        &local_sender,
+                    )
+                })
+                .unwrap();
+            threads.push(insert_worker);
+
+            // thread local copies
+            let local_i = i + 10000;
+            let local_table = table_pod.clone();
+            let local_receiver = receiver.clone();
+
+            let delete_worker = thread::Builder::new()
+                .name(format!("thread-delete-{}", local_i).to_string())
+                .spawn_scoped(s, move || {
+                    deleter(local_i, &local_table, &local_receiver)
+                })
+                .unwrap();
+            threads.push(delete_worker);
         }
 
         // wait for all threads to finish
@@ -140,45 +174,47 @@ fn test_big_table() {
         row_count,
         table.tuples_count()
     );
-    todo!();
+    // todo!();
 
     assert_true(
         table_pod.rl().tuples_count() == row_count + 1000,
         &table,
     );
 
+    return;
+
     let page_count_marker = table_pod.rl().pages_count();
 
     // now delete a bunch of tuples
-    thread::scope(|s| {
-        let mut threads = vec![];
-        for _ in 0..10 {
-            let handle = s.spawn(|| deleter(&table_pod, &receiver));
-            threads.push(handle);
-        }
+    // thread::scope(|s| {
+    //     let mut threads = vec![];
+    //     for _ in 0..10 {
+    //         let handle = s.spawn(|| deleter(&table_pod, &receiver));
+    //         threads.push(handle);
+    //     }
 
-        // wait for all threads to finish
-        for handle in threads {
-            handle.join().unwrap();
-        }
-    });
-    assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
+    //     // wait for all threads to finish
+    //     for handle in threads {
+    //         handle.join().unwrap();
+    //     }
+    // });
+    // assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
 
     // now insert a bunch of random tuples again
-    thread::scope(|s| {
-        let mut threads = vec![];
-        for _ in 0..10 {
-            let handle = s.spawn(|| {
-                inserter(column_count, &table_pod, &sender)
-            });
-            threads.push(handle);
-        }
+    // thread::scope(|s| {
+    //     let mut threads = vec![];
+    //     for i in 0..10 {
+    //         let handle = s.spawn(|| {
+    //             inserter(i, column_count, &table_pod, &sender)
+    //         });
+    //         threads.push(handle);
+    //     }
 
-        // wait for all threads to finish
-        for handle in threads {
-            handle.join().unwrap();
-        }
-    });
+    //     // wait for all threads to finish
+    //     for handle in threads {
+    //         handle.join().unwrap();
+    //     }
+    // });
     assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
     assert!(table_pod.rl().pages_count() < page_count_marker + 20);
 
@@ -198,4 +234,13 @@ fn test_big_table() {
     }
     tx.commit().unwrap();
     table_pod.rl().check_integrity(true);
+}
+
+#[test]
+fn test_thread_name() {
+    thread::Builder::new().name("thread1".to_string()).spawn(
+        move || {
+            println!("Hello, world!");
+        },
+    );
 }

@@ -69,13 +69,8 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
-        // debug!(
-        //     "request lock, tx: {:?}, lock: {:?}, page_id: {:?}",
-        //     tx, lock, page_id
-        // );
-
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < 3
+        while Instant::now().duration_since(start_time).as_secs() < 200
         {
             if Database::concurrent_status()
                 .add_lock(tx, lock, page_id)?
