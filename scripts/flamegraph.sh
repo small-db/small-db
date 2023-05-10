@@ -15,10 +15,19 @@ TEST_NAME=$1
 echo $BINARY
 
 # for maxOS
+# 
+# install:
+# cargo install flamegraph
+# 
 RUST_LOG=info \
-    sudo flamegraph \
-    $BINARY -- \
-    $TEST_NAME --exact --nocapture
+    sudo cargo flamegraph \
+        --test small_tests \
+        -- $TEST_NAME
+
+# RUST_LOG=info \
+#     sudo flamegraph \
+#     $BINARY -- \
+#     $TEST_NAME --exact --nocapture
 
 # for Linux
 # apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
