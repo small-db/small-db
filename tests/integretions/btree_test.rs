@@ -95,38 +95,38 @@ fn test_big_table() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    // thread::scope(|s| {
-    //     let mut insert_threads = vec![];
-    //     for i in 0..1000 {
-    //         // thread local copies
-    //         let local_table = table_pod.clone();
-    //         let local_sender = sender.clone();
+    thread::scope(|s| {
+        let mut insert_threads = vec![];
+        for i in 0..1000 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_sender = sender.clone();
 
-    //         let handle = thread::Builder::new()
-    //             .name(format!("thread-{}", i).to_string())
-    //             .spawn_scoped(s, move || {
-    //                 inserter(
-    //                     i,
-    //                     column_count,
-    //                     &local_table,
-    //                     &local_sender,
-    //                 )
-    //             })
-    //             .unwrap();
+            let handle = thread::Builder::new()
+                .name(format!("thread-{}", i).to_string())
+                .spawn_scoped(s, move || {
+                    inserter(
+                        i,
+                        column_count,
+                        &local_table,
+                        &local_sender,
+                    )
+                })
+                .unwrap();
 
-    //         insert_threads.push(handle);
-    //     }
+            insert_threads.push(handle);
+        }
 
-    //     // wait for all threads to finish
-    //     for handle in insert_threads {
-    //         handle.join().unwrap();
-    //     }
-    // });
+        // wait for all threads to finish
+        for handle in insert_threads {
+            handle.join().unwrap();
+        }
+    });
 
-    // assert_true(
-    //     table_pod.rl().tuples_count() == row_count + 1000,
-    //     &table,
-    // );
+    assert_true(
+        table_pod.rl().tuples_count() == row_count + 1000,
+        &table,
+    );
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {

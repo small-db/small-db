@@ -70,7 +70,7 @@ impl ConcurrentStatus {
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < 200
+        while Instant::now().duration_since(start_time).as_secs() < 100
         {
             if Database::concurrent_status()
                 .add_lock(tx, lock, page_id)?
