@@ -109,7 +109,7 @@ impl BufferPool {
             -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
     ) -> ResultPod<PAGE> {
         // We need to request lock before request the access to buffer
-        // pool. Otherwise, there are some problems:
+        // pool. Here are the reasons:
         // 1. If we request the lock on a page after get the access to
         // buffer pool,    the request may be blocked by other
         // transactions. But we have already    hold the
@@ -118,8 +118,9 @@ impl BufferPool {
         //    T1: hold page1, request buffer pool (for other pages)
         //    T2: hold buffer pool, request page1
         //    => deadlock
-        // 2. The lock scope of buffer pool would be unnecessarily
-        // large.
+        // 2. The lock scope of buffer pool should be as small as
+        // possible, since most of its operations require exclusive
+        // access.
 
         // step 1: request lock from concurrent status
         Database::concurrent_status().request_lock(
