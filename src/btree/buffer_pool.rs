@@ -103,6 +103,9 @@ impl BufferPool {
         Ok(buf)
     }
 
+    /// Get a page from the buffer pool, loading it from disk if necessary.
+    /// 
+    /// Return an error if the page does not exist.
     fn get_page<PAGE: BTreePage>(
         tx: &Transaction,
         perm: Permission,
@@ -112,8 +115,6 @@ impl BufferPool {
         )
             -> &ConcurrentHashMap<Key, Arc<RwLock<PAGE>>>,
     ) -> ResultPod<PAGE> {
-        // step 1: request lock from concurrent status
-        //
         // We need to request lock before request the access to buffer pool.
         // Otherwise, there are some problems:
         // 1. If we request the lock after we get the access to buffer pool,
@@ -123,6 +124,9 @@ impl BufferPool {
         //    T1: hold page1, request page2 from buffer pool
         //    T2: hold buffer pool, request page1
         //    => deadlock
+        // 2. The lock scope of buffer pool would be unnecessarily large.
+
+        // step 1: request lock from concurrent status
         Database::concurrent_status().request_lock(
             tx,
             &perm.to_lock(),
