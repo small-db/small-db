@@ -112,9 +112,9 @@ impl BufferPool {
         // pool. Here are the reasons:
         // 
         // 1. If we request the lock on a page after get the access to
-        // buffer pool,    the request may be blocked by other
-        // transactions. But we have already    hold the
-        // access to the buffer pool, which leads to deadlock.
+        // buffer pool, the request may be blocked by other transactions.
+        // But we have already hold the access to the buffer pool, which
+        // leads to deadlock.
         //    e.g:
         //    T1: hold page1, request buffer pool (for other pages)
         //    T2: hold buffer pool, request page1
