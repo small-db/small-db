@@ -7,8 +7,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, crash, get_leaf_page, new_empty_btree_table,
-    new_random_btree_table, search_key, setup, TreeLayout,
+    assert_true, crash, get_leaf_page, new_empty_btree_table, new_random_btree_table, search_key,
+    setup, TreeLayout,
 };
 
 fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
@@ -31,8 +31,7 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
     // step 4: insert another tuple into the table
     insert_row(&table, &tx, key_2);
@@ -53,14 +52,8 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     insert_row(&table, &tx, key_2);
 
     // step 3: search for the tuples
-    assert_true(
-        search_key(table, &tx, &Cell::Int64(key_1)) == 1,
-        table,
-    );
-    assert_true(
-        search_key(table, &tx, &Cell::Int64(key_2)) == 1,
-        table,
-    );
+    assert_true(search_key(table, &tx, &Cell::Int64(key_1)) == 1, table);
+    assert_true(search_key(table, &tx, &Cell::Int64(key_2)) == 1, table);
 
     // step 4: abort the transaction
     if let Err(e) = tx.abort() {
@@ -75,8 +68,7 @@ fn test_patch() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_rc =
-        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
     commit_insert(&table, 1, 2);
@@ -109,8 +101,7 @@ fn test_patch() {
 fn test_abort() {
     setup();
 
-    let table_rc =
-        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
     // TODO: what's the meaning of below comments?
@@ -121,22 +112,10 @@ fn test_abort() {
     abort_insert(&table, 3, 4);
 
     let tx = Transaction::new();
-    assert_true(
-        search_key(&table, &tx, &Cell::Int64(1)) == 1,
-        &table,
-    );
-    assert_true(
-        search_key(&table, &tx, &Cell::Int64(2)) == 1,
-        &table,
-    );
-    assert_true(
-        search_key(&table, &tx, &Cell::Int64(3)) == 0,
-        &table,
-    );
-    assert_true(
-        search_key(&table, &tx, &Cell::Int64(4)) == 0,
-        &table,
-    );
+    assert_true(search_key(&table, &tx, &Cell::Int64(1)) == 1, &table);
+    assert_true(search_key(&table, &tx, &Cell::Int64(2)) == 1, &table);
+    assert_true(search_key(&table, &tx, &Cell::Int64(3)) == 0, &table);
+    assert_true(search_key(&table, &tx, &Cell::Int64(4)) == 0, &table);
     tx.commit().unwrap();
 }
 
@@ -171,30 +150,12 @@ fn test_abort_commit_interleaved() {
     // verify the result
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(2)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(3)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(4)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(21)) == 1,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(22)) == 1,
-        &table_2,
-    );
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(3)) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(4)) == 0, &table_1);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(21)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(22)) == 1, &table_2);
     tx.commit().unwrap();
 }
 
@@ -212,26 +173,11 @@ fn test_abort_crash() {
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
         tx.start().unwrap();
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(1)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(2)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(3)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(4)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(5)) == 0,
-            &table,
-        );
+        assert_true(search_key(&table, &tx, &Cell::Int64(1)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(2)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(3)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(4)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(5)) == 0, &table);
         tx.commit().unwrap();
     }
 
@@ -264,46 +210,16 @@ fn test_commit_abort_commit_crash() {
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
         tx.start().unwrap();
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(1)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(2)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(3)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(4)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(5)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(6)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(7)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(8)) == 0,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(9)) == 1,
-            &table,
-        );
-        assert_true(
-            search_key(&table, &tx, &Cell::Int64(10)) == 1,
-            &table,
-        );
+        assert_true(search_key(&table, &tx, &Cell::Int64(1)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(2)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(3)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(4)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(5)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(6)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(7)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(8)) == 0, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(9)) == 1, &table);
+        assert_true(search_key(&table, &tx, &Cell::Int64(10)) == 1, &table);
         tx.commit().unwrap();
     }
 
@@ -330,18 +246,9 @@ fn test_commit_crash() {
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(2)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(3)) == 0,
-        &table_1,
-    );
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(3)) == 0, &table_1);
     tx.commit().unwrap();
 }
 
@@ -376,12 +283,10 @@ fn test_open_commit_checkpoint_open_crash() {
     // (since ARIES is a steal/no-force recovery algorithm, we
     // simulate the "steal" scenario here by flushing the buffer
     // pool)
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
     insert_row(&table_1, &t1, 13);
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
     insert_row(&table_1, &t1, 14);
 
@@ -394,67 +299,27 @@ fn test_open_commit_checkpoint_open_crash() {
     tx_3.start().unwrap();
     insert_row(&table_2, &tx_3, 28);
     // defeat NO-STEAL-based abort
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_2, &tx_3, 29);
 
     crash();
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(2)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(12)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(13)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(14)) == 0,
-        &table_1,
-    );
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(12)) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(13)) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(14)) == 0, &table_1);
 
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(22)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(23)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(24)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(25)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(26)) == 1,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(27)) == 1,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(28)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(29)) == 0,
-        &table_2,
-    );
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(22)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(23)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(24)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(25)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(26)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(27)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(28)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(29)) == 0, &table_2);
     tx.commit().unwrap();
 }
 
@@ -479,8 +344,7 @@ fn test_open_commit_open_crash() {
     tx_1.start().unwrap();
     insert_row(&table_1, &tx_1, 10);
     // defeat NO-STEAL-based abort
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &tx_1, 11);
 
     // T2 commits
@@ -490,47 +354,22 @@ fn test_open_commit_open_crash() {
     tx_3.start().unwrap();
     insert_row(&table_2, &tx_3, 24);
     // defeat NO-STEAL-based abort
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_2, &tx_3, 25);
 
     crash();
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(2)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(10)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(11)) == 0,
-        &table_1,
-    );
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(10)) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(11)) == 0, &table_1);
 
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(22)) == 1,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(23)) == 1,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(24)) == 0,
-        &table_2,
-    );
-    assert_true(
-        search_key(&table_2, &tx, &Cell::Int64(25)) == 0,
-        &table_2,
-    );
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(22)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(23)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(24)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(25)) == 0, &table_2);
     tx.commit().unwrap();
 }
 
@@ -554,30 +393,17 @@ fn test_open_crash() {
     tx_1.start().unwrap();
     insert_row(&table_1, &tx_1, 8);
     // something to UNDO (what?)
-    Database::mut_buffer_pool()
-        .flush_all_pages(&mut Database::mut_log_manager());
+    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &tx_1, 9);
 
     crash();
 
     let tx = Transaction::new();
     tx.start().unwrap();
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(1)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(2)) == 1,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(8)) == 0,
-        &table_1,
-    );
-    assert_true(
-        search_key(&table_1, &tx, &Cell::Int64(9)) == 0,
-        &table_1,
-    );
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(8)) == 0, &table_1);
+    assert_true(search_key(&table_1, &tx, &Cell::Int64(9)) == 0, &table_1);
     tx.commit().unwrap();
 }
 

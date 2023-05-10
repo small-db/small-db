@@ -11,9 +11,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, get_internal_page, get_leaf_page, insert_tuples,
-    internal_children_cap, leaf_records_cap, new_random_btree_table,
-    search_key, setup, TreeLayout,
+    assert_true, get_internal_page, get_leaf_page, insert_tuples, internal_children_cap,
+    leaf_records_cap, new_random_btree_table, search_key, setup, TreeLayout,
 };
 
 #[test]
@@ -22,8 +21,7 @@ fn test_insert_tuple() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_pod =
-        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_pod = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_pod.rl();
 
     let mut insert_value = 0;
@@ -72,8 +70,7 @@ fn test_insert_duplicate_tuples() {
 
     // create an empty B+ tree file keyed on the second field of a
     // 2-field tuple
-    let table_rc =
-        new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
     // add a bunch of identical tuples
@@ -91,8 +88,7 @@ fn test_insert_duplicate_tuples() {
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count);
 
-    let predicate =
-        Predicate::new(Op::GreaterThanOrEq, &Cell::Int64(2));
+    let predicate = Predicate::new(Op::GreaterThanOrEq, &Cell::Int64(2));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     assert_eq!(it.count(), repetition_count * 3);
 
@@ -128,8 +124,7 @@ fn test_split_leaf_page() {
 
     let root_pod = get_internal_page(&table, 0, 0);
     assert_true(
-        root_pod.rl().empty_slots_count()
-            == internal_children_cap() - 2,
+        root_pod.rl().empty_slots_count() == internal_children_cap() - 2,
         &table,
     );
 
@@ -152,20 +147,11 @@ fn test_split_root_page() {
 
     // This should create a B+ tree which the second tier is packed.
     let row_count = internal_children_cap() * leaf_records_cap();
-    let table_rc = new_random_btree_table(
-        2,
-        row_count,
-        None,
-        0,
-        TreeLayout::EvenlyDistributed,
-    );
+    let table_rc = new_random_btree_table(2, row_count, None, 0, TreeLayout::EvenlyDistributed);
     let table = table_rc.rl();
 
     // there should be a packed 2nd layer + 1 internal node (root)
-    assert_true(
-        table.pages_count() == internal_children_cap() + 1,
-        &table,
-    );
+    assert_true(table.pages_count() == internal_children_cap() + 1, &table);
     table.draw_tree(1);
 
     insert_tuples(&table, 1);
@@ -182,8 +168,7 @@ fn test_split_root_page() {
     // children (1 entry)
     let root_pod = get_internal_page(&table, 0, 0);
     assert_true(
-        root_pod.rl().empty_slots_count()
-            == internal_children_cap() - 2,
+        root_pod.rl().empty_slots_count() == internal_children_cap() - 2,
         &table,
     );
 
@@ -202,10 +187,7 @@ fn test_split_root_page() {
         let tuple = Tuple::new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
-        assert_true(
-            search_key(&table, &tx, &tuple.get_cell(0)) >= 1,
-            &table,
-        );
+        assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
     }
 
     tx.commit().unwrap();
@@ -222,13 +204,7 @@ fn test_split_internal_page() {
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
-    let table_rc = new_random_btree_table(
-        2,
-        row_count,
-        None,
-        0,
-        TreeLayout::EvenlyDistributed,
-    );
+    let table_rc = new_random_btree_table(2, row_count, None, 0, TreeLayout::EvenlyDistributed);
 
     let table = table_rc.rl();
 
@@ -269,10 +245,7 @@ fn test_split_internal_page() {
         let tuple = Tuple::new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
-        assert_true(
-            search_key(&table, &tx, &tuple.get_cell(0)) >= 1,
-            &table,
-        );
+        assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
     }
 
     // now make sure we have enough records and they are all in sorted

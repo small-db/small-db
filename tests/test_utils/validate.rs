@@ -1,27 +1,17 @@
 use log::error;
 use small_db::{
-    btree::table::BTreeTableSearchIterator, storage::tuple::Cell,
-    transaction::Transaction, BTreeTable, Database, Op, Predicate,
+    btree::table::BTreeTableSearchIterator, storage::tuple::Cell, transaction::Transaction,
+    BTreeTable, Database, Op, Predicate,
 };
 
-pub fn key_present(
-    tx: &Transaction,
-    table: &BTreeTable,
-    key: i64,
-) -> bool {
-    let predicate =
-        Predicate::new(small_db::Op::Equals, &Cell::Int64(key));
-    let mut it =
-        BTreeTableSearchIterator::new(tx, &table, &predicate);
+pub fn key_present(tx: &Transaction, table: &BTreeTable, key: i64) -> bool {
+    let predicate = Predicate::new(small_db::Op::Equals, &Cell::Int64(key));
+    let mut it = BTreeTableSearchIterator::new(tx, &table, &predicate);
     it.next().is_some()
 }
 
 // Search for a key in the table and return the number of records.
-pub fn search_key(
-    table: &BTreeTable,
-    tx: &Transaction,
-    key: &Cell,
-) -> usize {
+pub fn search_key(table: &BTreeTable, tx: &Transaction, key: &Cell) -> usize {
     let predicate = Predicate::new(Op::Equals, key);
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     return it.count();

@@ -3,10 +3,7 @@ use std::{fmt, io::Cursor};
 use bit_vec::BitVec;
 use log::{debug, error};
 
-use super::{
-    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
-    EMPTY_PAGE_ID,
-};
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     concurrent_status::Permission,
@@ -26,8 +23,8 @@ use crate::{
 /// - 4 bytes: page category
 /// - 4 bytes: parent page index
 /// - 4 bytes: children category (leaf/internal)
-/// - n bytes: header bytes, indicate whether every slot of the page
-///   is used or not.
+/// - n bytes: header bytes, indicate whether every slot of the page is used or
+///   not.
 /// - n bytes: keys
 /// - n bytes: children
 ///
@@ -116,8 +113,7 @@ impl BTreeInternalPage {
             );
 
             // read children category
-            let children_category =
-                PageCategory::decode_from(&mut reader);
+            let children_category = PageCategory::decode_from(&mut reader);
 
             // read header
             let header = BitVec::decode_from(&mut reader);
@@ -159,20 +155,13 @@ impl BTreeInternalPage {
         return instance;
     }
 
-    fn new_empty_page(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        schema: &Schema,
-    ) -> Self {
+    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
         let slot_count = Self::get_children_cap(schema);
 
         let mut reader = Cursor::new(bytes);
 
-        let parent_pid = BTreePageID::new(
-            PageCategory::Internal,
-            pid.get_table_id(),
-            EMPTY_PAGE_ID,
-        );
+        let parent_pid =
+            BTreePageID::new(PageCategory::Internal, pid.get_table_id(), EMPTY_PAGE_ID);
 
         let children_category = PageCategory::Leaf;
 
@@ -241,8 +230,7 @@ impl BTreeInternalPage {
     }
 
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer
-        {
+        if self.get_parent_pid().category == PageCategory::RootPointer {
             return true;
         }
 
@@ -323,12 +311,8 @@ impl BTreeInternalPage {
     //
     // # Arguments
     //
-    // * `index` - the index of the child, -1 means the rightmost
-    //   child
-    pub fn get_child_pid(
-        &self,
-        _index: usize,
-    ) -> Option<BTreePageID> {
+    // * `index` - the index of the child, -1 means the rightmost child
+    pub fn get_child_pid(&self, _index: usize) -> Option<BTreePageID> {
         unimplemented!()
     }
 
@@ -342,22 +326,15 @@ impl BTreeInternalPage {
         return it.next_back().unwrap().get_right_child();
     }
 
-    pub fn get_left_sibling_pid(
-        &self,
-        tx: &Transaction,
-    ) -> Option<BTreePageID> {
+    pub fn get_left_sibling_pid(&self, tx: &Transaction) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
 
         let parent_rc: Pod<BTreeInternalPage>;
 
         // hold buffer pool
         {
-            parent_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadOnly,
-                &parent_pid,
-            )
-            .unwrap();
+            parent_rc =
+                BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
         }
         // release buffer pool
 
@@ -371,22 +348,15 @@ impl BTreeInternalPage {
         return None;
     }
 
-    pub fn get_right_sibling_pid(
-        &self,
-        tx: &Transaction,
-    ) -> Option<BTreePageID> {
+    pub fn get_right_sibling_pid(&self, tx: &Transaction) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
 
         let parent_rc: Pod<BTreeInternalPage>;
 
         // hold buffer pool
         {
-            parent_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadOnly,
-                &parent_pid,
-            )
-            .unwrap();
+            parent_rc =
+                BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
         }
         // release buffer pool
 
@@ -407,9 +377,7 @@ impl BTreeInternalPage {
     ) -> Option<Entry> {
         let it = BTreeInternalPageIterator::new(self);
         for entry in it {
-            if entry.get_left_child() == *left_pid
-                && entry.get_right_child() == *right_pid
-            {
+            if entry.get_left_child() == *left_pid && entry.get_right_child() == *right_pid {
                 return Some(entry);
             }
         }
@@ -465,9 +433,7 @@ impl BTreeInternalPage {
 impl BTreeInternalPage {
     pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
         if self.empty_slots_count() == 0 {
-            return Err(SmallError::new(
-                "No empty slots on this page.",
-            ));
+            return Err(SmallError::new("No empty slots on this page."));
         }
 
         // check if this is the first entry
@@ -572,8 +538,7 @@ impl BTreeInternalPage {
     }
 
     pub fn children_count(&self) -> usize {
-        let children_count =
-            self.slot_count - self.empty_slots_count();
+        let children_count = self.slot_count - self.empty_slots_count();
 
         // The minimum number of children is 2. (Since a single child
         // cannot form an entry.)
@@ -606,22 +571,19 @@ impl BTreeInternalPage {
     pub fn get_children_cap(schema: &Schema) -> usize {
         let key_size = schema.get_pkey().get_type().get_disk_size();
 
-        let bits_per_entry_including_header =
-            key_size * 8 + INDEX_SIZE * 8 + 1;
+        let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
 
         // extraBits:
         // - page category
         // - one parent pointer
         // - child page category
-        // - one extra child pointer (node with m entries has m+1
-        //   pointers to children)
+        // - one extra child pointer (node with m entries has m+1 pointers to children)
         // - header size
         // - 1 bit for extra header (for the slot 0)
         let extra_bits = (4 * INDEX_SIZE + 2) * 8 + 1;
 
-        let entries_per_page = (BufferPool::get_page_size() * 8
-            - extra_bits)
-            / bits_per_entry_including_header; // round down
+        let entries_per_page =
+            (BufferPool::get_page_size() * 8 - extra_bits) / bits_per_entry_including_header; // round down
         return entries_per_page + 1;
     }
 }
@@ -706,11 +668,7 @@ pub struct Entry {
 }
 
 impl Entry {
-    pub fn new(
-        key: &Cell,
-        left: &BTreePageID,
-        right: &BTreePageID,
-    ) -> Self {
+    pub fn new(key: &Cell, left: &BTreePageID, right: &BTreePageID) -> Self {
         Self {
             key: key.clone(),
             left: *left,
@@ -816,9 +774,7 @@ impl Iterator for BTreeInternalPageIterator<'_> {
 impl<'page> DoubleEndedIterator for BTreeInternalPageIterator<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(left_index) =
-                self.reverse_cursor.checked_sub(1)
-            {
+            if let Some(left_index) = self.reverse_cursor.checked_sub(1) {
                 self.reverse_cursor = left_index;
                 if !self.page.is_slot_used(left_index) {
                     continue;

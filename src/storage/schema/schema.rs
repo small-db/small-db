@@ -26,11 +26,7 @@ impl Schema {
     pub fn small_int_schema(width: usize) -> Self {
         let mut fields: Vec<Field> = Vec::new();
         for i in 0..width {
-            let field = Field::new(
-                &format!("int-column-{}", i),
-                Type::Int64,
-                i == 0,
-            );
+            let field = Field::new(&format!("int-column-{}", i), Type::Int64, i == 0);
 
             fields.push(field);
         }

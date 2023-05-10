@@ -48,8 +48,7 @@ pub enum AcquireResult {
 pub struct ConcurrentStatus {
     s_lock_map: ConcurrentHashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: ConcurrentHashMap<BTreePageID, Transaction>,
-    pub hold_pages:
-        ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
+    pub hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
     modification_lock: Arc<Mutex<()>>,
 }
 
@@ -70,12 +69,8 @@ impl ConcurrentStatus {
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs()
-            < 100
-        {
-            if Database::concurrent_status()
-                .add_lock(tx, lock, page_id)?
-            {
+        while Instant::now().duration_since(start_time).as_secs() < 100 {
+            if Database::concurrent_status().add_lock(tx, lock, page_id)? {
                 return Ok(());
             }
 
@@ -125,13 +120,10 @@ impl ConcurrentStatus {
 
         match lock {
             Lock::SLock => {
-                self.s_lock_map.alter_value(
-                    page_id,
-                    |s_lock_set| {
-                        s_lock_set.insert(tx.clone());
-                        Ok(())
-                    },
-                )?;
+                self.s_lock_map.alter_value(page_id, |s_lock_set| {
+                    s_lock_set.insert(tx.clone());
+                    Ok(())
+                })?;
             }
             Lock::XLock => {
                 self.x_lock_map
@@ -149,16 +141,12 @@ impl ConcurrentStatus {
         return Ok(true);
     }
 
-    pub fn release_lock_by_tx(
-        &self,
-        tx: &Transaction,
-    ) -> SmallResult {
+    pub fn release_lock_by_tx(&self, tx: &Transaction) -> SmallResult {
         if !self.hold_pages.get_inner().rl().contains_key(tx) {
             return Ok(());
         }
 
-        let hold_pages =
-            self.hold_pages.get_inner().rl().get(tx).unwrap().clone();
+        let hold_pages = self.hold_pages.get_inner().rl().get(tx).unwrap().clone();
         for page_id in hold_pages {
             self.release_lock(tx, &page_id)?;
         }
@@ -168,11 +156,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    fn release_lock(
-        &self,
-        tx: &Transaction,
-        page_id: &BTreePageID,
-    ) -> SmallResult {
+    fn release_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
         let mut s_lock_map = self.s_lock_map.get_inner_wl();
         if let Some(v) = s_lock_map.get_mut(page_id) {
             v.remove(tx);
@@ -189,11 +173,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn holds_lock(
-        &self,
-        tx: &Transaction,
-        page_id: &BTreePageID,
-    ) -> bool {
+    pub fn holds_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> bool {
         let s_lock_map = self.s_lock_map.get_inner_rl();
         let x_lock_map = self.x_lock_map.get_inner_rl();
 
@@ -212,10 +192,7 @@ impl ConcurrentStatus {
         return false;
     }
 
-    pub fn get_page_tx(
-        &self,
-        page_id: &BTreePageID,
-    ) -> Option<Transaction> {
+    pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
         let x_lock_map = self.x_lock_map.get_inner_rl();
         if let Some(v) = x_lock_map.get(page_id) {
             return Some(v.clone());
@@ -238,10 +215,7 @@ impl fmt::Display for ConcurrentStatus {
         // s_lock_map.get_inner().rl()
         depiction.push_str("s_lock_map.get_inner().rl(): {");
         for (k, v) in self.s_lock_map.get_inner().rl().iter() {
-            depiction.push_str(&format!(
-                "\n\t{:?} -> [",
-                k.get_short_repr()
-            ));
+            depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
             for tx in v {
                 depiction.push_str(&format!("\n\t\t{:?}, ", tx));
             }
@@ -252,11 +226,7 @@ impl fmt::Display for ConcurrentStatus {
         // x_lock_map.get_inner().rl()
         depiction.push_str("x_lock_map.get_inner().rl(): {");
         for (k, v) in self.x_lock_map.get_inner().rl().iter() {
-            depiction.push_str(&format!(
-                "\n\t{:?} -> {:?}, ",
-                k.get_short_repr(),
-                v
-            ));
+            depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k.get_short_repr(), v));
         }
         depiction.push_str("\n}\n");
 
@@ -265,10 +235,7 @@ impl fmt::Display for ConcurrentStatus {
         for (k, v) in self.hold_pages.get_inner().rl().iter() {
             depiction.push_str(&format!("\n\t{:?} -> [", k));
             for page_id in v {
-                depiction.push_str(&format!(
-                    "\n\t\t{:?}, ",
-                    page_id.get_short_repr()
-                ));
+                depiction.push_str(&format!("\n\t\t{:?}, ", page_id.get_short_repr()));
             }
             depiction.push_str("\n\t]\n");
         }

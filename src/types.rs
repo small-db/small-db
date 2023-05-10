@@ -164,10 +164,7 @@ mod tests {
             let mut threads = vec![];
             for _ in 0..5 {
                 let handle = s.spawn(|| {
-                    let thread_name = format!(
-                        "thread-{:?}",
-                        thread::current().id()
-                    );
+                    let thread_name = format!("thread-{:?}", thread::current().id());
                     debug!("{}: start", thread_name);
                     {
                         // We have to give the guard a name, otherwise

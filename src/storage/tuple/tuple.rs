@@ -29,10 +29,7 @@ impl Tuple {
         }
     }
 
-    pub fn read_from<R: std::io::Read>(
-        reader: &mut R,
-        schema: &Schema,
-    ) -> Self {
+    pub fn read_from<R: std::io::Read>(reader: &mut R, schema: &Schema) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in schema.get_fields() {
             let cell = Cell::read_from(reader, &field.get_type());
@@ -134,11 +131,7 @@ impl std::ops::DerefMut for WrappedTuple {
 }
 
 impl WrappedTuple {
-    pub fn new(
-        internal: Tuple,
-        slot_number: usize,
-        pid: BTreePageID,
-    ) -> WrappedTuple {
+    pub fn new(internal: Tuple, slot_number: usize, pid: BTreePageID) -> WrappedTuple {
         WrappedTuple {
             internal,
             slot_number,

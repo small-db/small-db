@@ -8,9 +8,7 @@ use std::{
 
 use bit_vec::BitVec;
 
-use crate::{
-    btree::page::BTreePage, error::SmallError, types::SmallResult,
-};
+use crate::{btree::page::BTreePage, error::SmallError, types::SmallResult};
 
 const MAX_BYTES_SIZE: usize = u16::MAX as usize;
 
@@ -42,16 +40,11 @@ impl SmallFile {
     }
 
     pub fn get_size(&self) -> Result<u64, SmallError> {
-        let metadata = self
-            .file
-            .metadata()
-            .or(Err(SmallError::new("io error")))?;
+        let metadata = self.file.metadata().or(Err(SmallError::new("io error")))?;
         Ok(metadata.len())
     }
 
-    pub fn get_current_position(
-        &mut self,
-    ) -> Result<u64, SmallError> {
+    pub fn get_current_position(&mut self) -> Result<u64, SmallError> {
         let offset = self
             .file
             .seek(std::io::SeekFrom::Current(0))
@@ -87,16 +80,11 @@ impl std::io::Read for SmallFile {
 /// The advantage of this wrapper is doesn't require explicit type
 /// annotation when type inference is possible. This makes some code
 /// more concise.
-pub fn read_into<T: Decodeable, R: std::io::Read>(
-    reader: &mut R,
-) -> T {
+pub fn read_into<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
     T::decode_from(reader)
 }
 
-pub fn read_exact<R: std::io::Read>(
-    reader: &mut R,
-    bytes_count: usize,
-) -> Vec<u8> {
+pub fn read_exact<R: std::io::Read>(reader: &mut R, bytes_count: usize) -> Vec<u8> {
     let mut buffer = vec![0u8; bytes_count];
     reader
         .read_exact(&mut buffer)
@@ -177,9 +165,7 @@ impl Decodeable for bool {
 impl Decodeable for String {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         // read size
-        let size = u8::from_le_bytes(
-            read_exact(reader, 1).try_into().unwrap(),
-        );
+        let size = u8::from_le_bytes(read_exact(reader, 1).try_into().unwrap());
 
         // read payload
         let bytes = read_exact(reader, size as usize);

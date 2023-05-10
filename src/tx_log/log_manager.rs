@@ -12,9 +12,8 @@ use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage,
-            BTreePage, BTreePageID, BTreeRootPointerPage,
-            PageCategory,
+            BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
+            BTreeRootPointerPage, PageCategory,
         },
     },
     error::SmallError,
@@ -170,8 +169,7 @@ impl LogManager {
         // get all incomplete transactions (transactions that have
         // started but not committed or aborted at the time of the
         // crash)
-        let incomplete_transactions =
-            self.get_incomplete_transactions()?;
+        let incomplete_transactions = self.get_incomplete_transactions()?;
 
         self.file.seek(SeekFrom::End(0))?;
 
@@ -198,23 +196,16 @@ impl LogManager {
 
                     if incomplete_transactions.contains(&tid) {
                         // skip the page id
-                        let pid: BTreePageID =
-                            read_into(&mut self.file);
+                        let pid: BTreePageID = read_into(&mut self.file);
 
-                        let before_page: Vec<u8> =
-                            read_into(&mut self.file);
+                        let before_page: Vec<u8> = read_into(&mut self.file);
 
                         // TODO: construct a new page from the before
                         // page
                         let mut catalog = Database::mut_catalog();
                         let table_pod = catalog
                             .get_table(&pid.table_id)
-                            .unwrap_or_else(|| {
-                                panic!(
-                                    "table {} not found",
-                                    pid.table_id
-                                )
-                            });
+                            .unwrap_or_else(|| panic!("table {} not found", pid.table_id));
                         let table = table_pod.rl();
                         table.write_page_to_disk(&pid, &before_page);
 
@@ -225,8 +216,7 @@ impl LogManager {
                         let _: u64 = read_into(&mut self.file);
                     } else {
                         // skip the page id
-                        let _: BTreePageID =
-                            read_into(&mut self.file);
+                        let _: BTreePageID = read_into(&mut self.file);
 
                         // skip the before page
                         let _: Vec<u8> = read_into(&mut self.file);
@@ -291,9 +281,7 @@ impl LogManager {
         Ok(())
     }
 
-    fn get_incomplete_transactions(
-        &mut self,
-    ) -> Result<HashSet<u64>, SmallError> {
+    fn get_incomplete_transactions(&mut self) -> Result<HashSet<u64>, SmallError> {
         self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = read_into(&mut self.file);
 
@@ -301,15 +289,12 @@ impl LogManager {
 
         if last_checkpoint_position != NO_CHECKPOINT {
             self.show_log_contents();
-            self.file
-                .seek(SeekFrom::Start(last_checkpoint_position))?;
+            self.file.seek(SeekFrom::Start(last_checkpoint_position))?;
 
             // check the record type
             let record_type: RecordType = read_into(&mut self.file);
             if record_type != RecordType::CHECKPOINT {
-                return Err(SmallError::new(
-                    "invalid checkpoint record type",
-                ));
+                return Err(SmallError::new("invalid checkpoint record type"));
             }
 
             // skip the checkpoint id
@@ -413,11 +398,7 @@ impl LogManager {
 
     /// Write an abort record to the log for the specified tid, force
     /// the log to disk, and perform a rollback
-    pub fn log_abort(
-        &mut self,
-        tx: &Transaction,
-        page_cache: &mut BufferPool,
-    ) -> SmallResult {
+    pub fn log_abort(&mut self, tx: &Transaction, page_cache: &mut BufferPool) -> SmallResult {
         // must have page cache lock before proceeding, since this
         // calls rollback let cache =
         // Unique::mut_page_cache();
@@ -475,8 +456,7 @@ impl LogManager {
         // Unique::buffer_pool_pod().wl().flush_all_pages();
         cache.flush_all_pages(self);
 
-        let checkpoint_start_position =
-            self.file.get_current_position()?;
+        let checkpoint_start_position = self.file.get_current_position()?;
 
         self.file.write(&RecordType::CHECKPOINT)?;
 
@@ -492,8 +472,7 @@ impl LogManager {
             self.file.write(start_position)?;
         }
 
-        let checkpoint_end_position =
-            self.file.get_current_position()?;
+        let checkpoint_end_position = self.file.get_current_position()?;
 
         // once the CP is written, make sure the CP location at the
         // beginning of the log file is updated
@@ -529,20 +508,14 @@ impl LogManager {
     /// To preserve transaction semantics, this should not be called
     /// on transactions that have already committed (though this
     /// may not be enforced by this method).
-    fn rollback(
-        &mut self,
-        tx: &Transaction,
-        page_cache: &mut BufferPool,
-    ) -> SmallResult {
+    fn rollback(&mut self, tx: &Transaction, page_cache: &mut BufferPool) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
         self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = read_into(&mut self.file);
         if last_checkpoint_position == NO_CHECKPOINT {
             // page_cache.discard_page(pid)
-            let hold_pages = Database::concurrent_status()
-                .hold_pages
-                .get_inner_rl();
+            let hold_pages = Database::concurrent_status().hold_pages.get_inner_rl();
             let pids = hold_pages.get(tx).unwrap();
 
             for pid in pids {
@@ -603,17 +576,11 @@ impl LogManager {
                 RecordType::UPDATE => {
                     let tid: u64 = read_into(&mut self.file);
                     if tid == tx.get_id() {
-                        let pid: BTreePageID =
-                            read_into(&mut self.file);
+                        let pid: BTreePageID = read_into(&mut self.file);
 
                         // skip the before page
-                        let before_image: Vec<u8> =
-                            read_into(&mut self.file);
-                        self.recover_page(
-                            &pid,
-                            &before_image,
-                            page_cache,
-                        )?;
+                        let before_image: Vec<u8> = read_into(&mut self.file);
+                        self.recover_page(&pid, &before_image, page_cache)?;
 
                         // skip the after page
                         let _ = self.read_page(&pid)?;
@@ -624,8 +591,7 @@ impl LogManager {
                         // skip this record
 
                         // skip the page id
-                        let _: BTreePageID =
-                            read_into(&mut self.file);
+                        let _: BTreePageID = read_into(&mut self.file);
 
                         // skip the before page
                         let _: Vec<u8> = read_into(&mut self.file);
@@ -674,10 +640,7 @@ impl LogManager {
         return Ok(());
     }
 
-    fn write_page<PAGE: BTreePage>(
-        &mut self,
-        page_pod: Arc<RwLock<PAGE>>,
-    ) -> SmallResult {
+    fn write_page<PAGE: BTreePage>(&mut self, page_pod: Arc<RwLock<PAGE>>) -> SmallResult {
         let page = page_pod.read().unwrap();
         self.file.write(&page.get_pid())?;
 
@@ -707,55 +670,27 @@ impl LogManager {
 
         match pid.category {
             PageCategory::Leaf => {
-                let page =
-                    BTreeLeafPage::new(&pid, &before_image, &schema);
-                BufferPool::recover_page(
-                    &pid,
-                    page,
-                    &mut buffer_pool.leaf_buffer,
-                );
+                let page = BTreeLeafPage::new(&pid, &before_image, &schema);
+                BufferPool::recover_page(&pid, page, &mut buffer_pool.leaf_buffer);
             }
             PageCategory::RootPointer => {
-                let page = BTreeRootPointerPage::new(
-                    &pid,
-                    &before_image,
-                    &schema,
-                );
-                BufferPool::recover_page(
-                    &pid,
-                    page,
-                    &mut buffer_pool.root_pointer_buffer,
-                );
+                let page = BTreeRootPointerPage::new(&pid, &before_image, &schema);
+                BufferPool::recover_page(&pid, page, &mut buffer_pool.root_pointer_buffer);
             }
             PageCategory::Internal => {
-                let page = BTreeInternalPage::new(
-                    &pid,
-                    &before_image,
-                    &schema,
-                );
-                BufferPool::recover_page(
-                    &pid,
-                    page,
-                    &mut buffer_pool.internal_buffer,
-                );
+                let page = BTreeInternalPage::new(&pid, &before_image, &schema);
+                BufferPool::recover_page(&pid, page, &mut buffer_pool.internal_buffer);
             }
             PageCategory::Header => {
                 let page = BTreeHeaderPage::new(&pid, &before_image);
-                BufferPool::recover_page(
-                    &pid,
-                    page,
-                    &mut buffer_pool.header_buffer,
-                );
+                BufferPool::recover_page(&pid, page, &mut buffer_pool.header_buffer);
             }
         }
 
         Ok(())
     }
 
-    fn read_page(
-        &mut self,
-        pid: &BTreePageID,
-    ) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
+    fn read_page(&mut self, pid: &BTreePageID) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
         // let pid: BTreePageID = read_into(&mut self.file);
 
         let data: Vec<u8> = read_into(&mut self.file);
@@ -773,13 +708,11 @@ impl LogManager {
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::RootPointer => {
-                let page =
-                    BTreeRootPointerPage::new(&pid, &data, &schema);
+                let page = BTreeRootPointerPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Internal => {
-                let page =
-                    BTreeInternalPage::new(&pid, &data, &schema);
+                let page = BTreeInternalPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Header => {
@@ -814,8 +747,7 @@ impl LogManager {
     }
 
     pub fn show_log_contents(&mut self) {
-        let original_offset =
-            self.file.get_current_position().unwrap();
+        let original_offset = self.file.get_current_position().unwrap();
 
         let mut depiction = String::new();
 
@@ -829,8 +761,7 @@ impl LogManager {
                 last_checkpoint,
             ));
         } else {
-            depiction
-                .push_str(&format!("├── [8 bytes] no checkpoint\n",));
+            depiction.push_str(&format!("├── [8 bytes] no checkpoint\n",));
         }
 
         let mut offset = 0;
@@ -858,10 +789,7 @@ impl LogManager {
                     ));
 
                     let tid: u64 = read_into(&mut self.file);
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] tid: {}\n",
-                        tid,
-                    ));
+                    depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
@@ -876,27 +804,19 @@ impl LogManager {
                     ));
 
                     let tid: u64 = read_into(&mut self.file);
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] tid: {}\n",
-                        tid,
-                    ));
+                    depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let pid: BTreePageID = read_into(&mut self.file);
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] pid: {:?}\n",
-                        pid,
-                    ));
+                    depiction.push_str(&format!("│   ├── [8 bytes] pid: {:?}\n", pid,));
 
-                    let before_page: Vec<u8> =
-                        read_into(&mut self.file);
+                    let before_page: Vec<u8> = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] before page: {}\n",
                         before_page.len(),
                         self.parsed_page_content(&before_page, &pid),
                     ));
 
-                    let after_page: Vec<u8> =
-                        read_into(&mut self.file);
+                    let after_page: Vec<u8> = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] after page: {}\n",
                         after_page.len(),
@@ -916,10 +836,7 @@ impl LogManager {
                     ));
 
                     let tid: u64 = read_into(&mut self.file);
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] tid: {}\n",
-                        tid,
-                    ));
+                    depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
@@ -933,8 +850,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let checkpoint_id: i64 =
-                        read_into(&mut self.file);
+                    let checkpoint_id: i64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] checkpoint id: {}\n",
                         checkpoint_id,
@@ -949,20 +865,15 @@ impl LogManager {
                     ));
                     for _ in 0..tx_count {
                         let tx_id: u64 = read_into(&mut self.file);
-                        depiction.push_str(&format!(
-                            "│   │   ├── [8 bytes] tx id: {}\n",
-                            tx_id,
-                        ));
-                        let tx_start_offset: u64 =
-                            read_into(&mut self.file);
+                        depiction.push_str(&format!("│   │   ├── [8 bytes] tx id: {}\n", tx_id,));
+                        let tx_start_offset: u64 = read_into(&mut self.file);
                         depiction.push_str(&format!(
                             "│   │   └── [8 bytes] tx start offset: {}\n",
                             tx_start_offset,
                         ));
                     }
 
-                    let checkpoint_end_position: u64 =
-                        read_into(&mut self.file);
+                    let checkpoint_end_position: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start position: {}\n",
                         checkpoint_end_position,
@@ -975,10 +886,7 @@ impl LogManager {
                     ));
 
                     let tid: u64 = read_into(&mut self.file);
-                    depiction.push_str(&format!(
-                        "│   ├── [8 bytes] tid: {}\n",
-                        tid,
-                    ));
+                    depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);
                     depiction.push_str(&format!(
@@ -994,20 +902,14 @@ impl LogManager {
         self.file.seek(SeekFrom::Start(original_offset)).unwrap();
     }
 
-    fn parsed_page_content(
-        &self,
-        bytes: &[u8],
-        pid: &BTreePageID,
-    ) -> String {
-        let page_category =
-            PageCategory::decode_from(&mut Cursor::new(bytes));
+    fn parsed_page_content(&self, bytes: &[u8], pid: &BTreePageID) -> String {
+        let page_category = PageCategory::decode_from(&mut Cursor::new(bytes));
 
         match page_category {
             PageCategory::Leaf => {
                 // TODO: use real value for schema, key_field and pid
                 let mut catalog = Database::mut_catalog();
-                let table_rc =
-                    catalog.get_table(&pid.table_id).unwrap();
+                let table_rc = catalog.get_table(&pid.table_id).unwrap();
                 let schema = table_rc.rl().get_schema();
 
                 let page = BTreeLeafPage::new(&pid, bytes, &schema);
@@ -1017,10 +919,7 @@ impl LogManager {
                     .map(|x| x.get_cell(0).encode())
                     .collect::<Vec<_>>();
 
-                return format!(
-                    "{:?}, content: {:?}...",
-                    page_category, content,
-                );
+                return format!("{:?}, content: {:?}...", page_category, content,);
             }
             _ => {
                 return format!("{:?}", &bytes[0..16],);

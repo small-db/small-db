@@ -9,9 +9,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, delete_tuples, get_internal_page, get_leaf_page,
-    insert_tuples, internal_children_cap, leaf_records_cap,
-    new_random_btree_table, setup, TreeLayout,
+    assert_true, delete_tuples, get_internal_page, get_leaf_page, insert_tuples,
+    internal_children_cap, leaf_records_cap, new_random_btree_table, setup, TreeLayout,
 };
 
 #[test]
@@ -35,18 +34,12 @@ fn test_redistribute_leaf_pages() {
     // occupancy.
     let delete_count = floor_div(leaf_records_cap(), 2);
     delete_tuples(&table, delete_count);
-    assert_true(
-        left_pod.rl().empty_slots_count() == delete_count,
-        &table,
-    );
+    assert_true(left_pod.rl().empty_slots_count() == delete_count, &table);
 
     // Deleting a tuple now should bring the page below minimum
     // occupancy and cause the tuples to be redistributed.
     delete_tuples(&table, 1);
-    assert_true(
-        left_pod.rl().empty_slots_count() < delete_count,
-        &table,
-    );
+    assert_true(left_pod.rl().empty_slots_count() < delete_count, &table);
 
     // Assert some tuples of the right page were stolen.
     // assert!(right_pod.rl().empty_slots_count() > 0);
@@ -196,10 +189,10 @@ fn test_redistribute_internal_pages() {
     tx.commit().unwrap();
 
     // verify the tree structure:
-    // - the left child of the root page should have more children
-    //   than half (since it steals from the right child)
-    // - the right child of the root page should have less children
-    //   than half + 50 (since it gives to the left child)
+    // - the left child of the root page should have more children than half (since
+    //   it steals from the right child)
+    // - the right child of the root page should have less children than half + 50
+    //   (since it gives to the left child)
     let left_child_rc = get_internal_page(&table, 1, 0);
     let right_child_rc = get_internal_page(&table, 1, 1);
     // debug!(
@@ -211,13 +204,11 @@ fn test_redistribute_internal_pages() {
     // table.draw_tree(2);
     // return;
     assert_true(
-        left_child_rc.rl().children_count()
-            > internal_children_cap() / 2,
+        left_child_rc.rl().children_count() > internal_children_cap() / 2,
         &table,
     );
     assert_true(
-        right_child_rc.rl().children_count()
-            < internal_children_cap() / 2 + 50,
+        right_child_rc.rl().children_count() < internal_children_cap() / 2 + 50,
         &table,
     );
 
@@ -234,13 +225,8 @@ fn test_delete_internal_pages() {
     // Create a B+ tree with 3 nodes in the first tier; the second and
     // the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
-    let table_rc = new_random_btree_table(
-        2,
-        row_count,
-        None,
-        0,
-        TreeLayout::LastTwoEvenlyDistributed,
-    );
+    let table_rc =
+        new_random_btree_table(2, row_count, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let table = table_rc.rl();
     table.draw_tree(2);
@@ -253,8 +239,7 @@ fn test_delete_internal_pages() {
 
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
-    let count =
-        ceil_div(internal_children_cap(), 2) * leaf_records_cap();
+    let count = ceil_div(internal_children_cap(), 2) * leaf_records_cap();
     delete_tuples(&table, count);
     assert_eq!(second_child_pod.rl().empty_slots_count(), 0);
 
@@ -268,8 +253,7 @@ fn test_delete_internal_pages() {
     // Deleting another page of tuples should bring the page below
     // minimum occupancy again but this time cause it to merge
     // with its right sibling.
-    let count =
-        ceil_div(internal_children_cap(), 2) * leaf_records_cap();
+    let count = ceil_div(internal_children_cap(), 2) * leaf_records_cap();
     delete_tuples(&table, count);
 
     // Confirm that the pages have merged.
@@ -290,8 +274,7 @@ fn test_delete_internal_pages() {
                 .get_key()
     );
 
-    let count =
-        first_child_pod.rl().children_count() * leaf_records_cap();
+    let count = first_child_pod.rl().children_count() * leaf_records_cap();
     delete_tuples(&table, count);
 
     // Confirm that the last two internal pages have merged

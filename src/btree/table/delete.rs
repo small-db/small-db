@@ -9,10 +9,8 @@ use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeHeaderPage, BTreeInternalPage,
-            BTreeInternalPageIterator, BTreeLeafPage,
-            BTreeLeafPageIterator, BTreePage, BTreePageID, Entry,
-            PageCategory,
+            BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
+            BTreeLeafPageIterator, BTreePage, BTreePageID, Entry, PageCategory,
         },
     },
     concurrent_status::Permission,
@@ -30,18 +28,9 @@ impl BTreeTable {
     ///
     /// May cause pages to merge or redistribute entries/tuples if the
     /// pages become less than half full.
-    pub fn delete_tuple(
-        &self,
-        tx: &Transaction,
-        tuple: &WrappedTuple,
-    ) -> SmallResult {
+    pub fn delete_tuple(&self, tx: &Transaction, tuple: &WrappedTuple) -> SmallResult {
         let pid = tuple.get_pid();
-        let leaf_rc = BufferPool::get_leaf_page(
-            tx,
-            Permission::ReadWrite,
-            &pid,
-        )
-        .unwrap();
+        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid).unwrap();
 
         // hold the leaf page
         {
@@ -68,9 +57,7 @@ impl BTreeTable {
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SmallResult {
-        if page_rc.rl().get_parent_pid().category
-            == PageCategory::RootPointer
-        {
+        if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
 
@@ -78,20 +65,11 @@ impl BTreeTable {
         let right_pid = page_rc.rl().get_right_pid();
 
         if let Some(left_pid) = left_pid {
-            let left_rc = BufferPool::get_leaf_page(
-                tx,
-                Permission::ReadWrite,
-                &left_pid,
-            )
-            .unwrap();
+            let left_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &left_pid).unwrap();
             self.balancing_two_leaf_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc = BufferPool::get_leaf_page(
-                tx,
-                Permission::ReadWrite,
-                &right_pid,
-            )
-            .unwrap();
+            let right_rc =
+                BufferPool::get_leaf_page(tx, Permission::ReadWrite, &right_pid).unwrap();
             self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
             return Err(SmallError::new(
@@ -117,29 +95,19 @@ impl BTreeTable {
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
     ) -> SmallResult {
-        if page_rc.rl().get_parent_pid().category
-            == PageCategory::RootPointer
-        {
+        if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
             return Ok(());
         }
 
         let left_pid = page_rc.rl().get_left_sibling_pid(tx);
         let right_pid = page_rc.rl().get_right_sibling_pid(tx);
         if let Some(left_pid) = left_pid {
-            let left_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadWrite,
-                &left_pid,
-            )
-            .unwrap();
+            let left_rc =
+                BufferPool::get_internal_page(tx, Permission::ReadWrite, &left_pid).unwrap();
             self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
         } else if let Some(right_pid) = right_pid {
-            let right_rc = BufferPool::get_internal_page(
-                tx,
-                Permission::ReadWrite,
-                &right_pid,
-            )
-            .unwrap();
+            let right_rc =
+                BufferPool::get_internal_page(tx, Permission::ReadWrite, &right_pid).unwrap();
             self.balancing_two_internal_pages(tx, page_rc, right_rc)?;
         } else {
             panic!("Cannot find the left/right sibling of the page");
@@ -148,29 +116,16 @@ impl BTreeTable {
         Ok(())
     }
 
-    fn set_parent_pid(
-        &self,
-        tx: &Transaction,
-        child_pid: &BTreePageID,
-        parent_pid: &BTreePageID,
-    ) {
+    fn set_parent_pid(&self, tx: &Transaction, child_pid: &BTreePageID, parent_pid: &BTreePageID) {
         match child_pid.category {
             PageCategory::Leaf => {
-                let child_rc = BufferPool::get_leaf_page(
-                    tx,
-                    Permission::ReadWrite,
-                    child_pid,
-                )
-                .unwrap();
+                let child_rc =
+                    BufferPool::get_leaf_page(tx, Permission::ReadWrite, child_pid).unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             PageCategory::Internal => {
-                let child_rc = BufferPool::get_internal_page(
-                    tx,
-                    Permission::ReadOnly,
-                    child_pid,
-                )
-                .unwrap();
+                let child_rc =
+                    BufferPool::get_internal_page(tx, Permission::ReadOnly, child_pid).unwrap();
                 child_rc.wl().set_parent_pid(&parent_pid);
             }
             _ => panic!("Invalid page category"),
@@ -179,8 +134,8 @@ impl BTreeTable {
 
     /// # Arguments
     ///
-    /// - parent_entry - the entry in the parent corresponding to the
-    ///   left and right
+    /// - parent_entry - the entry in the parent corresponding to the left and
+    ///   right
     fn merge_internal_page(
         &self,
         tx: &Transaction,
@@ -201,11 +156,7 @@ impl BTreeTable {
                 &left.get_last_child_pid(),
                 &right.get_first_child_pid(),
             );
-            self.set_parent_pid(
-                tx,
-                &right.get_first_child_pid(),
-                &left.get_pid(),
-            );
+            self.set_parent_pid(tx, &right.get_first_child_pid(), &left.get_pid());
             left.insert_entry(&edge_entry)?;
 
             // stage 2: move the entries from the one page to the
@@ -214,11 +165,7 @@ impl BTreeTable {
             let iter = BTreeInternalPageIterator::new(&right);
             for e in iter {
                 left.insert_entry(&e)?;
-                self.set_parent_pid(
-                    tx,
-                    &e.get_right_child(),
-                    &left.get_pid(),
-                );
+                self.set_parent_pid(tx, &e.get_right_child(), &left.get_pid());
                 deleted_indexes.push(e.get_record_id());
             }
             for i in deleted_indexes {
@@ -232,20 +179,15 @@ impl BTreeTable {
 
         // stage 4: update the entry in parent which points to the
         // left and right
-        self.delete_parent_entry(
-            tx,
-            left_rc,
-            parent_rc,
-            parent_entry,
-        )?;
+        self.delete_parent_entry(tx, left_rc, parent_rc, parent_entry)?;
 
         Ok(())
     }
 
     /// # Arguments
     ///
-    /// - entry - the entry in the parent corresponding to the
-    ///   left_child and right_child
+    /// - entry - the entry in the parent corresponding to the left_child and
+    ///   right_child
     fn merge_leaf_page(
         &self,
         tx: &Transaction,
@@ -278,15 +220,9 @@ impl BTreeTable {
 
             // set the left pointer for the newer right page
             if let Some(newer_right_pid) = right.get_right_pid() {
-                let newer_right_rc = BufferPool::get_leaf_page(
-                    tx,
-                    Permission::ReadWrite,
-                    &newer_right_pid,
-                )
-                .unwrap();
-                newer_right_rc
-                    .wl()
-                    .set_left_pid(Some(left.get_pid()));
+                let newer_right_rc =
+                    BufferPool::get_leaf_page(tx, Permission::ReadWrite, &newer_right_pid).unwrap();
+                newer_right_rc.wl().set_left_pid(Some(left.get_pid()));
             }
 
             // stage 4: set the right page as empty
@@ -312,13 +248,11 @@ impl BTreeTable {
     ///
     /// # Arguments
     ///
-    /// - reserved_child    - the child reserved after the key and
-    ///   another child are deleted
-    /// - page              - the parent containing the entry to be
-    ///   deleted
+    /// - reserved_child    - the child reserved after the key and another child
+    ///   are deleted
+    /// - page              - the parent containing the entry to be deleted
     /// - entry             - the entry to be deleted
-    /// - delete_left_child - which child of the entry should be
-    ///   deleted
+    /// - delete_left_child - which child of the entry should be deleted
     fn delete_parent_entry<PAGE: BTreePage>(
         &self,
         tx: &Transaction,
@@ -378,12 +312,8 @@ impl BTreeTable {
         // let mut root_ptr = root_ptr_rc.wl();
         match root_ptr_rc.rl().get_header_pid() {
             Some(header_pid) => {
-                header_rc = BufferPool::get_header_page(
-                    tx,
-                    Permission::ReadWrite,
-                    &header_pid,
-                )
-                .unwrap();
+                header_rc =
+                    BufferPool::get_header_page(tx, Permission::ReadWrite, &header_pid).unwrap();
             }
             None => {
                 // if there are no header pages, create the first
@@ -398,8 +328,7 @@ impl BTreeTable {
         // borrow of header_rc start here
         {
             let mut header = header_rc.wl();
-            let slot_index =
-                pid.page_index as usize % header.get_slots_count();
+            let slot_index = pid.page_index as usize % header.get_slots_count();
             header.mark_slot_status(slot_index, false);
         }
         // borrow of header_rc end here
@@ -432,30 +361,19 @@ impl BTreeTable {
         .unwrap();
         let mut parent_entry = parent_rc
             .rl()
-            .get_entry_by_children(
-                &left_rc.rl().get_pid(),
-                &right_rc.rl().get_pid(),
-            )
+            .get_entry_by_children(&left_rc.rl().get_pid(), &right_rc.rl().get_pid())
             .unwrap();
 
         let left_children = left_rc.rl().children_count();
         let right_children = right_rc.rl().children_count();
-        if left_children + right_children
-            <= left_rc.rl().get_children_capacity()
-        {
+        if left_children + right_children <= left_rc.rl().get_children_capacity() {
             // if the two pages can be merged, merge them
-            return self.merge_internal_page(
-                tx,
-                left_rc,
-                right_rc,
-                parent_rc,
-                &parent_entry,
-            );
+            return self.merge_internal_page(tx, left_rc, right_rc, parent_rc, &parent_entry);
         }
 
         // if there aren't any entries to move, return immediately
-        let move_count = (left_children + right_children) / 2
-            - cmp::min(left_children, right_children);
+        let move_count =
+            (left_children + right_children) / 2 - cmp::min(left_children, right_children);
         if move_count == 0 {
             return Ok(());
         }
@@ -471,8 +389,7 @@ impl BTreeTable {
                 // The edge child of the destination page.
                 let edge_child_pid = left.get_last_child_pid();
 
-                let right_iter =
-                    BTreeInternalPageIterator::new(&right);
+                let right_iter = BTreeInternalPageIterator::new(&right);
 
                 let moved_records = self.move_entries(
                     tx,
@@ -482,9 +399,7 @@ impl BTreeTable {
                     &mut middle_key,
                     edge_child_pid,
                     |edge_pid: BTreePageID, _e: &Entry| edge_pid,
-                    |_edge_pid: BTreePageID, e: &Entry| {
-                        e.get_left_child()
-                    },
+                    |_edge_pid: BTreePageID, e: &Entry| e.get_left_child(),
                     |e: &Entry| e.get_left_child(),
                 )?;
 
@@ -495,8 +410,7 @@ impl BTreeTable {
                 // The edge child of the destination page.
                 let edge_child_pid = right.get_first_child_pid();
 
-                let left_iter =
-                    BTreeInternalPageIterator::new(&left).rev();
+                let left_iter = BTreeInternalPageIterator::new(&left).rev();
 
                 let moved_records = self.move_entries(
                     tx,
@@ -505,9 +419,7 @@ impl BTreeTable {
                     move_count,
                     &mut middle_key,
                     edge_child_pid,
-                    |_edge_pid: BTreePageID, e: &Entry| {
-                        e.get_right_child()
-                    },
+                    |_edge_pid: BTreePageID, e: &Entry| e.get_right_child(),
                     |edge_pid: BTreePageID, _e: &Entry| edge_pid,
                     |e: &Entry| e.get_right_child(),
                 )?;
@@ -526,25 +438,23 @@ impl BTreeTable {
 
     /// # Arguments:
     ///
-    /// * `middle_key`: The key between the left and right pages. This
-    ///   key is always larger than children in the left page and
-    ///   smaller than children in the right page. It should be
-    ///   updated each time an entry is moved from the left/right page
-    ///   to the otherside.
+    /// * `middle_key`: The key between the left and right pages. This key is
+    ///   always larger than children in the left page and smaller than children
+    ///   in the right page. It should be updated each time an entry is moved
+    ///   from the left/right page to the otherside.
     ///
     /// * `edge_child_pid`: The edge child of the destination page.
     ///
-    /// * `fn_get_edge_left_child`: A function to get the left child
-    ///   of the new entry, the first argument is the edge child of
-    ///   the destination page, the second argument is the current
-    ///   entry of the source page (iterator).
-    ///
-    /// * `fn_get_edge_right_child`: Same as `fn_get_edge_left_child`,
-    ///   but for the right child of the new entry.
-    ///
-    /// * `fn_get_moved_child`: A function to get the moved child
-    ///   page, the argument is the current entry of the source page
+    /// * `fn_get_edge_left_child`: A function to get the left child of the new
+    ///   entry, the first argument is the edge child of the destination page,
+    ///   the second argument is the current entry of the source page
     ///   (iterator).
+    ///
+    /// * `fn_get_edge_right_child`: Same as `fn_get_edge_left_child`, but for
+    ///   the right child of the new entry.
+    ///
+    /// * `fn_get_moved_child`: A function to get the moved child page, the
+    ///   argument is the current entry of the source page (iterator).
     ///
     /// Return:
     /// * The index of the moved entries in the source page.
@@ -556,14 +466,8 @@ impl BTreeTable {
         move_count: usize,
         middle_key: &mut Cell,
         mut edge_child_pid: BTreePageID,
-        fn_get_edge_left_child: impl Fn(
-            BTreePageID,
-            &Entry,
-        ) -> BTreePageID,
-        fn_get_edge_right_child: impl Fn(
-            BTreePageID,
-            &Entry,
-        ) -> BTreePageID,
+        fn_get_edge_left_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
+        fn_get_edge_right_child: impl Fn(BTreePageID, &Entry) -> BTreePageID,
         fn_get_moved_child: impl Fn(&Entry) -> BTreePageID,
     ) -> Result<Vec<usize>, SmallError> {
         // Remember the entries for deletion later (cause we can't
@@ -583,11 +487,7 @@ impl BTreeTable {
             dest.insert_entry(&new_entry)?;
 
             // 3. update parent id for the moved child
-            self.set_parent_pid(
-                tx,
-                &fn_get_moved_child(&e),
-                &dest.get_pid(),
-            );
+            self.set_parent_pid(tx, &fn_get_moved_child(&e), &dest.get_pid());
 
             // 4. update key and edge child for the next iteration
             *middle_key = e.get_key();
@@ -606,8 +506,8 @@ impl BTreeTable {
     /// - page           - the leaf page which is less than half full
     /// - sibling        - the sibling which has tuples to spare
     /// - parent         - the parent of the two leaf pages
-    /// - entry          - the entry in the parent pointing to the two
-    ///   leaf pages
+    /// - entry          - the entry in the parent pointing to the two leaf
+    ///   pages
     /// - is_right_sibling - whether the sibling is a right-sibling
     fn balancing_two_leaf_pages(
         &self,
@@ -623,29 +523,19 @@ impl BTreeTable {
         .unwrap();
         let mut entry = parent_rc
             .rl()
-            .get_entry_by_children(
-                &left_rc.rl().get_pid(),
-                &right_rc.rl().get_pid(),
-            )
+            .get_entry_by_children(&left_rc.rl().get_pid(), &right_rc.rl().get_pid())
             .unwrap();
 
         let left_tuples = left_rc.rl().tuples_count();
         let right_tuples = right_rc.rl().tuples_count();
-        if left_tuples + right_tuples
-            <= left_rc.rl().get_slots_count()
-        {
+        if left_tuples + right_tuples <= left_rc.rl().get_slots_count() {
             // if the two pages can be merged, merge them
-            return self.merge_leaf_page(
-                tx, left_rc, right_rc, parent_rc, &entry,
-            );
+            return self.merge_leaf_page(tx, left_rc, right_rc, parent_rc, &entry);
         }
 
-        let move_count = (left_tuples + right_tuples) / 2
-            - cmp::min(left_tuples, right_tuples);
+        let move_count = (left_tuples + right_tuples) / 2 - cmp::min(left_tuples, right_tuples);
         if move_count == 0 {
-            return self.merge_leaf_page(
-                tx, left_rc, right_rc, parent_rc, &entry,
-            );
+            return self.merge_leaf_page(tx, left_rc, right_rc, parent_rc, &entry);
         }
 
         let mut key = entry.get_key();

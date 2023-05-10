@@ -3,9 +3,7 @@ use std::thread;
 use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
-    btree::{
-        buffer_pool::BufferPool, table::BTreeTableSearchIterator,
-    },
+    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
     transaction::Transaction,
     types::Pod,
@@ -14,8 +12,7 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, internal_children_cap, leaf_records_cap,
-    new_random_btree_table, setup, TreeLayout,
+    assert_true, internal_children_cap, leaf_records_cap, new_random_btree_table, setup, TreeLayout,
 };
 
 // Insert one tuple into the table
@@ -42,21 +39,15 @@ fn inserter(
 }
 
 // Delete a random tuple from the table
-fn deleter(
-    id: u64,
-    table_pod: &Pod<BTreeTable>,
-    r: &crossbeam::channel::Receiver<Tuple>,
-) {
+fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
     let tuple = r.recv().unwrap();
-    let predicate =
-        Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
+    let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
 
     let tx = Transaction::new_specific_id(id);
     let table = table_pod.rl();
 
     debug!("{} prepare to delete", tx);
-    let mut it =
-        BTreeTableSearchIterator::new(&tx, &table, &predicate);
+    let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let target = it.next().unwrap();
     table.delete_tuple(&tx, &target).unwrap();
 
@@ -105,12 +96,7 @@ fn test_big_table() {
             let handle = thread::Builder::new()
                 .name(format!("thread-{}", i).to_string())
                 .spawn_scoped(s, move || {
-                    inserter(
-                        i,
-                        column_count,
-                        &local_table,
-                        &local_sender,
-                    )
+                    inserter(i, column_count, &local_table, &local_sender)
                 })
                 .unwrap();
 
@@ -123,10 +109,7 @@ fn test_big_table() {
         }
     });
 
-    assert_true(
-        table_pod.rl().tuples_count() == row_count + 1000,
-        &table,
-    );
+    assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
@@ -139,12 +122,7 @@ fn test_big_table() {
             let insert_worker = thread::Builder::new()
                 .name(format!("thread-insert-{}", i).to_string())
                 .spawn_scoped(s, move || {
-                    inserter(
-                        i,
-                        column_count,
-                        &local_table,
-                        &local_sender,
-                    )
+                    inserter(i, column_count, &local_table, &local_sender)
                 })
                 .unwrap();
             threads.push(insert_worker);
@@ -155,12 +133,8 @@ fn test_big_table() {
             let local_receiver = receiver.clone();
 
             let delete_worker = thread::Builder::new()
-                .name(
-                    format!("thread-delete-{}", local_i).to_string(),
-                )
-                .spawn_scoped(s, move || {
-                    deleter(local_i, &local_table, &local_receiver)
-                })
+                .name(format!("thread-delete-{}", local_i).to_string())
+                .spawn_scoped(s, move || deleter(local_i, &local_table, &local_receiver))
                 .unwrap();
             threads.push(delete_worker);
         }
@@ -171,10 +145,7 @@ fn test_big_table() {
         }
     });
 
-    assert_true(
-        table_pod.rl().tuples_count() == row_count + 1000,
-        &table,
-    );
+    assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
     let page_count_marker = table_pod.rl().pages_count();
 
@@ -186,9 +157,7 @@ fn test_big_table() {
             let local_table = table_pod.clone();
             let local_receiver = receiver.clone();
 
-            let handle = s.spawn(move || {
-                deleter(i, &local_table, &local_receiver)
-            });
+            let handle = s.spawn(move || deleter(i, &local_table, &local_receiver));
             threads.push(handle);
         }
 
@@ -207,9 +176,7 @@ fn test_big_table() {
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
 
-            let handle = s.spawn(move || {
-                inserter(i, column_count, &local_table, &local_sender)
-            });
+            let handle = s.spawn(move || inserter(i, column_count, &local_table, &local_sender));
             threads.push(handle);
         }
 
@@ -226,13 +193,8 @@ fn test_big_table() {
     // look for all remained tuples and make sure we can find them
     let tx = Transaction::new();
     for tuple in receiver.iter() {
-        let predicate =
-            Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
-        let mut it = BTreeTableSearchIterator::new(
-            &tx,
-            &table_pod.rl(),
-            &predicate,
-        );
+        let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
+        let mut it = BTreeTableSearchIterator::new(&tx, &table_pod.rl(), &predicate);
         assert!(it.next().is_some());
     }
     tx.commit().unwrap();

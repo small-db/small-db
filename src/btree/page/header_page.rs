@@ -36,8 +36,7 @@ impl BTreeHeaderPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let page_category =
-                PageCategory::decode_from(&mut reader);
+            let page_category = PageCategory::decode_from(&mut reader);
             if page_category != PageCategory::Header {
                 panic!("invalid page category: {:?}", page_category);
             }
@@ -74,11 +73,7 @@ impl BTreeHeaderPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(
-        &mut self,
-        slot_index: usize,
-        used: bool,
-    ) {
+    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }
 
@@ -97,11 +92,7 @@ impl BTreeHeaderPage {
 }
 
 impl BTreePage for BTreeHeaderPage {
-    fn new(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        _tuple_scheme: &Schema,
-    ) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], _tuple_scheme: &Schema) -> Self {
         Self::new(pid, bytes)
     }
 

@@ -9,26 +9,22 @@ use std::{
 };
 
 use super::page::{
-    BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
-    BTreePageID, BTreeRootPointerPage, PageCategory,
+    BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
+    BTreeRootPointerPage, PageCategory,
 };
 use crate::{
-    concurrent_status::Permission, error::SmallError,
-    transaction::Transaction, tx_log::LogManager, types::ResultPod,
-    utils::HandyRwLock, BTreeTable, Database,
+    concurrent_status::Permission, error::SmallError, transaction::Transaction, tx_log::LogManager,
+    types::ResultPod, utils::HandyRwLock, BTreeTable, Database,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
-    pub root_pointer_buffer:
-        HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
-    pub internal_buffer:
-        HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
+    pub root_pointer_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
+    pub internal_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
     pub leaf_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
-    pub header_buffer:
-        HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
+    pub header_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
 }
 
 type Key = BTreePageID;
@@ -68,9 +64,9 @@ impl BufferPool {
     {
         // stage 1: get table
         let mut catalog = Database::mut_catalog();
-        let v = catalog.get_table(&pid.get_table_id()).expect(
-            &format!("table {} not found", pid.get_table_id()),
-        );
+        let v = catalog
+            .get_table(&pid.get_table_id())
+            .expect(&format!("table {} not found", pid.get_table_id()));
         let table = v.read().unwrap();
 
         // stage 2: read page content from disk
@@ -103,32 +99,26 @@ impl BufferPool {
         tx: &Transaction,
         perm: Permission,
         key: &Key,
-        get_pool_fn: fn(
-            &mut BufferPool,
-        )
-            -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
+        get_pool_fn: fn(&mut BufferPool) -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
     ) -> ResultPod<PAGE> {
-        // We need to request lock on the page before access the buffer
-        // pool. Here are the reasons:
-        // 
+        // We need to request lock on the page before access the
+        // buffer pool. Here are the reasons:
+        //
         // 1. If we request the lock on a page after get the access to
-        // buffer pool, the request may be blocked by other transactions.
-        // But we have already hold the access to the buffer pool, which
-        // leads to deadlock.
+        // buffer pool, the request may be blocked by other
+        // transactions. But we have already hold the access
+        // to the buffer pool, which leads to deadlock.
         //    e.g:
         //    T1: hold page1, request buffer pool (for other pages)
         //    T2: hold buffer pool, request page1
         //    => deadlock
-        // 
-        // 2. The lock scope of buffer pool should be as small as possible,
-        // since most of its operations require exclusive access.
+        //
+        // 2. The lock scope of buffer pool should be as small as
+        // possible, since most of its operations require
+        // exclusive access.
 
         // step 1: request lock from concurrent status
-        Database::concurrent_status().request_lock(
-            tx,
-            &perm.to_lock(),
-            key,
-        )?;
+        Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
 
         // step 2: get root pointer page from buffer pool
         let mut bp = Database::mut_buffer_pool();
@@ -146,9 +136,7 @@ impl BufferPool {
         perm: Permission,
         key: &Key,
     ) -> ResultPod<BTreeRootPointerPage> {
-        Self::get_page(tx, perm, key, |bp| {
-            &mut bp.root_pointer_buffer
-        })
+        Self::get_page(tx, perm, key, |bp| &mut bp.root_pointer_buffer)
     }
 
     pub fn get_header_page(
@@ -222,11 +210,7 @@ impl BufferPool {
     /// Write all pages of the specified transaction to disk.
     ///
     /// TODO: protest this function (mut self / or global lock)
-    pub fn flush_pages(
-        &self,
-        tx: &Transaction,
-        log_manager: &mut LogManager,
-    ) {
+    pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
         for pid in self.all_keys() {
             if Database::concurrent_status().holds_lock(tx, &pid) {
                 self.flush_page(&pid, log_manager);
@@ -239,8 +223,7 @@ impl BufferPool {
 
         if !commit {
             for pid in self.all_keys() {
-                if Database::concurrent_status().holds_lock(tx, &pid)
-                {
+                if Database::concurrent_status().holds_lock(tx, &pid) {
                     self.discard_page(&pid);
                 }
             }
@@ -252,19 +235,13 @@ impl BufferPool {
         for pid in self.all_keys() {
             match pid.category {
                 PageCategory::Internal => {
-                    self.set_before_image(
-                        &pid,
-                        &self.internal_buffer,
-                    );
+                    self.set_before_image(&pid, &self.internal_buffer);
                 }
                 PageCategory::Leaf => {
                     self.set_before_image(&pid, &self.leaf_buffer);
                 }
                 PageCategory::RootPointer => {
-                    self.set_before_image(
-                        &pid,
-                        &self.root_pointer_buffer,
-                    );
+                    self.set_before_image(&pid, &self.root_pointer_buffer);
                 }
                 PageCategory::Header => {
                     self.set_before_image(&pid, &self.header_buffer);
@@ -283,49 +260,24 @@ impl BufferPool {
     }
 
     /// Write the content of a specific page to disk.
-    fn flush_page(
-        &self,
-        pid: &BTreePageID,
-        log_manager: &mut LogManager,
-    ) {
+    fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
         let mut catalog = Database::mut_catalog();
-        let table_pod =
-            catalog.get_table(&pid.get_table_id()).unwrap();
+        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
 
         match pid.category {
             PageCategory::RootPointer => {
-                self.write(
-                    &table,
-                    pid,
-                    &self.root_pointer_buffer,
-                    log_manager,
-                );
+                self.write(&table, pid, &self.root_pointer_buffer, log_manager);
             }
             PageCategory::Header => {
-                self.write(
-                    &table,
-                    pid,
-                    &self.header_buffer,
-                    log_manager,
-                );
+                self.write(&table, pid, &self.header_buffer, log_manager);
             }
             PageCategory::Internal => {
-                self.write(
-                    &table,
-                    pid,
-                    &self.internal_buffer,
-                    log_manager,
-                );
+                self.write(&table, pid, &self.internal_buffer, log_manager);
             }
             PageCategory::Leaf => {
-                self.write(
-                    &table,
-                    pid,
-                    &self.leaf_buffer,
-                    log_manager,
-                );
+                self.write(&table, pid, &self.leaf_buffer, log_manager);
             }
         }
     }
@@ -343,12 +295,8 @@ impl BufferPool {
         // TODO: what's the purpose of this block?
         {
             // TODO: get tx from somewhere
-            if let Some(tx) =
-                Database::concurrent_status().get_page_tx(pid)
-            {
-                log_manager
-                    .log_update(&tx, page_pod.clone())
-                    .unwrap();
+            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+                log_manager.log_update(&tx, page_pod.clone()).unwrap();
             } else {
                 // error!("no tx found for page {:?}", pid);
                 // panic!();
@@ -368,8 +316,7 @@ impl BufferPool {
     ) {
         // step 1: get table
         let mut catalog = Database::mut_catalog();
-        let table_pod =
-            catalog.get_table(&pid.get_table_id()).unwrap();
+        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_pod.read().unwrap();
 
         let page_pod = Arc::new(RwLock::new(page));

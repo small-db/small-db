@@ -7,7 +7,7 @@ blank_lines_lower_bound = 0
 wrap_comments = true
 
 # https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#max_width
-max_width = 70
+max_width = 100
 
 # https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#normalize_comments
 normalize_comments = true

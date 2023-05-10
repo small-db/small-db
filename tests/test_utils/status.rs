@@ -10,8 +10,8 @@ use small_db::{
         self,
         buffer_pool::BufferPool,
         page::{
-            BTreeInternalPage, BTreeLeafPage,
-            BTreeLeafPageIteratorRc, BTreePage, BTreePageID, Entry,
+            BTreeInternalPage, BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
+            Entry,
         },
     },
     common::Catalog,
@@ -54,14 +54,9 @@ pub enum TreeLayout {
     LastTwoEvenlyDistributed,
 }
 
-pub fn new_empty_btree_table(
-    table_name: &str,
-    columns: usize,
-) -> Arc<RwLock<BTreeTable>> {
+pub fn new_empty_btree_table(table_name: &str, columns: usize) -> Arc<RwLock<BTreeTable>> {
     let schema = Schema::small_int_schema(columns);
-    let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        table_name, None, &schema,
-    )));
+    let table_rc = Arc::new(RwLock::new(BTreeTable::new(table_name, None, &schema)));
     Catalog::add_table(Arc::clone(&table_rc), true);
     return table_rc;
 }
@@ -76,8 +71,8 @@ pub fn new_empty_btree_table(
 ///
 /// # Arguments:
 ///
-/// - int_tuples: This is a reference used to return all inserted
-///   data. Only works when it's not None.
+/// - int_tuples: This is a reference used to return all inserted data. Only
+///   works when it's not None.
 pub fn new_random_btree_table(
     columns: usize,
     rows: usize,
@@ -86,9 +81,7 @@ pub fn new_random_btree_table(
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
     let schema = Schema::small_int_schema(columns);
-    let table_rc = Arc::new(RwLock::new(BTreeTable::new(
-        TEST_DB, None, &schema,
-    )));
+    let table_rc = Arc::new(RwLock::new(BTreeTable::new(TEST_DB, None, &schema)));
     Catalog::add_table(Arc::clone(&table_rc), true);
 
     let mut tuples: Vec<Tuple> = Vec::new();
@@ -122,15 +115,9 @@ pub fn new_random_btree_table(
                     table.insert_tuple(&write_tx, t).unwrap();
                 }
             }
-            TreeLayout::EvenlyDistributed
-            | TreeLayout::LastTwoEvenlyDistributed => {
-                let page_index = sequential_insert_into_table(
-                    &write_tx,
-                    &table,
-                    &tuples,
-                    &schema,
-                    tree_layout,
-                );
+            TreeLayout::EvenlyDistributed | TreeLayout::LastTwoEvenlyDistributed => {
+                let page_index =
+                    sequential_insert_into_table(&write_tx, &table, &tuples, &schema, tree_layout);
                 table.set_page_index(page_index);
             }
         }
@@ -138,10 +125,7 @@ pub fn new_random_btree_table(
     // borrow of table_rc ends here
 
     write_tx.commit().unwrap();
-    debug!(
-        "table construction finished, insert {} rows in total",
-        rows,
-    );
+    debug!("table construction finished, insert {} rows in total", rows,);
 
     Database::mut_log_manager().reset();
 
@@ -168,19 +152,10 @@ fn sequential_insert_into_table(
     let mut tuple_index = 0;
     for tuple_count in &leaf_buckets {
         page_index += 1;
-        let pid = BTreePageID::new(
-            btree::page::PageCategory::Leaf,
-            table.get_id(),
-            page_index,
-        );
+        let pid = BTreePageID::new(btree::page::PageCategory::Leaf, table.get_id(), page_index);
         table.write_empty_page_to_disk(&pid);
 
-        let leaf_rc = BufferPool::get_leaf_page(
-            tx,
-            Permission::ReadWrite,
-            &pid,
-        )
-        .unwrap();
+        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid).unwrap();
         leaves.push(leaf_rc.clone());
         // borrow of leaf_rc start here
         {
@@ -233,11 +208,7 @@ fn sequential_insert_into_table(
     }
 
     // stage 2: write internal pages
-    let interanl_buckets = get_buckets(
-        leaf_buckets.len(),
-        internal_children_cap(),
-        tree_layout,
-    );
+    let interanl_buckets = get_buckets(leaf_buckets.len(), internal_children_cap(), tree_layout);
 
     // leaf index in the leaves vector
     let mut leaf_index = 0;
@@ -252,12 +223,7 @@ fn sequential_insert_into_table(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let internal_rc = BufferPool::get_internal_page(
-            tx,
-            Permission::ReadWrite,
-            &pid,
-        )
-        .unwrap();
+        let internal_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid).unwrap();
         internals.push(internal_rc.clone());
 
         let entries_count = children_count - 1;
@@ -266,17 +232,11 @@ fn sequential_insert_into_table(
             {
                 let left_rc = leaves[leaf_index].clone();
                 let right_rc = leaves[leaf_index + 1].clone();
-                let mut it =
-                    BTreeLeafPageIteratorRc::new(right_rc.clone());
-                let key =
-                    it.next().unwrap().get_cell(table.key_field);
+                let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
+                let key = it.next().unwrap().get_cell(table.key_field);
 
                 let mut internal = internal_rc.wl();
-                let mut e = Entry::new(
-                    &key,
-                    &left_rc.rl().get_pid(),
-                    &right_rc.rl().get_pid(),
-                );
+                let mut e = Entry::new(&key, &left_rc.rl().get_pid(), &right_rc.rl().get_pid());
                 internal.insert_entry(&mut e).unwrap();
 
                 leaf_index += 1;
@@ -295,12 +255,7 @@ fn sequential_insert_into_table(
         leaf_index += 1;
     }
 
-    return write_internal_pages(
-        tx,
-        table,
-        internals,
-        &mut page_index,
-    );
+    return write_internal_pages(tx, table, internals, &mut page_index);
 }
 
 fn write_internal_pages(
@@ -323,12 +278,7 @@ fn write_internal_pages(
         );
         table.write_empty_page_to_disk(&pid);
 
-        let root_rc = BufferPool::get_internal_page(
-            tx,
-            Permission::ReadWrite,
-            &pid,
-        )
-        .unwrap();
+        let root_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid).unwrap();
 
         // insert entries
         let entries_count = internals.len() - 1;
@@ -346,11 +296,7 @@ fn write_internal_pages(
                 // borrow of right_rc ends here
 
                 let mut root = root_rc.wl();
-                let mut e = Entry::new(
-                    &key,
-                    &left_rc.rl().get_pid(),
-                    &right_rc.rl().get_pid(),
-                );
+                let mut e = Entry::new(&key, &left_rc.rl().get_pid(), &right_rc.rl().get_pid());
                 root.insert_entry(&mut e).unwrap();
 
                 // set parent for all left children
@@ -371,11 +317,7 @@ fn write_internal_pages(
     }
 }
 
-fn get_buckets(
-    elem_count: usize,
-    max_capacity: usize,
-    layout: TreeLayout,
-) -> Vec<usize> {
+fn get_buckets(elem_count: usize, max_capacity: usize, layout: TreeLayout) -> Vec<usize> {
     if elem_count <= max_capacity {
         return vec![elem_count];
     }
@@ -399,9 +341,7 @@ fn get_buckets(
         }
         TreeLayout::LastTwoEvenlyDistributed => {
             let lacked = max_capacity * bucket_count - elem_count;
-            for _ in
-                0..(bucket_count.checked_sub(2).unwrap_or_default())
-            {
+            for _ in 0..(bucket_count.checked_sub(2).unwrap_or_default()) {
                 table.push(max_capacity);
             }
 

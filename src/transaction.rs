@@ -1,9 +1,7 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{
-    btree::buffer_pool::BufferPool, types::SmallResult, Database,
-};
+use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -36,16 +34,11 @@ impl Transaction {
         self.complete(false, &mut Database::mut_buffer_pool())
     }
 
-    fn complete(
-        &self,
-        commit: bool,
-        buffer_pool: &mut BufferPool,
-    ) -> SmallResult {
+    fn complete(&self, commit: bool, buffer_pool: &mut BufferPool) -> SmallResult {
         // write abort log record and rollback transaction
         if !commit {
             // does rollback too
-            Database::mut_log_manager()
-                .log_abort(self, buffer_pool)?;
+            Database::mut_log_manager().log_abort(self, buffer_pool)?;
         }
 
         // Release locks and flush pages if needed

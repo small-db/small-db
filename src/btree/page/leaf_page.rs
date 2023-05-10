@@ -6,10 +6,7 @@ use std::{
 use backtrace::Backtrace;
 use bit_vec::BitVec;
 
-use super::{
-    BTreeBasePage, BTreePage, BTreePageID, PageCategory,
-    EMPTY_PAGE_ID,
-};
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     io::{read_into, SmallWriter},
@@ -28,8 +25,8 @@ use crate::{
 /// - 4 bytes: parent page index
 /// - 4 bytes: left sibling page index
 /// - 4 bytes: right sibling page index
-/// - n bytes: header bytes, indicate whether every slot of the page
-///   is used or not.
+/// - n bytes: header bytes, indicate whether every slot of the page is used or
+///   not.
 /// - n bytes: tuple bytes
 pub struct BTreeLeafPage {
     base: BTreeBasePage,
@@ -69,18 +66,15 @@ impl BTreeLeafPage {
             let category: PageCategory = read_into(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
-                "BTreeLeafPage::new: page category is not leaf, category: {:?}",
-                category,
-            );
+                    "BTreeLeafPage::new: page category is not leaf, category: {:?}",
+                    category,
+                );
             }
 
             // read parent page index
             let parent_id = read_into(&mut reader);
-            let parent_pid = BTreePageID::new(
-                PageCategory::Internal,
-                pid.get_table_id(),
-                parent_id,
-            );
+            let parent_pid =
+                BTreePageID::new(PageCategory::Internal, pid.get_table_id(), parent_id);
 
             // read left sibling page index
             let left_sibling_id = read_into(&mut reader);
@@ -119,20 +113,13 @@ impl BTreeLeafPage {
         return instance;
     }
 
-    fn new_empty_page(
-        pid: &BTreePageID,
-        bytes: &[u8],
-        schema: &Schema,
-    ) -> Self {
+    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
         let slot_count = Self::get_children_cap(&schema);
 
         let mut reader = Cursor::new(bytes);
 
-        let parent_pid = BTreePageID::new(
-            PageCategory::Internal,
-            pid.get_table_id(),
-            EMPTY_PAGE_ID,
-        );
+        let parent_pid =
+            BTreePageID::new(PageCategory::Internal, pid.get_table_id(), EMPTY_PAGE_ID);
 
         let mut header = BitVec::new();
         header.grow(slot_count, false);
@@ -212,8 +199,7 @@ impl BTreeLeafPage {
 
     /// stable means at least half of the page is occupied
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer
-        {
+        if self.get_parent_pid().category == PageCategory::RootPointer {
             return true;
         }
 
@@ -258,9 +244,7 @@ impl BTreeLeafPage {
         let mut last_less_slot: i64 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {
-                if self.tuples[i].get_cell(self.key_field)
-                    < tuple.get_cell(self.key_field)
-                {
+                if self.tuples[i].get_cell(self.key_field) < tuple.get_cell(self.key_field) {
                     last_less_slot = i as i64;
                 } else {
                     break;
@@ -319,11 +303,7 @@ impl BTreeLeafPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(
-        &mut self,
-        slot_index: usize,
-        used: bool,
-    ) {
+    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }
 
@@ -375,9 +355,7 @@ impl BTreeLeafPage {
         }
 
         if check_occupancy && depth > 0 {
-            assert!(
-                self.tuples_count() >= self.get_slots_count() / 2
-            );
+            assert!(self.tuples_count() >= self.get_slots_count() / 2);
         }
     }
 
@@ -390,8 +368,7 @@ impl BTreeLeafPage {
 impl BTreeLeafPage {
     /// Get the capacity of children (tuples) in this page.
     pub fn get_children_cap(schema: &Schema) -> usize {
-        let bits_per_tuple_including_header =
-            schema.get_disk_size() * 8 + 1;
+        let bits_per_tuple_including_header = schema.get_disk_size() * 8 + 1;
 
         // extraBits:
         // - page category (4 bytes)
@@ -401,8 +378,7 @@ impl BTreeLeafPage {
         // - header size (2 bytes)
         let extra_bits = (4 + 3 * INDEX_SIZE + 2) * 8;
 
-        (BufferPool::get_page_size() * 8 - extra_bits)
-            / bits_per_tuple_including_header
+        (BufferPool::get_page_size() * 8 - extra_bits) / bits_per_tuple_including_header
     }
 }
 

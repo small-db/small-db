@@ -38,8 +38,7 @@ impl Catalog {
     ///
     /// TODO: remove this api
     pub fn load_schemas() -> SmallResult {
-        let schema_table_rc =
-            Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog().get_schema_table();
 
         // add the system-table "schema"
         Catalog::add_table(schema_table_rc.clone(), false);
@@ -54,26 +53,16 @@ impl Catalog {
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
-            let table_name =
-                String::from_utf8(tuple.get_cell(1).get_bytes()?)
-                    .unwrap();
-            let field_name =
-                String::from_utf8(tuple.get_cell(2).get_bytes()?)
-                    .unwrap();
-            let field_type = Type::decode_from(&mut Cursor::new(
-                tuple.get_cell(3).get_bytes()?,
-            ));
+            let table_name = String::from_utf8(tuple.get_cell(1).get_bytes()?).unwrap();
+            let field_name = String::from_utf8(tuple.get_cell(2).get_bytes()?).unwrap();
+            let field_type = Type::decode_from(&mut Cursor::new(tuple.get_cell(3).get_bytes()?));
             let is_primary = tuple.get_cell(4).get_bool()?;
 
-            let field =
-                Field::new(&field_name, field_type, is_primary);
+            let field = Field::new(&field_name, field_type, is_primary);
 
             // insert the field into the schema, if "table_id" is not
             // in the map, then insert a new vector
-            schemas
-                .entry(table_id)
-                .or_insert_with(Vec::new)
-                .push(field);
+            schemas.entry(table_id).or_insert_with(Vec::new).push(field);
             table_names.insert(table_id, table_name);
         }
 
@@ -81,11 +70,7 @@ impl Catalog {
             let schema = Schema::new(fields);
             let table_name = table_names.get(&table_id).unwrap();
 
-            let table = BTreeTable::new(
-                &table_name,
-                Some(table_id as u32),
-                &schema,
-            );
+            let table = BTreeTable::new(&table_name, Some(table_id as u32), &schema);
 
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
@@ -112,15 +97,8 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        let predicate = Predicate::new(
-            Op::Equals,
-            &Cell::Int64(*table_index as i64),
-        );
-        let iter = BTreeTableSearchIterator::new(
-            &tx,
-            &schema_table,
-            &predicate,
-        );
+        let predicate = Predicate::new(Op::Equals, &Cell::Int64(*table_index as i64));
+        let iter = BTreeTableSearchIterator::new(&tx, &schema_table, &predicate);
         let mut fields = Vec::new();
         let mut table_name_option: Option<String> = None;
         for tuple in iter {
@@ -128,27 +106,19 @@ impl Catalog {
                 tuple.get_cell(1).get_bytes().unwrap(),
             )));
 
-            let field_name: String = read_into(&mut Cursor::new(
-                tuple.get_cell(2).get_bytes().unwrap(),
-            ));
-            let field_type = read_into(&mut Cursor::new(
-                tuple.get_cell(3).get_bytes().unwrap(),
-            ));
+            let field_name: String =
+                read_into(&mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()));
+            let field_type = read_into(&mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()));
             let is_primary = tuple.get_cell(4).get_bool().unwrap();
 
-            let field =
-                Field::new(&field_name, field_type, is_primary);
+            let field = Field::new(&field_name, field_type, is_primary);
             fields.push(field);
         }
 
         match table_name_option {
             Some(table_name) => {
                 let schema = Schema::new(fields);
-                let table = BTreeTable::new(
-                    &table_name,
-                    Some(*table_index),
-                    &schema,
-                );
+                let table = BTreeTable::new(&table_name, Some(*table_index), &schema);
 
                 let table_rc = Arc::new(RwLock::new(table));
 
@@ -165,12 +135,11 @@ impl Catalog {
         self.map
             .entry(SCHEMA_TBALE_ID)
             .or_insert_with(|| {
-                let schema_table_rc =
-                    Arc::new(RwLock::new(BTreeTable::new(
-                        SCHEMA_TBALE_NAME,
-                        Some(SCHEMA_TBALE_ID),
-                        &Schema::for_schema_table(),
-                    )));
+                let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
+                    SCHEMA_TBALE_NAME,
+                    Some(SCHEMA_TBALE_ID),
+                    &Schema::for_schema_table(),
+                )));
                 schema_table_rc
             })
             .clone()
@@ -184,8 +153,7 @@ impl Catalog {
     fn add_table_to_disk(table_rc: Value) {
         let table = table_rc.rl();
 
-        let schema_table_rc =
-            Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
@@ -202,14 +170,11 @@ impl Catalog {
                 // table id
                 Cell::new_int64(table.get_id() as i64),
                 // table name
-                table_name_type
-                    .new_cell_bytes(&table.name.as_bytes()),
+                table_name_type.new_cell_bytes(&table.name.as_bytes()),
                 // field name
-                field_name_type
-                    .new_cell_bytes(&field.name.as_bytes()),
+                field_name_type.new_cell_bytes(&field.name.as_bytes()),
                 // field type
-                field_type_type
-                    .new_cell_bytes(&field.get_type().encode()),
+                field_type_type.new_cell_bytes(&field.get_type().encode()),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];

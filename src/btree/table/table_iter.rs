@@ -4,10 +4,7 @@ use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
-        page::{
-            BTreeLeafPage, BTreeLeafPageIterator,
-            BTreeLeafPageIteratorRc,
-        },
+        page::{BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc},
     },
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,
@@ -17,10 +14,7 @@ use crate::{
 };
 
 impl<'table, 'tx> BTreeTable {
-    pub fn iter(
-        &'table self,
-        tx: &'tx Transaction,
-    ) -> BTreeTableIterator
+    pub fn iter(&'table self, tx: &'tx Transaction) -> BTreeTableIterator
     where
         'tx: 'table,
     {
@@ -41,21 +35,16 @@ pub struct BTreeTableIterator<'t> {
 impl<'t> BTreeTableIterator<'t> {
     pub fn new(tx: &'t Transaction, table: &BTreeTable) -> Self {
         let page_rc = table.get_first_page(tx, Permission::ReadOnly);
-        let last_page_rc =
-            table.get_last_page(tx, Permission::ReadOnly);
+        let last_page_rc = table.get_last_page(tx, Permission::ReadOnly);
 
         Self {
             tx,
 
             page_rc: Arc::clone(&page_rc),
-            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
-                &page_rc,
-            )),
+            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc)),
 
             last_page_rc: Arc::clone(&last_page_rc),
-            last_page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
-                &last_page_rc,
-            )),
+            last_page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&last_page_rc)),
         }
     }
 }
@@ -72,15 +61,9 @@ impl Iterator for BTreeTableIterator<'_> {
         let right = self.page_rc.rl().get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = BufferPool::get_leaf_page(
-                    &self.tx,
-                    Permission::ReadOnly,
-                    &right,
-                )
-                .unwrap();
-                let page_it = BTreeLeafPageIteratorRc::new(
-                    Arc::clone(&sibling_rc),
-                );
+                let sibling_rc =
+                    BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &right).unwrap();
+                let page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
 
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page_it = page_it;
@@ -103,15 +86,9 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
         let left = self.last_page_rc.rl().get_left_pid();
         match left {
             Some(left) => {
-                let sibling_rc = BufferPool::get_leaf_page(
-                    self.tx,
-                    Permission::ReadOnly,
-                    &left,
-                )
-                .unwrap();
-                let page_it = BTreeLeafPageIteratorRc::new(
-                    Arc::clone(&sibling_rc),
-                );
+                let sibling_rc =
+                    BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &left).unwrap();
+                let page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
 
                 self.last_page_rc = Arc::clone(&sibling_rc);
                 self.last_page_it = page_it;
@@ -134,11 +111,7 @@ pub struct BTreeTableSearchIterator<'t> {
 }
 
 impl<'t> BTreeTableSearchIterator<'t> {
-    pub fn new(
-        tx: &'t Transaction,
-        table: &BTreeTable,
-        index_predicate: &Predicate,
-    ) -> Self {
+    pub fn new(tx: &'t Transaction, table: &BTreeTable, index_predicate: &Predicate) -> Self {
         let start_rc: Arc<RwLock<BTreeLeafPage>>;
         let root_pid = table.get_root_pid(tx);
 
@@ -152,12 +125,8 @@ impl<'t> BTreeTableSearchIterator<'t> {
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
-                start_rc = table.find_leaf_page(
-                    &tx,
-                    Permission::ReadOnly,
-                    root_pid,
-                    &SearchFor::LeftMost,
-                )
+                start_rc =
+                    table.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost)
             }
             Op::Like => todo!(),
             Op::NotEquals => todo!(),
@@ -166,9 +135,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
         Self {
             tx,
             current_page_rc: Arc::clone(&start_rc),
-            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(
-                &start_rc,
-            )),
+            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_rc)),
             predicate: index_predicate.clone(),
             key_field: table.key_field,
         }
@@ -225,21 +192,13 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                 },
                 None => {
                     // init iterator on next page and continue search
-                    let right =
-                        (*self.current_page_rc).rl().get_right_pid();
+                    let right = (*self.current_page_rc).rl().get_right_pid();
                     match right {
                         Some(pid) => {
-                            let rc = BufferPool::get_leaf_page(
-                                self.tx,
-                                Permission::ReadOnly,
-                                &pid,
-                            )
-                            .unwrap();
+                            let rc = BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &pid)
+                                .unwrap();
                             self.current_page_rc = Arc::clone(&rc);
-                            self.page_it =
-                                BTreeLeafPageIteratorRc::new(
-                                    Arc::clone(&rc),
-                                );
+                            self.page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&rc));
                             continue;
                         }
                         None => {
@@ -261,10 +220,7 @@ pub struct BTreeTableIterator2<'tx, 'page> {
 }
 
 impl<'tx, 'table, 'page> BTreeTableIterator2<'tx, 'page> {
-    pub fn new(
-        _tx: &'tx Transaction,
-        _table: &'table BTreeTable,
-    ) -> Self {
+    pub fn new(_tx: &'tx Transaction, _table: &'table BTreeTable) -> Self {
         todo!()
     }
 }
@@ -275,8 +231,7 @@ pub trait NestedIterator<'this> {
     fn next(&'this mut self) -> Option<Self::Item>;
 }
 
-impl<'this, 'tx, 'table, 'page> NestedIterator<'this>
-    for BTreeTableIterator2<'tx, 'page>
+impl<'this, 'tx, 'table, 'page> NestedIterator<'this> for BTreeTableIterator2<'tx, 'page>
 where
     'this: 'page,
 {
@@ -291,12 +246,8 @@ where
         let right = self.page_it.page.get_right_pid();
         match right {
             Some(right) => {
-                let sibling_rc = BufferPool::get_leaf_page(
-                    &self.tx,
-                    Permission::ReadOnly,
-                    &right,
-                )
-                .unwrap();
+                let sibling_rc =
+                    BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &right).unwrap();
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page = self.page_rc.read().unwrap();
                 self.page_it = BTreeLeafPageIterator::new(&self.page);

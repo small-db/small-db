@@ -56,10 +56,7 @@ impl Cell {
         }
     }
 
-    pub fn read_from<R: std::io::Read>(
-        reader: &mut R,
-        t: &Type,
-    ) -> Self {
+    pub fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
         match t {
             Type::Bool => Cell::Bool(bool::decode_from(reader)),
             Type::Int64 => Cell::Int64(i64::decode_from(reader)),
@@ -79,10 +76,7 @@ impl PartialEq for Cell {
 }
 
 impl PartialOrd for Cell {
-    fn partial_cmp(
-        &self,
-        other: &Self,
-    ) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (Cell::Int64(a), Cell::Int64(b)) => a.partial_cmp(b),
             _ => todo!(),

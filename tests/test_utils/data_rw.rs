@@ -1,6 +1,5 @@
 use small_db::{
-    btree::table::BTreeTableIterator, storage::tuple::Tuple,
-    transaction::Transaction, BTreeTable,
+    btree::table::BTreeTableIterator, storage::tuple::Tuple, transaction::Transaction, BTreeTable,
 };
 
 pub fn delete_tuples(table: &BTreeTable, count: usize) {

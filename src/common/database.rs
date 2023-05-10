@@ -6,8 +6,7 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::buffer_pool::BufferPool,
-    concurrent_status::ConcurrentStatus, tx_log::LogManager,
+    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus, tx_log::LogManager,
     types::Pod, utils::HandyRwLock,
 };
 
@@ -52,9 +51,7 @@ impl Database {
             buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
-            log_file: Arc::new(RwLock::new(LogManager::new(
-                log_path,
-            ))),
+            log_file: Arc::new(RwLock::new(LogManager::new(log_path))),
         }
     }
 
@@ -85,8 +82,7 @@ impl Database {
         Database::mut_log_manager().recover().unwrap();
     }
 
-    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool>
-    {
+    pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
         Self::global().buffer_pool.wl()
     }
 
@@ -106,8 +102,7 @@ impl Database {
         Self::global().log_file.rl()
     }
 
-    pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager>
-    {
+    pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager> {
         Self::global().log_file.wl()
     }
 
