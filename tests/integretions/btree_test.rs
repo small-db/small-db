@@ -169,58 +169,57 @@ fn test_big_table() {
         }
     });
 
-    info!(
-        "row_count: {}, tuples_count: {}",
-        row_count,
-        table.tuples_count()
-    );
-    // todo!();
-
     assert_true(
         table_pod.rl().tuples_count() == row_count + 1000,
         &table,
     );
 
-    return;
-
     let page_count_marker = table_pod.rl().pages_count();
 
     // now delete a bunch of tuples
-    // thread::scope(|s| {
-    //     let mut threads = vec![];
-    //     for _ in 0..10 {
-    //         let handle = s.spawn(|| deleter(&table_pod, &receiver));
-    //         threads.push(handle);
-    //     }
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for i in 0..10 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_receiver = receiver.clone();
 
-    //     // wait for all threads to finish
-    //     for handle in threads {
-    //         handle.join().unwrap();
-    //     }
-    // });
-    // assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
+            let handle = s.spawn(move || deleter(i, &local_table, &local_receiver));
+            threads.push(handle);
+        }
+
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
+    assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
 
     // now insert a bunch of random tuples again
-    // thread::scope(|s| {
-    //     let mut threads = vec![];
-    //     for i in 0..10 {
-    //         let handle = s.spawn(|| {
-    //             inserter(i, column_count, &table_pod, &sender)
-    //         });
-    //         threads.push(handle);
-    //     }
+    thread::scope(|s| {
+        let mut threads = vec![];
+        for i in 0..10 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_sender = sender.clone();
 
-    //     // wait for all threads to finish
-    //     for handle in threads {
-    //         handle.join().unwrap();
-    //     }
-    // });
+            let handle = s.spawn(move || {
+                inserter(i, column_count, &local_table, &local_sender)
+            });
+            threads.push(handle);
+        }
+
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+    });
     assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
     assert!(table_pod.rl().pages_count() < page_count_marker + 20);
 
     drop(sender);
 
-    // look for all tuples and make sure we can find them
+    // look for all remained tuples and make sure we can find them
     let tx = Transaction::new();
     for tuple in receiver.iter() {
         let predicate =
