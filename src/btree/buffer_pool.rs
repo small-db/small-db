@@ -120,9 +120,8 @@ impl BufferPool {
         //    T2: hold buffer pool, request page1
         //    => deadlock
         // 
-        // 2. The lock scope of buffer pool should be as small as
-        // possible, since most of its operations require exclusive
-        // access.
+        // 2. The lock scope of buffer pool should be as small as possible,
+        // since most of its operations require exclusive access.
 
         // step 1: request lock from concurrent status
         Database::concurrent_status().request_lock(
