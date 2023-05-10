@@ -32,22 +32,8 @@ impl Transaction {
         self.complete(true, &mut Database::mut_buffer_pool())
     }
 
-    pub fn manual_commit(
-        &self,
-        page_cache: &mut BufferPool,
-    ) -> SmallResult {
-        self.complete(true, page_cache)
-    }
-
     pub fn abort(&self) -> SmallResult {
         self.complete(false, &mut Database::mut_buffer_pool())
-    }
-
-    pub fn manual_abort(
-        &self,
-        page_cache: &mut BufferPool,
-    ) -> SmallResult {
-        self.complete(false, page_cache)
     }
 
     fn complete(
