@@ -29,23 +29,23 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        self.complete(true, &Database::mut_buffer_pool())
+        self.complete(true, &mut Database::mut_buffer_pool())
     }
 
     pub fn manual_commit(
         &self,
-        page_cache: &BufferPool,
+        page_cache: &mut BufferPool,
     ) -> SmallResult {
         self.complete(true, page_cache)
     }
 
     pub fn abort(&self) -> SmallResult {
-        self.complete(false, &Database::mut_buffer_pool())
+        self.complete(false, &mut Database::mut_buffer_pool())
     }
 
     pub fn manual_abort(
         &self,
-        page_cache: &BufferPool,
+        page_cache: &mut BufferPool,
     ) -> SmallResult {
         self.complete(false, page_cache)
     }
@@ -53,19 +53,19 @@ impl Transaction {
     fn complete(
         &self,
         commit: bool,
-        page_cache: &BufferPool,
+        buffer_pool: &mut BufferPool,
     ) -> SmallResult {
         // write abort log record and rollback transaction
         if !commit {
             // does rollback too
             Database::mut_log_manager()
-                .log_abort(self, page_cache)?;
+                .log_abort(self, buffer_pool)?;
         }
 
         // Release locks and flush pages if needed
         //
         // release locks
-        page_cache.tx_complete(self, commit);
+        buffer_pool.tx_complete(self, commit);
 
         // write commit log record
         if commit {

@@ -38,7 +38,7 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     insert_row(&table, &tx, key_2);
 
     // step 5: commit the transaction
-    tx.manual_commit(&Database::mut_buffer_pool()).unwrap();
+    tx.manual_commit(&mut Database::mut_buffer_pool()).unwrap();
 }
 
 /// Insert two tuples into the table, then abort the transaction.

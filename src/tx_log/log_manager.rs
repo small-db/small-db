@@ -416,7 +416,7 @@ impl LogManager {
     pub fn log_abort(
         &mut self,
         tx: &Transaction,
-        page_cache: &BufferPool,
+        page_cache: &mut BufferPool,
     ) -> SmallResult {
         // must have page cache lock before proceeding, since this
         // calls rollback let cache =
@@ -532,7 +532,7 @@ impl LogManager {
     fn rollback(
         &mut self,
         tx: &Transaction,
-        page_cache: &BufferPool,
+        page_cache: &mut BufferPool,
     ) -> SmallResult {
         // step 1: get the position of last checkpoint
         // TODO: what if there is no checkpoint?
@@ -694,7 +694,7 @@ impl LogManager {
         &mut self,
         pid: &BTreePageID,
         before_image: &Vec<u8>,
-        page_cache: &BufferPool,
+        buffer_pool: &mut BufferPool,
     ) -> SmallResult {
         let table_rc: Arc<RwLock<BTreeTable>>;
         {
@@ -709,10 +709,10 @@ impl LogManager {
             PageCategory::Leaf => {
                 let page =
                     BTreeLeafPage::new(&pid, &before_image, &schema);
-                page_cache.recover_page(
+                BufferPool::recover_page(
                     &pid,
                     page,
-                    &page_cache.leaf_buffer,
+                    &mut buffer_pool.leaf_buffer,
                 );
             }
             PageCategory::RootPointer => {
@@ -721,10 +721,10 @@ impl LogManager {
                     &before_image,
                     &schema,
                 );
-                page_cache.recover_page(
+                BufferPool::recover_page(
                     &pid,
                     page,
-                    &page_cache.root_pointer_buffer,
+                    &mut buffer_pool.root_pointer_buffer,
                 );
             }
             PageCategory::Internal => {
@@ -733,18 +733,18 @@ impl LogManager {
                     &before_image,
                     &schema,
                 );
-                page_cache.recover_page(
+                BufferPool::recover_page(
                     &pid,
                     page,
-                    &page_cache.internal_buffer,
+                    &mut buffer_pool.internal_buffer,
                 );
             }
             PageCategory::Header => {
                 let page = BTreeHeaderPage::new(&pid, &before_image);
-                page_cache.recover_page(
+                BufferPool::recover_page(
                     &pid,
                     page,
-                    &page_cache.header_buffer,
+                    &mut buffer_pool.header_buffer,
                 );
             }
         }

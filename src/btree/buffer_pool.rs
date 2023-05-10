@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::File,
     io::{self, prelude::*, Seek, SeekFrom},
     sync::{
@@ -6,6 +7,8 @@ use std::{
         Arc, RwLock,
     },
 };
+
+use itertools::Itertools;
 
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage,
@@ -25,18 +28,13 @@ pub const DEFAULT_PAGE_SIZE: usize = 4096;
 static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
 
 pub struct BufferPool {
-    pub root_pointer_buffer: ConcurrentHashMap<
-        BTreePageID,
-        Arc<RwLock<BTreeRootPointerPage>>,
-    >,
-    pub internal_buffer: ConcurrentHashMap<
-        BTreePageID,
-        Arc<RwLock<BTreeInternalPage>>,
-    >,
-    pub leaf_buffer:
-        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
+    pub root_pointer_buffer:
+        HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
+    pub internal_buffer:
+        HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
+    pub leaf_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer:
-        ConcurrentHashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
+        HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
 }
 
 type Key = BTreePageID;
@@ -46,14 +44,14 @@ impl BufferPool {
         BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
 
         Self {
-            root_pointer_buffer: ConcurrentHashMap::new(),
-            header_buffer: ConcurrentHashMap::new(),
-            internal_buffer: ConcurrentHashMap::new(),
-            leaf_buffer: ConcurrentHashMap::new(),
+            root_pointer_buffer: HashMap::new(),
+            header_buffer: HashMap::new(),
+            internal_buffer: HashMap::new(),
+            leaf_buffer: HashMap::new(),
         }
     }
 
-    pub fn clear(&self) {
+    pub fn clear(&mut self) {
         self.root_pointer_buffer.clear();
         self.header_buffer.clear();
         self.internal_buffer.clear();
@@ -113,8 +111,7 @@ impl BufferPool {
         key: &Key,
         get_pool_fn: fn(
             &mut BufferPool,
-        )
-            -> &ConcurrentHashMap<Key, Arc<RwLock<PAGE>>>,
+        ) -> &mut HashMap<Key, Arc<RwLock<PAGE>>>,
     ) -> ResultPod<PAGE> {
         // We need to request lock before request the access to buffer
         // pool. Otherwise, there are some problems:
@@ -139,10 +136,27 @@ impl BufferPool {
         // step 2: get root pointer page from buffer pool
         let mut bp = Database::mut_buffer_pool();
         let pool = get_pool_fn(&mut bp);
-        pool.get_or_insert(key, |key| {
-            let page = Self::load_page(key)?;
-            Ok(page.clone())
-        })
+        // pool.get_or_insert(key, |key| {
+        //     let page = Self::load_page(key)?;
+        //     Ok(page.clone())
+        // })
+        let v = pool.entry(key.clone()).or_insert_with(|| {
+            let page = Self::load_page(key).unwrap();
+            page
+        });
+
+        return Ok(v.clone());
+
+        // todo!()
+
+        // match pool.get(&key) {
+        //     Some(v) => Ok(v.clone()),
+        //     None => {
+        //         let page = Self::load_page(key)?;
+        //         pool.insert(key.clone(), page.clone());
+        //         Ok(page)
+        //     }
+        // }
     }
 
     pub fn get_root_ptr_page(
@@ -186,7 +200,7 @@ impl BufferPool {
     ///
     /// Also used by B+ tree files to ensure that deleted pages
     /// are removed from the cache so they can be reused safely
-    pub fn discard_page(&self, pid: &BTreePageID) {
+    pub fn discard_page(&mut self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
                 self.internal_buffer.remove(pid);
@@ -238,7 +252,7 @@ impl BufferPool {
         }
     }
 
-    pub fn tx_complete(&self, tx: &Transaction, commit: bool) {
+    pub fn tx_complete(&mut self, tx: &Transaction, commit: bool) {
         let mut log_manager = Database::mut_log_manager();
 
         if !commit {
@@ -280,10 +294,9 @@ impl BufferPool {
     fn set_before_image<PAGE: BTreePage>(
         &self,
         pid: &BTreePageID,
-        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
-        let b = buffer.get_inner_wl();
-        let page_pod = b.get(pid).unwrap();
+        let page_pod = buffer.get(pid).unwrap();
         page_pod.wl().set_before_image();
     }
 
@@ -339,11 +352,11 @@ impl BufferPool {
         &self,
         table: &BTreeTable,
         pid: &BTreePageID,
-        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
         log_manager: &mut LogManager,
     ) {
-        let b = buffer.get_inner_wl();
-        let page_pod = b.get(pid).unwrap().clone();
+        // let b = buffer.get_inner_wl();
+        let page_pod = buffer.get(pid).unwrap().clone();
 
         // TODO: what's the purpose of this block?
         {
@@ -364,11 +377,12 @@ impl BufferPool {
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
+    /// Set the page content of "pid" to the specified "page", both in the
+    /// buffer pool and on disk.
     pub fn recover_page<PAGE: BTreePage>(
-        &self,
         pid: &BTreePageID,
         page: PAGE,
-        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        buffer: &mut HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         // step 1: get table
         let mut catalog = Database::mut_catalog();
@@ -378,41 +392,48 @@ impl BufferPool {
 
         let page_pod = Arc::new(RwLock::new(page));
 
-        self.insert_page_dispatch(pid, &page_pod, buffer);
-        self.force_flush_dispatch(pid, &table, buffer, page_pod);
+        Self::insert_page_dispatch(pid, &page_pod, buffer);
+        Self::force_flush_dispatch(pid, &table, page_pod);
     }
 
     // write a page to disk without write to WAL log
     fn force_flush_dispatch<PAGE: BTreePage>(
-        &self,
         pid: &BTreePageID,
         table: &BTreeTable,
-        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
-        _page_pod: Arc<RwLock<PAGE>>,
+        page_pod: Arc<RwLock<PAGE>>,
     ) {
-        let b = buffer.get_inner_wl();
-        let page_pod = b.get(pid).unwrap().clone();
-
-        // debug!("force flushing page {:?}", pid);
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 
     fn insert_page_dispatch<PAGE: BTreePage + ?Sized>(
-        &self,
         pid: &BTreePageID,
         page: &Arc<RwLock<PAGE>>,
-        buffer: &ConcurrentHashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        buffer: &mut HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
-        let mut b = buffer.get_inner_wl();
-        b.insert(pid.clone(), page.clone());
+        // let mut b = buffer.get_inner_wl();
+        buffer.insert(pid.clone(), page.clone());
     }
 
     fn all_keys(&self) -> Vec<Key> {
-        let mut keys = vec![];
-        keys.append(&mut self.root_pointer_buffer.keys());
-        keys.append(&mut self.header_buffer.keys());
-        keys.append(&mut self.leaf_buffer.keys());
-        keys.append(&mut self.internal_buffer.keys());
+        let mut keys: Vec<Key> = vec![];
+
+        for (k, _) in &self.root_pointer_buffer {
+            keys.push(k.clone());
+        }
+
+        for (k, _) in &self.header_buffer {
+            keys.push(k.clone());
+        }
+
+        for (k, _) in &self.internal_buffer {
+            keys.push(k.clone());
+        }
+
+        for (k, _) in &self.leaf_buffer {
+            keys.push(k.clone());
+        }
+
+
         keys
     }
 }
