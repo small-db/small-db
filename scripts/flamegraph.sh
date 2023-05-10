@@ -14,7 +14,16 @@ TEST_NAME=$1
 
 echo $BINARY
 
+# for maxOS
+# RUST_LOG=info \
+#     sudo flamegraph \
+#     $BINARY -- \
+#     $TEST_NAME --exact --nocapture
+
+# for Linux
+# apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+# 
 RUST_LOG=info \
-    sudo flamegraph \
+    sudo perf record -F 99 -g -- \
     $BINARY -- \
     $TEST_NAME --exact --nocapture
