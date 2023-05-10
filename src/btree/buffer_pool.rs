@@ -131,27 +131,12 @@ impl BufferPool {
         // step 2: get root pointer page from buffer pool
         let mut bp = Database::mut_buffer_pool();
         let pool = get_pool_fn(&mut bp);
-        // pool.get_or_insert(key, |key| {
-        //     let page = Self::load_page(key)?;
-        //     Ok(page.clone())
-        // })
         let v = pool.entry(key.clone()).or_insert_with(|| {
             let page = Self::load_page(key).unwrap();
             page
         });
 
         return Ok(v.clone());
-
-        // todo!()
-
-        // match pool.get(&key) {
-        //     Some(v) => Ok(v.clone()),
-        //     None => {
-        //         let page = Self::load_page(key)?;
-        //         pool.insert(key.clone(), page.clone());
-        //         Ok(page)
-        //     }
-        // }
     }
 
     pub fn get_root_ptr_page(
