@@ -4,7 +4,7 @@ use log::{debug, info};
 use rand::prelude::*;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
-    storage::tuple::Tuple,
+    storage::tuple::{Tuple, WrappedTuple},
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
@@ -20,7 +20,7 @@ fn inserter(
     id: u64,
     column_count: usize,
     table_rc: &Pod<BTreeTable>,
-    s: &crossbeam::channel::Sender<Tuple>,
+    s: &crossbeam::channel::Sender<WrappedTuple>,
 ) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
@@ -28,7 +28,7 @@ fn inserter(
 
     let start_time = Instant::now();
     let tx = Transaction::new_specific_id(id);
-    table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
+    let wrapped_tuple = table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
     debug!(
         "{} insert done, time: {:?}",
@@ -36,20 +36,20 @@ fn inserter(
         start_time.elapsed().as_secs()
     );
 
-    s.send(tuple).unwrap();
+    s.send(wrapped_tuple).unwrap();
 }
 
 // Delete a random tuple from the table
-fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
+fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<WrappedTuple>) {
     let tuple = r.recv().unwrap();
-    let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
+    // let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
 
     let start_time = Instant::now();
     let tx = Transaction::new_specific_id(id);
     let table = table_pod.rl();
-    let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
-    let target = it.next().unwrap();
-    table.delete_tuple(&tx, &target).unwrap();
+    // let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+    // let target = it.next().unwrap();
+    table.delete_tuple(&tx, &tuple).unwrap();
 
     tx.commit().unwrap();
     debug!("{} delete done, time: {:?}", tx, start_time.elapsed().as_secs());
