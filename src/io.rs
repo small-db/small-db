@@ -99,6 +99,13 @@ pub struct SmallWriter {
 impl SmallWriter {
     pub fn new() -> Self {
         let buf = Vec::new();
+        // buf.reserve(additional)
+        Self { buf }
+    }
+
+    pub fn new_reserved(cap: usize) -> Self {
+        let mut buf = Vec::new();
+        buf.reserve(cap);
         Self { buf }
     }
 
@@ -106,23 +113,28 @@ impl SmallWriter {
         self.buf.extend_from_slice(obj.encode().as_slice());
     }
 
+    // TODO: move instead of clone
     pub fn to_bytes(&self) -> Vec<u8> {
         self.buf.clone()
     }
 
-    pub fn to_padded_bytes(&self, size: usize) -> Vec<u8> {
-        let mut buf = self.buf.clone();
+    /// Pad the buffer to the given size. Note that the writer is
+    /// cleared after this operation.
+    /// 
+    /// TODO: move instead of clone
+    pub fn to_padded_bytes(&mut self, size: usize) -> Vec<u8> {
+        // let mut buf = self.buf.clone();
 
-        if buf.len() > size {
+        if self.buf.len() > size {
             panic!(
                 "buffer size is larger than the given size: {} > {}",
-                buf.len(),
+                self.buf.len(),
                 size
             );
         }
 
-        buf.resize(size, 0);
-        buf
+        self.buf.resize(size, 0);
+        std::mem::take(&mut self.buf)
     }
 }
 

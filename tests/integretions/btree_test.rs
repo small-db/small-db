@@ -1,4 +1,4 @@
-use std::thread;
+use std::{thread, time::Instant};
 
 use log::{debug, info};
 use rand::prelude::*;
@@ -19,21 +19,22 @@ use crate::test_utils::{
 fn inserter(
     id: u64,
     column_count: usize,
-    table_pod: &Pod<BTreeTable>,
+    table_rc: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
+    let start_time = Instant::now();
     let tx = Transaction::new_specific_id(id);
-    debug!("{} prepare to insert", tx);
-    if let Err(e) = table_pod.rl().insert_tuple(&tx, &tuple) {
-        table_pod.rl().draw_tree(-1);
-        panic!("Error inserting tuple: {}", e);
-    }
+    table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
-    debug!("{} insert done", tx);
+    debug!(
+        "{} insert done, time: {:?}",
+        tx,
+        start_time.elapsed().as_secs()
+    );
 
     s.send(tuple).unwrap();
 }
@@ -43,16 +44,15 @@ fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receive
     let tuple = r.recv().unwrap();
     let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
 
+    let start_time = Instant::now();
     let tx = Transaction::new_specific_id(id);
     let table = table_pod.rl();
-
-    debug!("{} prepare to delete", tx);
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let target = it.next().unwrap();
     table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
-    debug!("{} delete done", tx);
+    debug!("{} delete done, time: {:?}", tx, start_time.elapsed().as_secs());
 }
 
 // Test that doing lots of inserts and deletes in multiple threads

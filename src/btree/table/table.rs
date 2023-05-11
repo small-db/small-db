@@ -32,7 +32,7 @@ use crate::{
     transaction::Transaction,
     types::{ResultPod, SmallResult},
     utils::{lock_state, HandyRwLock},
-    Database,
+    Database, error::SmallError,
 };
 
 pub enum SearchFor {
@@ -159,12 +159,7 @@ impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
-    pub fn insert_tuple(
-        &self,
-        tx: &Transaction,
-        // buffer_pool: &mut BufferPool,
-        tuple: &Tuple,
-    ) -> SmallResult {
+    pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<WrappedTuple, SmallError> {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid(tx);
@@ -183,8 +178,7 @@ impl BTreeTable {
         if leaf_rc.rl().empty_slots_count() == 0 {
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
         }
-        leaf_rc.wl().insert_tuple(&tuple);
-        return Ok(());
+        return leaf_rc.wl().insert_tuple(&tuple);
     }
 
     /// Split a leaf page to make room for new tuples and

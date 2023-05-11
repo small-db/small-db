@@ -14,7 +14,7 @@ use crate::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
-    utils::{ceil_div, HandyRwLock},
+    utils::{ceil_div, HandyRwLock}, error::SmallError,
 };
 
 /// A leaf page in the B+ tree.
@@ -226,7 +226,7 @@ impl BTreeLeafPage {
     /// remain in sorted order; the tuple should be updated to
     /// reflect that it is now stored on this page.
     /// tuple: The tuple to add.
-    pub fn insert_tuple(&mut self, tuple: &Tuple) {
+    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<WrappedTuple, SmallError>  {
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
         for i in 0..self.slot_count {
@@ -271,6 +271,10 @@ impl BTreeLeafPage {
         // insert new record into the correct spot in sorted order
         self.tuples[good_slot] = tuple.clone();
         self.mark_slot_status(good_slot, true);
+
+        // return the wrapped tuple
+        let wrapped_tuple = WrappedTuple::new(tuple, good_slot, self.get_pid());
+        Ok(wrapped_tuple)
     }
 
     // Move a tuple from one slot to another slot, destination must be
@@ -407,7 +411,7 @@ impl BTreePage for BTreeLeafPage {
     /// constructor and have it produce an identical BTreeLeafPage
     /// object.
     fn get_page_data(&self) -> Vec<u8> {
-        let mut writer = SmallWriter::new();
+        let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
         writer.write(&self.get_pid().category);
@@ -484,7 +488,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
 
             if page.is_slot_used(cursor) {
                 return Some(WrappedTuple::new(
-                    page.tuples[cursor].clone(),
+                    &page.tuples[cursor].clone(),
                     cursor,
                     page.get_pid(),
                 ));
@@ -505,7 +509,7 @@ impl DoubleEndedIterator for BTreeLeafPageIteratorRc {
             let cursor = self.reverse_cursor as usize;
             if page.is_slot_used(cursor) {
                 return Some(WrappedTuple::new(
-                    page.tuples[cursor].clone(),
+                    &page.tuples[cursor].clone(),
                     cursor,
                     page.get_pid(),
                 ));
@@ -544,7 +548,7 @@ impl<'page> Iterator for BTreeLeafPageIterator<'_> {
 
             if page.is_slot_used(cursor) {
                 return Some(WrappedTuple::new(
-                    page.tuples[cursor].clone(),
+                    &page.tuples[cursor].clone(),
                     cursor,
                     page.get_pid(),
                 ));
@@ -565,7 +569,7 @@ impl<'page> DoubleEndedIterator for BTreeLeafPageIterator<'_> {
             let cursor = self.reverse_cursor as usize;
             if page.is_slot_used(cursor) {
                 return Some(WrappedTuple::new(
-                    page.tuples[cursor].clone(),
+                    &page.tuples[cursor].clone(),
                     cursor,
                     page.get_pid(),
                 ));

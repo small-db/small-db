@@ -10,19 +10,12 @@ use crate::{
     storage::{schema::Schema, tuple::Cell},
 };
 
-// #[derive(Default)]
 pub struct Tuple {
     cells: Vec<Cell>,
 }
 
 // constructors
 impl Tuple {
-    // TODO: remove this api
-    pub fn new(scheme: &Schema, bytes: &[u8]) -> Self {
-        let mut reader = Cursor::new(bytes);
-        return Self::read_from(&mut reader, &scheme);
-    }
-
     pub fn new_from_cells(cells: &Vec<Cell>) -> Self {
         Self {
             cells: cells.to_vec(),
@@ -63,11 +56,20 @@ impl Tuple {
             cells: self.cells.clone(),
         }
     }
+
+    pub fn get_size_disk(&self) -> usize {
+        let mut size = 0;
+        for cell in &self.cells {
+            size += cell.get_size_disk();
+        }
+        size
+    }
 }
 
 impl Encodeable for Tuple {
     fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
+        bytes.reserve(self.get_size_disk());
         for cell in &self.cells {
             let mut cell_bytes = cell.encode();
             bytes.append(&mut cell_bytes);
@@ -131,9 +133,9 @@ impl std::ops::DerefMut for WrappedTuple {
 }
 
 impl WrappedTuple {
-    pub fn new(internal: Tuple, slot_number: usize, pid: BTreePageID) -> WrappedTuple {
+    pub fn new(internal: &Tuple, slot_number: usize, pid: BTreePageID) -> WrappedTuple {
         WrappedTuple {
-            internal,
+            internal: internal.clone(),
             slot_number,
             pid,
         }
