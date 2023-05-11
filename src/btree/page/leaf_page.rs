@@ -226,7 +226,7 @@ impl BTreeLeafPage {
     /// remain in sorted order; the tuple should be updated to
     /// reflect that it is now stored on this page.
     /// tuple: The tuple to add.
-    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<WrappedTuple, SmallError>  {
+    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError>  {
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
         for i in 0..self.slot_count {
@@ -272,9 +272,7 @@ impl BTreeLeafPage {
         self.tuples[good_slot] = tuple.clone();
         self.mark_slot_status(good_slot, true);
 
-        // return the wrapped tuple
-        let wrapped_tuple = WrappedTuple::new(tuple, good_slot, self.get_pid());
-        Ok(wrapped_tuple)
+        return Ok(());
     }
 
     // Move a tuple from one slot to another slot, destination must be

@@ -159,7 +159,7 @@ impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
-    pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<WrappedTuple, SmallError> {
+    pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid(tx);
