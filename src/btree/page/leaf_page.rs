@@ -222,10 +222,8 @@ impl BTreeLeafPage {
         self.slot_count - self.empty_slots_count()
     }
 
-    /// Adds the specified tuple to the page such that all records
-    /// remain in sorted order; the tuple should be updated to
-    /// reflect that it is now stored on this page.
-    /// tuple: The tuple to add.
+    /// Adds a tuple to the page such that all tuples remain in sorted order; the
+    /// tuple should be updated to reflect that it is now stored on this page.
     pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError>  {
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
