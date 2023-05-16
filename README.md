@@ -30,7 +30,7 @@ make test
 ```bash
 make <test_name>
 # e.g:
-make btree_test
+make test_big_table
 ```
 
 ### Run a specific test with flamegraph
