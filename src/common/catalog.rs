@@ -87,7 +87,7 @@ impl Catalog {
         //
         // - pg_catalog.pg_class
         // - pg_catalog.pg_namespace
-        todo!();
+        // todo!();
 
         Ok(())
     }
