@@ -40,7 +40,11 @@ impl Catalog {
     pub fn load_schemas() -> SmallResult {
         let schema_table_rc = Database::mut_catalog().get_schema_table();
 
-        // add the system-table "schema"
+        // Add the system-table "schema", otherwise we cannot load the tables
+        // from disk.
+        //
+        // All "add_table" calls in this function should not persist the table,
+        // because we are loading the tables from disk.
         Catalog::add_table(schema_table_rc.clone(), false);
 
         // scan the catalog table and load all the tables
@@ -72,10 +76,18 @@ impl Catalog {
 
             let table = BTreeTable::new(&table_name, Some(table_id as u32), &schema);
 
+            // All "add_table" calls in this function should not persist the table,
+            // because we are loading the tables from disk.
             Catalog::add_table(Arc::new(RwLock::new(table)), false);
         }
 
         tx.commit().unwrap();
+
+        // TODO: init system tables if not exists
+        // 
+        // - pg_catalog.pg_class
+        // - pg_catalog.pg_namespace
+        todo!();
 
         Ok(())
     }
