@@ -14,7 +14,10 @@ A small database.
   - [x] delete
   - [x] search
 - [x] Buffer pool
-- [x] WAL (Write ahead log) - ARIES
+- [ ] WAL (Write ahead log)
+  - [x] ARIES
+  - [ ] Innodb
+  - [ ] PostgreSQL
 - [ ] PostgreSQL protocol
 - [ ] MVCC (Multi-version concurrency control)
 - [ ] Optimistic concurrency control
