@@ -200,8 +200,3 @@ fn test_big_table() {
     tx.commit().unwrap();
     table_pod.rl().check_integrity(true);
 }
-
-#[test]
-fn cxc() {
-    info!("cxc");
-}

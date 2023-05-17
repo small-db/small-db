@@ -163,7 +163,7 @@ fn sequential_insert_into_table(
 
             for _ in 0..*tuple_count {
                 if let Some(t) = tuples.get(tuple_index) {
-                    leaf.insert_tuple(t);
+                    leaf.insert_tuple(t).unwrap();
                 }
 
                 tuple_index += 1;

@@ -31,7 +31,7 @@ impl Schema {
             fields.push(field);
         }
 
-        Self { fields }
+        Self::new(fields)
     }
 }
 
