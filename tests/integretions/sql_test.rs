@@ -1,5 +1,3 @@
-use small_db::sql::sql_handler::handle_sql;
-
 use crate::test_utils::setup;
 
 #[test]

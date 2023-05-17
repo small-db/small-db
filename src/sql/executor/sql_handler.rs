@@ -5,12 +5,17 @@ use sqlparser::{
     parser::Parser,
 };
 
-use super::session::QueryResult;
 use crate::{
     error::SmallError,
+    sql::{
+        executor::{expr_state, select::handle_select},
+        session::QueryResult,
+    },
     storage::schema::{Field, Type},
     BTreeTable, Schema,
 };
+
+use super::expr_state::ExprState;
 
 pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     info!("Query: {}", sql);
@@ -55,7 +60,18 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
 
             let _table = BTreeTable::new(&table_name, None, &schema);
         }
-        Statement::Query(_query) => {
+        Statement::Query(query) => {
+            match query.body.as_ref() {
+                sqlparser::ast::SetExpr::Select(select) => {
+                    info!("projection: {:?}", select.projection);
+                    info!("from: {:?}", select.from);
+                    let expr_state = handle_select(select)?;
+                    return Ok(collect_result(&expr_state));
+                }
+                _ => {
+                    todo!()
+                }
+            }
 
             // our target:
             // {
@@ -78,5 +94,9 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
         }
     }
 
+    todo!()
+}
+
+fn collect_result(expr_state: &ExprState) -> QueryResult {
     todo!()
 }
