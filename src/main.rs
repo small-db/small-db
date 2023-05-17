@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::{info, error};
+use log::info;
 use pgwire::{
     api::{
         auth::noop::NoopStartupHandler, query::PlaceholderExtendedQueryHandler, MakeHandler,
@@ -8,14 +8,9 @@ use pgwire::{
     },
     tokio::process_socket,
 };
-use small_db::{
-    server::pg_handler::{self, PostgresHandler},
-    sql::session::{self, Session},
-    utils::init_log,
-};
+use small_db::{server::pg_handler::PostgresHandler, sql::session::Session, utils::init_log};
 use tokio::net::TcpListener;
 
-///
 /// Connect to the server with
 /// `psql -h localhost -p 5432 -d default_db -U xiaochen`
 #[tokio::main]
@@ -26,7 +21,8 @@ pub async fn main() {
     let pg_handler = PostgresHandler::new(session);
 
     let processor = Arc::new(StatelessMakeHandler::new(Arc::new(pg_handler)));
-    // We have not implemented extended query in this server, use placeholder instead
+    // We have not implemented extended query in this server, use placeholder
+    // instead
     let placeholder = Arc::new(StatelessMakeHandler::new(Arc::new(
         PlaceholderExtendedQueryHandler,
     )));

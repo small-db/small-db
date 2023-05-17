@@ -1,19 +1,16 @@
 use log::info;
-use sqlparser::ast::ColumnOption;
-use sqlparser::ast::Statement;
-use sqlparser::dialect::GenericDialect;
-use sqlparser::parser::Parser;
-
-use crate::btree::table::BTreeTableSearchIterator;
-use crate::error::SmallError;
-use crate::storage::schema::{Field, Type};
-use crate::storage::tuple::Cell;
-use crate::transaction::Transaction;
-use crate::Op;
-use crate::Predicate;
-use crate::{BTreeTable, Schema};
+use sqlparser::{
+    ast::{ColumnOption, Statement},
+    dialect::GenericDialect,
+    parser::Parser,
+};
 
 use super::session::QueryResult;
+use crate::{
+    error::SmallError,
+    storage::schema::{Field, Type},
+    BTreeTable, Schema,
+};
 
 pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     info!("Query: {}", sql);
@@ -56,9 +53,9 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
 
             let schema = Schema::new(fields);
 
-            let table = BTreeTable::new(&table_name, None, &schema);
+            let _table = BTreeTable::new(&table_name, None, &schema);
         }
-        Statement::Query(query) => {
+        Statement::Query(_query) => {
             // {
             //     let table: BTreeTable;
             //     let cell: Cell;

@@ -25,14 +25,15 @@ use crate::{
         },
     },
     concurrent_status::Permission,
+    error::SmallError,
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
     transaction::Transaction,
-    types::{ResultPod, SmallResult},
+    types::ResultPod,
     utils::{lock_state, HandyRwLock},
-    Database, error::SmallError,
+    Database,
 };
 
 pub enum SearchFor {

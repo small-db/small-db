@@ -1,6 +1,5 @@
 use std::{
     fmt::{self},
-    io::Cursor,
     usize,
 };
 

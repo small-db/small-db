@@ -9,12 +9,13 @@ use bit_vec::BitVec;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
+    error::SmallError,
     io::{read_into, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
-    utils::{ceil_div, HandyRwLock}, error::SmallError,
+    utils::{ceil_div, HandyRwLock},
 };
 
 /// A leaf page in the B+ tree.
@@ -222,9 +223,10 @@ impl BTreeLeafPage {
         self.slot_count - self.empty_slots_count()
     }
 
-    /// Adds a tuple to the page such that all tuples remain in sorted order; the
-    /// tuple should be updated to reflect that it is now stored on this page.
-    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError>  {
+    /// Adds a tuple to the page such that all tuples remain in sorted order;
+    /// the tuple should be updated to reflect that it is now stored on this
+    /// page.
+    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError> {
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
         for i in 0..self.slot_count {

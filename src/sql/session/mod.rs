@@ -1,5 +1,3 @@
-use log::info;
-
 use crate::{
     error::SmallError,
     sql::sql_handler::handle_sql,

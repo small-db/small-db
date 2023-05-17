@@ -120,7 +120,7 @@ impl SmallWriter {
 
     /// Pad the buffer to the given size. Note that the writer is
     /// cleared after this operation.
-    /// 
+    ///
     /// TODO: move instead of clone
     pub fn to_padded_bytes(&mut self, size: usize) -> Vec<u8> {
         // let mut buf = self.buf.clone();

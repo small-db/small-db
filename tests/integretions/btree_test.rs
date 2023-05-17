@@ -1,10 +1,10 @@
 use std::{thread, time::Instant};
 
-use log::{debug, info};
+use log::debug;
 use rand::prelude::*;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
-    storage::tuple::{Tuple, WrappedTuple},
+    storage::tuple::Tuple,
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
@@ -52,7 +52,11 @@ fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receive
     table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
-    debug!("{} delete done, time: {:?}", tx, start_time.elapsed().as_secs());
+    debug!(
+        "{} delete done, time: {:?}",
+        tx,
+        start_time.elapsed().as_secs()
+    );
 }
 
 // Test that doing lots of inserts and deletes in multiple threads
