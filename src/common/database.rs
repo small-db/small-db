@@ -45,14 +45,19 @@ impl Database {
 
         let log_path = db_path.join("wal.log");
 
-        Self {
+        let instance = Self {
             path: db_path,
 
             buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
             concurrent_status: ConcurrentStatus::new(),
             catalog: Arc::new(RwLock::new(Catalog::new())),
             log_file: Arc::new(RwLock::new(LogManager::new(log_path))),
-        }
+        };
+
+        Catalog::load_schemas().unwrap();
+        Database::mut_log_manager().recover().unwrap();
+
+        return instance;
     }
 
     /// Reset the memory status of the database, used for tests
@@ -77,9 +82,6 @@ impl Database {
             // Put it in the heap so it can outlive this call.
             SINGLETON = mem::transmute(Box::new(singleton));
         }
-
-        Catalog::load_schemas().unwrap();
-        Database::mut_log_manager().recover().unwrap();
     }
 
     pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
