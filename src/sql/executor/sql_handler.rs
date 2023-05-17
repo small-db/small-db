@@ -5,6 +5,7 @@ use sqlparser::{
     parser::Parser,
 };
 
+use super::expr_state::ExprState;
 use crate::{
     error::SmallError,
     sql::{
@@ -14,8 +15,6 @@ use crate::{
     storage::schema::{Field, Type},
     BTreeTable, Schema,
 };
-
-use super::expr_state::ExprState;
 
 pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     info!("Query: {}", sql);

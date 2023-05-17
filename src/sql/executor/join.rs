@@ -1,9 +1,8 @@
 use log::info;
 use sqlparser::ast::Join;
 
-use crate::error::SmallError;
-
 use super::expr_state::ExprState;
+use crate::error::SmallError;
 
 pub fn handle_join(join: &Join) -> Result<ExprState, SmallError> {
     info!("=====");
