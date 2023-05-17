@@ -79,8 +79,8 @@ impl fmt::Display for BTreeTable {
 impl BTreeTable {
     pub fn new(table_name: &str, table_id: Option<u32>, schema: &Schema) -> Self {
         let db_path = Database::global().get_path();
-
-        let table_path = db_path.join(table_name).with_extension("table");
+        let filename = table_name.to_owned() + ".table";
+        let table_path = db_path.join(filename);
 
         let f = Mutex::new(
             OpenOptions::new()

@@ -4,6 +4,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use log::info;
+use sqlparser::keywords::NO;
+
 use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
     io::{read_into, Decodeable, Encodeable},
@@ -88,6 +91,21 @@ impl Catalog {
         // - pg_catalog.pg_class
         // - pg_catalog.pg_namespace
         // todo!();
+        if Catalog::get_table_by_name("pg_catalog.pg_class").is_none() {
+            // create pg_catalog.pg_class
+
+            let schema = Schema::new(vec![
+                Field::new("relname", Type::Bytes(20), false),
+                Field::new("relowner", Type::Int64, true),
+                Field::new("relkind", Type::Bytes(20), false),
+                Field::new("relnamespace", Type::Int64, false),
+            ]);
+
+            let table = BTreeTable::new("pg_catalog.pg_class", None, &schema);
+
+            Catalog::add_table(Arc::new(RwLock::new(table)), true);
+            info!("create pg_catalog.pg_class");
+        }
 
         Ok(())
     }
@@ -147,18 +165,15 @@ impl Catalog {
         }
     }
 
-    pub fn get_table_by_name(&mut self, table_name: &str) -> Option<Value> {
-        let schema_table_rc = self.get_schema_table();
+    pub fn get_table_by_name(table_name: &str) -> Option<Value> {
+        let schema_table_rc = Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        // TODO: implemen search on non-primary key
-        todo!();
-
         // TODO: get index in a stable way
-        let table_name_index = 1;
+        let table_name_index = schema_table.get_schema().get_field_pos("table_name");
 
         let predicate = Predicate::new(
             table_name_index,
@@ -169,18 +184,17 @@ impl Catalog {
         let mut fields = Vec::new();
         let mut table_id_option: Option<i64> = None;
         for tuple in iter {
-            table_id_option = Some(read_into(&mut Cursor::new(
-                tuple.get_cell(0).get_bytes().unwrap(),
-            )));
+            table_id_option = Some(tuple.get_cell(0).get_int64().unwrap());
 
-            let field_name: String =
-                read_into(&mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()));
+            let field_name = String::from_utf8(tuple.get_cell(2).get_bytes().unwrap()).unwrap();
             let field_type = read_into(&mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()));
             let is_primary = tuple.get_cell(4).get_bool().unwrap();
 
             let field = Field::new(&field_name, field_type, is_primary);
             fields.push(field);
         }
+
+        tx.commit().unwrap();
 
         match table_id_option {
             Some(table_id) => {
@@ -189,7 +203,9 @@ impl Catalog {
 
                 let table_rc = Arc::new(RwLock::new(table));
 
-                self.map.insert(table_id as u32, table_rc.clone());
+                Database::mut_catalog()
+                    .map
+                    .insert(table_id as u32, table_rc.clone());
                 Some(table_rc)
             }
             None => {

@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use log::info;
+
 use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -28,6 +30,16 @@ impl Transaction {
 
     pub fn commit(&self) -> SmallResult {
         self.complete(true, &mut Database::mut_buffer_pool())
+
+        // self.complete(true, &mut Database::mut_buffer_pool())?;
+
+        // info!(
+        //     "Transaction {} committed, concurrent_status: {:?}",
+        //     self.uuid,
+        //     Database::concurrent_status()
+        // );
+
+        // Ok(())
     }
 
     pub fn abort(&self) -> SmallResult {

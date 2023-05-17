@@ -79,7 +79,10 @@ impl Cell {
 impl PartialEq for Cell {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Cell::Bool(a), Cell::Bool(b)) => a == b,
             (Cell::Int64(a), Cell::Int64(b)) => a == b,
+            (Cell::Float64(a), Cell::Float64(b)) => a == b,
+            (Cell::Bytes(a), Cell::Bytes(b)) => a == b,
             _ => todo!(),
         }
     }
