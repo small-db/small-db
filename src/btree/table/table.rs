@@ -783,10 +783,6 @@ impl BTreeTable {
             PageCategory::Header => todo!(),
         }
     }
-
-    // pub fn iter(&self, tx: &Transaction, predicate: &Predicate) -> BTreeIterator {
-    //     unimplemented!()
-    // }
 }
 
 /// debug methods
