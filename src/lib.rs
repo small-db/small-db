@@ -6,6 +6,7 @@ pub mod transaction;
 pub mod types;
 pub mod utils;
 pub mod sql;
+pub mod server;
 
 mod error;
 mod io;

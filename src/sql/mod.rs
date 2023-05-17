@@ -1,3 +1,5 @@
+pub mod session;
+
 use sqlparser::ast::ColumnOption;
 use sqlparser::ast::Statement::CreateTable;
 use sqlparser::dialect::GenericDialect;
