@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use log::{info, error};
 use pgwire::{
     api::{
         auth::noop::NoopStartupHandler, query::PlaceholderExtendedQueryHandler, MakeHandler,
@@ -10,11 +11,17 @@ use pgwire::{
 use small_db::{
     server::pg_handler::{self, PostgresHandler},
     sql::session::{self, Session},
+    utils::init_log,
 };
 use tokio::net::TcpListener;
 
+///
+/// Connect to the server with
+/// `psql -h localhost -p 5432 -d default_db -U xiaochen`
 #[tokio::main]
 pub async fn main() {
+    init_log();
+
     let session = Arc::new(Mutex::new(Session::new()));
     let pg_handler = PostgresHandler::new(session);
 
@@ -27,7 +34,7 @@ pub async fn main() {
 
     let server_addr = "127.0.0.1:5432";
     let listener = TcpListener::bind(server_addr).await.unwrap();
-    println!("Listening to {}", server_addr);
+    info!("Listening to {}", server_addr);
     loop {
         let incoming_socket = listener.accept().await.unwrap();
         let authenticator_ref = authenticator.make();

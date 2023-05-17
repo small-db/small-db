@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
+use log::info;
 use pgwire::{
     api::{query::SimpleQueryHandler, results::Response, ClientInfo},
     error::PgWireResult,
@@ -24,6 +25,7 @@ impl SimpleQueryHandler for PostgresHandler {
     where
         C: ClientInfo + Unpin + Send + Sync,
     {
+        info!("Query: {}", query);
         unimplemented!()
     }
 }
