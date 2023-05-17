@@ -54,9 +54,6 @@ impl Database {
             log_file: Arc::new(RwLock::new(LogManager::new(log_path))),
         };
 
-        Catalog::load_schemas().unwrap();
-        Database::mut_log_manager().recover().unwrap();
-
         return instance;
     }
 
@@ -82,6 +79,9 @@ impl Database {
             // Put it in the heap so it can outlive this call.
             SINGLETON = mem::transmute(Box::new(singleton));
         }
+
+        Catalog::load_schemas().unwrap();
+        Database::mut_log_manager().recover().unwrap();
     }
 
     pub fn mut_buffer_pool() -> RwLockWriteGuard<'static, BufferPool> {
