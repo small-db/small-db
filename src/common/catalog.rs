@@ -84,10 +84,10 @@ impl Catalog {
         tx.commit().unwrap();
 
         // TODO: init system tables if not exists
-        // 
+        //
         // - pg_catalog.pg_class
         // - pg_catalog.pg_namespace
-        // todo!();
+        todo!();
 
         Ok(())
     }
@@ -135,6 +135,50 @@ impl Catalog {
                 let table_rc = Arc::new(RwLock::new(table));
 
                 self.map.insert(*table_index, table_rc.clone());
+                Some(table_rc)
+            }
+            None => {
+                return None;
+            }
+        }
+    }
+
+    pub fn get_table_by_name(&mut self, table_name: &str) -> Option<Value> {
+        let schema_table_rc = self.get_schema_table();
+        let schema_table = schema_table_rc.rl();
+
+        let tx = Transaction::new();
+        tx.start().unwrap();
+
+        // TODO: implemen search on non-primary key
+        todo!();
+
+        let predicate = Predicate::new(Op::Equals, &Cell::Bytes(table_name.as_bytes().to_vec()));
+        let iter = BTreeTableSearchIterator::new(&tx, &schema_table, &predicate);
+        let mut fields = Vec::new();
+        let mut table_id_option: Option<i64> = None;
+        for tuple in iter {
+            table_id_option = Some(read_into(&mut Cursor::new(
+                tuple.get_cell(0).get_bytes().unwrap(),
+            )));
+
+            let field_name: String =
+                read_into(&mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()));
+            let field_type = read_into(&mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()));
+            let is_primary = tuple.get_cell(4).get_bool().unwrap();
+
+            let field = Field::new(&field_name, field_type, is_primary);
+            fields.push(field);
+        }
+
+        match table_id_option {
+            Some(table_id) => {
+                let schema = Schema::new(fields);
+                let table = BTreeTable::new(table_name, Some(table_id as u32), &schema);
+
+                let table_rc = Arc::new(RwLock::new(table));
+
+                self.map.insert(table_id as u32, table_rc.clone());
                 Some(table_rc)
             }
             None => {

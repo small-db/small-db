@@ -8,7 +8,9 @@ use pgwire::{
     },
     tokio::process_socket,
 };
-use small_db::{server::pg_handler::PostgresHandler, sql::session::Session, utils::init_log};
+use small_db::{
+    server::pg_handler::PostgresHandler, sql::session::Session, utils::init_log, Database,
+};
 use tokio::net::TcpListener;
 
 /// Connect to the server with
@@ -16,6 +18,8 @@ use tokio::net::TcpListener;
 #[tokio::main]
 pub async fn main() {
     init_log();
+
+    Database::reset();
 
     let session = Arc::new(Mutex::new(Session::new()));
     let pg_handler = PostgresHandler::new(session);
