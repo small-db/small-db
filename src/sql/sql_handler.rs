@@ -56,6 +56,8 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
             let _table = BTreeTable::new(&table_name, None, &schema);
         }
         Statement::Query(_query) => {
+
+            // our target:
             // {
             //     let table: BTreeTable;
             //     let cell: Cell;
