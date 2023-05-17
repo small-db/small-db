@@ -25,7 +25,11 @@ impl SimpleQueryHandler for PostgresHandler {
     where
         C: ClientInfo + Unpin + Send + Sync,
     {
-        info!("Query: {}", query);
+        let mut session = self.session.lock().unwrap();
+        let result = session
+            .execute(query)
+            .map_err(|e| pgwire::error::PgWireError::ApiError(Box::new(e)))?;
+
         unimplemented!()
     }
 }
