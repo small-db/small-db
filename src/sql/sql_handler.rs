@@ -1,11 +1,16 @@
 use log::info;
 use sqlparser::ast::ColumnOption;
-use sqlparser::ast::Statement::CreateTable;
+use sqlparser::ast::Statement;
 use sqlparser::dialect::GenericDialect;
 use sqlparser::parser::Parser;
 
+use crate::btree::table::BTreeTableSearchIterator;
 use crate::error::SmallError;
 use crate::storage::schema::{Field, Type};
+use crate::storage::tuple::Cell;
+use crate::transaction::Transaction;
+use crate::Op;
+use crate::Predicate;
 use crate::{BTreeTable, Schema};
 
 use super::session::QueryResult;
@@ -24,7 +29,7 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     let statement = &ast[0];
 
     match statement {
-        CreateTable { name, columns, .. } => {
+        Statement::CreateTable { name, columns, .. } => {
             println!("name: {:?}", name);
             println!("columns: {:?}", columns);
 
@@ -53,8 +58,24 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
 
             let table = BTreeTable::new(&table_name, None, &schema);
         }
+        Statement::Query(query) => {
+            {
+                let table: BTreeTable;
+                let cell: Cell;
+
+                let predicate = Predicate::new(Op::Equals, &cell);
+                let tx = Transaction::new();
+                let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+                let target = it.next().unwrap();
+                table.delete_tuple(&tx, &target).unwrap();
+
+                tx.commit().unwrap();
+            }
+
+            todo!()
+        }
         _ => {
-            println!("not create table");
+            todo!()
         }
     }
 
