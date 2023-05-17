@@ -111,17 +111,17 @@ pub struct BTreeTableSearchIterator<'t> {
 }
 
 impl<'t> BTreeTableSearchIterator<'t> {
-    pub fn new(tx: &'t Transaction, table: &BTreeTable, index_predicate: &Predicate) -> Self {
+    pub fn new(tx: &'t Transaction, table: &BTreeTable, predicate: &Predicate) -> Self {
         let start_rc: Arc<RwLock<BTreeLeafPage>>;
         let root_pid = table.get_root_pid(tx);
 
-        match index_predicate.op {
+        match predicate.op {
             Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {
                 start_rc = table.find_leaf_page(
                     &tx,
                     Permission::ReadOnly,
                     root_pid,
-                    &SearchFor::Target(index_predicate.cell.clone()),
+                    &SearchFor::Target(predicate.cell.clone()),
                 )
             }
             Op::LessThan | Op::LessThanOrEq => {
@@ -136,7 +136,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
             tx,
             current_page_rc: Arc::clone(&start_rc),
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_rc)),
-            predicate: index_predicate.clone(),
+            predicate: predicate.clone(),
             key_field: table.key_field,
         }
     }

@@ -8,7 +8,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Predicate,
+    BTreeTable, Database, Op, Predicate,
 };
 
 use crate::test_utils::{
@@ -40,13 +40,13 @@ fn inserter(
 }
 
 // Delete a random tuple from the table
-fn deleter(id: u64, table_pod: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
+fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
     let tuple = r.recv().unwrap();
-    let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
+    let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
     let start_time = Instant::now();
     let tx = Transaction::new_specific_id(id);
-    let table = table_pod.rl();
+    let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let target = it.next().unwrap();
     table.delete_tuple(&tx, &target).unwrap();
@@ -197,7 +197,7 @@ fn test_big_table() {
     // look for all remained tuples and make sure we can find them
     let tx = Transaction::new();
     for tuple in receiver.iter() {
-        let predicate = Predicate::new(small_db::Op::Equals, &tuple.get_cell(0));
+        let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
         let mut it = BTreeTableSearchIterator::new(&tx, &table_pod.rl(), &predicate);
         assert!(it.next().is_some());
     }

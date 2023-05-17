@@ -72,20 +72,6 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
                 }
             }
 
-            // our target:
-            // {
-            //     let table: BTreeTable;
-            //     let cell: Cell;
-
-            //     let predicate = Predicate::new(Op::Equals, &cell);
-            //     let tx = Transaction::new();
-            //     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
-            //     let target = it.next().unwrap();
-            //     table.delete_tuple(&tx, &target).unwrap();
-
-            //     tx.commit().unwrap();
-            // }
-
             todo!()
         }
         _ => {

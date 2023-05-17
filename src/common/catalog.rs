@@ -109,7 +109,11 @@ impl Catalog {
         let tx = Transaction::new();
         tx.start().unwrap();
 
-        let predicate = Predicate::new(Op::Equals, &Cell::Int64(*table_index as i64));
+        let predicate = Predicate::new(
+            schema_table.key_field,
+            Op::Equals,
+            &Cell::Int64(*table_index as i64),
+        );
         let iter = BTreeTableSearchIterator::new(&tx, &schema_table, &predicate);
         let mut fields = Vec::new();
         let mut table_name_option: Option<String> = None;
@@ -153,7 +157,14 @@ impl Catalog {
         // TODO: implemen search on non-primary key
         todo!();
 
-        let predicate = Predicate::new(Op::Equals, &Cell::Bytes(table_name.as_bytes().to_vec()));
+        // TODO: get index in a stable way
+        let table_name_index = 1;
+
+        let predicate = Predicate::new(
+            table_name_index,
+            Op::Equals,
+            &Cell::Bytes(table_name.as_bytes().to_vec()),
+        );
         let iter = BTreeTableSearchIterator::new(&tx, &schema_table, &predicate);
         let mut fields = Vec::new();
         let mut table_id_option: Option<i64> = None;

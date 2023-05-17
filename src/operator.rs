@@ -13,13 +13,15 @@ pub enum Op {
 
 #[derive(Clone)]
 pub struct Predicate {
+    pub field_index: usize,
     pub op: Op,
     pub cell: Cell,
 }
 
 impl Predicate {
-    pub fn new(op: Op, cell: &Cell) -> Self {
+    pub fn new(field_index: usize, op: Op, cell: &Cell) -> Self {
         Self {
+            field_index,
             op,
             cell: cell.clone(),
         }
