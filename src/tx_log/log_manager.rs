@@ -659,11 +659,7 @@ impl LogManager {
         before_image: &Vec<u8>,
         buffer_pool: &mut BufferPool,
     ) -> SmallResult {
-        let table_rc: Arc<RwLock<BTreeTable>>;
-        {
-            let mut catalog = Database::mut_catalog();
-            table_rc = catalog.get_table(&pid.table_id).unwrap();
-        }
+        let table_rc = Database::mut_catalog().get_table(&pid.table_id).unwrap();
         let table = table_rc.rl();
 
         let schema = table.get_schema();
