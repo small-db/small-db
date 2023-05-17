@@ -14,8 +14,16 @@ A small database.
   - [x] delete
   - [x] search
 - [x] Buffer pool
-- [x] Write ahead log (ARIES)
-- [ ]Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
+- [x] WAL (Write ahead log) - ARIES
+- [ ] PostgreSQL protocol
+- [ ] MVCC (Multi-version concurrency control)
+- [ ] Optimistic concurrency control
+- [ ] Pessimistic concurrency control
+- [ ] Snapshot isolation
+- [ ] Distributed transaction
+- [ ] Distributed lock
+- [ ] Distributed index
+- [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
 
 ## Development
 
