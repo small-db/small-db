@@ -90,21 +90,21 @@ impl Catalog {
         //
         // - pg_catalog.pg_class
         // - pg_catalog.pg_namespace
-        if Catalog::get_table_by_name("pg_catalog.pg_class").is_none() {
-            // create pg_catalog.pg_class
+        // if Catalog::get_table_by_name("pg_catalog.pg_class").is_none() {
+        //     // create pg_catalog.pg_class
 
-            let schema = Schema::new(vec![
-                Field::new("relname", Type::Bytes(20), false),
-                Field::new("relowner", Type::Int64, true),
-                Field::new("relkind", Type::Bytes(20), false),
-                Field::new("relnamespace", Type::Int64, false),
-            ]);
+        //     let schema = Schema::new(vec![
+        //         Field::new("relname", Type::Bytes(20), false),
+        //         Field::new("relowner", Type::Int64, true),
+        //         Field::new("relkind", Type::Bytes(20), false),
+        //         Field::new("relnamespace", Type::Int64, false),
+        //     ]);
 
-            let table = BTreeTable::new("pg_catalog.pg_class", None, &schema);
+        //     let table = BTreeTable::new("pg_catalog.pg_class", None, &schema);
 
-            Catalog::add_table(Arc::new(RwLock::new(table)), true);
-            info!("create pg_catalog.pg_class");
-        }
+        //     Catalog::add_table(Arc::new(RwLock::new(table)), true);
+        //     info!("create pg_catalog.pg_class");
+        // }
 
         Ok(())
     }
