@@ -18,7 +18,7 @@ A small database.
   - [x] ARIES
   - [ ] Innodb
   - [ ] PostgreSQL
-- [ ] PostgreSQL protocol
+- [x] PostgreSQL protocol
 - [ ] TPCC benchmark
 - [ ] MVCC (Multi-version concurrency control)
 - [ ] Optimistic concurrency control
@@ -27,9 +27,11 @@ A small database.
 - [ ] Distributed transaction
 - [ ] Distributed lock
 - [ ] Distributed index
-- [ ] Non-functional requirements
-  - [ ] WIP: run "test_big_table" in 5 seconds
-  - [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
+
+### Non-functional targets
+
+- [ ] WIP: run "test_big_table" in 5 seconds
+- [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
 
 ## Development
 
