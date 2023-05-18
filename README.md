@@ -27,7 +27,9 @@ A small database.
 - [ ] Distributed transaction
 - [ ] Distributed lock
 - [ ] Distributed index
-- [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
+- [ ] Non-functional requirements
+  - [ ] WIP: achieve "test_big_table" in 10 seconds
+  - [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
 
 ## Development
 
