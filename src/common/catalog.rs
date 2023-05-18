@@ -90,7 +90,6 @@ impl Catalog {
         //
         // - pg_catalog.pg_class
         // - pg_catalog.pg_namespace
-        // todo!();
         if Catalog::get_table_by_name("pg_catalog.pg_class").is_none() {
             // create pg_catalog.pg_class
 

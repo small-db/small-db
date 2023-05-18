@@ -63,11 +63,10 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
 // works.
 #[test]
 fn test_big_table() {
-    setup();
-
-    // For this test we will decrease the size of the Buffer Pool
-    // pages.
+    // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
+
+    setup();
 
     // Create a B+ tree with 2 nodes in the first tier; the second and
     // the third tier are packed.
