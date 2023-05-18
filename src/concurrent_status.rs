@@ -6,7 +6,7 @@ use std::{
     time::Instant,
 };
 
-use log::error;
+use log::{error, info};
 
 use crate::{
     btree::page::BTreePageID,
@@ -69,7 +69,8 @@ impl ConcurrentStatus {
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < 100 {
+
+        while Instant::now().duration_since(start_time).as_secs() < 3 {
             if Database::concurrent_status().add_lock(tx, lock, page_id)? {
                 return Ok(());
             }

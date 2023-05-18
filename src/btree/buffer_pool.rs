@@ -104,7 +104,10 @@ impl BufferPool {
         // We need to request lock on the page before access the
         // buffer pool. Here are the reasons:
         //
-        // 1. If we request the lock on a page after get the access to
+        // 1. (main reason) Logically, get a page from buffer pool is an access
+        // operation, which requires the permission of the page.
+        //
+        // 2. If we request the lock on a page after get the access to
         // buffer pool, the request may be blocked by other
         // transactions. But we have already hold the access
         // to the buffer pool, which leads to deadlock.
@@ -113,7 +116,7 @@ impl BufferPool {
         //    T2: hold buffer pool, request page1
         //    => deadlock
         //
-        // 2. The lock scope of buffer pool should be as small as
+        // 3. The lock scope of buffer pool should be as small as
         // possible, since most of its operations require
         // exclusive access.
 

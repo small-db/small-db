@@ -1,6 +1,8 @@
 pub mod btree;
 pub mod common;
 pub mod concurrent_status;
+pub mod server;
+pub mod sql;
 pub mod storage;
 pub mod transaction;
 pub mod types;

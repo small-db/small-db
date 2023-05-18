@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use log::info;
+
 use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -28,6 +30,16 @@ impl Transaction {
 
     pub fn commit(&self) -> SmallResult {
         self.complete(true, &mut Database::mut_buffer_pool())
+
+        // self.complete(true, &mut Database::mut_buffer_pool())?;
+
+        // info!(
+        //     "Transaction {} committed, concurrent_status: {:?}",
+        //     self.uuid,
+        //     Database::concurrent_status()
+        // );
+
+        // Ok(())
     }
 
     pub fn abort(&self) -> SmallResult {
@@ -60,15 +72,6 @@ impl Transaction {
         self.uuid
     }
 }
-
-// This function will led to a bug:
-// thread 'main' panicked at 'rwlock write lock would result in
-// deadlock', /rustc/a55dd71d5fb0ec5a6a3a9e8c27b2127ba491ce52/library/
-// std/src/sys/unix/ locks/pthread_rwlock.rs:111:13 impl Drop for
-// Transaction {     fn drop(&mut self) {
-//         self.commit().unwrap();
-//     }
-// }
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

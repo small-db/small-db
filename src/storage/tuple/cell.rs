@@ -64,12 +64,25 @@ impl Cell {
             Type::Bytes(_) => Cell::Bytes(Vec::decode_from(reader)),
         }
     }
+
+    pub fn get_size_disk(&self) -> usize {
+        match self {
+            Cell::Null => 0,
+            Cell::Bool(_) => 1,
+            Cell::Int64(_) => 8,
+            Cell::Float64(_) => 8,
+            Cell::Bytes(v) => v.len() + 2,
+        }
+    }
 }
 
 impl PartialEq for Cell {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (Cell::Bool(a), Cell::Bool(b)) => a == b,
             (Cell::Int64(a), Cell::Int64(b)) => a == b,
+            (Cell::Float64(a), Cell::Float64(b)) => a == b,
+            (Cell::Bytes(a), Cell::Bytes(b)) => a == b,
             _ => todo!(),
         }
     }

@@ -109,7 +109,7 @@ impl BTreePage for BTreeHeaderPage {
     }
 
     fn get_page_data(&self) -> Vec<u8> {
-        let mut writer = SmallWriter::new();
+        let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
         writer.write(&self.get_pid().category);

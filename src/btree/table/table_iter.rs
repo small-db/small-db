@@ -107,37 +107,48 @@ pub struct BTreeTableSearchIterator<'t> {
     current_page_rc: Arc<RwLock<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
     predicate: Predicate,
-    key_field: usize,
+    search_field: usize,
+    is_key_search: bool,
 }
 
 impl<'t> BTreeTableSearchIterator<'t> {
-    pub fn new(tx: &'t Transaction, table: &BTreeTable, index_predicate: &Predicate) -> Self {
-        let start_rc: Arc<RwLock<BTreeLeafPage>>;
+    pub fn new(tx: &'t Transaction, table: &BTreeTable, predicate: &Predicate) -> Self {
+        let start_page_rc: Arc<RwLock<BTreeLeafPage>>;
         let root_pid = table.get_root_pid(tx);
 
-        match index_predicate.op {
-            Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {
-                start_rc = table.find_leaf_page(
-                    &tx,
-                    Permission::ReadOnly,
-                    root_pid,
-                    &SearchFor::Target(index_predicate.cell.clone()),
-                )
+        if predicate.field_index == table.key_field {
+            match predicate.op {
+                Op::Equals | Op::GreaterThan | Op::GreaterThanOrEq => {
+                    start_page_rc = table.find_leaf_page(
+                        &tx,
+                        Permission::ReadOnly,
+                        root_pid,
+                        &SearchFor::Target(predicate.cell.clone()),
+                    )
+                }
+                Op::LessThan | Op::LessThanOrEq => {
+                    start_page_rc = table.find_leaf_page(
+                        &tx,
+                        Permission::ReadOnly,
+                        root_pid,
+                        &SearchFor::LeftMost,
+                    )
+                }
+                Op::Like => todo!(),
+                Op::NotEquals => todo!(),
             }
-            Op::LessThan | Op::LessThanOrEq => {
-                start_rc =
-                    table.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost)
-            }
-            Op::Like => todo!(),
-            Op::NotEquals => todo!(),
+        } else {
+            start_page_rc =
+                table.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost)
         }
 
         Self {
             tx,
-            current_page_rc: Arc::clone(&start_rc),
-            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_rc)),
-            predicate: index_predicate.clone(),
-            key_field: table.key_field,
+            current_page_rc: Arc::clone(&start_page_rc),
+            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_page_rc)),
+            predicate: predicate.clone(),
+            search_field: predicate.field_index,
+            is_key_search: predicate.field_index == table.key_field,
         }
     }
 }
@@ -152,38 +163,38 @@ impl Iterator for BTreeTableSearchIterator<'_> {
             match tuple {
                 Some(t) => match self.predicate.op {
                     Op::Equals => {
-                        let field = t.get_cell(self.key_field);
+                        let field = t.get_cell(self.search_field);
                         if field == self.predicate.cell {
                             return Some(t);
-                        } else if field > self.predicate.cell {
+                        } else if self.is_key_search && field > self.predicate.cell {
                             return None;
                         }
                     }
                     Op::GreaterThan => {
-                        let field = t.get_cell(self.key_field);
+                        let field = t.get_cell(self.search_field);
                         if field > self.predicate.cell {
                             return Some(t);
                         }
                     }
                     Op::GreaterThanOrEq => {
-                        let field = t.get_cell(self.key_field);
+                        let field = t.get_cell(self.search_field);
                         if field >= self.predicate.cell {
                             return Some(t);
                         }
                     }
                     Op::LessThan => {
-                        let field = t.get_cell(self.key_field);
+                        let field = t.get_cell(self.search_field);
                         if field < self.predicate.cell {
                             return Some(t);
-                        } else if field >= self.predicate.cell {
+                        } else if self.is_key_search && field >= self.predicate.cell {
                             return None;
                         }
                     }
                     Op::LessThanOrEq => {
-                        let field = t.get_cell(self.key_field);
+                        let field = t.get_cell(self.search_field);
                         if field <= self.predicate.cell {
                             return Some(t);
-                        } else if field > self.predicate.cell {
+                        } else if self.is_key_search && field > self.predicate.cell {
                             return None;
                         }
                     }

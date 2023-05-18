@@ -218,9 +218,10 @@ fn test_redistribute_internal_pages() {
 
 #[test]
 fn test_delete_internal_pages() {
-    setup();
-
+    // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
+
+    setup();
 
     // Create a B+ tree with 3 nodes in the first tier; the second and
     // the third tier are packed.

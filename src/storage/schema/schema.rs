@@ -31,7 +31,7 @@ impl Schema {
             fields.push(field);
         }
 
-        Self { fields }
+        Self::new(fields)
     }
 }
 
@@ -53,6 +53,15 @@ impl Schema {
             }
         }
         panic!("no key field found");
+    }
+
+    pub fn get_field_pos(&self, field_name: &str) -> usize {
+        for (i, field) in self.get_fields().iter().enumerate() {
+            if field.name == field_name {
+                return i;
+            }
+        }
+        panic!("no field found");
     }
 
     pub fn get_fields(&self) -> &Vec<Field> {
