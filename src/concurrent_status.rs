@@ -77,7 +77,7 @@ impl ConcurrentStatus {
         //     tx, lock, page_id, self,
         // );
 
-        while Instant::now().duration_since(start_time).as_secs() < 150 {
+        while Instant::now().duration_since(start_time).as_secs() < 250 {
             if Database::concurrent_status().add_lock(tx, lock, page_id)? {
                 return Ok(());
             }
