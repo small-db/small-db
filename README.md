@@ -28,7 +28,7 @@ A small database.
 - [ ] Distributed lock
 - [ ] Distributed index
 - [ ] Non-functional requirements
-  - [ ] WIP: achieve "test_big_table" in 10 seconds
+  - [ ] WIP: run "test_big_table" in 5 seconds
   - [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
 
 ## Development
