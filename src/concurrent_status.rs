@@ -70,12 +70,12 @@ impl ConcurrentStatus {
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
 
-        // info!(
-        //     "going to request lock
-        //     request: <tx: {}, lock: {:?}, page_id: {:?}>
-        //     concurrent_status_map: {:?}",
-        //     tx, lock, page_id, self,
-        // );
+        info!(
+            "going to request lock
+            request: <tx: {}, lock: {:?}, page_id: {:?}>
+            concurrent_status_map: {:?}",
+            tx, lock, page_id, self,
+        );
 
         while Instant::now().duration_since(start_time).as_secs() < 250 {
             if Database::concurrent_status().add_lock(tx, lock, page_id)? {
