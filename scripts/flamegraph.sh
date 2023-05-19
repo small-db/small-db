@@ -19,21 +19,23 @@ echo $BINARY
 # install:
 # cargo install flamegraph
 # 
-RUST_LOG=info \
-    sudo cargo flamegraph \
-        --test small_tests \
-        -- $TEST_NAME
-
 # RUST_LOG=info \
-#     sudo flamegraph \
-#     $BINARY -- \
-#     $TEST_NAME --exact --nocapture
+#     sudo cargo flamegraph \
+#         --test small_tests \
+#         -- $TEST_NAME
 
 # for Linux
 # 
-# apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
-# 
+# e.g: ./scripts/flamegraph.sh integretions::btree_test::test_big_table
+#
 # RUST_LOG=info \
-#     sudo perf record -F 99 -g -- \
+#     perf record -F 1000 --call-graph dwarf -- \
 #     $BINARY -- \
 #     $TEST_NAME --exact --nocapture
+
+RUST_LOG=info \
+    sudo perf stat -e 'syscalls:sys_enter_*' -- \
+    $BINARY -- \
+    $TEST_NAME --exact --nocapture \
+    2>&1 | grep syscalls | sort \
+    && sudo rm -rf data
