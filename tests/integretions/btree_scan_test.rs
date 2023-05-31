@@ -49,15 +49,3 @@ fn test_small() {
         }
     }
 }
-
-// not needed for now
-#[test]
-fn test_rewind() {}
-
-// not needed for now
-#[test]
-fn test_rewind_predicates() {}
-
-// not needed for now
-#[test]
-fn test_read_page() {}
