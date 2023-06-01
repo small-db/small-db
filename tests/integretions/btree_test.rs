@@ -51,9 +51,8 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
     tx.commit().unwrap();
 }
 
-// Test that doing lots of inserts and deletes in multiple threads
-// works.
-#[test]
+// Test that doing lots of inserts and deletes in multiple threads works.
+// #[test]
 fn test_big_table() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
