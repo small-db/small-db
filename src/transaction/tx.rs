@@ -30,16 +30,6 @@ impl Transaction {
 
     pub fn commit(&self) -> SmallResult {
         self.complete(true, &mut Database::mut_buffer_pool())
-
-        // self.complete(true, &mut Database::mut_buffer_pool())?;
-
-        // info!(
-        //     "Transaction {} committed, concurrent_status: {:?}",
-        //     self.uuid,
-        //     Database::concurrent_status()
-        // );
-
-        // Ok(())
     }
 
     pub fn abort(&self) -> SmallResult {

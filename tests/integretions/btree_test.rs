@@ -32,7 +32,7 @@ fn inserter(
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
     
-    debug!("insertion succeeded, took {:?}", start.elapsed());
+    debug!("insertion succeeded, id [{}], took {:?}", id, start.elapsed());
 
     s.send(tuple).unwrap();
 }
@@ -91,6 +91,12 @@ fn test_big_table() {
                 .unwrap();
 
             insert_threads.push(handle);
+
+            // The first few inserts will cause pages to split so give them a little
+			// more time to avoid too many deadlock situations
+            if i < 200 {
+                thread::sleep(std::time::Duration::from_millis(100));
+            }
         }
 
         // wait for all threads to finish
