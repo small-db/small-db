@@ -6,7 +6,7 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus, tx_log::LogManager,
+    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus, transaction::LogManager,
     types::Pod, utils::HandyRwLock,
 };
 

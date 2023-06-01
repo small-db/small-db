@@ -26,9 +26,13 @@ fn inserter(
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
+    let start = Instant::now();
+
     let tx = Transaction::new_specific_id(id);
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
+    
+    debug!("insertion succeeded, took {:?}", start.elapsed());
 
     s.send(tuple).unwrap();
 }
@@ -49,7 +53,7 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
 
 // Test that doing lots of inserts and deletes in multiple threads
 // works.
-// #[test]
+#[test]
 fn test_big_table() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);

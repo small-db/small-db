@@ -18,11 +18,12 @@ use crate::{
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
-    transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
     BTreeTable, Database,
 };
+
+use super::Transaction;
 
 // TODO: add docs for it
 static START_RECORD_LEN: u64 = 17;
