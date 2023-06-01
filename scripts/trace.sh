@@ -28,20 +28,24 @@ echo "BINARY: $BINARY"
 # run target, gather syscall
 # ===============================================================
 
-# # clear logs
-# sudo rm -f out
+echo "Running target, gathering syscall..."
 
-# RUST_LOG=info \
-#     sudo perf stat -e 'syscalls:sys_enter_*' -- \
-#     $BINARY -- \
-#     $TEST_NAME --exact --nocapture \
-#     2>&1 | grep syscalls | sort \
-#     >> out \
-#     && sudo rm -rf data
+# clear logs
+sudo rm -f out
+
+RUST_LOG=info \
+    sudo perf stat -e 'syscalls:sys_enter_*' -- \
+    $BINARY -- \
+    $TEST_NAME --exact --nocapture \
+    2>&1 | grep syscalls | sort \
+    >> out \
+    && sudo rm -rf data
 
 # ===============================================================
-# run target, gather flamegraph
+# run target, generate flamegraph (and perf report)
 # ===============================================================
+
+echo "Running target, generating flamegraph..."
 
 RUST_LOG=debug \
     # perf record -F 1000 --call-graph dwarf -- \
