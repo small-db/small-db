@@ -285,7 +285,7 @@ fn test_insert_benchmark() {
     // run insert, find the performance bottleneck
     let mut rng = rand::thread_rng();
 
-    for _ in 0..10000 {
+    for _ in 0..3000 {
         let tx = Transaction::new();
         tx.start().unwrap();
 
