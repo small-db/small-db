@@ -18,6 +18,7 @@ A small database.
   - [x] ARIES
   - [ ] Innodb
   - [ ] PostgreSQL
+- [ ] Gap Lock
 - [x] PostgreSQL protocol
 - [ ] TPCC benchmark
 - [ ] MVCC (Multi-version concurrency control)
