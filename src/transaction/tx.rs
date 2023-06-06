@@ -1,8 +1,6 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use log::info;
-
 use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);

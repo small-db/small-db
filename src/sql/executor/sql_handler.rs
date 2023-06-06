@@ -8,10 +8,7 @@ use sqlparser::{
 use super::expr_state::ExprState;
 use crate::{
     error::SmallError,
-    sql::{
-        executor::{expr_state, select::handle_select},
-        session::QueryResult,
-    },
+    sql::{executor::select::handle_select, session::QueryResult},
     storage::schema::{Field, Type},
     BTreeTable, Schema,
 };
@@ -82,6 +79,6 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     todo!()
 }
 
-fn collect_result(expr_state: &ExprState) -> QueryResult {
+fn collect_result(_expr_state: &ExprState) -> QueryResult {
     todo!()
 }

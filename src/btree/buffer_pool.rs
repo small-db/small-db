@@ -13,8 +13,12 @@ use super::page::{
     BTreeRootPointerPage, PageCategory,
 };
 use crate::{
-    concurrent_status::Permission, error::SmallError, transaction::Transaction, transaction::LogManager,
-    types::ResultPod, utils::HandyRwLock, BTreeTable, Database,
+    concurrent_status::Permission,
+    error::SmallError,
+    transaction::{LogManager, Transaction},
+    types::ResultPod,
+    utils::HandyRwLock,
+    BTreeTable, Database,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -95,6 +99,16 @@ impl BufferPool {
     /// necessary.
     ///
     /// Return an error if the page does not exist.
+    ///
+    /// Method to encapsulate the process of locking/fetching a page. First the
+    /// method checks the local cache ("dirtypages"), and if it can't find
+    /// the requested page there, it fetches it from the buffer pool.
+    /// It also adds pages to the dirtypages cache if they are fetched with
+    /// read-write permission, since presumably they will soon be dirtied by
+    /// this transaction.
+    ///
+    /// This method is needed to ensure that page updates are not lost if the
+    /// same pages are accessed multiple times.
     fn get_page<PAGE: BTreePage>(
         tx: &Transaction,
         perm: Permission,

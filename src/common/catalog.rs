@@ -4,9 +4,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::info;
-use sqlparser::keywords::NO;
-
 use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
     io::{read_into, Decodeable, Encodeable},

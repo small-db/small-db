@@ -222,7 +222,7 @@ impl BTreeTable {
             let mut delete_indexes: Vec<usize> = Vec::new();
             for tuple in it.by_ref().rev().take(move_tuple_count) {
                 delete_indexes.push(tuple.get_slot_number());
-                new_sibling.insert_tuple(&tuple);
+                new_sibling.insert_tuple(&tuple)?;
             }
 
             for i in delete_indexes {

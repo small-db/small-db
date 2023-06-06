@@ -31,8 +31,12 @@ fn inserter(
     let tx = Transaction::new_specific_id(id);
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
-    
-    debug!("insertion succeeded, id [{}], took {:?}", id, start.elapsed());
+
+    debug!(
+        "insertion succeeded, id [{}], took {:?}",
+        id,
+        start.elapsed()
+    );
 
     s.send(tuple).unwrap();
 }
@@ -52,7 +56,7 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
 }
 
 // Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
+#[test]
 fn test_big_table() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -92,7 +96,7 @@ fn test_big_table() {
             insert_threads.push(handle);
 
             // The first few inserts will cause pages to split so give them a little
-			// more time to avoid too many deadlock situations
+            // more time to avoid too many deadlock situations
             if i < 200 {
                 thread::sleep(std::time::Duration::from_millis(100));
             }

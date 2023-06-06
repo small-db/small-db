@@ -10,8 +10,9 @@ use crate::{
     error::SmallError,
     io::{Decodeable, SmallWriter},
     storage::{schema::Schema, tuple::Cell},
+    transaction::Transaction,
     types::{Pod, SmallResult},
-    utils::{floor_div, HandyRwLock}, transaction::Transaction,
+    utils::{floor_div, HandyRwLock},
 };
 
 /// The internal page is used to store the keys and the page id of the

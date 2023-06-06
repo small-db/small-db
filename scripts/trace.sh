@@ -29,18 +29,18 @@ function trace_linux() {
     # run target, gather syscall
     # ===============================================================
 
-    echo "Running target, gathering syscall..."
+    # echo "Running target, gathering syscall..."
 
-    # clear logs
-    sudo rm -f out
+    # # clear logs
+    # sudo rm -f out
 
-    RUST_LOG=info \
-        sudo perf stat -e 'syscalls:sys_enter_*' -- \
-        $BINARY -- \
-        $TEST_NAME --exact --nocapture \
-        2>&1 | grep syscalls | sort \
-        >>out &&
-        sudo rm -rf data
+    # RUST_LOG=info \
+    #     sudo perf stat -e 'syscalls:sys_enter_*' -- \
+    #     $BINARY -- \
+    #     $TEST_NAME --exact --nocapture \
+    #     2>&1 | grep syscalls | sort \
+    #     >>out &&
+    #     sudo rm -rf data
 
     # ===============================================================
     # run target, generate flamegraph (and perf report)
@@ -48,11 +48,11 @@ function trace_linux() {
 
     echo "Running target, generating flamegraph..."
 
-    # perf record -F 1000 --call-graph dwarf -- \
+    # sudo perf record -F 1000 --call-graph dwarf -- \
     # sudo perf record -F 99 -g -- \
 
     RUST_LOG=debug \
-        sudo perf record -F 100 -g -- \
+        sudo perf record -F 500 -g -- \
         $BINARY -- \
         $TEST_NAME --exact --nocapture \
         >>out &&
