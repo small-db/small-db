@@ -55,9 +55,9 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
     tx.commit().unwrap();
 }
 
-// Test that doing lots of inserts and deletes in multiple threads works.
-// #[test]
-fn test_big_table() {
+/// Test that doing lots of inserts and deletes in multiple threads works.
+#[test]
+fn test_multithread() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
 
@@ -109,8 +109,6 @@ fn test_big_table() {
     });
 
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
-
-    return;
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
