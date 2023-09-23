@@ -52,8 +52,8 @@ make test_big_table
 
 ### Trace a specific test
 
-
 - linux
+
   ```bash
   ./scripts/trace.sh <test_path>
 
