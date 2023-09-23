@@ -33,22 +33,10 @@ impl Type {
 impl Encodeable for Type {
     fn encode(&self, writer: &mut SmallWriter) {
         match self {
-            Type::Bool => {
-                // vec![0, 1]
-                writer.write_bytes(&[0, 1]);
-            }
-            Type::Int64 => {
-                // vec![1, 8]
-                writer.write_bytes(&[1, 8]);
-            }
-            Type::Float64 => {
-                // vec![2, 8]
-                writer.write_bytes(&[2, 8]);
-            }
-            Type::Bytes(size) => {
-                // vec![3, *size]
-                writer.write_bytes(&[3, *size]);
-            }
+            Type::Bool => writer.write_bytes(&[0, 1]),
+            Type::Int64 => writer.write_bytes(&[1, 8]),
+            Type::Float64 => writer.write_bytes(&[2, 8]),
+            Type::Bytes(size) => writer.write_bytes(&[3, *size]),
         }
     }
 }

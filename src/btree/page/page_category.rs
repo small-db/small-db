@@ -8,15 +8,20 @@ pub enum PageCategory {
     Header,
 }
 
+const ROOT_POINTER: [u8; 4] = [0, 0, 0, 0];
+const INTERNAL: [u8; 4] = [0, 0, 0, 1];
+const LEAF: [u8; 4] = [0, 0, 0, 2];
+const HEADER: [u8; 4] = [0, 0, 0, 3];
+
 impl Decodeable for PageCategory {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
         let mut buffer = [0; 4];
         reader.read_exact(&mut buffer).unwrap();
         match buffer {
-            [0, 0, 0, 0] => PageCategory::RootPointer,
-            [0, 0, 0, 1] => PageCategory::Internal,
-            [0, 0, 0, 2] => PageCategory::Leaf,
-            [0, 0, 0, 3] => PageCategory::Header,
+            ROOT_POINTER => PageCategory::RootPointer,
+            INTERNAL => PageCategory::Internal,
+            LEAF => PageCategory::Leaf,
+            HEADER => PageCategory::Header,
             _ => panic!("invalid page category: {:?}", buffer),
         }
     }
@@ -24,15 +29,11 @@ impl Decodeable for PageCategory {
 
 impl Encodeable for PageCategory {
     fn encode(&self, writer: &mut SmallWriter) {
-        let v: u8 = match self {
-            PageCategory::RootPointer => 0,
-            PageCategory::Internal => 1,
-            PageCategory::Leaf => 2,
-            PageCategory::Header => 3,
-        };
-        writer.write(&(0 as u8));
-        writer.write(&(0 as u8));
-        writer.write(&(0 as u8));
-        writer.write(&(v));
+        match self {
+            PageCategory::RootPointer => writer.write_bytes(&ROOT_POINTER),
+            PageCategory::Internal => writer.write_bytes(&INTERNAL),
+            PageCategory::Leaf => writer.write_bytes(&LEAF),
+            PageCategory::Header => writer.write_bytes(&HEADER),
+        }
     }
 }

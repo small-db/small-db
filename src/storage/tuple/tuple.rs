@@ -15,7 +15,7 @@ pub struct Tuple {
 
 // constructors
 impl Tuple {
-    pub fn new_from_cells(cells: &Vec<Cell>) -> Self {
+    pub fn new(cells: &Vec<Cell>) -> Self {
         Self {
             cells: cells.to_vec(),
         }

@@ -257,7 +257,7 @@ impl Catalog {
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];
-            let tuple = Tuple::new_from_cells(&cells);
+            let tuple = Tuple::new(&cells);
             schema_table.insert_tuple(&tx, &tuple).unwrap();
         }
 

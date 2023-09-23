@@ -130,7 +130,7 @@ impl SmallWriter {
         self.buf.clone()
     }
 
-    pub fn write_to(&self, w: &mut std::io::Write) {
+    pub fn write_to(&self, w: &mut dyn std::io::Write) {
         w.write_all(&self.buf).unwrap();
     }
 
@@ -208,14 +208,9 @@ impl Decodeable for String {
     }
 }
 
-impl Encodeable for &[u8] {
-    fn encode(&self, _writer: &mut SmallWriter) {}
-}
-
-// # Format
-
-// - 2 byte: size of the string (range: 0 - 64 KB)
-// - n bytes: string
+/// # Format
+/// - 2 byte: size of the string (range: 0 - 64 KB)
+/// - n bytes: string
 impl Encodeable for Vec<u8> {
     fn encode(&self, writer: &mut SmallWriter) {
         // write size
