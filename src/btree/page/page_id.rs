@@ -67,7 +67,6 @@ impl BTreePageID {
 
 impl Encodeable for BTreePageID {
     fn encode(&self, writer: &mut SmallWriter) {
-        let mut writer = SmallWriter::new();
         writer.write(&self.category);
         writer.write(&self.page_index);
         writer.write(&self.table_id);

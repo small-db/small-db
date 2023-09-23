@@ -80,6 +80,8 @@ impl std::io::Read for SmallFile {
 /// The advantage of this wrapper is doesn't require explicit type
 /// annotation when type inference is possible. This makes some code
 /// more concise.
+/// 
+/// TODO: rename
 pub fn read_into<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
     T::decode_from(reader)
 }
@@ -160,7 +162,7 @@ pub trait Decodeable {
 
 impl Encodeable for BitVec {
     fn encode(&self, writer: &mut SmallWriter) {
-        todo!()
+        writer.write(&self.to_bytes());
     }
 }
 

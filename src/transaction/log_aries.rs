@@ -320,6 +320,12 @@ impl LogManager {
         while self.file.get_current_position()? < file_size {
             let record_type = read_into(&mut self.file);
 
+            // debug!(
+            //     "record type: {:?}, pos: {}",
+            //     record_type,
+            //     self.file.get_current_position()?
+            // );
+
             match record_type {
                 RecordType::START => {
                     let tid = read_into(&mut self.file);
