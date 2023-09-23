@@ -13,22 +13,6 @@ pub enum Type {
     Bytes(u8),
 }
 
-/// Cell generators
-impl Type {
-    pub fn new_cell_bytes(&self, v: &[u8]) -> Cell {
-        match self {
-            Type::Bytes(size) => {
-                if v.len() > *size as usize {
-                    panic!("bytes size too large");
-                }
-
-                Cell::Bytes(v.to_vec())
-            }
-            _ => panic!("not bytes"),
-        }
-    }
-}
-
 impl Type {
     /// Get the size of the type in bytes.
     pub fn get_disk_size(&self) -> usize {

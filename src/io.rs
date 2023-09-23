@@ -33,10 +33,15 @@ impl SmallFile {
     }
 
     pub fn write<T: Encodeable>(&mut self, obj: &T) -> SmallResult {
-        match self.file.write(&obj.to_bytes()) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(SmallError::new(&e.to_string())),
-        }
+        let mut writer = SmallWriter::new();
+        obj.encode(&mut writer);
+        writer.write_to(&mut self.file);
+        Ok(())
+
+        // match self.file.write(&obj.to_bytes()) {
+        //     Ok(_) => Ok(()),
+        //     Err(e) => Err(SmallError::new(&e.to_string())),
+        // }
     }
 
     pub fn get_size(&self) -> Result<u64, SmallError> {
@@ -123,6 +128,10 @@ impl SmallWriter {
     // TODO: move instead of clone
     pub fn to_bytes(&self) -> Vec<u8> {
         self.buf.clone()
+    }
+
+    pub fn write_to(&self, w: &mut std::io::Write) {
+        w.write_all(&self.buf).unwrap();
     }
 
     /// Pad the buffer to the given size. Note that the writer is

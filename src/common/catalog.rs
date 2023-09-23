@@ -249,11 +249,11 @@ impl Catalog {
                 // table id
                 Cell::new_int64(table.get_id() as i64),
                 // table name
-                table_name_type.new_cell_bytes(&table.name.as_bytes()),
+                Cell::new_bytes(&table.name.as_bytes(), &table_name_type),
                 // field name
-                field_name_type.new_cell_bytes(&field.name.as_bytes()),
+                Cell::new_bytes(&field.name.as_bytes(), &field_name_type),
                 // field type
-                field_type_type.new_cell_bytes(&field.get_type().to_bytes()),
+                Cell::new_bytes(&field.get_type().to_bytes(), &field_type_type),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];
