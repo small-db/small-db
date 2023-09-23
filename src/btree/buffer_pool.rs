@@ -17,7 +17,7 @@ use crate::{
     transaction::{LogManager, Transaction},
     types::ResultPod,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable, Database, concurrent_status::Permission,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;

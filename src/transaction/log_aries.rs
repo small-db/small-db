@@ -18,7 +18,7 @@ use crate::{
         },
     },
     error::SmallError,
-    io::{read_exact, read_into, Decodeable, Encodeable, SmallFile},
+    io::{read_exact, read_into, Decodeable, Encodeable, SmallFile, SmallWriter},
     types::SmallResult,
     utils::HandyRwLock,
     Database,
@@ -56,7 +56,7 @@ impl RecordType {
 
 impl Encodeable for RecordType {
     fn encode(&self, writer: &mut SmallWriter) {
-        vec![*self as u8]
+        writer.write(&(*self as u8));
     }
 }
 
@@ -912,7 +912,7 @@ impl LogManager {
                 let iter = page.iter();
                 let content = iter
                     .take(5)
-                    .map(|x| x.get_cell(0).encode())
+                    .map(|x| x.get_cell(0).to_bytes())
                     .collect::<Vec<_>>();
 
                 return format!("{:?}, content: {:?}...", page_category, content,);

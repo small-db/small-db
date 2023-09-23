@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::Encodeable,
+    io::{Encodeable, SmallWriter},
     storage::{schema::Schema, tuple::Cell},
 };
 
@@ -67,13 +67,9 @@ impl Tuple {
 
 impl Encodeable for Tuple {
     fn encode(&self, writer: &mut SmallWriter) {
-        let mut bytes = Vec::new();
-        bytes.reserve(self.get_size_disk());
         for cell in &self.cells {
-            let mut cell_bytes = cell.encode();
-            bytes.append(&mut cell_bytes);
+            cell.encode(writer);
         }
-        bytes
     }
 }
 

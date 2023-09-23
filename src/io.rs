@@ -207,7 +207,12 @@ impl Encodeable for &[u8] {
 // - n bytes: string
 impl Encodeable for Vec<u8> {
     fn encode(&self, writer: &mut SmallWriter) {
-        writer.write_bytes(&self);
+        // write size
+        let size = self.len() as u16;
+        writer.write(&size);
+
+        // write payload
+        writer.write_bytes(self);
     }
 }
 
