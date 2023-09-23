@@ -66,7 +66,7 @@ impl Tuple {
 }
 
 impl Encodeable for Tuple {
-    fn encode(&self) -> Vec<u8> {
+    fn encode(&self, writer: &mut SmallWriter) {
         let mut bytes = Vec::new();
         bytes.reserve(self.get_size_disk());
         for cell in &self.cells {

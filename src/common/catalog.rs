@@ -253,7 +253,7 @@ impl Catalog {
                 // field name
                 field_name_type.new_cell_bytes(&field.name.as_bytes()),
                 // field type
-                field_type_type.new_cell_bytes(&field.get_type().encode()),
+                field_type_type.new_cell_bytes(&field.get_type().to_bytes()),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];

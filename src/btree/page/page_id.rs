@@ -5,53 +5,9 @@ use crate::{
     io::{read_into, Decodeable, Encodeable, SmallWriter},
 };
 
+use super::PageCategory;
+
 pub const EMPTY_PAGE_ID: u32 = 0;
-
-#[derive(PartialEq, Copy, Clone, Eq, Hash, Debug)]
-pub enum PageCategory {
-    RootPointer,
-    Internal,
-    Leaf,
-    Header,
-}
-
-impl Decodeable for PageCategory {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-        let mut buffer = [0; 4];
-        reader.read_exact(&mut buffer).unwrap();
-        match buffer {
-            [0, 0, 0, 0] => PageCategory::RootPointer,
-            [0, 0, 0, 1] => PageCategory::Internal,
-            [0, 0, 0, 2] => PageCategory::Leaf,
-            [0, 0, 0, 3] => PageCategory::Header,
-            _ => panic!("invalid page category: {:?}", buffer),
-        }
-    }
-}
-
-impl Encodeable for PageCategory {
-    fn encode(&self) -> Vec<u8> {
-        match self {
-            PageCategory::RootPointer => vec![0, 0, 0, 0],
-            PageCategory::Internal => vec![0, 0, 0, 1],
-            PageCategory::Leaf => vec![0, 0, 0, 2],
-            PageCategory::Header => vec![0, 0, 0, 3],
-        }
-    }
-}
-
-// impl Decodeable for PageCategory {
-//     fn read_from<R: std::io::Read>(reader: &mut R) -> Self {
-//         let data = reader.read_exact(4);
-//         match data {
-//             [0, 0, 0, 0] => PageCategory::RootPointer,
-//             [0, 0, 0, 1] => PageCategory::Internal,
-//             [0, 0, 0, 2] => PageCategory::Leaf,
-//             [0, 0, 0, 3] => PageCategory::Header,
-//             _ => panic!("invalid page category: {:?}", data),
-//         }
-//     }
-// }
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
@@ -110,12 +66,11 @@ impl BTreePageID {
 }
 
 impl Encodeable for BTreePageID {
-    fn encode(&self) -> Vec<u8> {
+    fn encode(&self, writer: &mut SmallWriter) {
         let mut writer = SmallWriter::new();
         writer.write(&self.category);
         writer.write(&self.page_index);
         writer.write(&self.table_id);
-        return writer.to_bytes();
     }
 }
 

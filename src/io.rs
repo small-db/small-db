@@ -33,7 +33,7 @@ impl SmallFile {
     }
 
     pub fn write<T: Encodeable>(&mut self, obj: &T) -> SmallResult {
-        match self.file.write(&obj.encode()) {
+        match self.file.write(&obj.to_bytes()) {
             Ok(_) => Ok(()),
             Err(e) => Err(SmallError::new(&e.to_string())),
         }
@@ -97,12 +97,13 @@ pub struct SmallWriter {
 }
 
 impl SmallWriter {
+    /// Create a new `SmallWriter` with an empty buffer.
     pub fn new() -> Self {
         let buf = Vec::new();
-        // buf.reserve(additional)
         Self { buf }
     }
 
+    /// Create a new `SmallWriter` with a buffer of the given capacity.
     pub fn new_reserved(cap: usize) -> Self {
         let mut buf = Vec::new();
         buf.reserve(cap);
@@ -110,7 +111,11 @@ impl SmallWriter {
     }
 
     pub fn write<T: Encodeable>(&mut self, obj: &T) {
-        self.buf.extend_from_slice(obj.encode().as_slice());
+        obj.encode(self);
+    }
+
+    pub fn write_bytes(&mut self, obj: &[u8]) {
+        self.buf.write_all(obj).unwrap();
     }
 
     // TODO: move instead of clone
@@ -139,7 +144,14 @@ impl SmallWriter {
 }
 
 pub trait Encodeable {
-    fn encode(&self) -> Vec<u8>;
+    fn encode(&self, writer: &mut SmallWriter);
+
+    /// TODO: remove this api
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
+        self.encode(&mut writer);
+        writer.to_bytes()
+    }
 }
 
 pub trait Decodeable {
@@ -147,8 +159,8 @@ pub trait Decodeable {
 }
 
 impl Encodeable for BitVec {
-    fn encode(&self) -> Vec<u8> {
-        self.to_bytes().encode()
+    fn encode(&self, writer: &mut SmallWriter) {
+        todo!()
     }
 }
 
@@ -163,8 +175,8 @@ impl Decodeable for BitVec {
 ///
 /// - 1 byte (0 for false, 1 for true)
 impl Encodeable for bool {
-    fn encode(&self) -> Vec<u8> {
-        vec![*self as u8]
+    fn encode(&self, writer: &mut SmallWriter) {
+        writer.write(&(*self as u8));
     }
 }
 
@@ -186,9 +198,7 @@ impl Decodeable for String {
 }
 
 impl Encodeable for &[u8] {
-    fn encode(&self) -> Vec<u8> {
-        self.to_vec()
-    }
+    fn encode(&self, writer: &mut SmallWriter) {}
 }
 
 // # Format
@@ -196,22 +206,8 @@ impl Encodeable for &[u8] {
 // - 2 byte: size of the string (range: 0 - 64 KB)
 // - n bytes: string
 impl Encodeable for Vec<u8> {
-    fn encode(&self) -> Vec<u8> {
-        // boundary check
-        if self.len() > MAX_BYTES_SIZE {
-            panic!("string size is larger than 255");
-        }
-
-        let mut buffer = Vec::new();
-
-        // write size
-        let len = self.len() as u16;
-        buffer.extend_from_slice(&len.to_le_bytes());
-
-        // write payload
-        buffer.extend_from_slice(&self);
-
-        buffer
+    fn encode(&self, writer: &mut SmallWriter) {
+        writer.write_bytes(&self);
     }
 }
 
@@ -229,8 +225,8 @@ macro_rules! impl_serialization {
     (for $($t:ty),+) => {
         $(
             impl Encodeable for $t {
-                fn encode(&self) -> Vec<u8> {
-                    self.to_le_bytes().to_vec()
+                fn encode(&self, writer: &mut SmallWriter) {
+                    writer.write_bytes(&self.to_le_bytes());
                 }
             }
 

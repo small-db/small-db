@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use crate::{
-    io::{read_exact, Decodeable, Encodeable},
+    io::{read_exact, Decodeable, Encodeable, SmallWriter},
     storage::tuple::Cell,
 };
 
@@ -47,19 +47,23 @@ impl Type {
 }
 
 impl Encodeable for Type {
-    fn encode(&self) -> Vec<u8> {
+    fn encode(&self, writer: &mut SmallWriter) {
         match self {
             Type::Bool => {
-                vec![0, 1]
+                // vec![0, 1]
+                writer.write_bytes(&[0, 1]);
             }
             Type::Int64 => {
-                vec![1, 8]
+                // vec![1, 8]
+                writer.write_bytes(&[1, 8]);
             }
             Type::Float64 => {
-                vec![2, 8]
+                // vec![2, 8]
+                writer.write_bytes(&[2, 8]);
             }
             Type::Bytes(size) => {
-                vec![3, *size]
+                // vec![3, *size]
+                writer.write_bytes(&[3, *size]);
             }
         }
     }

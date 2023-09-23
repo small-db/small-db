@@ -55,7 +55,7 @@ impl RecordType {
 }
 
 impl Encodeable for RecordType {
-    fn encode(&self) -> Vec<u8> {
+    fn encode(&self, writer: &mut SmallWriter) {
         vec![*self as u8]
     }
 }
