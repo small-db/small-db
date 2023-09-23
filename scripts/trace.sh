@@ -66,7 +66,9 @@ function trace_linux() {
 }
 
 function trace_mac() {
-    echo "hello $1"
+    TEST_NAME=$1
+    CARGO_PROFILE_BENCH_DEBUG=true sudo cargo flamegraph --test small_tests -- ${TEST_NAME} --exact --nocapture
+    sudo chmod -R 777 ./data
 }
 
 function cargo_approach() {
@@ -76,4 +78,5 @@ function cargo_approach() {
     echo "Done, flamegraph: http://10.10.29.13:8000/flamegraph.svg"
 }
 
-trace_linux "$@"
+# trace_linux "$@"
+trace_mac "$@"

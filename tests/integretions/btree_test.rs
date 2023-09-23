@@ -81,8 +81,8 @@ fn test_concurrent() {
 
     thread::scope(|s| {
         let mut insert_threads = vec![];
-        // for i in 0..1000 {
-        for i in 0..20 {
+        for i in 0..1000 {
+        // for i in 0..20 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
