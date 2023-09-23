@@ -13,11 +13,12 @@ use super::page::{
     BTreeRootPointerPage, PageCategory,
 };
 use crate::{
+    concurrent_status::Permission,
     error::SmallError,
     transaction::{LogManager, Transaction},
     types::ResultPod,
     utils::HandyRwLock,
-    BTreeTable, Database, concurrent_status::Permission,
+    BTreeTable, Database,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
