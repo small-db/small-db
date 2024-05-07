@@ -5,7 +5,7 @@
 
 A small database.
 
-Thanks for your attention. For any issues/bugs/thoughts, please feel free to open an [issue](https://github.com/small-db/small-db/issues) or send an email to [Xiaochen Cui](mailto:jcnlcxc.new@gmail.com)
+**Thanks for your attention. For any issues/bugs/thoughts, please feel free to open an [issue](https://github.com/small-db/small-db/issues) or send an email to [Xiaochen Cui](mailto:jcnlcxc.new@gmail.com)**
 
 ## Features
 
