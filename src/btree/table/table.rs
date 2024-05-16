@@ -285,10 +285,10 @@ impl BTreeTable {
     ///
     /// # Arguments
     ///
-    /// tx      - the transaction
-    /// perm    - the permissions with which to lock the leaf page
-    /// pid     - the current page being searched
-    /// search  - the key field to search for
+    /// - tx      - the transaction
+    /// - perm    - the permissions with which to lock the leaf page
+    /// - pid     - the current page being searched
+    /// - search  - the key field to search for
     ///
     /// # Return
     ///

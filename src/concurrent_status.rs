@@ -62,6 +62,7 @@ impl ConcurrentStatus {
         }
     }
 
+    /// Request a lock on the given page. This api is blocking.
     pub fn request_lock(
         &self,
         tx: &Transaction,

@@ -29,6 +29,7 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
+        // Before searching for the target leaf page, request a S-latch on the tree.
         let slatch = self.tree_latch.rl();
 
         // a read lock on the root pointer page and
@@ -46,13 +47,16 @@ impl BTreeTable {
             &SearchFor::Target(field),
         );
 
+        // The searching is done, release the S-latch on the tree.
         drop(slatch);
 
         if leaf_rc.rl().empty_slots_count() == 0 {
+            // Before altering the tree, request an X-latch on the tree.
             let xlatch = self.tree_latch.wl();
 
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
 
+            // The altering is done, release the X-latch on the tree.
             drop(xlatch);
         }
 

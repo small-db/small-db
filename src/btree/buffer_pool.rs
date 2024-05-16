@@ -148,8 +148,11 @@ impl BufferPool {
             let page = Self::load_page(key).unwrap();
             page
         });
+        let page = v.clone();
 
-        return Ok(v.clone());
+        drop(bp); // release the lock on buffer pool (RAII
+
+        return Ok(page);
     }
 
     pub fn get_root_ptr_page(
