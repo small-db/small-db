@@ -44,13 +44,18 @@ A small database.
 make test
 ```
 
+Run all tests, this will be run in the CI.
+
 ### Run a specific test
 
 ```bash
 make <test_name>
 # e.g:
 make test_big_table
+# Note: the test name must has the prefix "test_".
 ```
+
+Run a specific test and store the output to file "out".
 
 ### Trace a specific test
 
