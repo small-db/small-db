@@ -42,8 +42,22 @@ pub enum SearchFor {
     RightMost,
 }
 
-/// B+ Tree
+/// # B+ Tree
+///
+/// This is a traditional B+ tree implementation. It only stores the data in
+/// the leaf nodes.
+///
+/// ## Latching Strategy
+///
+/// A tree latch protects all non-leaf nodes in the tree. Eacho node of the
+/// tree also has a latch of its own.
+///
+/// A B-tree operation normally first acquires an S-latch on the tree. It
+/// searches down the tree and releases the tree latch when it has the
+/// leaf node latch.
 pub struct BTreeTable {
+    pub tree_latch: RwLock<()>,
+
     pub name: String,
 
     // the field which index is keyed on
@@ -109,9 +123,9 @@ impl BTreeTable {
         let unix_time = SystemTime::now();
         unix_time.hash(&mut hasher);
 
-        // let table_id = hasher.finish() as u32;
-
         let instance = Self {
+            tree_latch: RwLock::new(()),
+
             name: table_name.to_string(),
 
             schema: schema.clone(),
@@ -161,6 +175,8 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
+        let slatch = self.tree_latch.rl();
+
         // a read lock on the root pointer page and
         // use it to locate the root page
         let root_pid = self.get_root_pid(tx);
@@ -176,9 +192,16 @@ impl BTreeTable {
             &SearchFor::Target(field),
         );
 
+        drop(slatch);
+
         if leaf_rc.rl().empty_slots_count() == 0 {
+            let xlatch = self.tree_latch.wl();
+
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+
+            drop(xlatch);
         }
+
         return leaf_rc.wl().insert_tuple(&tuple);
     }
 
@@ -462,24 +485,7 @@ impl BTreeTable {
     }
 }
 
-impl BTreeTable {
-    /// Method to encapsulate the process of locking/fetching a page.
-    /// First the method checks the local cache ("dirtypages"),
-    /// and if it can't find the requested page there, it fetches
-    /// it from the buffer pool. It also adds pages to the
-    /// dirtypages cache if they are fetched with read-write
-    /// permission, since presumably they will soon be dirtied by
-    /// this transaction.
-    ///
-    /// This method is needed to ensure that page updates are not lost
-    /// if the same pages are accessed multiple times.
-    ///
-    /// reference:
-    /// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/BTreeFile.java?L551&subtree=true
-    pub fn get_page(&self) {}
-}
-
-// Methods interacting with disk directly
+// api which interacting with disk directly
 impl BTreeTable {
     fn get_empty_leaf_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeLeafPage>> {
         // create the new page
@@ -595,10 +601,10 @@ impl BTreeTable {
     ///
     /// # Arguments
     ///
-    /// tid  - the transaction id
-    /// pid  - the current page being searched
-    /// perm - the permissions with which to lock the leaf page
-    /// f    - the field to search for
+    /// tx      - the transaction
+    /// perm    - the permissions with which to lock the leaf page
+    /// pid     - the current page being searched
+    /// search  - the key field to search for
     ///
     /// # Return
     ///

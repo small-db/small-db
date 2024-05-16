@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{self, prelude::*, Seek, SeekFrom},
     sync::{
@@ -29,6 +29,8 @@ pub struct BufferPool {
     pub internal_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeInternalPage>>>,
     pub leaf_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeLeafPage>>>,
     pub header_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeHeaderPage>>>,
+
+    pub bufferfixed: HashSet<BTreePageID>,
 }
 
 type Key = BTreePageID;
@@ -42,6 +44,8 @@ impl BufferPool {
             header_buffer: HashMap::new(),
             internal_buffer: HashMap::new(),
             leaf_buffer: HashMap::new(),
+
+            bufferfixed: HashSet::new(),
         }
     }
 
