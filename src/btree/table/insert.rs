@@ -4,6 +4,8 @@ use std::{
     usize,
 };
 
+use log::debug;
+
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -40,27 +42,40 @@ impl BTreeTable {
         // the key field, and split the leaf page if there are no
         // more slots available
         let field = tuple.get_cell(self.key_field);
-        let mut leaf_rc = self.find_leaf_page(
-            tx,
-            Permission::ReadWrite,
-            root_pid,
-            &SearchFor::Target(field),
-        );
+        let leaf_pid = self.find_leaf_page2(tx, root_pid, &SearchFor::Target(field));
 
         // The searching is done, release the S-latch on the tree.
         drop(slatch);
 
-        if leaf_rc.rl().empty_slots_count() == 0 {
+        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &leaf_pid).unwrap();
+        let empty_slots_count = leaf_rc.rl().empty_slots_count();
+
+        let mut leaf_rc_opt: Option<Arc<RwLock<BTreeLeafPage>>> = None;
+
+        if empty_slots_count == 0 {
             // Before altering the tree, request an X-latch on the tree.
             let xlatch = self.tree_latch.wl();
+            debug!("tx {} got xlatch", tx.get_id());
+
+            let mut leaf_rc =
+                BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
 
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+            leaf_rc_opt = Some(leaf_rc);
 
             // The altering is done, release the X-latch on the tree.
             drop(xlatch);
+            debug!("tx {} released xlatch", tx.get_id());
         }
 
-        return leaf_rc.wl().insert_tuple(&tuple);
+        if let Some(leaf_rc) = leaf_rc_opt {
+            leaf_rc.wl().insert_tuple(&tuple)?;
+        } else {
+            let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
+            leaf_rc.wl().insert_tuple(&tuple)?;
+        }
+
+        return Ok(());
     }
 
     /// Split a leaf page to make room for new tuples and
@@ -301,7 +316,7 @@ impl BTreeTable {
                 delete_indexes.push(e.get_record_id());
                 sibling.insert_entry(&e).unwrap();
 
-                // set parent id for right child
+                // set parent id for the right child
                 let right_pid = e.get_right_child();
                 Self::set_parent(tx, &right_pid, &sibling.get_pid());
             }

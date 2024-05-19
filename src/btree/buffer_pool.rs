@@ -139,7 +139,11 @@ impl BufferPool {
         // exclusive access.
 
         // step 1: request lock from concurrent status
-        Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        // 
+        // Only acquire lock for leaf pages
+        if key.category == PageCategory::Leaf {
+            Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        }
 
         // step 2: get root pointer page from buffer pool
         let mut bp = Database::mut_buffer_pool();
@@ -150,7 +154,7 @@ impl BufferPool {
         });
         let page = v.clone();
 
-        drop(bp); // release the lock on buffer pool (RAII
+        // drop(bp); // release the lock on buffer pool (RAII
 
         return Ok(page);
     }

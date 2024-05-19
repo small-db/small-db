@@ -188,7 +188,10 @@ impl BTreeTable {
         page_rc
     }
 
-    pub(crate) fn get_empty_interanl_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeInternalPage>> {
+    pub(crate) fn get_empty_interanl_page(
+        &self,
+        tx: &Transaction,
+    ) -> Arc<RwLock<BTreeInternalPage>> {
         // create the new page
         let page_index = self.get_empty_page_index(tx);
         let page_id = BTreePageID::new(PageCategory::Internal, self.table_id, page_index);
@@ -285,25 +288,36 @@ impl BTreeTable {
     ///
     /// # Arguments
     ///
-    /// - tx      - the transaction
-    /// - perm    - the permissions with which to lock the leaf page
-    /// - pid     - the current page being searched
-    /// - search  - the key field to search for
+    /// - tx        - the transaction
+    /// - perm      - the permissions with which to lock the leaf page
+    /// - root_pid  - the start point of the search
+    /// - search    - the key field to search for
     ///
     /// # Return
     ///
-    /// the left-most leaf page possibly containing the key field f
+    /// The left-most leaf node which match the search condition. When the search condition is a
+    /// specific value, the scope of this node covers this value.
     pub fn find_leaf_page(
         &self,
         tx: &Transaction,
         perm: Permission,
-        page_id: BTreePageID,
+        root_pid: BTreePageID,
         search: &SearchFor,
     ) -> Arc<RwLock<BTreeLeafPage>> {
+        let target_page_id = self.find_leaf_page2(tx, root_pid, search);
+        BufferPool::get_leaf_page(tx, perm, &target_page_id).unwrap()
+    }
+
+    pub fn find_leaf_page2(
+        &self,
+        tx: &Transaction,
+        page_id: BTreePageID,
+        search: &SearchFor,
+    ) -> BTreePageID {
         match page_id.category {
             PageCategory::Leaf => {
-                // get page and return directly
-                return BufferPool::get_leaf_page(tx, perm, &page_id).unwrap();
+                // return directly
+                return page_id;
             }
             PageCategory::Internal => {
                 let page_rc =
@@ -358,7 +372,7 @@ impl BTreeTable {
                 // search child page recursively
                 match child_pid {
                     Some(child_pid) => {
-                        return self.find_leaf_page(tx, perm, child_pid, search);
+                        return self.find_leaf_page2(tx, child_pid, search);
                     }
                     None => todo!(),
                 }
