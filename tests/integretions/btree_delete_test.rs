@@ -65,7 +65,7 @@ fn test_merge_leaf_pages() {
     assert_true(table.pages_count() == 4, &table);
 
     // delete the last two tuples
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
     table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
     table.delete_tuple(&tx, &it.next_back().unwrap()).unwrap();
@@ -174,7 +174,7 @@ fn test_redistribute_internal_pages() {
     // left
     //
     // step 1: bring the left internal page to minimum occupancy
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     let mut it = BTreeTableIterator::new(&tx, &table);
     for t in it.by_ref().take(50 * leaf_records_cap()) {
         table.delete_tuple(&tx, &t).unwrap();

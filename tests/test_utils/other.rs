@@ -21,7 +21,7 @@ pub fn internal_children_cap() -> usize {
 }
 
 pub fn get_internal_page(table: &BTreeTable, level: usize, index: usize) -> Pod<BTreeInternalPage> {
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     let root_pid = table.get_root_pid(&tx);
     let root_pod = BufferPool::get_internal_page(&tx, Permission::ReadOnly, &root_pid).unwrap();
 
@@ -60,7 +60,7 @@ pub fn get_internal_page(table: &BTreeTable, level: usize, index: usize) -> Pod<
 pub fn get_leaf_page(table: &BTreeTable, level: usize, index: usize) -> Pod<BTreeLeafPage> {
     match level {
         0 => {
-            let tx = Transaction::new();
+            let mut tx = Transaction::new();
             let root_pid = table.get_root_pid(&tx);
             let root_pod = BufferPool::get_leaf_page(&tx, Permission::ReadOnly, &root_pid).unwrap();
             tx.commit().unwrap();
@@ -68,7 +68,7 @@ pub fn get_leaf_page(table: &BTreeTable, level: usize, index: usize) -> Pod<BTre
         }
         _ => {
             let internal_pod = get_internal_page(table, level - 1, index);
-            let tx = Transaction::new();
+            let mut tx = Transaction::new();
             let e = BTreeInternalPageIterator::new(&internal_pod.rl())
                 .next()
                 .unwrap();

@@ -235,7 +235,7 @@ impl LogManager {
                     let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let mut tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -303,7 +303,7 @@ impl LogManager {
             let _: i64 = read_into(&mut self.file);
 
             // read the list of outstanding transactions
-            let tx_count: u64 = read_into(&mut self.file);
+            let mut tx_count: u64 = read_into(&mut self.file);
             for _ in 0..tx_count {
                 let tid = read_into(&mut self.file);
                 incomplete_transactions.insert(tid);
@@ -357,7 +357,7 @@ impl LogManager {
                     let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let mut tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -546,10 +546,10 @@ impl LogManager {
         // checkpoint id
         let _: i64 = read_into(&mut self.file);
         // read list of outstanding(active) transactions
-        let tx_count: u64 = read_into(&mut self.file);
+        let mut tx_count: u64 = read_into(&mut self.file);
         let mut tx_start_position = 0;
         for _ in 0..tx_count {
-            let tx_id: u64 = read_into(&mut self.file);
+            let mut tx_id: u64 = read_into(&mut self.file);
             if tx_id == tx.get_id() {
                 tx_start_position = read_into(&mut self.file);
                 break;
@@ -615,7 +615,7 @@ impl LogManager {
                     let _: i64 = read_into(&mut self.file);
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let mut tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
                         let _: u64 = read_into(&mut self.file);
@@ -860,16 +860,16 @@ impl LogManager {
                     ));
 
                     // read list of outstanding(active) transactions
-                    let tx_count: usize = read_into(&mut self.file);
+                    let mut tx_count: usize = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] active tx count: {}\n",
                         std::mem::size_of::<usize>(),
                         tx_count,
                     ));
                     for _ in 0..tx_count {
-                        let tx_id: u64 = read_into(&mut self.file);
+                        let mut tx_id: u64 = read_into(&mut self.file);
                         depiction.push_str(&format!("│   │   ├── [8 bytes] tx id: {}\n", tx_id,));
-                        let tx_start_offset: u64 = read_into(&mut self.file);
+                        let mut tx_start_offset: u64 = read_into(&mut self.file);
                         depiction.push_str(&format!(
                             "│   │   └── [8 bytes] tx start offset: {}\n",
                             tx_start_offset,
