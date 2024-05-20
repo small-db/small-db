@@ -104,7 +104,7 @@ pub fn new_random_btree_table(
         }
     }
 
-    let mut write_tx = Transaction::new();
+    let write_tx = Transaction::new();
 
     // borrow of table_rc start here
     {
@@ -112,7 +112,7 @@ pub fn new_random_btree_table(
         match tree_layout {
             TreeLayout::Naturally => {
                 for t in tuples.iter() {
-                    table.insert_tuple(&mut write_tx, t).unwrap();
+                    table.insert_tuple(&write_tx, t).unwrap();
                 }
             }
             TreeLayout::EvenlyDistributed | TreeLayout::LastTwoEvenlyDistributed => {

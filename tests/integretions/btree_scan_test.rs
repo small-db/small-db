@@ -9,7 +9,7 @@ use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
 fn test_scan(rows: usize, columns: usize) {
     setup();
 
-    let mut tx = Transaction::new();
+    let tx = Transaction::new();
     let mut rng = rand::thread_rng();
     let mut int_tuples = Vec::new();
 

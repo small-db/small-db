@@ -28,8 +28,8 @@ fn inserter(
 
     let start = Instant::now();
 
-    let mut tx = Transaction::new_specific_id(id);
-    table_rc.rl().insert_tuple(&mut tx, &tuple).unwrap();
+    let tx = Transaction::new_specific_id(id);
+    table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 
     debug!(
@@ -46,7 +46,7 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
     let tuple = r.recv().unwrap();
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
-    let mut tx = Transaction::new_specific_id(id);
+    let tx = Transaction::new_specific_id(id);
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let target = it.next().unwrap();
@@ -191,7 +191,7 @@ fn test_concurrent() {
     drop(sender);
 
     // look for all remained tuples and make sure we can find them
-    let mut tx = Transaction::new();
+    let tx = Transaction::new();
     for tuple in receiver.iter() {
         let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
         let mut it = BTreeTableSearchIterator::new(&tx, &table_pod.rl(), &predicate);

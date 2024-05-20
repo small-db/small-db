@@ -158,7 +158,7 @@ impl BTreeTable {
     /// Calculate the number of tuples in the table. Require S_LOCK on
     /// all pages.
     pub fn tuples_count(&self) -> usize {
-        let mut tx = Transaction::new();
+        let tx = Transaction::new();
         let count = BTreeTableIterator::new(&tx, self).count();
         tx.commit().unwrap();
         count
@@ -504,7 +504,7 @@ impl BTreeTable {
     pub fn draw_tree(&self, max_level: i64) {
         Database::concurrent_status().clear();
 
-        let mut tx = Transaction::new();
+        let tx = Transaction::new();
         tx.start().unwrap();
 
         let mut depiction = "".to_string();
@@ -666,7 +666,7 @@ impl BTreeTable {
     pub fn check_integrity(&self, check_occupancy: bool) {
         Database::concurrent_status().clear();
 
-        let mut tx = Transaction::new();
+        let tx = Transaction::new();
         tx.start().unwrap();
 
         let root_ptr_page = self.get_root_ptr_page(&tx);
