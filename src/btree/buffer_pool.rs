@@ -140,12 +140,12 @@ impl BufferPool {
         // possible, since most of its operations require
         // exclusive access.
 
-        // step 1: request lock from concurrent status
-        // 
-        // Only acquire lock for leaf pages
-        if key.category == PageCategory::Leaf {
-            Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
-        }
+        // // step 1: request lock from concurrent status
+        // //
+        // // Only acquire lock for leaf pages
+        // if key.category == PageCategory::Leaf {
+        //     Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        // }
 
         // step 2: get root pointer page from buffer pool
         let mut bp = Database::mut_buffer_pool();
@@ -239,10 +239,14 @@ impl BufferPool {
     ///
     /// TODO: protest this function (mut self / or global lock)
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
-        for pid in self.all_keys() {
-            if Database::concurrent_status().holds_lock(tx, &pid) {
-                self.flush_page(&pid, log_manager);
-            }
+        // for pid in self.all_keys() {
+        //     if Database::concurrent_status().holds_lock(tx, &pid) {
+        //         self.flush_page(&pid, log_manager);
+        //     }
+        // }
+
+        for pid in tx.dirty_pages.iter() {
+            self.flush_page(&pid, log_manager);
         }
     }
 
