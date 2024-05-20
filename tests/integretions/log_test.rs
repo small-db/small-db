@@ -11,9 +11,9 @@ use crate::test_utils::{
     setup, TreeLayout,
 };
 
-fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
+fn insert_row(table: &BTreeTable, tx: &mut Transaction, key: i64) {
     let tuple = Tuple::new_int_tuples(key, 2);
-    table.insert_tuple(&tx, &tuple).unwrap();
+    table.insert_tuple(tx, &tuple).unwrap();
 }
 
 /// Insert two tuples into the table, then commit the transaction.
@@ -24,17 +24,17 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // let mut log_manager = Unique::mut_log_manager();
 
     // step 1: start a transaction
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     tx.start().unwrap();
 
     // step 2: insert a tuple into the table
-    insert_row(&table, &tx, key_1);
+    insert_row(&table, &mut tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
     // step 4: insert another tuple into the table
-    insert_row(&table, &tx, key_2);
+    insert_row(&table, &mut tx, key_2);
 
     // step 5: commit the transaction
     tx.commit().unwrap();
@@ -44,12 +44,12 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 /// (We well look for the tuples before abort.)
 fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // step 1: start a transaction
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     tx.start().unwrap();
 
     // step 2: insert two tuples into the table
-    insert_row(&table, &tx, key_1);
-    insert_row(&table, &tx, key_2);
+    insert_row(&table, &mut tx, key_1);
+    insert_row(&table, &mut tx, key_2);
 
     // step 3: search for the tuples
     assert_true(search_key(table, &tx, &Cell::Int64(key_1)) == 1, table);
@@ -132,18 +132,18 @@ fn test_abort_commit_interleaved() {
 
     // T1 start, T2 start and commit, T1 abort
 
-    let tx_1 = Transaction::new();
+    let mut tx_1 = Transaction::new();
     tx_1.start().unwrap();
-    insert_row(&table_1, &tx_1, 3);
+    insert_row(&table_1, &mut tx_1, 3);
 
-    let tx_2 = Transaction::new();
+    let mut tx_2 = Transaction::new();
     tx_2.start().unwrap();
-    insert_row(&table_2, &tx_2, 21);
+    insert_row(&table_2, &mut tx_2, 21);
     Database::mut_log_manager().log_checkpoint().unwrap();
-    insert_row(&table_2, &tx_2, 22);
+    insert_row(&table_2, &mut tx_2, 22);
     tx_2.commit().unwrap();
 
-    insert_row(&table_1, &tx_1, 4);
+    insert_row(&table_1, &mut tx_1, 4);
 
     tx_1.abort().unwrap();
 
@@ -275,9 +275,9 @@ fn test_open_commit_checkpoint_open_crash() {
     // crash
     // only T2 data should be there
 
-    let t1 = Transaction::new();
-    t1.start().unwrap();
-    insert_row(&table_1, &t1, 12);
+    let mut tx_1 = Transaction::new();
+    tx_1.start().unwrap();
+    insert_row(&table_1, &mut tx_1, 12);
 
     // defeat NO-STEAL-based abort
     // (since ARIES is a steal/no-force recovery algorithm, we
@@ -285,22 +285,22 @@ fn test_open_commit_checkpoint_open_crash() {
     // pool)
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
-    insert_row(&table_1, &t1, 13);
+    insert_row(&table_1, &mut tx_1, 13);
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
-    insert_row(&table_1, &t1, 14);
+    insert_row(&table_1, &mut tx_1, 14);
 
     // T2 commits
     commit_insert(&table_2, 26, 27);
 
     Database::mut_log_manager().log_checkpoint().unwrap();
 
-    let tx_3 = Transaction::new();
+    let mut tx_3 = Transaction::new();
     tx_3.start().unwrap();
-    insert_row(&table_2, &tx_3, 28);
+    insert_row(&table_2, &mut tx_3, 28);
     // defeat NO-STEAL-based abort
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_2, &tx_3, 29);
+    insert_row(&table_2, &mut tx_3, 29);
 
     crash();
 
@@ -340,22 +340,22 @@ fn test_open_commit_open_crash() {
     // crash
     // only T2 data should be there
 
-    let tx_1 = Transaction::new();
+    let mut tx_1 = Transaction::new();
     tx_1.start().unwrap();
-    insert_row(&table_1, &tx_1, 10);
+    insert_row(&table_1, &mut tx_1, 10);
     // defeat NO-STEAL-based abort
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_1, &tx_1, 11);
+    insert_row(&table_1, &mut tx_1, 11);
 
     // T2 commits
     commit_insert(&table_2, 22, 23);
 
-    let tx_3 = Transaction::new();
+    let mut tx_3 = Transaction::new();
     tx_3.start().unwrap();
-    insert_row(&table_2, &tx_3, 24);
+    insert_row(&table_2, &mut tx_3, 24);
     // defeat NO-STEAL-based abort
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_2, &tx_3, 25);
+    insert_row(&table_2, &mut tx_3, 25);
 
     crash();
 
@@ -389,12 +389,12 @@ fn test_open_crash() {
     // crash
     // no data should not be there
 
-    let tx_1 = Transaction::new();
+    let mut tx_1 = Transaction::new();
     tx_1.start().unwrap();
-    insert_row(&table_1, &tx_1, 8);
+    insert_row(&table_1, &mut tx_1, 8);
     // something to UNDO (what?)
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_1, &tx_1, 9);
+    insert_row(&table_1, &mut tx_1, 9);
 
     crash();
 

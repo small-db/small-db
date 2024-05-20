@@ -28,10 +28,10 @@ fn test_insert_tuple() {
 
     // write a fullfilled leaf page
     let mut insert_count = leaf_records_cap();
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     for _ in 0..insert_count {
         let tuple = Tuple::new_int_tuples(insert_value, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&mut tx, &tuple).unwrap();
         insert_value += 1;
         assert_eq!(1, table.pages_count());
     }
@@ -41,7 +41,7 @@ fn test_insert_tuple() {
     insert_count = ceil_div(leaf_records_cap(), 2);
     for _ in 0..insert_count {
         let tuple = Tuple::new_int_tuples(insert_value, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&mut tx, &tuple).unwrap();
         insert_value += 1;
 
         // there are 3 pages: 1 root page + 2 leaf pages
@@ -50,7 +50,7 @@ fn test_insert_tuple() {
 
     // one more insert should cause page 2 to split
     let tuple = Tuple::new_int_tuples(insert_value, 2);
-    table.insert_tuple(&tx, &tuple).unwrap();
+    table.insert_tuple(&mut tx, &tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
     assert_true(table.pages_count() == 4, &table);
@@ -74,12 +74,12 @@ fn test_insert_duplicate_tuples() {
     let table = table_rc.rl();
 
     // add a bunch of identical tuples
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     let repetition_count = 600;
     for i in 0..5 {
         for _ in 0..repetition_count {
             let tuple = Tuple::new_int_tuples(i, 2);
-            table.insert_tuple(&tx, &tuple).unwrap();
+            table.insert_tuple(&mut tx, &tuple).unwrap();
         }
     }
 
@@ -179,13 +179,13 @@ fn test_split_root_page() {
     assert_true(right_pod.rl().stable(), &table);
 
     // now insert some random tuples and make sure we can find them
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     tx.start().unwrap();
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&mut tx, &tuple).unwrap();
 
         assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
     }
@@ -216,7 +216,7 @@ fn test_split_internal_page() {
 
     // now make sure we have enough records and they are all in sorted
     // order
-    let tx = Transaction::new();
+    let mut tx = Transaction::new();
     let it = BTreeTableIterator::new(&tx, &table);
     let mut previous = Cell::Int64(i64::MIN);
     let mut count: usize = 0;
@@ -242,7 +242,7 @@ fn test_split_internal_page() {
     for _i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&mut tx, &tuple).unwrap();
 
         assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
     }
@@ -286,12 +286,12 @@ fn test_insert_benchmark() {
     let mut rng = rand::thread_rng();
 
     for _ in 0..3000 {
-        let tx = Transaction::new();
+        let mut tx = Transaction::new();
         tx.start().unwrap();
 
         let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);
-        table.insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&mut tx, &tuple).unwrap();
 
         tx.commit().unwrap();
     }

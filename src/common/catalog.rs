@@ -235,7 +235,7 @@ impl Catalog {
         let schema_table_rc = Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
-        let tx = Transaction::new();
+        let mut tx = Transaction::new();
         tx.start().unwrap();
 
         let schema_fields = schema_table.schema.get_fields();
@@ -258,7 +258,7 @@ impl Catalog {
                 Cell::new_bool(field.is_primary),
             ];
             let tuple = Tuple::new(&cells);
-            schema_table.insert_tuple(&tx, &tuple).unwrap();
+            schema_table.insert_tuple(&mut tx, &tuple).unwrap();
         }
 
         tx.commit().unwrap();

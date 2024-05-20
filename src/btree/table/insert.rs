@@ -30,7 +30,7 @@ impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
-    pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
+    pub fn insert_tuple(&self, tx: &mut Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         // Before searching for the target leaf page, request a S-latch on the tree.
         let slatch = self.tree_latch.rl();
 
