@@ -8,6 +8,8 @@ use std::{
     },
 };
 
+use log::debug;
+
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
     BTreeRootPointerPage, PageCategory,
@@ -154,8 +156,6 @@ impl BufferPool {
         });
         let page = v.clone();
 
-        // drop(bp); // release the lock on buffer pool (RAII
-
         return Ok(page);
     }
 
@@ -258,6 +258,7 @@ impl BufferPool {
             return;
         }
 
+        // TODO: Why we need to flush all ralated pages here?
         self.flush_pages(tx, &mut log_manager);
 
         for pid in self.all_keys() {
@@ -319,6 +320,8 @@ impl BufferPool {
     ) {
         // let b = buffer.get_inner_wl();
         let page_pod = buffer.get(pid).unwrap().clone();
+
+        debug!("concurrent status: {:?}", Database::concurrent_status());
 
         // TODO: what's the purpose of this block?
         {

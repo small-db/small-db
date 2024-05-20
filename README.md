@@ -76,3 +76,42 @@ Run a specific test and store the output to file "out". Log level is "debug".
   # e.g:
   CARGO_PROFILE_BENCH_DEBUG=true sudo cargo flamegraph --test small_tests -- integretions::btree_test::test_concurrent
   ```
+
+## Notes
+
+### questions about mysql
+
+- what is "bufferfixed"?
+- what is "fsp latch"?
+
+### The simplified version of the B+ tree latch strategy
+
+- no tree latch
+- when accessing a node (either leaf or internal), all ancestor nodes of the node must be latched (why? if not latched, two directions of tree-traversal may happen at the same time, and lead to a deadlock)
+
+### The imitate-mysql version of the B+ tree latch strategy
+
+- there is a tree latch
+
+### Draft
+
+What's the exact meaning of "flash a page"?
+It means that the modified page is written to the disk, thus ensuring the durability of the data. (Durability
+means the data is not lost even if the system crashes.)
+
+Why we have to flash related pages in the beginning of the transaction commit?
+To ensure the durability of the data. Durability is the requirement of the transaction.
+
+During flashing, the first step is to write an "update log" to the log file, why?
+So that the system can recover the data in the page if the system crashes before the write operation is completed.
+
+If the tree is protected by a tree latch, do we still have to flash internal pages?
+Yes, because the internal pages may be modified by the transaction. And we need to record the changes in the log file. Actually, we need to record the changes of all pages no matter which latch strategy is used. If you just change a page without recording to the log file, the system will not be able to recover the data in the page if the system crashes before the write operation is completed.
+
+If the tree is protected by a tree latch, do we still have to record the relationship between transaction and internal pages?
+Yes, but we only have to record modified internal pages.
+
+What's the best way to record dirty pages (pages that have been modified by a transaction)?
+Since a transaction only use one thread in the current implementation, we pass dirty pages as a parameter. If we use
+multiple threads for a transaction in the future, a better approach have to be used.
+But different with repo "simple-db-hw-2022", we store dirty pages in the "transaction" context instead of using a standalone "dirty pages" parameter.

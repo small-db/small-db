@@ -38,17 +38,12 @@ impl Permission {
     }
 }
 
-pub enum AcquireResult {
-    Acquired,
-    Granted,
-}
-
-/// reference:
-/// - https://sourcegraph.com/github.com/XiaochenCui/small-db-hw@87607789b677d6afee00a223eacb4f441bd4ae87/-/blob/src/java/smalldb/ConcurrentStatus.java?L12:14&subtree=true
 pub struct ConcurrentStatus {
     s_lock_map: ConcurrentHashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: ConcurrentHashMap<BTreePageID, Transaction>,
     pub hold_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
+
+    // TODO: what is this lock for? Can we just remove it?
     modification_lock: Arc<Mutex<()>>,
 }
 

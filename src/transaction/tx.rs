@@ -1,25 +1,38 @@
 use core::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    collections::HashSet,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
-use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
+use crate::{
+    btree::{buffer_pool::BufferPool, page::BTreePageID},
+    types::SmallResult,
+    Database,
+};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
-#[derive(Eq, Hash, PartialEq, Clone, Copy)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct Transaction {
     // increase monotonically by 1
-    uuid: u64,
+    uuid: TransactionID,
+
+    dirty_pages: HashSet<BTreePageID>,
 }
+
+pub type TransactionID = u64;
 
 impl Transaction {
     pub fn new() -> Self {
-        Self {
-            uuid: TRANSACTION_ID.fetch_add(1, Ordering::Relaxed),
-        }
+        let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
+        Self::new_specific_id(id)
     }
 
     pub fn new_specific_id(id: u64) -> Self {
-        Self { uuid: id }
+        Self {
+            uuid: id,
+            dirty_pages: HashSet::new(),
+        }
     }
 
     pub fn start(&self) -> SmallResult {
@@ -58,6 +71,12 @@ impl Transaction {
 
     pub fn get_id(&self) -> u64 {
         self.uuid
+    }
+}
+
+impl std::hash::Hash for Transaction {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.uuid.hash(state);
     }
 }
 

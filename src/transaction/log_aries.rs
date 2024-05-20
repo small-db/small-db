@@ -9,6 +9,7 @@ use std::{
 use log::debug;
 
 use super::Transaction;
+use super::TransactionID;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -76,9 +77,10 @@ static NO_CHECKPOINT: u64 = 0;
 pub struct LogManager {
     /// Record the start position of each transaction.
     ///
-    /// The position is the byte position of the last byte of
-    /// BEGIN_RECORD. (Why?)
-    tx_start_position: HashMap<Transaction, u64>,
+    /// - key: The transaction id.
+    /// - value: The position is the byte position of the last byte of
+    /// BEGIN_RECORD. (Why the last byte?)
+    tx_start_position: HashMap<TransactionID, u64>,
 
     file: SmallFile,
 
@@ -396,7 +398,8 @@ impl LogManager {
         self.file.write(&tx.get_id())?;
         self.file.write(&self.current_offset)?;
 
-        self.tx_start_position.insert(*tx, self.current_offset);
+        self.tx_start_position
+            .insert(tx.get_id(), self.current_offset);
         self.current_offset = self.file.get_current_position()?;
 
         Ok(())
@@ -418,7 +421,7 @@ impl LogManager {
         self.file.write(&self.current_offset)?;
 
         self.current_offset = self.file.get_current_position()?;
-        self.tx_start_position.remove(tx);
+        self.tx_start_position.remove(&tx.get_id());
         Ok(())
     }
 
@@ -458,8 +461,6 @@ impl LogManager {
 
         self.file.flush().unwrap();
 
-        // Unique::mut_buffer_pool().flush_all_pages();
-        // Unique::buffer_pool_pod().wl().flush_all_pages();
         cache.flush_all_pages(self);
 
         let checkpoint_start_position = self.file.get_current_position()?;
@@ -473,8 +474,8 @@ impl LogManager {
 
         // write list of outstanding transactions
         self.file.write(&self.tx_start_position.len())?;
-        for (tx, start_position) in &self.tx_start_position {
-            self.file.write(&tx.get_id())?;
+        for (tid, start_position) in &self.tx_start_position {
+            self.file.write(tid)?;
             self.file.write(start_position)?;
         }
 
@@ -504,7 +505,7 @@ impl LogManager {
         self.file.write(&self.current_offset)?;
 
         self.current_offset = self.file.get_current_position()?;
-        self.tx_start_position.remove(tx);
+        self.tx_start_position.remove(&tx.get_id());
         Ok(())
     }
 
