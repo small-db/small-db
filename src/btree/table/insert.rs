@@ -68,9 +68,11 @@ impl BTreeTable {
 
         if let Some(leaf_rc) = leaf_rc_opt {
             leaf_rc.wl().insert_tuple(&tuple)?;
+            tx.dirty_pages.insert(leaf_rc.rl().get_pid());
         } else {
             let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
             leaf_rc.wl().insert_tuple(&tuple)?;
+            tx.dirty_pages.insert(leaf_rc.rl().get_pid());
         }
 
         return Ok(());
