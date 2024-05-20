@@ -34,8 +34,6 @@ impl BTreeTable {
         // Before searching for the target leaf page, request a S-latch on the tree.
         let slatch = self.tree_latch.rl();
 
-        // a read lock on the root pointer page and
-        // use it to locate the root page
         let root_pid = self.get_root_pid(tx);
 
         // find and lock the left-most leaf page corresponding to
