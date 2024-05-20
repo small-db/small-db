@@ -17,7 +17,7 @@ pub struct Transaction {
     // increase monotonically by 1
     uuid: TransactionID,
 
-    dirty_pages: HashSet<BTreePageID>,
+    pub dirty_pages: HashSet<BTreePageID>,
 }
 
 pub type TransactionID = u64;
