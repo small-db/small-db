@@ -325,8 +325,6 @@ impl BufferPool {
         // let b = buffer.get_inner_wl();
         let page_pod = buffer.get(pid).unwrap().clone();
 
-        debug!("concurrent status: {:?}", Database::concurrent_status());
-
         // TODO: what's the purpose of this block?
         {
             // TODO: get tx from somewhere

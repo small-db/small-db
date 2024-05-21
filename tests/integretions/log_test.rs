@@ -55,14 +55,17 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     assert_true(search_key(table, &tx, &Cell::Int64(key_1)) == 1, table);
     assert_true(search_key(table, &tx, &Cell::Int64(key_2)) == 1, table);
 
-    // step 4: abort the transaction
-    if let Err(e) = tx.abort() {
-        panic!("abort failed: {}", e);
-    }
-    // assert_true(tx.abort().is_ok(), table);
+    // step 4: abort the transaction, and check if the tuples are gone
+    assert!(tx.abort().is_ok());
+    assert!(search_key(table, &tx, &Cell::Int64(key_1)) == 0);
+    assert!(search_key(table, &tx, &Cell::Int64(key_2)) == 0);
 }
 
 #[test]
+/// Test if the "flush_page" api writes "UPDATE" record to the log.
+/// 
+/// TODO: may be we can remove this test if a more comprehensive test
+/// is finished.
 fn test_patch() {
     setup();
 
@@ -72,9 +75,6 @@ fn test_patch() {
     let table = table_rc.rl();
 
     commit_insert(&table, 1, 2);
-
-    // check that `buffer_pool::flush_page calls
-    // log_manager::log_write.
 
     // Check flush action writes "UPDATE" record to log.
     //

@@ -517,15 +517,12 @@ impl LogManager {
     /// may not be enforced by this method).
     fn rollback(&mut self, tx: &Transaction, page_cache: &mut BufferPool) -> SmallResult {
         // step 1: get the position of last checkpoint
-        // TODO: what if there is no checkpoint?
         self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = read_into(&mut self.file);
         if last_checkpoint_position == NO_CHECKPOINT {
-            // page_cache.discard_page(pid)
-            let hold_pages = Database::concurrent_status().hold_pages.get_inner_rl();
-            let pids = hold_pages.get(tx).unwrap();
-
-            for pid in pids {
+            // If there is no checkpoint, we can't rollback, just discard cached
+            // pages related to this transaction.
+            for pid in tx.dirty_pages.iter() {
                 page_cache.discard_page(pid);
             }
 
