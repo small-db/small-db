@@ -8,7 +8,7 @@ use std::{
     },
 };
 
-use log::debug;
+use log::{debug, error};
 
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
@@ -147,7 +147,7 @@ impl BufferPool {
         //     Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         // }
 
-        // step 2: get root pointer page from buffer pool
+        // step 2: get page from buffer pool
         let mut bp = Database::mut_buffer_pool();
         let pool = get_pool_fn(&mut bp);
         let v = pool.entry(key.clone()).or_insert_with(|| {
@@ -223,33 +223,6 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    /// Flush all dirty pages to disk.
-    ///
-    /// NB: Be careful using this routine -- it writes dirty data to
-    /// disk so will break small-db if running in NO STEAL mode.
-    ///
-    /// TODO: does these pages belong to a single table?
-    pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
-        for pid in self.all_keys() {
-            self.flush_page(&pid, log_manager);
-        }
-    }
-
-    /// Write all pages of the specified transaction to disk.
-    ///
-    /// TODO: protest this function (mut self / or global lock)
-    pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
-        // for pid in self.all_keys() {
-        //     if Database::concurrent_status().holds_lock(tx, &pid) {
-        //         self.flush_page(&pid, log_manager);
-        //     }
-        // }
-
-        for pid in tx.dirty_pages.iter() {
-            self.flush_page(&pid, log_manager);
-        }
-    }
-
     pub fn tx_complete(&mut self, tx: &Transaction, commit: bool) {
         let mut log_manager = Database::mut_log_manager();
 
@@ -292,8 +265,25 @@ impl BufferPool {
         page_pod.wl().set_before_image();
     }
 
+    /// Flush all dirty pages to disk.
+    ///
+    /// NB: Be careful using this routine -- it writes dirty data to
+    /// disk so will break small-db if running in NO STEAL mode.
+    pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
+        for pid in self.all_keys() {
+            self.flush_page(&pid, log_manager);
+        }
+    }
+
+    /// Write all pages of the specified transaction to disk.
+    pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
+        for pid in tx.dirty_pages.iter() {
+            self.flush_page(&pid, log_manager);
+        }
+    }
+
     /// Write the content of a specific page to disk.
-    fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
+    pub fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
         let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
@@ -322,18 +312,13 @@ impl BufferPool {
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
         log_manager: &mut LogManager,
     ) {
-        // let b = buffer.get_inner_wl();
         let page_pod = buffer.get(pid).unwrap().clone();
 
-        // TODO: what's the purpose of this block?
-        {
-            // TODO: get tx from somewhere
-            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
-                log_manager.log_update(&tx, page_pod.clone()).unwrap();
-            } else {
-                // error!("no tx found for page {:?}", pid);
-                // panic!();
-            }
+        if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+            log_manager.log_update(&tx, page_pod.clone()).unwrap();
+        } else {
+            error!("no tx found for page {:?}", pid);
+            panic!();
         }
 
         // debug!("flushing page {:?}", pid);

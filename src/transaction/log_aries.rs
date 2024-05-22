@@ -434,7 +434,7 @@ impl LogManager {
     ) -> SmallResult {
         self.pre_append()?;
 
-        // update record conists of
+        // update record consists of
         // record type
         // transaction id
         // before page data (see writePageData)

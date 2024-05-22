@@ -63,11 +63,8 @@ pub fn new_empty_btree_table(table_name: &str, columns: usize) -> Arc<RwLock<BTr
 
 /// Create a table with a given number of rows and columns.
 ///
-/// The rows are filled with random data and are sorted by the
-/// key field/column before being inserted into the table.
-///
-/// The rows are inserted to pages in a compact manner. Result
-/// in all leaf pages being full.
+/// This API will reset the log file before returning so there will be no
+/// log records left after calling this function.
 ///
 /// # Arguments:
 ///

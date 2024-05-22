@@ -40,7 +40,18 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        self.complete(true, &mut Database::mut_buffer_pool())
+        let log_manager = &mut Database::mut_log_manager();
+        let buffer_pool = &mut Database::mut_buffer_pool();
+        for pid in &self.dirty_pages {
+            buffer_pool.flush_page(pid, log_manager);
+        }
+
+        // write "COMMIT" log record
+        log_manager.log_commit(self)?;
+
+        Database::concurrent_status().release_lock_by_tx(self)?;
+
+        Ok(())
     }
 
     pub fn abort(&self) -> SmallResult {

@@ -23,6 +23,7 @@ pub trait BTreePage {
     /// A byte array representing the contents of this page.
     fn get_page_data(&self) -> Vec<u8>;
 
+    /// Set the before image of this page to the current state of the page.
     fn set_before_image(&mut self);
 
     /// Provide a representation of this page before any modifications

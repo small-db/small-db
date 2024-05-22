@@ -1,3 +1,4 @@
+use log::debug;
 use small_db::{
     btree::page::BTreePage,
     storage::tuple::{Cell, Tuple},
@@ -16,8 +17,10 @@ fn insert_row(table: &BTreeTable, tx: &mut Transaction, key: i64) {
     table.insert_tuple(tx, &tuple).unwrap();
 }
 
-/// Insert two tuples into the table, then commit the transaction.
-/// (There is a flush action in the middle of the transaction.)
+/// Insert two tuples into the table, then commit the transaction. There is a
+/// flush action in the middle of the transaction.
+/// 
+/// This function doesn't check the corectness of the transaction semantics.
 fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // acquire x locks on page cache and log manager
     // let page_cache = Unique::mut_page_cache();
@@ -41,7 +44,8 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 }
 
 /// Insert two tuples into the table, then abort the transaction.
-/// (We well look for the tuples before abort.)
+/// 
+/// This function does check the correctness of the transaction semantics.
 fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // step 1: start a transaction
     let mut tx = Transaction::new();
@@ -73,6 +77,8 @@ fn test_patch() {
     // 2-field tuple.
     let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
+
+    debug!("Database::log_file().records_count() = {}", Database::log_file().records_count());
 
     commit_insert(&table, 1, 2);
 

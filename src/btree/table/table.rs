@@ -387,7 +387,8 @@ impl BTreeTable {
         self.file.lock().unwrap()
     }
 
-    /// Initialize the data file when it is necessary.
+    /// Initialize the data file when the file is empty. Specifically, it
+    /// writes the root pointer page and the an empty leaf page to the file.
     fn file_init(&self) {
         let mut file = self.get_file();
         let table_index = self.get_id();
