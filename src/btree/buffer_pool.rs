@@ -277,13 +277,13 @@ impl BufferPool {
 
     /// Write all pages of the specified transaction to disk.
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
-        for pid in tx.dirty_pages.iter() {
+        for pid in Database::concurrent_status().get_dirty_pages(tx) {
             self.flush_page(&pid, log_manager);
         }
     }
 
     /// Write the content of a specific page to disk.
-    pub fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
+    fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
         let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
@@ -314,14 +314,16 @@ impl BufferPool {
     ) {
         let page_pod = buffer.get(pid).unwrap().clone();
 
-        if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+        if let Some(tx) = Database::concurrent_status().get_page_tx2(pid) {
             log_manager.log_update(&tx, page_pod.clone()).unwrap();
         } else {
+            // not a dirty page, just return
+            return;
+
             error!("no tx found for page {:?}", pid);
             panic!();
         }
 
-        // debug!("flushing page {:?}", pid);
         table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
     }
 

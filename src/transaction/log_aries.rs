@@ -522,8 +522,8 @@ impl LogManager {
         if last_checkpoint_position == NO_CHECKPOINT {
             // If there is no checkpoint, we can't rollback, just discard cached
             // pages related to this transaction.
-            for pid in tx.dirty_pages.iter() {
-                page_cache.discard_page(pid);
+            for pid in Database::concurrent_status().get_dirty_pages(tx) {
+                page_cache.discard_page(&pid);
             }
 
             return Ok(());

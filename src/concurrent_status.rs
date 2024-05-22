@@ -45,6 +45,8 @@ pub struct ConcurrentStatus {
 
     // TODO: what is this lock for? Can we just remove it?
     modification_lock: Arc<Mutex<()>>,
+
+    dirty_pages: ConcurrentHashMap<Transaction, HashSet<BTreePageID>>,
 }
 
 impl ConcurrentStatus {
@@ -54,7 +56,38 @@ impl ConcurrentStatus {
             x_lock_map: ConcurrentHashMap::new(),
             hold_pages: ConcurrentHashMap::new(),
             modification_lock: Arc::new(Mutex::new(())),
+
+            dirty_pages: ConcurrentHashMap::new(),
         }
+    }
+
+    pub fn add_relation(&self, tx: &Transaction, page_id: &BTreePageID) {
+        self.dirty_pages
+            .alter_value(tx, |dirty_pages_set| {
+                dirty_pages_set.insert(*page_id);
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
+        return self
+            .dirty_pages
+            .get_inner_rl()
+            .get(tx)
+            .unwrap_or(&HashSet::new())
+            .clone();
+    }
+
+    // Get related transaction of a page (throught dirty_pages)
+    pub fn get_page_tx2(&self, page_id: &BTreePageID) -> Option<Transaction> {
+        for (tx, pages) in self.dirty_pages.get_inner_rl().iter() {
+            if pages.contains(page_id) {
+                return Some(tx.clone());
+            }
+        }
+
+        return None;
     }
 
     /// Request a lock on the given page. This api is blocking.

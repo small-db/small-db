@@ -16,8 +16,6 @@ static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 pub struct Transaction {
     // increase monotonically by 1
     uuid: TransactionID,
-
-    pub dirty_pages: HashSet<BTreePageID>,
 }
 
 pub type TransactionID = u64;
@@ -31,7 +29,6 @@ impl Transaction {
     pub fn new_specific_id(id: u64) -> Self {
         Self {
             uuid: id,
-            dirty_pages: HashSet::new(),
         }
     }
 
@@ -40,11 +37,9 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        let log_manager = &mut Database::mut_log_manager();
+        let mut log_manager = &mut Database::mut_log_manager();
         let buffer_pool = &mut Database::mut_buffer_pool();
-        for pid in &self.dirty_pages {
-            buffer_pool.flush_page(pid, log_manager);
-        }
+        buffer_pool.flush_pages(self, &mut log_manager);
 
         // write "COMMIT" log record
         log_manager.log_commit(self)?;

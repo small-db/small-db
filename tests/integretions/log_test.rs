@@ -19,7 +19,7 @@ fn insert_row(table: &BTreeTable, tx: &mut Transaction, key: i64) {
 
 /// Insert two tuples into the table, then commit the transaction. There is a
 /// flush action in the middle of the transaction.
-/// 
+///
 /// This function doesn't check the corectness of the transaction semantics.
 fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // acquire x locks on page cache and log manager
@@ -44,7 +44,7 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 }
 
 /// Insert two tuples into the table, then abort the transaction.
-/// 
+///
 /// This function does check the correctness of the transaction semantics.
 fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // step 1: start a transaction
@@ -67,7 +67,7 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 
 #[test]
 /// Test if the "flush_page" api writes "UPDATE" record to the log.
-/// 
+///
 /// TODO: may be we can remove this test if a more comprehensive test
 /// is finished.
 fn test_patch() {
@@ -78,7 +78,10 @@ fn test_patch() {
     let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
-    debug!("Database::log_file().records_count() = {}", Database::log_file().records_count());
+    debug!(
+        "Database::log_file().records_count() = {}",
+        Database::log_file().records_count()
+    );
 
     commit_insert(&table, 1, 2);
 
@@ -346,36 +349,52 @@ fn test_open_commit_open_crash() {
     // crash
     // only T2 data should be there
 
-    let mut tx_1 = Transaction::new();
-    tx_1.start().unwrap();
-    insert_row(&table_1, &mut tx_1, 10);
-    // defeat NO-STEAL-based abort
-    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_1, &mut tx_1, 11);
+    // T1 inserts but does not commit (data: 10, 11)
+    {
+        let mut tx_1 = Transaction::new();
+        tx_1.start().unwrap();
+        insert_row(&table_1, &mut tx_1, 10);
+        // defeat NO-STEAL-based abort
+        Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
+        insert_row(&table_1, &mut tx_1, 11);
+    }
 
-    // T2 commits
-    commit_insert(&table_2, 22, 23);
+    // T2 commits (data: 20, 21)
+    {
+        commit_insert(&table_2, 20, 21);
+    }
 
-    let mut tx_3 = Transaction::new();
-    tx_3.start().unwrap();
-    insert_row(&table_2, &mut tx_3, 24);
-    // defeat NO-STEAL-based abort
-    Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_2, &mut tx_3, 25);
+    // T3 inserts but does not commit (data: 30, 31)
+    {
+        let mut tx_3 = Transaction::new();
+        tx_3.start().unwrap();
+        insert_row(&table_2, &mut tx_3, 30);
+        // defeat NO-STEAL-based abort
+        Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
+        insert_row(&table_2, &mut tx_3, 31);
+    }
 
     crash();
 
     let tx = Transaction::new();
     tx.start().unwrap();
+
+    // existing data
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
+
+    // T1 data (should not be there)
     assert_true(search_key(&table_1, &tx, &Cell::Int64(10)) == 0, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(11)) == 0, &table_1);
 
-    assert_true(search_key(&table_2, &tx, &Cell::Int64(22)) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, &Cell::Int64(23)) == 1, &table_2);
-    assert_true(search_key(&table_2, &tx, &Cell::Int64(24)) == 0, &table_2);
-    assert_true(search_key(&table_2, &tx, &Cell::Int64(25)) == 0, &table_2);
+    // T2 data (should be there)
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(20)) == 1, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(21)) == 1, &table_2);
+
+    // T3 data (should not be there)
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(30)) == 0, &table_2);
+    assert_true(search_key(&table_2, &tx, &Cell::Int64(31)) == 0, &table_2);
+
     tx.commit().unwrap();
 }
 
