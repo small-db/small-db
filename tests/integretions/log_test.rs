@@ -1,4 +1,5 @@
 use log::debug;
+use pgwire::messages::data;
 use small_db::{
     btree::page::BTreePage,
     storage::tuple::{Cell, Tuple},
@@ -78,12 +79,9 @@ fn test_patch() {
     let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
-    debug!(
-        "Database::log_file().records_count() = {}",
-        Database::log_file().records_count()
-    );
-
     commit_insert(&table, 1, 2);
+
+    Database::mut_log_manager().show_log_contents();
 
     // Check flush action writes "UPDATE" record to log.
     //
