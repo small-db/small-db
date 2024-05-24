@@ -146,6 +146,7 @@ impl BufferPool {
         // if key.category == PageCategory::Leaf {
         //     Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         // }
+        Database::concurrent_status().add_relation(tx, key);
 
         // step 2: get page from buffer pool
         let mut bp = Database::mut_buffer_pool();

@@ -41,7 +41,16 @@ fn deleter(tx_id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Recei
     let tx = Transaction::new_specific_id(tx_id);
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
-    let target = it.next().unwrap();
+
+    // let target = it.next().unwrap();
+
+    let search_result = it.next();
+    if search_result.is_none() {
+        debug!("tuple not found: {:?}", tuple);
+        panic!("tuple not found");
+    }
+    let target = search_result.unwrap();
+
     table.delete_tuple(&tx, &target).unwrap();
 
     tx.commit().unwrap();
