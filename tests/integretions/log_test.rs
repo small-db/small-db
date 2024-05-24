@@ -412,17 +412,13 @@ fn test_open_crash() {
 
     commit_insert(&table_1, 1, 2);
 
-    // Database::mut_log_manager().show_log_contents();
-    // return;
-
-    // T1 inserts but does not commit
-    // crash
-    // no data should not be there
+    // step 1: T1 inserts but does not commit
+    // step 2: crash
+    // result: no data should not be there
 
     let mut tx_1 = Transaction::new();
     tx_1.start().unwrap();
     insert_row(&table_1, &mut tx_1, 8);
-    // something to UNDO (what?)
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &mut tx_1, 9);
 
@@ -436,29 +432,3 @@ fn test_open_crash() {
     assert_true(search_key(&table_1, &tx, &Cell::Int64(9)) == 0, &table_1);
     tx.commit().unwrap();
 }
-
-// @Test public void TestOpenCrash()
-// throws IOException, DbException, TransactionAbortedException {
-// setup();
-// doInsert(hf1, 1, 2);
-
-// // *** Test:
-// // insert but no commit
-// // crash
-// // data should not be there
-
-// Transaction t = new Transaction();
-// t.start();
-// insertRow(hf1, t, 8);
-// Database.getBufferPool().flushAllPages(); // XXX something to UNDO
-// insertRow(hf1, t, 9);
-
-// crash();
-
-// t = new Transaction();
-// t.start();
-// look(hf1, t, 1, true);
-// look(hf1, t, 8, false);
-// look(hf1, t, 9, false);
-// t.commit();
-// }
