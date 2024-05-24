@@ -146,9 +146,9 @@ impl BufferPool {
         // if key.category == PageCategory::Leaf {
         //     Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
         // }
-        // if perm == Permission::ReadWrite {
-        //     Database::concurrent_status().add_relation(tx, key);
-        // }
+        if perm == Permission::ReadWrite {
+            Database::concurrent_status().add_relation(tx, key);
+        }
 
         // step 2: get page from buffer pool
         let mut bp = Database::mut_buffer_pool();
@@ -294,18 +294,46 @@ impl BufferPool {
 
         match pid.category {
             PageCategory::RootPointer => {
+                if !self.root_pointer_buffer.contains_key(pid) {
+                    // page not found in buffer pool, so no need to write to disk
+                    //
+                    // why there are some pages not in buffer pool?
+                    return;
+                }
+
                 self.write(&table, pid, &self.root_pointer_buffer, log_manager);
                 self.set_before_image(&pid, &self.root_pointer_buffer);
             }
             PageCategory::Header => {
+                if !self.header_buffer.contains_key(pid) {
+                    // page not found in buffer pool, so no need to write to disk
+                    //
+                    // why there are some pages not in buffer pool?
+                    return;
+                }
+
                 self.write(&table, pid, &self.header_buffer, log_manager);
                 self.set_before_image(&pid, &self.header_buffer);
             }
             PageCategory::Internal => {
+                if !self.internal_buffer.contains_key(pid) {
+                    // page not found in buffer pool, so no need to write to disk
+                    //
+                    // why there are some pages not in buffer pool?
+                    return;
+                }
+
                 self.write(&table, pid, &self.internal_buffer, log_manager);
                 self.set_before_image(&pid, &self.internal_buffer);
             }
             PageCategory::Leaf => {
+                if !self.leaf_buffer.contains_key(pid) {
+                    // page not found in buffer pool, so no need to write to disk
+                    //
+                    // why there are some pages not in buffer pool?
+                    return;
+                }
+
                 self.write(&table, pid, &self.leaf_buffer, log_manager);
                 self.set_before_image(&pid, &self.leaf_buffer);
             }
