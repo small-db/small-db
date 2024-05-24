@@ -36,13 +36,22 @@ impl BTreeTable {
         {
             let mut leaf = leaf_rc.wl();
             leaf.delete_tuple(tuple.get_slot_number());
+            Database::concurrent_status().add_relation(tx, &leaf.get_pid());
         }
         // release the leaf page
 
         if leaf_rc.rl().stable() {
             return Ok(());
         } else {
-            return self.handle_erratic_leaf_page(tx, leaf_rc);
+            // Before handling the erratic page, request the X-latch on the tree
+            let xlatch = self.tree_latch.wl();
+
+            self.handle_erratic_leaf_page(tx, leaf_rc)?;
+
+            // The handling of the erratic page is done, release the X-latch
+            drop(xlatch);
+
+            Ok(())
         }
     }
 
