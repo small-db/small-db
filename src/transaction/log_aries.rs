@@ -408,10 +408,6 @@ impl LogManager {
     /// Write an abort record to the log for the specified tid, force
     /// the log to disk, and perform a rollback
     pub fn log_abort(&mut self, tx: &Transaction, page_cache: &mut BufferPool) -> SmallResult {
-        // must have page cache lock before proceeding, since this
-        // calls rollback let cache =
-        // Unique::mut_page_cache();
-
         let original_offset = self.file.get_current_position()?;
         self.rollback(tx, page_cache)?;
         self.file.seek(SeekFrom::Start(original_offset))?;

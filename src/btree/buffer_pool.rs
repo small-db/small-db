@@ -140,12 +140,13 @@ impl BufferPool {
         // possible, since most of its operations require
         // exclusive access.
 
-        // // step 1: request lock from concurrent status
-        // //
-        // // Only acquire lock for leaf pages
-        // if key.category == PageCategory::Leaf {
-        //     Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
-        // }
+        // step 1: request lock from concurrent status
+        //
+        // Only acquire lock for leaf pages
+        if key.category == PageCategory::Leaf {
+            Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+        }
+
         if perm == Permission::ReadWrite {
             Database::concurrent_status().add_relation(tx, key);
         }

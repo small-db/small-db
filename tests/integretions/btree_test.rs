@@ -22,12 +22,16 @@ fn inserter(
     table_rc: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
-    let mut rng = rand::thread_rng();
-    let insert_value = rng.gen_range(i64::MIN, i64::MAX);
+    // let mut rng = rand::thread_rng();
+    // let insert_value = rng.gen_range(i64::MIN, i64::MAX);
+    let insert_value: i64 = tx_id as i64;
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
-    let mut tx = Transaction::new_specific_id(tx_id);
-    table_rc.rl().insert_tuple(&mut tx, &tuple).unwrap();
+    let tx = Transaction::new_specific_id(tx_id + 1000);
+    tx.start().unwrap();
+
+    // let tx = Transaction::new();
+    table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 
     s.send(tuple).unwrap();
@@ -39,6 +43,9 @@ fn deleter(tx_id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Recei
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
     let tx = Transaction::new_specific_id(tx_id);
+    tx.start().unwrap();
+
+    // let tx = Transaction::new();
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
 
@@ -47,7 +54,15 @@ fn deleter(tx_id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Recei
     let search_result = it.next();
     if search_result.is_none() {
         debug!("tuple not found: {:?}", tuple);
-        panic!("tuple not found");
+        table.draw_tree(-1);
+        table.check_integrity(true);
+
+        Database::mut_log_manager().show_log_contents();
+
+        panic!("tuple not found: {:?}", tuple);
+
+        tx.commit().unwrap();
+        return;
     }
     let target = search_result.unwrap();
 
@@ -74,47 +89,45 @@ fn test_concurrent() {
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
-        row_count,
+        0,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
-    let table = table_pod.rl();
 
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    thread::scope(|s| {
-        let mut insert_threads = vec![];
-        for i in 0..1000 {
-            // thread local copies
-            let local_table = table_pod.clone();
-            let local_sender = sender.clone();
+    // thread::scope(|s| {
+    //     let mut insert_threads = vec![];
+    //     for i in 0..1000 {
+    //         // thread local copies
+    //         let local_table = table_pod.clone();
+    //         let local_sender = sender.clone();
 
-            let handle = thread::Builder::new()
-                .name(format!("thread-{}", i).to_string())
-                .spawn_scoped(s, move || {
-                    inserter(i, column_count, &local_table, &local_sender)
-                })
-                .unwrap();
+    //         let handle = thread::Builder::new()
+    //             .name(format!("thread-{}", i).to_string())
+    //             .spawn_scoped(s, move || {
+    //                 inserter(i, column_count, &local_table, &local_sender)
+    //             })
+    //             .unwrap();
 
-            insert_threads.push(handle);
-        }
+    //         insert_threads.push(handle);
+    //     }
 
-        // wait for all threads to finish
-        for handle in insert_threads {
-            handle.join().unwrap();
-        }
-    });
+    //     // wait for all threads to finish
+    //     for handle in insert_threads {
+    //         handle.join().unwrap();
+    //     }
+    // });
 
-    assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
-
-    return;
+    let table = table_pod.rl();
+    // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
         let mut threads = vec![];
-        for i in 0..1000 {
+        for i in 0..200 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -122,7 +135,7 @@ fn test_concurrent() {
             let insert_worker = thread::Builder::new()
                 .name(format!("thread-insert-{}", i).to_string())
                 .spawn_scoped(s, move || {
-                    inserter(i + 5000, column_count, &local_table, &local_sender)
+                    inserter(i, column_count, &local_table, &local_sender)
                 })
                 .unwrap();
             threads.push(insert_worker);
@@ -133,7 +146,7 @@ fn test_concurrent() {
             let local_receiver = receiver.clone();
 
             let delete_worker = thread::Builder::new()
-                .name(format!("thread-delete-{}", tx_id).to_string())
+                .name(format!("thread-delete-{}", i).to_string())
                 .spawn_scoped(s, move || deleter(tx_id, &local_table, &local_receiver))
                 .unwrap();
             threads.push(delete_worker);

@@ -1,6 +1,6 @@
 #!/bin/bash
-#
-# Used to trace a specific test.
+
+# Trace a specific test.
 #   - Gather syscall
 #   - Generate flamegraph
 #

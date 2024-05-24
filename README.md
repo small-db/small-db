@@ -128,3 +128,9 @@ transaction of a dirty page when we flash all pages.
 
 Why do we need "flash_all" api, and when should we use it?
 TODO
+
+When there is a tree latch, do we still need the lock manager ("ConcurrentStatus")?
+Yes, since the "RWLock" is not enough to protect a leaf node from being modified by other transactions. The lock
+from the lock manager and the "RWLock" attached to the leaf node have different life time. (The life time of the lock
+from the lock manager is longer.)
+

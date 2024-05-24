@@ -61,10 +61,10 @@ pub fn new_empty_btree_table(table_name: &str, columns: usize) -> Arc<RwLock<BTr
     return table_rc;
 }
 
-/// Create a table with a given number of rows and columns.
+/// Create a table with a given number of rows and columns. All values are random i64.
 ///
-/// This API will reset the log file before returning so there will be no
-/// log records left after calling this function.
+/// This API will reset the log file before returning so there will be no log records
+/// left after calling this function.
 ///
 /// # Arguments:
 ///

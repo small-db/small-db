@@ -36,7 +36,6 @@ impl BTreeTable {
         {
             let mut leaf = leaf_rc.wl();
             leaf.delete_tuple(tuple.get_slot_number());
-            // Database::concurrent_status().add_relation(tx, &leaf.get_pid());
         }
         // release the leaf page
 

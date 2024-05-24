@@ -13,7 +13,7 @@ use crate::test_utils::{
     setup, TreeLayout,
 };
 
-fn insert_row(table: &BTreeTable, tx: &mut Transaction, key: i64) {
+fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
     let tuple = Tuple::new_int_tuples(key, 2);
     table.insert_tuple(tx, &tuple).unwrap();
 }
