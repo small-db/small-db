@@ -37,19 +37,38 @@ impl Transaction {
     pub fn commit(&self) -> SmallResult {
         let mut log_manager = &mut Database::mut_log_manager();
         let buffer_pool = &mut Database::mut_buffer_pool();
+
+        // step 1: flush all related pages to disk (with "UPDATE" log record)
         buffer_pool.flush_pages(self, &mut log_manager);
 
-        // write "COMMIT" log record
+        // step 2: write "COMMIT" log record
         log_manager.log_commit(self)?;
 
-        // Database::concurrent_status().release_lock_by_tx(self)?;
+        // step 3: remove relation between transaction and dirty pages
         Database::concurrent_status().remove_relation(self);
 
         Ok(())
     }
 
     pub fn abort(&self) -> SmallResult {
-        self.complete(false, &mut Database::mut_buffer_pool())
+        let buffer_pool = &mut Database::mut_buffer_pool();
+
+        // step 1: write abort log record and rollback transaction
+        //
+        // why this is the first step?
+        Database::mut_log_manager().log_abort(self, buffer_pool)?;
+
+        // step 2: discard all dirty pages
+        // for pid in Database::concurrent_status().get_dirty_pages(self) {
+        //     buffer_pool.discard_page(&pid);
+        // }
+        buffer_pool.tx_complete(self, false);
+
+        // step 3: remove relation between transaction and dirty pages
+        // Database::concurrent_status().remove_relation(self);
+        Database::concurrent_status().release_lock_by_tx(self)?;
+
+        Ok(())
     }
 
     fn complete(&self, commit: bool, buffer_pool: &mut BufferPool) -> SmallResult {

@@ -230,7 +230,6 @@ fn test_delete_internal_pages() {
         new_random_btree_table(2, row_count, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let table = table_rc.rl();
-    table.draw_tree(2);
     table.check_integrity(true);
 
     let root_pod = get_internal_page(&table, 0, 0);
@@ -265,7 +264,6 @@ fn test_delete_internal_pages() {
         .unwrap();
     let first_child_pod = get_internal_page(&table, 1, 0);
     let second_child_pod = get_internal_page(&table, 1, 1);
-    table.draw_tree(2);
     table.check_integrity(true);
     assert!(
         e.get_key()
@@ -282,6 +280,5 @@ fn test_delete_internal_pages() {
     // successfully and replaced the root.
     let root_pod = get_internal_page(&table, 0, 0);
     assert_eq!(0, root_pod.rl().empty_slots_count());
-    table.draw_tree(2);
     table.check_integrity(true);
 }
