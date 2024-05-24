@@ -350,6 +350,7 @@ fn test_open_commit_open_crash() {
     // T1 inserts but does not commit (data: 10, 11)
     {
         let mut tx_1 = Transaction::new();
+        debug!("tx_1 start, id: {}", tx_1.get_id());
         tx_1.start().unwrap();
         insert_row(&table_1, &mut tx_1, 10);
         // defeat NO-STEAL-based abort

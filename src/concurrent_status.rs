@@ -70,6 +70,10 @@ impl ConcurrentStatus {
             .unwrap();
     }
 
+    pub fn remove_relation(&self, tx: &Transaction) {
+        self.dirty_pages.remove(tx);
+    }
+
     pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
         return self
             .dirty_pages

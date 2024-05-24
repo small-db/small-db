@@ -277,6 +277,9 @@ impl BufferPool {
 
     /// Write all pages of the specified transaction to disk.
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
+        let pages = Database::concurrent_status().get_dirty_pages(tx);
+        debug!("flushing pages: {:?}", pages);
+
         for pid in Database::concurrent_status().get_dirty_pages(tx) {
             self.flush_page(&pid, log_manager);
         }
@@ -292,15 +295,19 @@ impl BufferPool {
         match pid.category {
             PageCategory::RootPointer => {
                 self.write(&table, pid, &self.root_pointer_buffer, log_manager);
+                self.set_before_image(&pid, &self.root_pointer_buffer);
             }
             PageCategory::Header => {
                 self.write(&table, pid, &self.header_buffer, log_manager);
+                self.set_before_image(&pid, &self.header_buffer);
             }
             PageCategory::Internal => {
                 self.write(&table, pid, &self.internal_buffer, log_manager);
+                self.set_before_image(&pid, &self.internal_buffer);
             }
             PageCategory::Leaf => {
                 self.write(&table, pid, &self.leaf_buffer, log_manager);
+                self.set_before_image(&pid, &self.leaf_buffer);
             }
         }
     }

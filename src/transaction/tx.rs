@@ -27,9 +27,7 @@ impl Transaction {
     }
 
     pub fn new_specific_id(id: u64) -> Self {
-        Self {
-            uuid: id,
-        }
+        Self { uuid: id }
     }
 
     pub fn start(&self) -> SmallResult {
@@ -44,7 +42,8 @@ impl Transaction {
         // write "COMMIT" log record
         log_manager.log_commit(self)?;
 
-        Database::concurrent_status().release_lock_by_tx(self)?;
+        // Database::concurrent_status().release_lock_by_tx(self)?;
+        Database::concurrent_status().remove_relation(self);
 
         Ok(())
     }

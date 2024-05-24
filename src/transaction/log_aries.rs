@@ -735,16 +735,6 @@ impl LogManager {
             self.reset_file()?;
         }
 
-        // if self.recovery_undecided {
-        //     self.recovery_undecided = false;
-        //     self.file
-        //         .set_len(0)
-        //         .or(Err(SmallError::new("set_len failed")))?;
-        //     self.file.seek(SeekFrom::Start(0))?;
-        //     self.file.write(&NO_CHECKPOINT)?;
-        //     self.current_offset =
-        // self.file.get_current_position()?; }
-
         return Ok(());
     }
 
