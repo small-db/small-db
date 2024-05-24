@@ -372,7 +372,13 @@ fn test_open_commit_open_crash() {
         insert_row(&table_2, &mut tx_3, 31);
     }
 
+    Database::mut_log_manager().show_log_contents();
+
     crash();
+
+    debug!("--- after crash ---");
+
+    Database::mut_log_manager().show_log_contents();
 
     let tx = Transaction::new();
     tx.start().unwrap();

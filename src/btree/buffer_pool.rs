@@ -236,9 +236,9 @@ impl BufferPool {
         }
 
         // TODO: Why we need to flush all ralated pages here?
-        self.flush_pages(tx, &mut log_manager);
+        for pid in Database::concurrent_status().get_dirty_pages(tx) {
+            self.flush_page(&pid, &mut log_manager);
 
-        for pid in self.all_keys() {
             match pid.category {
                 PageCategory::Internal => {
                     self.set_before_image(&pid, &self.internal_buffer);
@@ -316,15 +316,12 @@ impl BufferPool {
 
         if let Some(tx) = Database::concurrent_status().get_page_tx2(pid) {
             log_manager.log_update(&tx, page_pod.clone()).unwrap();
-        } else {
-            // not a dirty page, just return
+            table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
             return;
-
-            error!("no tx found for page {:?}", pid);
-            panic!();
         }
 
-        table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+        // not a dirty page, so no need to write to log or disk, just return
+        return;
     }
 
     /// Set the page content of "pid" to the specified "page", both in

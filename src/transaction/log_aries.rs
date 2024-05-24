@@ -173,6 +173,8 @@ impl LogManager {
         // crash)
         let incomplete_transactions = self.get_incomplete_transactions()?;
 
+        debug!("incomplete transactions: {:?}", incomplete_transactions);
+
         self.file.seek(SeekFrom::End(0))?;
 
         while self.file.get_current_position()? >= START_RECORD_LEN {

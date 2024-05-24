@@ -115,3 +115,9 @@ What's the best way to record dirty pages (pages that have been modified by a tr
 Since a transaction only use one thread in the current implementation, we pass dirty pages as a parameter. If we use
 multiple threads for a transaction in the future, a better approach have to be used.
 But different with repo "simple-db-hw-2022", we store dirty pages in the "transaction" context instead of using a standalone "dirty pages" parameter.
+
+Why should I record its own starting offset at the end of each log record?
+So the log manager can read the log file in reverse order.
+
+Why the log manager need to read the log file in reverse order?
+TODO
