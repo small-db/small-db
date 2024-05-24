@@ -17,7 +17,7 @@ use crate::test_utils::{
 
 // Insert one tuple into the table
 fn inserter(
-    id: u64,
+    tx_id: u64,
     column_count: usize,
     table_rc: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
@@ -26,27 +26,19 @@ fn inserter(
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
-    let start = Instant::now();
-
-    let mut tx = Transaction::new_specific_id(id);
+    let mut tx = Transaction::new_specific_id(tx_id);
     table_rc.rl().insert_tuple(&mut tx, &tuple).unwrap();
     tx.commit().unwrap();
-
-    // debug!(
-    //     "insertion succeeded, id [{}], took {:?}",
-    //     id,
-    //     start.elapsed()
-    // );
 
     s.send(tuple).unwrap();
 }
 
 // Delete a random tuple from the table
-fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
+fn deleter(tx_id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
     let tuple = r.recv().unwrap();
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
-    let mut tx = Transaction::new_specific_id(id);
+    let tx = Transaction::new_specific_id(tx_id);
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
     let target = it.next().unwrap();
@@ -58,7 +50,7 @@ fn deleter(id: u64, table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver
 #[test]
 /// Doing lots of inserts and deletes simultaneously, this test aims to test the
 /// correctness of the B+ tree implementation under concurrent environment.
-/// 
+///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
 fn test_concurrent() {
@@ -108,7 +100,7 @@ fn test_concurrent() {
 
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
-    return;
+    // return;
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
@@ -121,19 +113,19 @@ fn test_concurrent() {
             let insert_worker = thread::Builder::new()
                 .name(format!("thread-insert-{}", i).to_string())
                 .spawn_scoped(s, move || {
-                    inserter(i, column_count, &local_table, &local_sender)
+                    inserter(i + 5000, column_count, &local_table, &local_sender)
                 })
                 .unwrap();
             threads.push(insert_worker);
 
             // thread local copies
-            let local_i = i + 10000;
+            let tx_id = i + 10000;
             let local_table = table_pod.clone();
             let local_receiver = receiver.clone();
 
             let delete_worker = thread::Builder::new()
-                .name(format!("thread-delete-{}", local_i).to_string())
-                .spawn_scoped(s, move || deleter(local_i, &local_table, &local_receiver))
+                .name(format!("thread-delete-{}", tx_id).to_string())
+                .spawn_scoped(s, move || deleter(tx_id, &local_table, &local_receiver))
                 .unwrap();
             threads.push(delete_worker);
         }
@@ -143,6 +135,8 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
     });
+
+    return;
 
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
