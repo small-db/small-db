@@ -53,7 +53,6 @@ impl BTreeTable {
         if empty_slots_count == 0 {
             // Before altering the tree, request an X-latch on the tree.
             let xlatch = self.tree_latch.wl();
-            debug!("tx {} got xlatch", tx.get_id());
 
             let mut leaf_rc =
                 BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
@@ -63,7 +62,6 @@ impl BTreeTable {
 
             // The altering is done, release the X-latch on the tree.
             drop(xlatch);
-            debug!("tx {} released xlatch", tx.get_id());
         }
 
         if let Some(leaf_rc) = leaf_rc_opt {

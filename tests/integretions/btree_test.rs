@@ -32,11 +32,11 @@ fn inserter(
     table_rc.rl().insert_tuple(&mut tx, &tuple).unwrap();
     tx.commit().unwrap();
 
-    debug!(
-        "insertion succeeded, id [{}], took {:?}",
-        id,
-        start.elapsed()
-    );
+    // debug!(
+    //     "insertion succeeded, id [{}], took {:?}",
+    //     id,
+    //     start.elapsed()
+    // );
 
     s.send(tuple).unwrap();
 }
@@ -85,8 +85,7 @@ fn test_concurrent() {
 
     thread::scope(|s| {
         let mut insert_threads = vec![];
-        // for i in 0..1000 {
-        for i in 0..200 {
+        for i in 0..1000 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -107,9 +106,9 @@ fn test_concurrent() {
         }
     });
 
-    return;
-
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+
+    return;
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {

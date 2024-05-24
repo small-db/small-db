@@ -277,9 +277,6 @@ impl BufferPool {
 
     /// Write all pages of the specified transaction to disk.
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
-        let pages = Database::concurrent_status().get_dirty_pages(tx);
-        debug!("flushing pages: {:?}", pages);
-
         for pid in Database::concurrent_status().get_dirty_pages(tx) {
             self.flush_page(&pid, log_manager);
         }
