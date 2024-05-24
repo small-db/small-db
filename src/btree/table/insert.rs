@@ -66,12 +66,12 @@ impl BTreeTable {
 
         if let Some(leaf_rc) = leaf_rc_opt {
             leaf_rc.wl().insert_tuple(&tuple)?;
-            // Database::concurrent_status().add_relation(tx, &leaf_pid);
+            Database::concurrent_status().add_relation(tx, &leaf_pid);
             // tx.dirty_pages.insert(leaf_rc.rl().get_pid());
         } else {
             let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
             leaf_rc.wl().insert_tuple(&tuple)?;
-            // Database::concurrent_status().add_relation(tx, &leaf_pid);
+            Database::concurrent_status().add_relation(tx, &leaf_pid);
             // tx.dirty_pages.insert(leaf_rc.rl().get_pid());
         }
 

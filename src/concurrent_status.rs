@@ -23,7 +23,7 @@ pub enum Lock {
     SLock,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Permission {
     ReadOnly,
     ReadWrite,
