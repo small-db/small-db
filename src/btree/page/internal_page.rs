@@ -528,7 +528,7 @@ impl BTreeInternalPage {
     pub fn empty_slots_count(&self) -> usize {
         let mut count = 0;
         // start from 1 because the first key slot is not used
-        // since a node with m keys has m+1 pointers
+        // since a page with m keys has m+1 pointers
         for i in 1..self.slot_count {
             if !self.is_slot_used(i) {
                 count += 1
@@ -577,7 +577,7 @@ impl BTreeInternalPage {
         // - page category
         // - one parent pointer
         // - child page category
-        // - one extra child pointer (node with m entries has m+1 pointers to children)
+        // - one extra child pointer (page with m entries has m+1 pointers to children)
         // - header size
         // - 1 bit for extra header (for the slot 0)
         let extra_bits = (4 * INDEX_SIZE + 2) * 8 + 1;

@@ -244,14 +244,14 @@ impl BTreeTable {
     }
 
     /// Method to encapsulate the process of deleting an entry
-    /// (specifically the key and right child) from a parent node.
+    /// (specifically the key and right child) from a parent page.
     ///
     /// If the parent becomes empty (no keys remaining), that
-    /// indicates that it was the root node and should be replaced
+    /// indicates that it was the root page and should be replaced
     /// by its one remaining child.
     ///
     /// Otherwise, if it gets below minimum occupancy for non-root
-    /// internal nodes, it should steal from one of its siblings
+    /// internal pages, it should steal from one of its siblings
     /// or merge with a sibling.
     ///
     /// # Arguments

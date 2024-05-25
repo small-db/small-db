@@ -45,16 +45,16 @@ pub enum SearchFor {
 /// # B+ Tree
 ///
 /// This is a traditional B+ tree implementation. It only stores the data in
-/// the leaf nodes.
+/// the leaf pages.
 ///
 /// ## Latching Strategy
 ///
-/// A tree latch protects all non-leaf nodes in the tree. Eacho node of the
+/// A tree latch protects all non-leaf pages in the tree. Eacho page of the
 /// tree also has a latch of its own.
 ///
 /// A B-tree operation normally first acquires an S-latch on the tree. It
 /// searches down the tree and releases the tree latch when it has the
-/// leaf node latch.
+/// leaf page latch.
 pub struct BTreeTable {
     pub tree_latch: RwLock<()>,
 
@@ -282,9 +282,9 @@ impl BTreeTable {
 
     /// Recursive function which finds and locks the leaf page in
     /// the B+ tree corresponding to the left-most page possibly
-    /// containing the key field f. It locks all internal nodes
-    /// along the path to the leaf node with READ_ONLY permission,
-    /// and locks the leaf node with permission perm.
+    /// containing the key field f. It locks all internal pages
+    /// along the path to the leaf page with READ_ONLY permission,
+    /// and locks the leaf page with permission perm.
     ///
     /// # Arguments
     ///
@@ -295,8 +295,8 @@ impl BTreeTable {
     ///
     /// # Return
     ///
-    /// The left-most leaf node which match the search condition. When the search condition is a
-    /// specific value, the scope of this node covers this value.
+    /// The left-most leaf page which match the search condition. When the search condition is a
+    /// specific value, the scope of this page covers this value.
     pub fn find_leaf_page(
         &self,
         tx: &Transaction,

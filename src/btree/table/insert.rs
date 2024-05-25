@@ -85,7 +85,7 @@ impl BTreeTable {
     }
 
     /// Split a leaf page to make room for new tuples and
-    /// recursively split the parent node as needed to
+    /// recursively split the parent page as needed to
     /// accommodate a new entry. The new entry should have
     /// a key matching the key field of the first tuple in
     /// the right-hand page (the key is "copied up"), and
@@ -230,7 +230,7 @@ impl BTreeTable {
         parent_id: BTreePageID,
         field: &Cell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
-        // create a parent node if necessary
+        // create a parent page if necessary
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {

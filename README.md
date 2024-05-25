@@ -87,7 +87,7 @@ Run a specific test and store the output to file "out". Log level is "debug".
 ### The simplified version of the B+ tree latch strategy
 
 - no tree latch
-- when accessing a node (either leaf or internal), all ancestor nodes of the node must be latched (why? if not latched, two directions of tree-traversal may happen at the same time, and lead to a deadlock)
+- when accessing a page (either leaf or internal), all ancestor pages of the page must be latched (why? if not latched, two directions of tree-traversal may happen at the same time, and lead to a deadlock)
 
 ### The imitate-mysql version of the B+ tree latch strategy
 
@@ -130,14 +130,14 @@ Why do we need "flash_all" api, and when should we use it?
 TODO
 
 When there is a tree latch, do we still need the lock manager ("ConcurrentStatus")?
-Yes, since the "RWLock" is not enough to protect a leaf node from being modified by other transactions. The lock
-from the lock manager and the "RWLock" attached to the leaf node have different life time. (The life time of the lock
+Yes, since the "RWLock" is not enough to protect a leaf page from being modified by other transactions. The lock
+from the lock manager and the "RWLock" attached to the leaf page have different life time. (The life time of the lock
 from the lock manager is longer.)
 
 Define "before image" precisely.
-The "before image" is the content of a node before the transaction accesses it.
+The "before image" is the content of a page before the transaction accesses it.
 (Note it's not the content before the transaction starts, since other transactions may commit after
-the transaction starts but before the transaction accesses the node, and these changes are "durable".)
+the transaction starts but before the transaction accesses the page, and these changes are "durable".)
 
 Define "after image" precisely.
 TODO
@@ -147,3 +147,8 @@ TODO
 
 What's the transaction isolation level of the current implementation?
 TODO
+
+When comes to the relationship between the transaction and the pages, why there are too fields ("hold_pages"
+and "dirty_pages")?
+"hold_pages" records all leaf pages that locked by the transaction, and "dirty_pages" records all
+pages that have been modified by the transaction. (In the current implementation, "hold_pages" is a subset of "dirty_pages".)

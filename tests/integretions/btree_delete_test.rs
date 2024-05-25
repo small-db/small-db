@@ -61,7 +61,7 @@ fn test_merge_leaf_pages() {
     );
     let table = table_rc.rl();
 
-    // there should be one internal node and 3 leaf nodes
+    // there should be one internal page and 3 leaf pages
     assert_true(table.pages_count() == 4, &table);
 
     // delete the last two tuples
@@ -91,7 +91,7 @@ fn test_delete_root_page() {
     let table = table_rc.rl();
     table.draw_tree(-1);
     table.check_integrity(true);
-    // there should be one internal node and 2 leaf nodes
+    // there should be one internal page and 2 leaf pages
     assert_eq!(3, table.pages_count());
 
     // delete the first two tuples
@@ -107,7 +107,7 @@ fn test_delete_root_page() {
 fn test_reuse_deleted_pages() {
     setup();
 
-    // This should create a B+ tree with 3 leaf nodes.
+    // This should create a B+ tree with 3 leaf pages.
     let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 3,
@@ -144,10 +144,10 @@ fn test_redistribute_internal_pages() {
     setup();
 
     // Create a B+ tree with:
-    // - 1st level: a root internal node
-    // - 2nd level: 2 internal nodes
-    // - 3rd level: (internal_cap / 2 + 50) leaf nodes for each parent
-    // - tuples: all leaf nodes are packed
+    // - 1st level: a root internal page
+    // - 2nd level: 2 internal pages
+    // - 3rd level: (internal_cap / 2 + 50) leaf pages for each parent
+    // - tuples: all leaf pages are packed
     let table_rc = new_random_btree_table(
         2,
         2 * (internal_children_cap() / 2 + 50) * leaf_records_cap(),
@@ -223,7 +223,7 @@ fn test_delete_internal_pages() {
 
     setup();
 
-    // Create a B+ tree with 3 nodes in the first tier; the second and
+    // Create a B+ tree with 3 pages in the first tier; the second and
     // the third tier are packed.
     let row_count = 3 * internal_children_cap() * leaf_records_cap();
     let table_rc =
