@@ -259,11 +259,6 @@ fn test_commit_crash() {
 }
 
 #[test]
-/// Skip this test since it's designed to test the heap-file
-/// implementation.
-fn test_flush_all() {}
-
-#[test]
 fn test_open_commit_checkpoint_open_crash() {
     setup();
 
