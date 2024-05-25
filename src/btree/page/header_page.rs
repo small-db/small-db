@@ -130,8 +130,4 @@ impl BTreePage for BTreeHeaderPage {
         }
         return self.old_data.clone();
     }
-
-    fn peek(&self) {
-        debug!("header page: {:?}", self.get_pid())
-    }
 }

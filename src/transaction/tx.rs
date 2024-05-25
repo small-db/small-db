@@ -47,7 +47,7 @@ impl Transaction {
         // step 3: remove relation between transaction and dirty pages
         Database::concurrent_status().remove_relation(self);
 
-        // step 4: release (transaction level) locks
+        // step 4: release latch on dirty pages
         Database::concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())

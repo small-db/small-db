@@ -29,6 +29,4 @@ pub trait BTreePage {
     /// Provide a representation of this page before any modifications
     /// were made to it. Used by recovery.
     fn get_before_image(&self) -> Vec<u8>;
-
-    fn peek(&self);
 }

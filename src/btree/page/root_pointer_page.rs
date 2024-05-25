@@ -158,12 +158,4 @@ impl BTreePage for BTreeRootPointerPage {
         }
         return self.old_data.clone();
     }
-
-    fn peek(&self) {
-        debug!("BTreeRootPointerPage {{");
-        debug!("  pid: {:?}", self.get_pid());
-        debug!("  root_pid: {:?}", self.root_pid);
-        debug!("  header_page_index: {}", self.header_page_index);
-        debug!("}}");
-    }
 }

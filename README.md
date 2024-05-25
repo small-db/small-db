@@ -134,3 +134,16 @@ Yes, since the "RWLock" is not enough to protect a leaf node from being modified
 from the lock manager and the "RWLock" attached to the leaf node have different life time. (The life time of the lock
 from the lock manager is longer.)
 
+Define "before image" precisely.
+The "before image" is the content of a node before the transaction accesses it.
+(Note it's not the content before the transaction starts, since other transactions may commit after
+the transaction starts but before the transaction accesses the node, and these changes are "durable".)
+
+Define "after image" precisely.
+TODO
+
+What's the transaction isolation strategy of the current implementation?
+TODO
+
+What's the transaction isolation level of the current implementation?
+TODO

@@ -68,6 +68,12 @@ impl BTreeTable {
             leaf_rc.wl().insert_tuple(&tuple)?;
             // Database::concurrent_status().add_relation(tx, &leaf_pid);
             // tx.dirty_pages.insert(leaf_rc.rl().get_pid());
+
+            debug!(
+                "tx: {}, after insert: {:?}",
+                tx,
+                leaf_rc.rl().get_page_data(),
+            );
         } else {
             let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
             leaf_rc.wl().insert_tuple(&tuple)?;

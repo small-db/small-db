@@ -888,7 +888,7 @@ impl LogManager {
         self.file.seek(SeekFrom::Start(original_offset)).unwrap();
     }
 
-    fn parsed_page_content(&self, bytes: &[u8], pid: &BTreePageID) -> String {
+    pub fn parsed_page_content(&self, bytes: &[u8], pid: &BTreePageID) -> String {
         let page_category = PageCategory::decode_from(&mut Cursor::new(bytes));
 
         match page_category {
@@ -901,7 +901,7 @@ impl LogManager {
                 let page = BTreeLeafPage::new(&pid, bytes, &schema);
                 let iter = page.iter();
                 let content = iter
-                    .take(5)
+                    .take(15)
                     .map(|x| x.get_cell(0).to_bytes())
                     .collect::<Vec<_>>();
 

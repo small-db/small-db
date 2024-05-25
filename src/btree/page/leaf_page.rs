@@ -10,7 +10,7 @@ use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
-    io::{read_into, SmallWriter},
+    io::{read_into, Encodeable, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
@@ -443,15 +443,6 @@ impl BTreePage for BTreeLeafPage {
             panic!("before image is not set");
         }
         return self.old_data.clone();
-    }
-
-    fn peek(&self) {
-        println!("page id: {:?}", self.get_pid());
-        println!("parent id: {:?}", self.get_parent_pid());
-        println!("left sibling id: {:?}", self.left_sibling_id);
-        println!("right sibling id: {:?}", self.right_sibling_id);
-        println!("header: {:?}", self.header);
-        println!("tuples: {:?}", self.tuples);
     }
 }
 

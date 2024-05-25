@@ -74,8 +74,4 @@ impl BTreePage for BTreeBasePage {
     fn get_before_image(&self) -> Vec<u8> {
         unimplemented!()
     }
-
-    fn peek(&self) {
-        unimplemented!()
-    }
 }

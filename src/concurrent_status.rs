@@ -148,8 +148,11 @@ impl ConcurrentStatus {
     ) -> Result<bool, SmallError> {
         let _guard = self.modification_lock.lock().unwrap();
 
-        if !self.x_lock_map.exact_or_empty(page_id, tx) {
-            return Ok(false);
+        // If the page hold by another transaction with X-Latch, return false (failed to add lock)
+        if let Some(v) = self.x_lock_map.get_inner_rl().get(page_id) {
+            if v != tx {
+                return Ok(false);
+            }
         }
 
         match lock {
@@ -160,6 +163,15 @@ impl ConcurrentStatus {
                 })?;
             }
             Lock::XLock => {
+                // If the page hold by another transaction with S-Latch, return false (failed to add lock)
+                if let Some(v) = self.s_lock_map.get_inner_rl().get(page_id) {
+                    for tx in v {
+                        if tx != tx {
+                            return Ok(false);
+                        }
+                    }
+                }
+
                 self.x_lock_map
                     .get_inner()
                     .wl()
@@ -172,7 +184,7 @@ impl ConcurrentStatus {
             Ok(())
         })?;
 
-        return Ok(true);
+        return Ok((true));
     }
 
     pub fn release_lock_by_tx(&self, tx: &Transaction) -> SmallResult {

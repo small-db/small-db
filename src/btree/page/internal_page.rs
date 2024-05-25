@@ -643,15 +643,6 @@ impl BTreePage for BTreeInternalPage {
         }
         return self.old_data.clone();
     }
-
-    fn peek(&self) {
-        debug!("======start=======");
-        println!("Internal page: {}", self.get_pid());
-        println!("Parent: {}", self.get_parent_pid());
-        println!("slots count: {}", self.slot_count);
-        println!("entries count: {}", self.entries_count());
-        println!("children category: {:?}", self.children_category);
-    }
 }
 
 // All of the entries or tuples in the left child page should be less
