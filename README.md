@@ -152,3 +152,7 @@ When comes to the relationship between the transaction and the pages, why there 
 and "dirty_pages")?
 "hold_pages" records all leaf pages that locked by the transaction, and "dirty_pages" records all
 pages that have been modified by the transaction. (In the current implementation, "hold_pages" is a subset of "dirty_pages".)
+
+(In InnoDB latch approach) What happens if a inner page is modified by another transaction, after the X-Latch
+is released by the current transaction?
+TODO
