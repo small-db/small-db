@@ -29,7 +29,7 @@ pub struct Database {
 
     buffer_pool: Pod<BufferPool>,
     catalog: Pod<Catalog>,
-    concurrent_status: ConcurrentStatus,
+    concurrent_status: Pod<ConcurrentStatus>,
     log_file: Pod<LogManager>,
 }
 
@@ -49,7 +49,7 @@ impl Database {
             path: db_path,
 
             buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
-            concurrent_status: ConcurrentStatus::new(),
+            concurrent_status: Arc::new(RwLock::new(ConcurrentStatus::new())),
             catalog: Arc::new(RwLock::new(Catalog::new())),
             log_file: Arc::new(RwLock::new(LogManager::new(log_path))),
         };
@@ -88,8 +88,12 @@ impl Database {
         Self::global().buffer_pool.wl()
     }
 
-    pub fn concurrent_status() -> &'static ConcurrentStatus {
-        &Self::global().concurrent_status
+    pub fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
+        Self::global().concurrent_status.rl()
+    }
+
+    pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus> {
+        Self::global().concurrent_status.wl()
     }
 
     pub fn catalog() -> RwLockReadGuard<'static, Catalog> {

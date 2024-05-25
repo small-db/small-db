@@ -503,7 +503,7 @@ impl BTreeTable {
     ///     - ...
     ///     - -1: print all pages
     pub fn draw_tree(&self, max_level: i64) {
-        Database::concurrent_status().clear();
+        Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();
         tx.start().unwrap();
@@ -665,7 +665,7 @@ impl BTreeTable {
     /// TODO: remove argument `check_occupancy` and always check
     /// occupancy.
     pub fn check_integrity(&self, check_occupancy: bool) {
-        Database::concurrent_status().clear();
+        Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();
         tx.start().unwrap();

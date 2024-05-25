@@ -45,10 +45,10 @@ impl Transaction {
         log_manager.log_commit(self)?;
 
         // step 3: remove relation between transaction and dirty pages
-        Database::concurrent_status().remove_relation(self);
+        Database::mut_concurrent_status().remove_relation(self);
 
         // step 4: release latch on dirty pages
-        Database::concurrent_status().release_lock_by_tx(self)?;
+        Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ impl Transaction {
 
         // step 3: remove relation between transaction and dirty pages
         // Database::concurrent_status().remove_relation(self);
-        Database::concurrent_status().release_lock_by_tx(self)?;
+        Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
     }
@@ -91,7 +91,7 @@ impl Transaction {
             Database::mut_log_manager().log_commit(self)?;
         }
 
-        Database::concurrent_status().release_lock_by_tx(self)?;
+        Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
     }

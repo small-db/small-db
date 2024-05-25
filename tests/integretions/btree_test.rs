@@ -89,41 +89,46 @@ fn test_concurrent() {
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
-        0,
+        // 0,
+        row_count,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
     );
 
+    let table = table_pod.rl();
+
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    // thread::scope(|s| {
-    //     let mut insert_threads = vec![];
-    //     for i in 0..1000 {
-    //         // thread local copies
-    //         let local_table = table_pod.clone();
-    //         let local_sender = sender.clone();
-
-    //         let handle = thread::Builder::new()
-    //             .name(format!("thread-{}", i).to_string())
-    //             .spawn_scoped(s, move || {
-    //                 inserter(i, column_count, &local_table, &local_sender)
-    //             })
-    //             .unwrap();
-
-    //         insert_threads.push(handle);
-    //     }
-
-    //     // wait for all threads to finish
-    //     for handle in insert_threads {
-    //         handle.join().unwrap();
-    //     }
-    // });
-
     return;
 
-    let table = table_pod.rl();
+    thread::scope(|s| {
+        let mut insert_threads = vec![];
+        for i in 0..1000 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_sender = sender.clone();
+
+            let handle = thread::Builder::new()
+                .name(format!("thread-{}", i).to_string())
+                .spawn_scoped(s, move || {
+                    inserter(i, column_count, &local_table, &local_sender)
+                })
+                .unwrap();
+
+            insert_threads.push(handle);
+        }
+
+        // wait for all threads to finish
+        for handle in insert_threads {
+            handle.join().unwrap();
+        }
+    });
+
+    assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+    return;
+
     // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
 
     // now insert and delete tuples at the same time

@@ -15,7 +15,7 @@ use super::page::{
     BTreeRootPointerPage, PageCategory,
 };
 use crate::{
-    concurrent_status::Permission,
+    concurrent_status::{ConcurrentStatus, Permission},
     error::SmallError,
     transaction::{LogManager, Transaction},
     types::ResultPod,
@@ -144,11 +144,11 @@ impl BufferPool {
         //
         // Only acquire lock for leaf pages
         if key.category == PageCategory::Leaf {
-            Database::concurrent_status().request_lock(tx, &perm.to_lock(), key)?;
+            ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
         }
 
         if perm == Permission::ReadWrite {
-            Database::concurrent_status().add_relation(tx, key);
+            Database::mut_concurrent_status().add_relation(tx, key);
         }
 
         // step 2: get page from buffer pool
