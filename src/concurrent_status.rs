@@ -171,7 +171,7 @@ impl ConcurrentStatus {
         }
 
         self.hold_pages.get_mut(tx).unwrap().insert(page_id.clone());
-        return Ok((true));
+        return Ok(true);
     }
 
     pub fn release_lock_by_tx(&mut self, tx: &Transaction) -> SmallResult {
