@@ -146,7 +146,7 @@ What's the transaction isolation strategy of the current implementation?
 TODO
 
 What's the transaction isolation level of the current implementation?
-TODO
+It's "READ UNCOMMITTED", which means a transaction can read the uncommitted data of other transactions.
 
 When comes to the relationship between the transaction and the pages, why there are too fields ("hold_pages"
 and "dirty_pages")?

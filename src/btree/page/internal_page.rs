@@ -488,15 +488,15 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
-            let e = SmallError::new(&format!(
+            let err = SmallError::new(&format!(
                 "No slot found for entry {}, pid: {}, entries count: {}",
                 e,
                 self.get_pid(),
                 self.entries_count()
             ));
-            error!("{}", e);
+            error!("{}", err);
             // panic!("{}", e);
-            return Err(e);
+            return Err(err);
         }
 
         // shift entries back or forward to fill empty slot and make

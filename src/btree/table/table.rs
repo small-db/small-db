@@ -56,7 +56,7 @@ pub enum SearchFor {
 /// searches down the tree and releases the tree latch when it has the
 /// leaf page latch.
 pub struct BTreeTable {
-    pub tree_latch: RwLock<()>,
+    pub(super) tree_latch: RwLock<()>,
 
     pub name: String,
 

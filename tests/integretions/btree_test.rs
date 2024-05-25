@@ -83,8 +83,8 @@ fn test_concurrent() {
 
     setup();
 
-    // Create a B+ tree with 2 pages in the first tier; the second and
-    // the third tier are packed. (Which means the page spliting is imminent)
+    // Create a B+ tree with 2 pages in the first tier; the second and the third
+    // tier are packed. (Which means the page spliting is imminent)
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
     let table_pod = new_random_btree_table(
@@ -101,11 +101,9 @@ fn test_concurrent() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    return;
-
     thread::scope(|s| {
         let mut insert_threads = vec![];
-        for i in 0..1000 {
+        for i in 0..3000 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
