@@ -1,7 +1,5 @@
 use std::io::Cursor;
 
-use log::debug;
-
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::buffer_pool::BufferPool,

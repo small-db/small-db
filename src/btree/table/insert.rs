@@ -1,29 +1,25 @@
 use std::{
-    ops::DerefMut,
     sync::{atomic::Ordering, Arc, RwLock},
     usize,
 };
 
-use log::debug;
-
+use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
-            BTreeLeafPageIterator, BTreePage, BTreePageID, Entry, PageCategory,
+            BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage, BTreeLeafPageIterator,
+            BTreePage, BTreePageID, Entry, PageCategory,
         },
     },
     concurrent_status::Permission,
     error::SmallError,
-    storage::tuple::{Cell, Tuple, WrappedTuple},
+    storage::tuple::{Cell, Tuple},
     transaction::Transaction,
-    types::{ResultPod, SmallResult},
+    types::ResultPod,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable,
 };
-
-use super::SearchFor;
 
 // insert-related functions
 impl BTreeTable {

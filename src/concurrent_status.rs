@@ -1,7 +1,6 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
-    sync::{Arc, Mutex},
     thread::sleep,
     time::Instant,
 };
@@ -10,7 +9,7 @@ use log::error;
 
 use crate::{
     btree::page::BTreePageID, error::SmallError, transaction::Transaction, types::SmallResult,
-    utils::HandyRwLock, Database,
+    Database,
 };
 
 #[derive(Debug)]
@@ -137,7 +136,8 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<bool, SmallError> {
-        // If the page hold by another transaction with X-Latch, return false (failed to add lock)
+        // If the page hold by another transaction with X-Latch, return false (failed to
+        // add lock)
         if let Some(v) = self.x_lock_map.get(page_id) {
             if v != tx {
                 return Ok(false);
@@ -153,7 +153,8 @@ impl ConcurrentStatus {
                 self.s_lock_map.get_mut(page_id).unwrap().insert(tx.clone());
             }
             Lock::XLock => {
-                // If the page hold by another transaction with S-Latch, return false (failed to add lock)
+                // If the page hold by another transaction with S-Latch, return false (failed to
+                // add lock)
                 if let Some(v) = self.s_lock_map.get(page_id) {
                     for tx in v {
                         if tx != tx {

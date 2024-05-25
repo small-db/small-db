@@ -344,10 +344,10 @@ impl BTreeTable {
 
     /// Balancing two internal pages according the situation:
     ///
-    /// 1.  Merge the two pages if the count of entries in the two
+    /// 1. Merge the two pages if the count of entries in the two
     /// pages is less than the maximum capacity of a single page.
     ///
-    /// 2.  Otherwise, steal entries from the sibling and copy them to
+    /// 2. Otherwise, steal entries from the sibling and copy them to
     /// the given page so that both pages are at least half full.
     ///
     /// Keys can be thought of as rotating through the parent entry,

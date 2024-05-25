@@ -1,9 +1,6 @@
 use std::convert::TryInto;
 
-use crate::{
-    io::{read_exact, Decodeable, Encodeable, SmallWriter},
-    storage::tuple::Cell,
-};
+use crate::io::{read_exact, Decodeable, Encodeable, SmallWriter};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {

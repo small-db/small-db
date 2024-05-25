@@ -25,13 +25,11 @@ use crate::{
         },
     },
     concurrent_status::Permission,
-    error::SmallError,
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
     transaction::Transaction,
-    types::ResultPod,
     utils::{lock_state, HandyRwLock},
     Database,
 };
@@ -295,8 +293,9 @@ impl BTreeTable {
     ///
     /// # Return
     ///
-    /// The left-most leaf page which match the search condition. When the search condition is a
-    /// specific value, the scope of this page covers this value.
+    /// The left-most leaf page which match the search condition. When the
+    /// search condition is a specific value, the scope of this page covers
+    /// this value.
     pub fn find_leaf_page(
         &self,
         tx: &Transaction,

@@ -8,8 +8,7 @@ use std::{
 
 use log::debug;
 
-use super::Transaction;
-use super::TransactionID;
+use super::{Transaction, TransactionID};
 use crate::{
     btree::{
         buffer_pool::BufferPool,

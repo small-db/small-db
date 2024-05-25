@@ -1,7 +1,6 @@
 use std::io::Cursor;
 
 use bit_vec::BitVec;
-use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{

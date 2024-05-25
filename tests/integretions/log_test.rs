@@ -1,5 +1,4 @@
 use log::debug;
-use pgwire::messages::data;
 use small_db::{
     btree::page::BTreePage,
     storage::tuple::{Cell, Tuple},

@@ -1,14 +1,7 @@
 use core::fmt;
-use std::{
-    collections::HashSet,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::{
-    btree::{buffer_pool::BufferPool, page::BTreePageID},
-    types::SmallResult,
-    Database,
-};
+use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 

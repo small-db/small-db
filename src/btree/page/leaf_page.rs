@@ -10,7 +10,7 @@ use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
-    io::{read_into, Encodeable, SmallWriter},
+    io::{read_into, SmallWriter},
     storage::{
         schema::Schema,
         tuple::{Cell, Tuple, WrappedTuple},
