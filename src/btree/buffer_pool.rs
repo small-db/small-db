@@ -229,39 +229,6 @@ impl BufferPool {
         PAGE_SIZE.load(Ordering::Relaxed)
     }
 
-    pub fn tx_complete(&mut self, tx: &Transaction, commit: bool) {
-        let mut log_manager = Database::mut_log_manager();
-
-        if !commit {
-            for pid in self.all_keys() {
-                if Database::concurrent_status().holds_lock(tx, &pid) {
-                    self.discard_page(&pid);
-                }
-            }
-            return;
-        }
-
-        // TODO: Why we need to flush all ralated pages here?
-        for pid in Database::concurrent_status().get_dirty_pages(tx) {
-            self.flush_page(&pid, &mut log_manager);
-
-            match pid.category {
-                PageCategory::Internal => {
-                    self.set_before_image(&pid, &self.internal_buffer);
-                }
-                PageCategory::Leaf => {
-                    self.set_before_image(&pid, &self.leaf_buffer);
-                }
-                PageCategory::RootPointer => {
-                    self.set_before_image(&pid, &self.root_pointer_buffer);
-                }
-                PageCategory::Header => {
-                    self.set_before_image(&pid, &self.header_buffer);
-                }
-            }
-        }
-    }
-
     fn set_before_image<PAGE: BTreePage>(
         &self,
         pid: &BTreePageID,

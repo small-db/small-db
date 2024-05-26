@@ -79,28 +79,6 @@ impl Transaction {
         Ok(())
     }
 
-    fn complete(&self, commit: bool, buffer_pool: &mut BufferPool) -> SmallResult {
-        // write abort log record and rollback transaction
-        if !commit {
-            // does rollback too
-            Database::mut_log_manager().log_abort(self, buffer_pool)?;
-        }
-
-        // Release locks and flush pages if needed
-        //
-        // release locks
-        buffer_pool.tx_complete(self, commit);
-
-        // write commit log record
-        if commit {
-            Database::mut_log_manager().log_commit(self)?;
-        }
-
-        Database::mut_concurrent_status().release_lock_by_tx(self)?;
-
-        Ok(())
-    }
-
     pub fn get_id(&self) -> u64 {
         self.uuid
     }
