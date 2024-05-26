@@ -9,7 +9,12 @@ A small database.
 
 ## Features
 
-### Status
+### Two Types of Latch Strategies
+
+- Page-level latch strategy (each page has its own latch).
+- Tree latch strategy (all non-leaf pages are protected by a single latch).
+
+## Status
 
 - [ ] Index (B+ tree)
   - [x] clustered index (InnoDB flavor, index organized tables) (<https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html>)
