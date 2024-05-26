@@ -37,16 +37,12 @@ impl Transaction {
         // step 2: write "COMMIT" log record
         log_manager.log_commit(self)?;
 
-        // step 3: remove relation between transaction and dirty pages
+        // step 3: release latch on dirty pages
         //
         // (this is a memory operation, hence can be put after the "COMMIT" record is written)
         if cfg!(feature = "tree_latch") {
             Database::mut_concurrent_status().remove_relation(self);
         }
-
-        // step 4: release latch on dirty pages
-        //
-        // (this is a memory operation, hence can be put after the "COMMIT" record is written)
         Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
@@ -75,6 +71,9 @@ impl Transaction {
         //
         // (this operation should be put after the step 2, since the step 2 accesses these
         // dirty pages)
+        if cfg!(feature = "tree_latch") {
+            Database::mut_concurrent_status().remove_relation(self);
+        }
         Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())
