@@ -51,7 +51,10 @@ impl ConcurrentStatus {
             dirty_pages: HashMap::new(),
         }
     }
+}
 
+#[cfg(feature = "tree_latch")]
+impl ConcurrentStatus {
     pub fn add_relation(&mut self, tx: &Transaction, page_id: &BTreePageID) {
         if !self.dirty_pages.contains_key(tx) {
             self.dirty_pages.insert(tx.clone(), HashSet::new());
@@ -70,7 +73,9 @@ impl ConcurrentStatus {
     pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
         return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
     }
+}
 
+impl ConcurrentStatus {
     /// Request a lock on the given page. This api is blocking.
     pub fn request_lock(
         tx: &Transaction,
