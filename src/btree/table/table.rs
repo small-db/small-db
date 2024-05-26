@@ -307,7 +307,7 @@ impl BTreeTable {
         BufferPool::get_leaf_page(tx, perm, &target_page_id).unwrap()
     }
 
-    pub fn find_leaf_page2(
+    fn find_leaf_page2(
         &self,
         tx: &Transaction,
         page_id: BTreePageID,

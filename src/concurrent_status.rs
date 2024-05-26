@@ -5,7 +5,7 @@ use std::{
     time::Instant,
 };
 
-use log::error;
+use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID, error::SmallError, transaction::Transaction, types::SmallResult,
@@ -210,19 +210,21 @@ impl ConcurrentStatus {
         return false;
     }
 
-    #[cfg(latch_strategy = "page_level_latch")]
+    #[cfg(any(feature = "tree_latch", feature = "page_level_latch"))]
     pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
-        if let Some(v) = self.x_lock_map.get(page_id) {
-            return Some(v.clone());
-        }
-
-        return None;
-    }
-
-    pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
-        for (tx, pages) in self.dirty_pages.iter() {
-            if pages.contains(page_id) {
-                return Some(tx.clone());
+        if cfg!(feature = "tree_latch") {
+            // For the "tree_latch" strategy, we need to check the dirty_pages map, since
+            // the "x_lock_map" only contains leaf pages.
+            for (tx, pages) in self.dirty_pages.iter() {
+                if pages.contains(page_id) {
+                    return Some(tx.clone());
+                }
+            }
+        } else if cfg!(feature = "page_level_latch") {
+            // For the "page_level_latch" strategy, the "x_lock_map" contains all pages, so we
+            // can get the result directly.
+            if let Some(v) = self.x_lock_map.get(page_id) {
+                return Some(v.clone());
             }
         }
 

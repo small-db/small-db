@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::Ordering, Arc, RwLock},
+    sync::{atomic::Ordering, Arc, RwLock, RwLockWriteGuard},
     usize,
 };
 
@@ -34,25 +34,27 @@ impl BTreeTable {
         // is because when we need to modify the structure of the tree (e.g.
         // split a leaf page), we need the X-latch on the tree, and their is no
         // way to upgrade the latch from S to X without gap.
-        let xlatch = self.tree_latch.wl();
+        let x_latch = self.tree_latch.wl();
 
         let root_pid = self.get_root_pid(tx);
 
         // Find and lock the left-most leaf page corresponding to the key field.
         let field = tuple.get_cell(self.key_field);
-        let leaf_pid = self.find_leaf_page2(tx, root_pid, &SearchFor::Target(field));
+        let mut leaf_rc = self.find_leaf_page(
+            tx,
+            Permission::ReadWrite,
+            root_pid,
+            &SearchFor::Target(field),
+        );
 
-        let mut leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
-        let empty_slots_count = leaf_rc.rl().empty_slots_count();
-
-        if empty_slots_count == 0 {
+        if leaf_rc.rl().empty_slots_count() == 0 {
             // Split the leaf page if there are no more slots available.
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
         }
 
         // Until now, we don't have to modify the structure of the tree, just release
         // the X-latch.
-        drop(xlatch);
+        drop(x_latch);
 
         // Insert the tuple into the leaf page.
         leaf_rc.wl().insert_tuple(&tuple)?;
