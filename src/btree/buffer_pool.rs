@@ -139,14 +139,18 @@ impl BufferPool {
         // exclusive access.
 
         // step 1: request lock from concurrent status
-        //
-        // Only acquire lock for leaf pages
-        if key.category == PageCategory::Leaf {
-            ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
-        }
+        if cfg!(feature = "tree_latch") {
+            // For tree-latch mode, we only acquire lock for leaf pages.
+            if key.category == PageCategory::Leaf {
+                ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
+            }
 
-        if perm == Permission::ReadWrite {
-            Database::mut_concurrent_status().add_relation(tx, key);
+            // Why?
+            if perm == Permission::ReadWrite {
+                Database::mut_concurrent_status().add_relation(tx, key);
+            }
+        } else if cfg!(feature = "page_latch") {
+            ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
         }
 
         // step 2: get page from buffer pool

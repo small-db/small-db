@@ -210,7 +210,7 @@ impl ConcurrentStatus {
         return false;
     }
 
-    #[cfg(any(feature = "tree_latch", feature = "page_level_latch"))]
+    #[cfg(any(feature = "tree_latch", feature = "page_latch"))]
     pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
         if cfg!(feature = "tree_latch") {
             // For the "tree_latch" strategy, we need to check the dirty_pages map, since
@@ -220,8 +220,8 @@ impl ConcurrentStatus {
                     return Some(tx.clone());
                 }
             }
-        } else if cfg!(feature = "page_level_latch") {
-            // For the "page_level_latch" strategy, the "x_lock_map" contains all pages, so we
+        } else if cfg!(feature = "page_latch") {
+            // For the "page_latch" strategy, the "x_lock_map" contains all pages, so we
             // can get the result directly.
             if let Some(v) = self.x_lock_map.get(page_id) {
                 return Some(v.clone());

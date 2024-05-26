@@ -11,8 +11,8 @@ A small database.
 
 ### Two Types of Latch Strategies
 
-- Page-level latch strategy (each page has its own latch).
-- Tree latch strategy (all non-leaf pages are protected by a single latch).
+- **page-latch** strategy (each page has its own latch)
+- **tree-latch** strategy (each leaf page has its own latch, and all other pages are protected by a tree latch)
 
 ## Status
 
