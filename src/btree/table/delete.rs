@@ -215,7 +215,7 @@ impl BTreeTable {
             let mut it = BTreeLeafPageIterator::new(&right);
             let mut deleted = Vec::new();
             for t in it.by_ref() {
-                left.insert_tuple(&t);
+                left.insert_tuple(&t)?;
                 deleted.push(t.get_slot_number());
             }
             for slot in deleted {
@@ -559,7 +559,7 @@ impl BTreeTable {
                 let iter = BTreeLeafPageIterator::new(&right);
                 let mut deleted_indexes = Vec::new();
                 for tuple in iter.take(move_count) {
-                    left.insert_tuple(&tuple);
+                    left.insert_tuple(&tuple)?;
                     deleted_indexes.push(tuple.get_slot_number());
                     key = tuple.get_cell(self.key_field);
                 }
