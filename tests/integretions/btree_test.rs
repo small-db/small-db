@@ -134,42 +134,39 @@ fn test_concurrent() {
     {
         let page_count_marker = table_pod.rl().pages_count();
 
-        // now delete a bunch of tuples
-        thread::scope(|s| {
-            let mut threads = vec![];
-            for _ in 0..10 {
-                // thread local copies
-                let local_table = table_pod.clone();
-                let local_receiver = receiver.clone();
+        // delete a bunch of tuples
+        let mut threads = vec![];
+        for _ in 0..10 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_receiver = receiver.clone();
 
-                let handle = s.spawn(move || deleter(&local_table, &local_receiver));
-                threads.push(handle);
-            }
+            let handle = thread::spawn(move || deleter(&local_table, &local_receiver));
+            threads.push(handle);
+        }
 
-            // wait for all threads to finish
-            for handle in threads {
-                handle.join().unwrap();
-            }
-        });
+        // wait for all threads to finish, and make sure the tuple count is correct
+        for handle in threads {
+            handle.join().unwrap();
+        }
         assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
 
-        // now insert a bunch of random tuples again
-        thread::scope(|s| {
-            let mut threads = vec![];
-            for _ in 0..10 {
-                // thread local copies
-                let local_table = table_pod.clone();
-                let local_sender = sender.clone();
+        // insert a bunch of random tuples again
+        let mut threads = vec![];
+        for _ in 0..10 {
+            // thread local copies
+            let local_table = table_pod.clone();
+            let local_sender = sender.clone();
 
-                let handle = s.spawn(move || inserter(column_count, &local_table, &local_sender));
-                threads.push(handle);
-            }
+            let handle = thread::spawn(move || inserter(column_count, &local_table, &local_sender));
+            threads.push(handle);
+        }
 
-            // wait for all threads to finish
-            for handle in threads {
-                handle.join().unwrap();
-            }
-        });
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
+
         assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
         assert!(table_pod.rl().pages_count() < page_count_marker + 20);
 
