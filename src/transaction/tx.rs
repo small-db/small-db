@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use log::debug;
+
 use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -20,6 +22,7 @@ impl Transaction {
     }
 
     pub fn new_specific_id(id: u64) -> Self {
+        debug!("new transaction: tx_{}", id);
         Self { uuid: id }
     }
 

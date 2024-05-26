@@ -87,8 +87,7 @@ fn test_concurrent() {
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
-        0,
-        // row_count,
+        row_count,
         None,
         0,
         TreeLayout::LastTwoEvenlyDistributed,
@@ -99,11 +98,11 @@ fn test_concurrent() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    // return;
+    let insert_count: usize = 1000;
 
     thread::scope(|s| {
         let mut insert_threads = vec![];
-        for i in 0..3000 {
+        for i in 0..insert_count {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -111,7 +110,7 @@ fn test_concurrent() {
             let handle = thread::Builder::new()
                 .name(format!("thread-{}", i).to_string())
                 .spawn_scoped(s, move || {
-                    inserter(i, column_count, &local_table, &local_sender)
+                    inserter(i as u64 + 1000, column_count, &local_table, &local_sender)
                 })
                 .unwrap();
 
@@ -124,7 +123,10 @@ fn test_concurrent() {
         }
     });
 
-    // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+    assert_true(
+        table_pod.rl().tuples_count() == row_count + insert_count,
+        &table,
+    );
     return;
 
     // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);

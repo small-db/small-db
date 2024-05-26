@@ -34,7 +34,7 @@ impl BTreeTable {
         // is because when we need to modify the structure of the tree (e.g.
         // split a leaf page), we need the X-latch on the tree, and their is no
         // way to upgrade the latch from S to X without gap.
-        let xlatch = self.tree_latch.rl();
+        let xlatch = self.tree_latch.wl();
 
         let root_pid = self.get_root_pid(tx);
 
