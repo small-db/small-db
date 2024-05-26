@@ -27,17 +27,17 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // let mut log_manager = Unique::mut_log_manager();
 
     // step 1: start a transaction
-    let mut tx = Transaction::new();
+    let tx = Transaction::new();
     tx.start().unwrap();
 
     // step 2: insert a tuple into the table
-    insert_row(&table, &mut tx, key_1);
+    insert_row(&table, &tx, key_1);
 
     // step 3: force flush all pages (from the buffer pool to disk)
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
 
     // step 4: insert another tuple into the table
-    insert_row(&table, &mut tx, key_2);
+    insert_row(&table, &tx, key_2);
 
     // step 5: commit the transaction
     tx.commit().unwrap();
@@ -48,12 +48,12 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 /// This function does check the correctness of the transaction semantics.
 fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // step 1: start a transaction
-    let mut tx = Transaction::new();
+    let tx = Transaction::new();
     tx.start().unwrap();
 
     // step 2: insert two tuples into the table
-    insert_row(&table, &mut tx, key_1);
-    insert_row(&table, &mut tx, key_2);
+    insert_row(&table, &tx, key_1);
+    insert_row(&table, &tx, key_2);
 
     // step 3: search for the tuples
     assert_true(search_key(table, &tx, &Cell::Int64(key_1)) == 1, table);

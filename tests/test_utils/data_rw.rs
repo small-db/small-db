@@ -12,10 +12,10 @@ pub fn delete_tuples(table: &BTreeTable, count: usize) {
 }
 
 pub fn insert_tuples(table: &BTreeTable, count: usize) {
-    let mut tx = Transaction::new();
+    let tx = Transaction::new();
     for value in 0..count {
         let tuple = Tuple::new_int_tuples(value as i64, 2);
-        table.insert_tuple(&mut tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
 }

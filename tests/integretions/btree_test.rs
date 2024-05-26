@@ -211,7 +211,7 @@ fn test_concurrent() {
     // test 4:
     // look for all remained tuples and make sure we can find them
     {
-        let mut tx = Transaction::new();
+        let tx = Transaction::new();
         for tuple in receiver.iter() {
             let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
             let mut it = BTreeTableSearchIterator::new(&tx, &table_pod.rl(), &predicate);
