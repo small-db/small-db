@@ -36,7 +36,7 @@ impl Permission {
 pub struct ConcurrentStatus {
     s_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: HashMap<BTreePageID, Transaction>,
-    pub hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
+    hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 
     dirty_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 }
@@ -73,6 +73,8 @@ impl ConcurrentStatus {
     pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
         if cfg!(feature = "tree_latch") {
             return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+        } else if cfg!(feature = "page_latch") {
+            return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
         }
 
         error!("unsupported latch strategy");
