@@ -150,7 +150,7 @@ fn test_concurrent() {
     });
 
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
-    return;
+    // return;
 
     let page_count_marker = table_pod.rl().pages_count();
 
