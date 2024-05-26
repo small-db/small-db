@@ -57,17 +57,24 @@ impl Transaction {
 
         // step 1: write abort log record and rollback transaction
         //
-        // why this is the first step?
+        // (this operation include necessary disk operations)
         Database::mut_log_manager().log_abort(self, buffer_pool)?;
 
         // step 2: discard all dirty pages
-        // for pid in Database::concurrent_status().get_dirty_pages(self) {
-        //     buffer_pool.discard_page(&pid);
-        // }
-        buffer_pool.tx_complete(self, false);
+        //
+        // (this is a memory operation, hence can be put after the "COMMIT" record is written)
+        for pid in buffer_pool.all_keys() {
+            if Database::concurrent_status().holds_lock(self, &pid) {
+                buffer_pool.discard_page(&pid);
+            }
+        }
 
         // step 3: remove relation between transaction and dirty pages
-        // Database::concurrent_status().remove_relation(self);
+        //
+        // (this is a memory operation, hence can be put after the "COMMIT" record is written)
+        //
+        // (this operation should be put after the step 2, since the step 2 accesses these
+        // dirty pages)
         Database::mut_concurrent_status().release_lock_by_tx(self)?;
 
         Ok(())

@@ -399,7 +399,7 @@ impl BufferPool {
         buffer.insert(pid.clone(), page.clone());
     }
 
-    fn all_keys(&self) -> Vec<Key> {
+    pub(crate) fn all_keys(&self) -> Vec<Key> {
         let mut keys: Vec<Key> = vec![];
 
         for (k, _) in &self.root_pointer_buffer {
