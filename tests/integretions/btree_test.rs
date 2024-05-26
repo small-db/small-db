@@ -98,35 +98,21 @@ fn test_concurrent() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    let insert_count: usize = 1000;
+    let mut insert_threads = vec![];
+    for _ in 0..1000 {
+        // thread local copies
+        let local_table = table_pod.clone();
+        let local_sender = sender.clone();
 
-    thread::scope(|s| {
-        let mut insert_threads = vec![];
-        for i in 0..insert_count {
-            // thread local copies
-            let local_table = table_pod.clone();
-            let local_sender = sender.clone();
+        let handle = thread::spawn(move || inserter(0, column_count, &local_table, &local_sender));
+        insert_threads.push(handle);
+    }
+    // wait for all threads to finish
+    for handle in insert_threads {
+        handle.join().unwrap();
+    }
 
-            let handle = thread::Builder::new()
-                .name(format!("thread-{}", i).to_string())
-                .spawn_scoped(s, move || {
-                    inserter(i as u64 + 1000, column_count, &local_table, &local_sender)
-                })
-                .unwrap();
-
-            insert_threads.push(handle);
-        }
-
-        // wait for all threads to finish
-        for handle in insert_threads {
-            handle.join().unwrap();
-        }
-    });
-
-    assert_true(
-        table_pod.rl().tuples_count() == row_count + insert_count,
-        &table,
-    );
+    assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
     return;
 
     // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
