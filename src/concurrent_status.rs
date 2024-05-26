@@ -71,7 +71,12 @@ impl ConcurrentStatus {
     }
 
     pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
-        return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+        if cfg!(feature = "tree_latch") {
+            return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+        }
+
+        error!("unsupported latch strategy");
+        return HashSet::new();
     }
 }
 
