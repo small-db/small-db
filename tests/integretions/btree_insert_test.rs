@@ -180,7 +180,7 @@ fn test_split_root_page() {
 
     // now insert some random tuples and make sure we can find them
     let tx = Transaction::new();
-    tx.start().unwrap();
+    
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i64::MAX);
@@ -287,7 +287,7 @@ fn test_insert_benchmark() {
 
     for _ in 0..3000 {
         let tx = Transaction::new();
-        tx.start().unwrap();
+        
 
         let insert_value = rng.gen_range(0, i64::MAX);
         let tuple = Tuple::new_int_tuples(insert_value, 2);

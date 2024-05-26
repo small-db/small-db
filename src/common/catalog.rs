@@ -52,7 +52,6 @@ impl Catalog {
         let mut table_names = HashMap::new();
 
         let tx = Transaction::new();
-        tx.start()?;
         let schema_table = schema_table_rc.rl();
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
@@ -121,7 +120,7 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        tx.start().unwrap();
+        
 
         let predicate = Predicate::new(
             schema_table.key_field,
@@ -166,7 +165,7 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        tx.start().unwrap();
+        
 
         // TODO: get index in a stable way
         let table_name_index = schema_table.get_schema().get_field_pos("table_name");
@@ -236,7 +235,7 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        tx.start().unwrap();
+        
 
         let schema_fields = schema_table.schema.get_fields();
         let table_name_type = schema_fields[1].get_type();

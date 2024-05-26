@@ -500,7 +500,6 @@ impl BTreeTable {
         Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();
-        tx.start().unwrap();
 
         let mut depiction = "".to_string();
 
@@ -662,7 +661,7 @@ impl BTreeTable {
         Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();
-        tx.start().unwrap();
+        
 
         let root_ptr_page = self.get_root_ptr_page(&tx);
         let root_pid = root_ptr_page.rl().get_root_pid();

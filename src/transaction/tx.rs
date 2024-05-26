@@ -18,11 +18,12 @@ pub type TransactionID = u64;
 impl Transaction {
     pub fn new() -> Self {
         let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-        // Self::new_specific_id(id)
-        Self { uuid: id }
+        let instance = Self { uuid: id };
+        instance.start().unwrap();
+        instance
     }
 
-    pub fn start(&self) -> SmallResult {
+    fn start(&self) -> SmallResult {
         Database::mut_log_manager().log_start(self)
     }
 

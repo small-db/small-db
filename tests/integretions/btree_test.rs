@@ -26,7 +26,7 @@ fn inserter(
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
-    tx.start().unwrap();
+    
 
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
@@ -40,7 +40,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
     let tx = Transaction::new();
-    tx.start().unwrap();
+    
 
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);

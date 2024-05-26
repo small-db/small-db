@@ -28,7 +28,6 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 
     // step 1: start a transaction
     let tx = Transaction::new();
-    tx.start().unwrap();
 
     // step 2: insert a tuple into the table
     insert_row(&table, &tx, key_1);
@@ -49,7 +48,6 @@ fn commit_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     // step 1: start a transaction
     let tx = Transaction::new();
-    tx.start().unwrap();
 
     // step 2: insert two tuples into the table
     insert_row(&table, &tx, key_1);
@@ -139,11 +137,9 @@ fn test_abort_commit_interleaved() {
     // T1 start, T2 start and commit, T1 abort
 
     let mut tx_1 = Transaction::new();
-    tx_1.start().unwrap();
     insert_row(&table_1, &mut tx_1, 3);
 
     let mut tx_2 = Transaction::new();
-    tx_2.start().unwrap();
     insert_row(&table_2, &mut tx_2, 21);
     Database::mut_log_manager().log_checkpoint().unwrap();
     insert_row(&table_2, &mut tx_2, 22);
@@ -155,7 +151,7 @@ fn test_abort_commit_interleaved() {
 
     // verify the result
     let tx = Transaction::new();
-    tx.start().unwrap();
+
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(3)) == 0, &table_1);
@@ -178,7 +174,7 @@ fn test_abort_crash() {
     /// Check if the table is in the expected state.
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
-        tx.start().unwrap();
+
         assert_true(search_key(&table, &tx, &Cell::Int64(1)) == 1, &table);
         assert_true(search_key(&table, &tx, &Cell::Int64(2)) == 1, &table);
         assert_true(search_key(&table, &tx, &Cell::Int64(3)) == 0, &table);
@@ -215,7 +211,7 @@ fn test_commit_abort_commit_crash() {
 
     fn check(table: &BTreeTable) {
         let tx = Transaction::new();
-        tx.start().unwrap();
+
         assert_true(search_key(&table, &tx, &Cell::Int64(1)) == 1, &table);
         assert_true(search_key(&table, &tx, &Cell::Int64(2)) == 1, &table);
         assert_true(search_key(&table, &tx, &Cell::Int64(3)) == 0, &table);
@@ -251,7 +247,7 @@ fn test_commit_crash() {
     crash();
 
     let tx = Transaction::new();
-    tx.start().unwrap();
+
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(3)) == 0, &table_1);
@@ -277,7 +273,6 @@ fn test_open_commit_checkpoint_open_crash() {
     // only T2 data should be there
 
     let mut tx_1 = Transaction::new();
-    tx_1.start().unwrap();
     insert_row(&table_1, &mut tx_1, 12);
 
     // defeat NO-STEAL-based abort
@@ -297,7 +292,6 @@ fn test_open_commit_checkpoint_open_crash() {
     Database::mut_log_manager().log_checkpoint().unwrap();
 
     let mut tx_3 = Transaction::new();
-    tx_3.start().unwrap();
     insert_row(&table_2, &mut tx_3, 28);
     // defeat NO-STEAL-based abort
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
@@ -306,7 +300,7 @@ fn test_open_commit_checkpoint_open_crash() {
     crash();
 
     let tx = Transaction::new();
-    tx.start().unwrap();
+
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(12)) == 0, &table_1);
@@ -344,8 +338,6 @@ fn test_open_commit_open_crash() {
     // T1 inserts but does not commit (data: 10, 11)
     {
         let mut tx_1 = Transaction::new();
-        debug!("tx_1 start, id: {}", tx_1.get_id());
-        tx_1.start().unwrap();
         insert_row(&table_1, &mut tx_1, 10);
         // defeat NO-STEAL-based abort
         Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
@@ -360,7 +352,6 @@ fn test_open_commit_open_crash() {
     // T3 inserts but does not commit (data: 30, 31)
     {
         let mut tx_3 = Transaction::new();
-        tx_3.start().unwrap();
         insert_row(&table_2, &mut tx_3, 30);
         // defeat NO-STEAL-based abort
         Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
@@ -376,7 +367,6 @@ fn test_open_commit_open_crash() {
     Database::mut_log_manager().show_log_contents();
 
     let tx = Transaction::new();
-    tx.start().unwrap();
 
     // existing data
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
@@ -411,7 +401,6 @@ fn test_open_crash() {
     // result: no data should not be there
 
     let mut tx_1 = Transaction::new();
-    tx_1.start().unwrap();
     insert_row(&table_1, &mut tx_1, 8);
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
     insert_row(&table_1, &mut tx_1, 9);
@@ -419,7 +408,7 @@ fn test_open_crash() {
     crash();
 
     let tx = Transaction::new();
-    tx.start().unwrap();
+
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(8)) == 0, &table_1);
