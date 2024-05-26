@@ -443,11 +443,6 @@ impl BTreeTable {
     /// (the ROOT_POINTER page is not included)
     pub fn pages_count(&self) -> usize {
         let file_size = self.get_file().metadata().unwrap().len() as usize;
-        debug!(
-            "file size: {}, page size: {}",
-            file_size,
-            BufferPool::get_page_size()
-        );
         file_size / BufferPool::get_page_size() - 1
     }
 
