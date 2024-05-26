@@ -90,7 +90,7 @@ impl ConcurrentStatus {
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
 
-        while Instant::now().duration_since(start_time).as_secs() < 30 {
+        while Instant::now().duration_since(start_time).as_secs() < 10 {
             if Database::mut_concurrent_status().add_lock(tx, lock, page_id)? {
                 return Ok(());
             }
