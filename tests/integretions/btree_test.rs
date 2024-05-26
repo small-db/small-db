@@ -1,6 +1,7 @@
 use std::thread;
 
 use log::debug;
+use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
@@ -21,15 +22,13 @@ fn inserter(
     table_rc: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
-    // let mut rng = rand::thread_rng();
-    // let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-    let insert_value: i64 = tx_id as i64;
+    let mut rng = rand::thread_rng();
+    let insert_value = rng.gen_range(i64::MIN, i64::MAX);
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
-    let tx = Transaction::new_specific_id(tx_id + 1000);
+    let tx = Transaction::new();
     tx.start().unwrap();
 
-    // let tx = Transaction::new();
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 
