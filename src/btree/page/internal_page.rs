@@ -1,7 +1,7 @@
 use std::{fmt, io::Cursor};
 
 use bit_vec::BitVec;
-use log::error;
+use log::{debug, error};
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
@@ -494,6 +494,8 @@ impl BTreeInternalPage {
                 self.get_pid(),
                 self.entries_count()
             ));
+            let iter = BTreeInternalPageIterator::new(self);
+            debug!("page entries: {:?}", iter.collect::<Vec<Entry>>());
             error!("{}", err);
             // panic!("{}", e);
             return Err(err);

@@ -100,7 +100,7 @@ fn test_concurrent() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    return;
+    // return;
 
     thread::scope(|s| {
         let mut insert_threads = vec![];

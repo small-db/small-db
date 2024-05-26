@@ -27,8 +27,8 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        // Before searching for the target leaf page, request a S-latch on the tree.
-        let slatch = self.tree_latch.rl();
+        // Before searching for the target leaf page, request a X-latch on the tree.
+        let xlatch = self.tree_latch.rl();
 
         let root_pid = self.get_root_pid(tx);
 
@@ -38,44 +38,24 @@ impl BTreeTable {
         let field = tuple.get_cell(self.key_field);
         let leaf_pid = self.find_leaf_page2(tx, root_pid, &SearchFor::Target(field));
 
-        // The searching is done, release the S-latch on the tree.
-        drop(slatch);
-
-        let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &leaf_pid).unwrap();
+        let mut leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
         let empty_slots_count = leaf_rc.rl().empty_slots_count();
 
-        let mut leaf_rc_opt: Option<Arc<RwLock<BTreeLeafPage>>> = None;
+        if empty_slots_count > 0 {
+            leaf_rc.wl().insert_tuple(&tuple)?;
 
-        if empty_slots_count == 0 {
-            // Before altering the tree, request an X-latch on the tree.
-            let xlatch = self.tree_latch.wl();
-
-            let mut leaf_rc =
-                BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
-
-            leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
-            leaf_rc_opt = Some(leaf_rc);
-
-            // The altering is done, release the X-latch on the tree.
+            // Release the X-latch on the tree.
             drop(xlatch);
+
+            return Ok(());
         }
 
-        if let Some(leaf_rc) = leaf_rc_opt {
-            leaf_rc.wl().insert_tuple(&tuple)?;
-            // Database::concurrent_status().add_relation(tx, &leaf_pid);
-            // tx.dirty_pages.insert(leaf_rc.rl().get_pid());
+        leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
 
-            // debug!(
-            //     "tx: {}, after insert: {:?}",
-            //     tx,
-            //     leaf_rc.rl().get_page_data(),
-            // );
-        } else {
-            let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &leaf_pid).unwrap();
-            leaf_rc.wl().insert_tuple(&tuple)?;
-            // Database::concurrent_status().add_relation(tx, &leaf_pid);
-            // tx.dirty_pages.insert(leaf_rc.rl().get_pid());
-        }
+        // The altering is done, release the X-latch on the tree.
+        drop(xlatch);
+
+        leaf_rc.wl().insert_tuple(&tuple)?;
 
         return Ok(());
     }
