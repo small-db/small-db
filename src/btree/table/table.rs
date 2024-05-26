@@ -288,7 +288,7 @@ impl BTreeTable {
     ///
     /// - tx        - the transaction
     /// - perm      - the permissions with which to lock the leaf page
-    /// - root_pid  - the start point of the search
+    /// - pid       - the start point of the search
     /// - search    - the key field to search for
     ///
     /// # Return
@@ -300,27 +300,17 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         perm: Permission,
-        root_pid: BTreePageID,
+        pid: BTreePageID,
         search: &SearchFor,
     ) -> Arc<RwLock<BTreeLeafPage>> {
-        let target_page_id = self.find_leaf_page2(tx, root_pid, search);
-        BufferPool::get_leaf_page(tx, perm, &target_page_id).unwrap()
-    }
-
-    fn find_leaf_page2(
-        &self,
-        tx: &Transaction,
-        page_id: BTreePageID,
-        search: &SearchFor,
-    ) -> BTreePageID {
-        match page_id.category {
+        match pid.category {
             PageCategory::Leaf => {
                 // return directly
-                return page_id;
+                return BufferPool::get_leaf_page(tx, perm, &pid).unwrap();
             }
             PageCategory::Internal => {
                 let page_rc =
-                    BufferPool::get_internal_page(tx, Permission::ReadOnly, &page_id).unwrap();
+                    BufferPool::get_internal_page(tx, Permission::ReadOnly, &pid).unwrap();
                 let mut child_pid: Option<BTreePageID> = None;
 
                 // borrow of page_rc start here
@@ -371,7 +361,7 @@ impl BTreeTable {
                 // search child page recursively
                 match child_pid {
                     Some(child_pid) => {
-                        return self.find_leaf_page2(tx, child_pid, search);
+                        return self.find_leaf_page(tx, perm, child_pid, search);
                     }
                     None => todo!(),
                 }
