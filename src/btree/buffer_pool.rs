@@ -349,7 +349,7 @@ impl BufferPool {
     ) {
         let page_pod = buffer.get(pid).unwrap().clone();
 
-        if let Some(tx) = Database::concurrent_status().get_page_tx2(pid) {
+        if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
             log_manager.log_update(&tx, page_pod.clone()).unwrap();
             table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
             return;

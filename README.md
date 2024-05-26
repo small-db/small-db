@@ -128,7 +128,7 @@ Why the log manager need to read the log file in reverse order?
 TODO
 
 What's the best way to record the relationship between transaction and its dirty pages?
-Due to the existence of the "flash_all" api, we must record the relationship globally, so we can get the 
+Due to the existence of the "flash_all" api, we must record the relationship globally, so we can get the
 transaction of a dirty page when we flash all pages.
 
 Why do we need "flash_all" api, and when should we use it?

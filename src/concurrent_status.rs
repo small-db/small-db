@@ -71,17 +71,6 @@ impl ConcurrentStatus {
         return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
     }
 
-    // Get related transaction of a page (throught dirty_pages)
-    pub fn get_page_tx2(&self, page_id: &BTreePageID) -> Option<Transaction> {
-        for (tx, pages) in self.dirty_pages.iter() {
-            if pages.contains(page_id) {
-                return Some(tx.clone());
-            }
-        }
-
-        return None;
-    }
-
     /// Request a lock on the given page. This api is blocking.
     pub fn request_lock(
         tx: &Transaction,
@@ -221,9 +210,20 @@ impl ConcurrentStatus {
         return false;
     }
 
+    #[cfg(latch_strategy = "page_level_latch")]
     pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
         if let Some(v) = self.x_lock_map.get(page_id) {
             return Some(v.clone());
+        }
+
+        return None;
+    }
+
+    pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
+        for (tx, pages) in self.dirty_pages.iter() {
+            if pages.contains(page_id) {
+                return Some(tx.clone());
+            }
         }
 
         return None;
