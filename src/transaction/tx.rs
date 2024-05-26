@@ -30,6 +30,8 @@ impl Transaction {
         let buffer_pool = &mut Database::mut_buffer_pool();
 
         // step 1: flush all related pages to disk (with "UPDATE" log record)
+        //
+        // (this is a disk operation, hence should be put before the "COMMIT" record is written)
         buffer_pool.flush_pages(self, &mut log_manager);
 
         // step 2: write "COMMIT" log record
