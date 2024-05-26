@@ -27,37 +27,58 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        // Request an X-latch on the tree.
-        //
-        // We need the X-latch on the tree even if we don't modify the structure of the
-        // tree. (e.g. the leaf page has enough space to insert the tuple). This
-        // is because when we need to modify the structure of the tree (e.g.
-        // split a leaf page), we need the X-latch on the tree, and their is no
-        // way to upgrade the latch from S to X without gap.
-        let x_latch = self.tree_latch.wl();
+        if cfg!(feature = "tree_latch") {
+            // Request an X-latch on the tree.
+            //
+            // We need the X-latch on the tree even if we don't modify the structure of the
+            // tree. (e.g. the leaf page has enough space to insert the tuple). This
+            // is because when we need to modify the structure of the tree (e.g.
+            // split a leaf page), we need the X-latch on the tree, and their is no
+            // way to upgrade the latch from S to X without gap.
+            let x_latch = self.tree_latch.wl();
 
-        let root_pid = self.get_root_pid(tx);
+            let root_pid = self.get_root_pid(tx);
 
-        // Find and lock the left-most leaf page corresponding to the key field.
-        let field = tuple.get_cell(self.key_field);
-        let mut leaf_rc = self.find_leaf_page(
-            tx,
-            Permission::ReadWrite,
-            root_pid,
-            &SearchFor::Target(field),
-        );
+            // Find and lock the left-most leaf page corresponding to the key field.
+            let field = tuple.get_cell(self.key_field);
+            let mut leaf_rc = self.find_leaf_page(
+                tx,
+                Permission::ReadWrite,
+                root_pid,
+                &SearchFor::Target(field),
+            );
 
-        if leaf_rc.rl().empty_slots_count() == 0 {
-            // Split the leaf page if there are no more slots available.
-            leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+            if leaf_rc.rl().empty_slots_count() == 0 {
+                // Split the leaf page if there are no more slots available.
+                leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+            }
+
+            // Until now, we don't have to modify the structure of the tree, just release
+            // the X-latch.
+            drop(x_latch);
+
+            // Insert the tuple into the leaf page.
+            leaf_rc.wl().insert_tuple(&tuple)?;
+        } else if cfg!(feature = "page_latch") {
+            let root_pid = self.get_root_pid(tx);
+
+            // Find and lock the left-most leaf page corresponding to the key field.
+            let field = tuple.get_cell(self.key_field);
+            let mut leaf_rc = self.find_leaf_page(
+                tx,
+                Permission::ReadWrite,
+                root_pid,
+                &SearchFor::Target(field),
+            );
+
+            if leaf_rc.rl().empty_slots_count() == 0 {
+                // Split the leaf page if there are no more slots available.
+                leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+            }
+
+            // Insert the tuple into the leaf page.
+            leaf_rc.wl().insert_tuple(&tuple)?;
         }
-
-        // Until now, we don't have to modify the structure of the tree, just release
-        // the X-latch.
-        drop(x_latch);
-
-        // Insert the tuple into the leaf page.
-        leaf_rc.wl().insert_tuple(&tuple)?;
 
         return Ok(());
     }
