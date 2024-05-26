@@ -18,10 +18,7 @@ pub type TransactionID = u64;
 impl Transaction {
     pub fn new() -> Self {
         let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-        Self::new_specific_id(id)
-    }
-
-    pub fn new_specific_id(id: u64) -> Self {
+        // Self::new_specific_id(id)
         Self { uuid: id }
     }
 
