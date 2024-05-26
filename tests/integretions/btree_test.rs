@@ -113,9 +113,7 @@ fn test_concurrent() {
     }
 
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
-    return;
-
-    // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+    // return;
 
     // now insert and delete tuples at the same time
     thread::scope(|s| {
@@ -151,9 +149,8 @@ fn test_concurrent() {
         }
     });
 
-    return;
-
     assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+    return;
 
     let page_count_marker = table_pod.rl().pages_count();
 

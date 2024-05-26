@@ -22,7 +22,6 @@ impl Transaction {
     }
 
     pub fn new_specific_id(id: u64) -> Self {
-        debug!("new transaction: tx_{}", id);
         Self { uuid: id }
     }
 
