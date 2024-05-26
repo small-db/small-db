@@ -50,7 +50,8 @@ impl BTreeTable {
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
         }
 
-        // Until now, we don't have to modify the structure of the tree, just release the X-latch.
+        // Until now, we don't have to modify the structure of the tree, just release
+        // the X-latch.
         drop(xlatch);
 
         // Insert the tuple into the leaf page.

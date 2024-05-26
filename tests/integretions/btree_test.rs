@@ -1,6 +1,5 @@
 use std::thread;
 
-use log::debug;
 use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
@@ -8,7 +7,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Op, Predicate,
+    BTreeTable, Op, Predicate,
 };
 
 use crate::test_utils::{
@@ -26,7 +25,6 @@ fn inserter(
     let tuple = Tuple::new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
-    
 
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
@@ -40,7 +38,6 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
     let tx = Transaction::new();
-    
 
     let table = table_rc.rl();
     let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
@@ -101,8 +98,8 @@ fn test_concurrent() {
     }
 
     // test 2:
-    // insert and delete tuples at the same time, make sure the tuple count is correct, and the
-    // is no conflict between threads
+    // insert and delete tuples at the same time, make sure the tuple count is
+    // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
         for _ in 0..200 {
@@ -130,7 +127,8 @@ fn test_concurrent() {
     }
 
     // test 3:
-    // insert and delete some tuples, make sure there is not too much pages created during the process
+    // insert and delete some tuples, make sure there is not too much pages created
+    // during the process
     {
         let page_count_marker = table_pod.rl().pages_count();
 

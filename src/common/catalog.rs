@@ -120,7 +120,6 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        
 
         let predicate = Predicate::new(
             schema_table.key_field,
@@ -165,7 +164,6 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        
 
         // TODO: get index in a stable way
         let table_name_index = schema_table.get_schema().get_field_pos("table_name");
@@ -235,7 +233,6 @@ impl Catalog {
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
-        
 
         let schema_fields = schema_table.schema.get_fields();
         let table_name_type = schema_fields[1].get_type();
