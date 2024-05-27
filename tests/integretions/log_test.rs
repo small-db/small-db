@@ -106,17 +106,8 @@ fn test_patch() {
 }
 
 #[test]
-fn test_abort_1() {
+fn test_abort() {
     setup();
-
-    print!("start\n");
-    if cfg!(feature = "tree_latch") {
-        print!("cfg: tree_latch\n");
-    }
-    if cfg!(feature = "page_latch") {
-        print!("cfg: page_latch\n");
-    }
-    print!("end\n");
 
     let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
