@@ -57,16 +57,14 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
     assert_true(search_key(table, &tx, &Cell::Int64(key_1)) == 1, table);
     assert_true(search_key(table, &tx, &Cell::Int64(key_2)) == 1, table);
 
-    // step 4: abort the transaction, and check if the tuples are gone
+    // step 4: abort the transaction
     assert!(tx.abort().is_ok());
-    debug!("current status: {:?}, tx: {:?}", Database::concurrent_status(), tx);
-    debug!("tx before search: {:?}", tx);
 
+    // step 5: check if the tuples are gone
     let search_tx = Transaction::new();
     assert!(search_key(table, &search_tx, &Cell::Int64(key_1)) == 0);
     assert!(search_key(table, &search_tx, &Cell::Int64(key_2)) == 0);
     search_tx.commit().unwrap();
-    debug!("current status: {:?}, tx: {:?}", Database::concurrent_status(), tx);
 }
 
 #[test]
