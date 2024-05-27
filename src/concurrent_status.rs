@@ -53,7 +53,7 @@ impl ConcurrentStatus {
     }
 }
 
-#[cfg(feature = "tree_latch")]
+// #[cfg(feature = "tree_latch")]
 impl ConcurrentStatus {
     pub fn add_relation(&mut self, tx: &Transaction, page_id: &BTreePageID) {
         if !self.dirty_pages.contains_key(tx) {

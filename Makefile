@@ -2,8 +2,8 @@
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test:
-	RUST_LOG=info cargo test --features "tree_latch" -- --test-threads=1
-	# RUST_LOG=info cargo test --features "page_latch" -- --test-threads=1
+	# RUST_LOG=info cargo test --features "tree_latch" -- --test-threads=1
+	RUST_LOG=info cargo test --features "page_latch" -- --test-threads=1
 
 # Used when you need more detail.
 # 
@@ -30,8 +30,7 @@ test-verbose:
 # e.g: make test_redistribute_internal_pages
 test_%:
 	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
-	# export RUSTFLAGS="--cfg=latch_strategy=page_latch"
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "tree_latch, page_latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "page_latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
 
 clean:
 	rm *.db; \

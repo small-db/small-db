@@ -59,8 +59,14 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 
     // step 4: abort the transaction, and check if the tuples are gone
     assert!(tx.abort().is_ok());
-    assert!(search_key(table, &tx, &Cell::Int64(key_1)) == 0);
-    assert!(search_key(table, &tx, &Cell::Int64(key_2)) == 0);
+    debug!("current status: {:?}, tx: {:?}", Database::concurrent_status(), tx);
+    debug!("tx before search: {:?}", tx);
+
+    let search_tx = Transaction::new();
+    assert!(search_key(table, &search_tx, &Cell::Int64(key_1)) == 0);
+    assert!(search_key(table, &search_tx, &Cell::Int64(key_2)) == 0);
+    search_tx.commit().unwrap();
+    debug!("current status: {:?}, tx: {:?}", Database::concurrent_status(), tx);
 }
 
 #[test]
@@ -102,16 +108,21 @@ fn test_patch() {
 }
 
 #[test]
-fn test_abort() {
+fn test_abort_1() {
     setup();
+
+    print!("start\n");
+    if cfg!(feature = "tree_latch") {
+        print!("cfg: tree_latch\n");
+    }
+    if cfg!(feature = "page_latch") {
+        print!("cfg: page_latch\n");
+    }
+    print!("end\n");
 
     let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
     let table = table_rc.rl();
 
-    // TODO: what's the meaning of below comments?
-    //
-    // insert, abort: data should not be there
-    // flush pages directly to heap file to defeat NO-STEAL policy
     commit_insert(&table, 1, 2);
     abort_insert(&table, 3, 4);
 
