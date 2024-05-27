@@ -184,3 +184,58 @@ fn test_concurrent() {
         table_pod.rl().check_integrity(true);
     }
 }
+
+#[test]
+fn test_speed() {
+    // Use a small page size to speed up the test.
+    BufferPool::set_page_size(1024);
+
+    setup();
+
+    // Create an empty B+ tree
+    let column_count = 2;
+    let table_pod = new_random_btree_table(
+        column_count,
+        0,
+        None,
+        0,
+        TreeLayout::LastTwoEvenlyDistributed,
+    );
+
+    let table = table_pod.rl();
+
+    let start = std::time::Instant::now();
+    // run 1000 insert threads
+    {
+        let mut insert_threads = vec![];
+        for _ in 0..1000 {
+            // thread local copies
+            let local_table = table_pod.clone();
+
+            let handle = thread::spawn(move || inserter2(100, column_count, &local_table));
+            insert_threads.push(handle);
+        }
+        // wait for all threads to finish
+        for handle in insert_threads {
+            handle.join().unwrap();
+        }
+    }
+    let duration = start.elapsed();
+    let total_rows = 1000 * 100;
+    println!("1000 insertion thread took: {:?}", duration);
+    assert!(table.tuples_count() == total_rows);
+}
+
+fn inserter2(row_count: usize, column_count: usize, table_rc: &Pod<BTreeTable>) {
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..row_count {
+        let insert_value = rng.gen_range(i64::MIN, i64::MAX);
+        let tuple = Tuple::new_int_tuples(insert_value, column_count);
+
+        let tx = Transaction::new();
+
+        table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
+        tx.commit().unwrap();
+    }
+}

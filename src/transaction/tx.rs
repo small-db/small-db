@@ -19,7 +19,6 @@ impl Transaction {
     pub fn new() -> Self {
         let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
         let instance = Self { uuid: id };
-        debug!("Transaction {} is created", instance);
         instance.start().unwrap();
         instance
     }
