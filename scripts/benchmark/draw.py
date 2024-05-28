@@ -32,7 +32,9 @@ def draw():
     f = open(report_path, "r")
     all_records = json.load(f, object_hook=lambda x: json_loader(**x))
 
-    for latch_strategy in ["page_latch", "tree_latch"]:
+    points_list = []
+
+    for latch_strategy in ["tree_latch", "page_latch"]:
         records = list(
             filter(
                 lambda x: x.target_attributes["latch_strategy"] == latch_strategy,
@@ -46,17 +48,17 @@ def draw():
         thread_count_list = [r.target_attributes["thread_count"] for r in records]
         insert_per_second = [r.test_result["insert_per_second"] for r in records]
 
-        print(thread_count_list)
-        print(insert_per_second)
-
         plt.plot(thread_count_list, insert_per_second)
-        plt.scatter(thread_count_list, insert_per_second)
+        points = plt.scatter(thread_count_list, insert_per_second, label=latch_strategy)
+        points_list.append(points)
 
     plt.xlabel("Concurrent Transactions")
     plt.ylabel("Insertions per Second")
 
-    top = max(insert_per_second) + 1000
+    top = max([r.test_result["insert_per_second"] for r in all_records]) * 1.3
     plt.ylim(bottom=0, top=top)
+
+    plt.legend(handles=points_list, loc="upper right")
 
     plt.savefig("./docs/img/insertions_per_second.png")
     return
