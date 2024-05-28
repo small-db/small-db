@@ -29,6 +29,9 @@ async-trait = "0.1.68"
 tokio = { version = "1.28.1", features = ["full"] }
 
 [features]
+# latch strategies
 tree_latch = []
 page_latch = []
+
+# used for benchmark and report generation
 benchmark = []
