@@ -1,0 +1,44 @@
+[
+    {
+        "smalldb_commitid": "90e52e8b83387c9d4c90efdfc7dc4c40f76179c8",
+        "start_time": "2024-05-27T21:51:01.277117",
+        "target_attributes": {
+            "total_actions": 1000,
+            "thread_count": 1,
+            "action_per_thread": 1000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 262,
+            "insert_per_second": 3816.793893129771
+        }
+    },
+    {
+        "smalldb_commitid": "90e52e8b83387c9d4c90efdfc7dc4c40f76179c8",
+        "start_time": "2024-05-27T21:51:01.690981",
+        "target_attributes": {
+            "total_actions": 1000,
+            "thread_count": 2,
+            "action_per_thread": 500,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 261,
+            "insert_per_second": 3831.417624521073
+        }
+    },
+    {
+        "smalldb_commitid": "90e52e8b83387c9d4c90efdfc7dc4c40f76179c8",
+        "start_time": "2024-05-27T21:51:02.121160",
+        "target_attributes": {
+            "total_actions": 1000,
+            "thread_count": 5,
+            "action_per_thread": 200,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 277,
+            "insert_per_second": 3610.108303249097
+        }
+    }
+]
