@@ -190,8 +190,14 @@ fn test_concurrent() {
 fn test_speed() {
     use std::env;
 
-    let insert_per_thread = 100;
-    let threads_count = env::var("THREADS_COUNT").unwrap().parse::<usize>().unwrap();
+    let action_per_thread = env::var("ACTION_PER_THREAD")
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
+    let thread_count = env::var("THREAD_COUNT").unwrap().parse::<usize>().unwrap();
+
+    // let thread_count = 1;
+    // let action_per_thread = 1000;
 
     setup();
 
@@ -208,14 +214,15 @@ fn test_speed() {
     let table = table_pod.rl();
 
     let start = std::time::Instant::now();
-    // run 1000 insert threads
+    // run insert threads
     {
         let mut insert_threads = vec![];
-        for _ in 0..threads_count {
+        for _ in 0..thread_count {
             // thread local copies
             let local_table = table_pod.clone();
 
-            let handle = thread::spawn(move || inserter2(100, column_count, &local_table));
+            let handle =
+                thread::spawn(move || inserter2(action_per_thread, column_count, &local_table));
             insert_threads.push(handle);
         }
         // wait for all threads to finish
@@ -224,9 +231,14 @@ fn test_speed() {
         }
     }
     let duration = start.elapsed();
-    let total_rows = threads_count * insert_per_thread;
-    println!("{} insertion threads took: {:?}", threads_count, duration);
-    println!("ms({:?})", duration.as_millis());
+    let total_rows = thread_count * action_per_thread;
+    println!("{} insertion threads took: {:?}", thread_count, duration);
+    println!("ms:{:?}", duration.as_millis());
+    println!(
+        "table.tuples_count(): {:?}, total_rows: {:?}",
+        table.tuples_count(),
+        total_rows,
+    );
     assert!(table.tuples_count() == total_rows);
 }
 
