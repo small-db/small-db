@@ -1,0 +1,310 @@
+[
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:55:49.767469",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 1,
+            "action_per_thread": 100000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 31049,
+            "insert_per_second": 3220.715643015878
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:56:21.808409",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 10,
+            "action_per_thread": 10000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 31498,
+            "insert_per_second": 3174.804749507905
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:56:54.446416",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 20,
+            "action_per_thread": 5000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32070,
+            "insert_per_second": 3118.1789834736514
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:57:26.682530",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 30,
+            "action_per_thread": 3333,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 31709,
+            "insert_per_second": 3153.6787662808665
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:57:58.590140",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 40,
+            "action_per_thread": 2500,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 31486,
+            "insert_per_second": 3176.014736708378
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:58:31.171235",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 50,
+            "action_per_thread": 2000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32135,
+            "insert_per_second": 3111.871790882216
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:59:04.836143",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 60,
+            "action_per_thread": 1666,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 33164,
+            "insert_per_second": 3015.3178144976478
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T21:59:37.575866",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 70,
+            "action_per_thread": 1428,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32311,
+            "insert_per_second": 3094.9212342545884
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:00:10.650258",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 80,
+            "action_per_thread": 1250,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32691,
+            "insert_per_second": 3058.945887247254
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:00:43.616614",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 90,
+            "action_per_thread": 1111,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32397,
+            "insert_per_second": 3086.7055591567123
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:01:17.053983",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 100,
+            "action_per_thread": 1000,
+            "latch_strategy": "page_latch"
+        },
+        "test_result": {
+            "duration_ms": 32950,
+            "insert_per_second": 3034.9013657056144
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:01:43.737711",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 1,
+            "action_per_thread": 100000,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 25228,
+            "insert_per_second": 3963.849690819724
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:02:06.791769",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 10,
+            "action_per_thread": 10000,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22661,
+            "insert_per_second": 4412.867922863068
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:02:30.373808",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 20,
+            "action_per_thread": 5000,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 23147,
+            "insert_per_second": 4320.214282628419
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:02:53.710330",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 30,
+            "action_per_thread": 3333,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22950,
+            "insert_per_second": 4357.298474945534
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:03:16.916402",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 40,
+            "action_per_thread": 2500,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22829,
+            "insert_per_second": 4380.393359323667
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:03:39.990208",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 50,
+            "action_per_thread": 2000,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22561,
+            "insert_per_second": 4432.427640618767
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:04:03.602845",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 60,
+            "action_per_thread": 1666,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 23090,
+            "insert_per_second": 4330.8791684712
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:04:26.490818",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 70,
+            "action_per_thread": 1428,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22505,
+            "insert_per_second": 4443.457009553433
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:04:49.409186",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 80,
+            "action_per_thread": 1250,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22568,
+            "insert_per_second": 4431.052818149592
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:05:12.427675",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 90,
+            "action_per_thread": 1111,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 22650,
+            "insert_per_second": 4415.011037527594
+        }
+    },
+    {
+        "smalldb_commitid": "a05a2765acece5fbdf0ac06ffb716e2caeaefdae",
+        "start_time": "2024-05-27T22:05:36.000210",
+        "target_attributes": {
+            "total_actions": 100000,
+            "thread_count": 100,
+            "action_per_thread": 1000,
+            "latch_strategy": "tree_latch"
+        },
+        "test_result": {
+            "duration_ms": 23073,
+            "insert_per_second": 4334.070125254627
+        }
+    }
+]
