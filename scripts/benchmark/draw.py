@@ -1,33 +1,56 @@
+import datetime
+import json
 import os
 import re
 import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 
+from benchmark import BenchmarkRecord, json_loader
+
+
+def get_report_path():
+    report_dir = os.path.join("docs", "record")
+    report_files = os.listdir(report_dir)
+
+    # sort by the time in the file name in descending order
+    #
+    # example of file name: docs/record/benchmark_20240527_220536.json
+    def sort_key(x):
+        result = re.findall(r"\d+_\d+", x)[0]
+        tm = datetime.datetime.strptime(result, "%Y%m%d_%H%M%S")
+        return tm
+
+    report_files.sort(key=lambda x: sort_key(x), reverse=True)
+    return os.path.join(report_dir, report_files[0])
+
 
 def draw():
-    total_actions = 100 * 1000
+    report_path = get_report_path()
 
-    thread_count_list = [1]
-    for i in range(1, 11):
-        thread_count_list.append(i * 10)
+    # parse the json to list(BenchmarkRecord)
+    f = open(report_path, "r")
+    all_records = json.load(f, object_hook=lambda x: json_loader(**x))
 
-    # total_actions = 1000
-    # thread_count_list = [1, 2, 5]
+    for latch_strategy in ["page_latch", "tree_latch"]:
+        records = list(
+            filter(
+                lambda x: x.target_attributes["latch_strategy"] == latch_strategy,
+                all_records,
+            )
+        )
 
-    # latch_strategy: "page_latch"
-    insert_per_second = get_insert_per_second(
-        total_actions, thread_count_list, latch_strategy="page_latch"
-    )
-    plt.plot(thread_count_list, insert_per_second)
-    plt.scatter(thread_count_list, insert_per_second)
+        # sort by thread_count
+        records.sort(key=lambda x: x.target_attributes["thread_count"])
 
-    # latch_strategy: "tree_latch"
-    insert_per_second = get_insert_per_second(
-        total_actions, thread_count_list, latch_strategy="tree_latch"
-    )
-    plt.plot(thread_count_list, insert_per_second)
-    plt.scatter(thread_count_list, insert_per_second)
+        thread_count_list = [r.target_attributes["thread_count"] for r in records]
+        insert_per_second = [r.test_result["insert_per_second"] for r in records]
+
+        print(thread_count_list)
+        print(insert_per_second)
+
+        plt.plot(thread_count_list, insert_per_second)
+        plt.scatter(thread_count_list, insert_per_second)
 
     plt.xlabel("Concurrent Transactions")
     plt.ylabel("Insertions per Second")
@@ -35,49 +58,8 @@ def draw():
     top = max(insert_per_second) + 1000
     plt.ylim(bottom=0, top=top)
 
-    plt.savefig("./docs/insertions_per_second.png")
+    plt.savefig("./docs/img/insertions_per_second.png")
     return
-
-
-def get_insert_per_second(
-    total_actions: int,
-    thread_count_list: list[int],
-    latch_strategy: str,
-) -> list[int]:
-    insert_per_second = []
-
-    for thread_count in thread_count_list:
-        threads_count = thread_count
-        action_per_thread = total_actions // thread_count
-        print(f"thread_count: {thread_count}, action_per_thread: {action_per_thread}")
-
-        # set environment variable
-        os.environ["THREAD_COUNT"] = str(threads_count)
-        os.environ["ACTION_PER_THREAD"] = str(action_per_thread)
-
-        # cargo test --features "benchmark, {latch_strategy}" -- --test-threads=1 --nocapture test_speed
-        features = f"benchmark, {latch_strategy}"
-        output = subprocess.check_output(
-            [
-                "cargo",
-                "test",
-                "--features",
-                features,
-                "--",
-                "--test-threads=1",
-                "--nocapture",
-                "test_speed",
-            ]
-        )
-
-        txt = output.decode("utf-8")
-        x = re.search(r"ms:(\d+)", txt)
-        duration_ms = int(x.group(1))
-        duration_s = duration_ms / 1000
-
-        insert_per_second.append(total_actions / duration_s)
-
-    return insert_per_second
 
 
 if __name__ == "__main__":

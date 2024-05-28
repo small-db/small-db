@@ -13,6 +13,19 @@ class BenchmarkRecord:
     target_attributes: dict[str, object]
     test_result: dict[str, object]
 
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def __repr__(self):
+        return f"{self.smalldb_commitid}, {self.start_time}, {self.target_attributes}, {self.test_result}"
+
+
+def json_loader(**kwargs):
+    if "smalldb_commitid" in kwargs:
+        return BenchmarkRecord(**kwargs)
+
+    return kwargs
+
 
 def benchmark():
     total_actions = 100 * 1000

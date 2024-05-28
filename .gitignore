@@ -28,3 +28,10 @@ data
 # perf
 perf.*
 *.perf-folded
+
+# ==================================== #
+# python
+# ==================================== #
+
+# Byte-compiled / optimized / DLL files
+__pycache__/

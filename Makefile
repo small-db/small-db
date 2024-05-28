@@ -35,8 +35,8 @@ test_%:
 
 gen_report:
 	source ~/code/python_env_xiaochen/bin/activate
-	python ./scripts/benchmark/benchmark.py
-	# python ./scripts/benchmark/draw.py
+	# python ./scripts/benchmark/benchmark.py
+	python ./scripts/benchmark/draw.py
 
 clean:
 	rm *.db; \
