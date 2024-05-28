@@ -185,7 +185,8 @@ fn test_concurrent() {
     }
 }
 
-// #[test]
+#[test]
+#[cfg(feature = "benchmark")]
 fn test_speed() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);

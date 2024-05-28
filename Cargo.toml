@@ -31,3 +31,4 @@ tokio = { version = "1.28.1", features = ["full"] }
 [features]
 tree_latch = []
 page_latch = []
+benchmark = []
