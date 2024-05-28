@@ -188,8 +188,10 @@ fn test_concurrent() {
 #[test]
 #[cfg(feature = "benchmark")]
 fn test_speed() {
-    // Use a small page size to speed up the test.
-    BufferPool::set_page_size(1024);
+    use std::env;
+
+    let insert_per_thread = 100;
+    let threads_count = env::var("THREADS_COUNT").unwrap().parse::<usize>().unwrap();
 
     setup();
 
@@ -209,7 +211,7 @@ fn test_speed() {
     // run 1000 insert threads
     {
         let mut insert_threads = vec![];
-        for _ in 0..1000 {
+        for _ in 0..threads_count {
             // thread local copies
             let local_table = table_pod.clone();
 
@@ -222,8 +224,9 @@ fn test_speed() {
         }
     }
     let duration = start.elapsed();
-    let total_rows = 1000 * 100;
-    println!("1000 insertion thread took: {:?}", duration);
+    let total_rows = threads_count * insert_per_thread;
+    println!("{} insertion threads took: {:?}", threads_count, duration);
+    println!("ms({:?})", duration.as_millis());
     assert!(table.tuples_count() == total_rows);
 }
 
