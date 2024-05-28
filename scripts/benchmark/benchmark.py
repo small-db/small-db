@@ -15,14 +15,14 @@ class BenchmarkRecord:
 
 
 def benchmark():
-    # total_actions = 100 * 1000
+    total_actions = 100 * 1000
 
-    # thread_count_list = [1]
-    # for i in range(1, 11):
-    #     thread_count_list.append(i * 10)
+    thread_count_list = [1]
+    for i in range(1, 11):
+        thread_count_list.append(i * 10)
 
-    total_actions = 1000
-    thread_count_list = [1, 2, 5]
+    # total_actions = 1000
+    # thread_count_list = [1, 2, 5]
 
     records = []
 
@@ -31,34 +31,21 @@ def benchmark():
         r = run_test_speed(total_actions, thread_count, latch_strategy="page_latch")
         records.append(r)
 
+    # latch_strategy: "tree_latch"
+    for thread_count in thread_count_list:
+        r = run_test_speed(total_actions, thread_count, latch_strategy="tree_latch")
+        records.append(r)
+
     # dump records to a file in json format
     records_json = json.dumps(records, default=lambda x: x.__dict__, indent=4)
     record_path = os.path.join(
-        "docs", f"benchmark_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        "docs",
+        "record",
+        f"benchmark_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
     )
 
     with open(record_path, "w") as f:
         f.write(records_json)
-
-    return
-    plt.plot(thread_count_list, insert_per_second)
-    plt.scatter(thread_count_list, insert_per_second)
-
-    # latch_strategy: "tree_latch"
-    insert_per_second = run_test_speed(
-        total_actions, thread_count_list, latch_strategy="tree_latch"
-    )
-    plt.plot(thread_count_list, insert_per_second)
-    plt.scatter(thread_count_list, insert_per_second)
-
-    plt.xlabel("Concurrent Transactions")
-    plt.ylabel("Insertions per Second")
-
-    top = max(insert_per_second) + 1000
-    plt.ylim(bottom=0, top=top)
-
-    plt.savefig("./docs/insertions_per_second.png")
-    return
 
 
 def run_test_speed(

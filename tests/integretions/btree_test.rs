@@ -196,9 +196,6 @@ fn test_speed() {
         .unwrap();
     let thread_count = env::var("THREAD_COUNT").unwrap().parse::<usize>().unwrap();
 
-    // let thread_count = 1;
-    // let action_per_thread = 1000;
-
     setup();
 
     // Create an empty B+ tree
