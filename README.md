@@ -40,7 +40,6 @@ A small database.
 
 ### Non-functional targets
 
-- [ ] WIP: run "test_big_table" in 5 seconds
 - [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
 
 ## Development
