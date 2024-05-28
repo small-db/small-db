@@ -14,6 +14,8 @@ A small database.
 - **page-latch** strategy (each page has its own latch)
 - **tree-latch** strategy (each leaf page has its own latch, and all other pages are protected by a tree latch)
 
+![insertions per second](./docs/img/insertions_per_second.png)
+
 ## Status
 
 - [ ] Index (B+ tree)
