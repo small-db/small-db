@@ -87,6 +87,11 @@ def run_test_speed(
     r.smalldb_commitid = get_git_commitid()
     r.start_time = datetime.datetime.now().isoformat()
     r.target_attributes = {
+        # hardware
+        "os": "macos",
+        "cpu": "M3",
+        "disk_type": "SSD",
+        # software configuration
         "total_actions": total_actions,
         "thread_count": thread_count,
         "action_per_thread": action_per_thread,
