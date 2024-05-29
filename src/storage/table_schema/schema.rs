@@ -36,6 +36,18 @@ impl TableSchema {
         }
     }
 
+    /// Built-in table: `pg_database`
+    pub fn for_pg_database() -> Self {
+        Self {
+            fields: vec![
+                Field::new("datname", Type::Bytes(20), true),
+                Field::new("datdba", Type::Int64, false),
+                Field::new("encoding", Type::Bytes(20), false),
+                Field::new("datacl", Type::Bytes(20), false),
+            ],
+        }
+    }
+
     pub fn small_int_schema(width: usize) -> Self {
         let mut fields: Vec<Field> = Vec::new();
         for i in 0..width {

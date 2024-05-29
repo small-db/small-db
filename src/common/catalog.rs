@@ -99,6 +99,18 @@ impl Catalog {
 
         tx.commit().unwrap();
 
+        {
+            // Insert table "pg_database" if it does not exist.
+            let mut catalog = Database::mut_catalog();
+            catalog.search_table("pg_database").unwrap_or_else(|| {
+                let schema = TableSchema::for_pg_database();
+                let table = BTreeTable::new("pg_database", Some(0), &schema);
+                let table_rc = Arc::new(RwLock::new(table));
+                catalog.add_table_to_memory(table_rc.clone());
+                table_rc
+            });
+        }
+
         Ok(())
     }
 
@@ -116,14 +128,16 @@ impl Catalog {
             info!("schema: {:?}", v);
         }
 
-        // Insert schema "pg_catalog" if it does not exist.
-        let mut catalog = Database::mut_catalog();
-        catalog.search_schema("pg_catalog").unwrap_or_else(|| {
-            let schema = Schema::new("pg_catalog");
-            let schema_rc = Arc::new(RwLock::new(schema));
-            catalog.schemas.insert(0, schema_rc.clone());
-            schema_rc
-        });
+        {
+            // Insert schema "pg_catalog" if it does not exist.
+            let mut catalog = Database::mut_catalog();
+            catalog.search_schema("pg_catalog").unwrap_or_else(|| {
+                let schema = Schema::new("pg_catalog");
+                let schema_rc = Arc::new(RwLock::new(schema));
+                catalog.schemas.insert(0, schema_rc.clone());
+                schema_rc
+            });
+        }
 
         info!("load schemas success");
         Ok(())
@@ -183,7 +197,8 @@ impl Catalog {
         }
     }
 
-    pub fn get_table_by_name(table_name: &str) -> Option<TableRC> {
+    /// TODO: remove this old api
+    pub fn search_table_old(table_name: &str) -> Option<TableRC> {
         let schema_table_rc = Database::mut_catalog().get_table_schemas();
         let schema_table = schema_table_rc.rl();
 
@@ -314,6 +329,17 @@ impl Catalog {
             let schema = schema_rc.rl();
             if schema.name == schema_name {
                 return Some(schema_rc.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn search_table(&self, table_name: &str) -> Option<TableRC> {
+        for table_rc in self.tables.values() {
+            let table = table_rc.rl();
+            if table.name == table_name {
+                return Some(table_rc.clone());
             }
         }
 

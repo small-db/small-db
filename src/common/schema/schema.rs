@@ -1,7 +1,10 @@
 use std::{
     hash::{DefaultHasher, Hash, Hasher},
+    sync::{Arc, RwLock},
     time::SystemTime,
 };
+
+use crate::{BTreeTable, Database};
 
 pub struct Schema {
     pub id: u32,
@@ -23,5 +26,9 @@ impl Schema {
             id,
             name: name.to_string(),
         }
+    }
+
+    pub fn search_table(&self, table_name: &str) -> Option<Arc<RwLock<BTreeTable>>> {
+        return Database::catalog().search_table(table_name);
     }
 }

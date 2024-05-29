@@ -2,6 +2,7 @@ use log::{debug, info};
 use sqlparser::ast::TableWithJoins;
 
 use super::stream::Stream;
+use crate::utils::HandyRwLock;
 use crate::{error::SmallError, sql::executor::join::handle_join, Database};
 
 pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
@@ -23,9 +24,10 @@ pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
 
                     // find the table
                     let table_name = &idents[1].value;
+                    let table = schema.rl().search_table(table_name).unwrap();
 
-                    info!("schema_name: {:?}", schema_name);
-                    info!("table_name: {:?}", table_name);
+                    info!("schema_name: {:?}", schema.rl().name);
+                    info!("table_name: {:?}", table.rl().name);
 
                     // return the stream of the table
                 }
