@@ -14,7 +14,7 @@ use small_db::{
 use tokio::net::TcpListener;
 
 /// Connect to the server with
-/// `psql -h localhost -p 5432 -d default_db -U xiaochen`
+/// `psql -h localhost -p 5433 -d default_db -U xiaochen`
 #[tokio::main]
 pub async fn main() {
     init_log();
@@ -32,7 +32,7 @@ pub async fn main() {
     )));
     let authenticator = Arc::new(StatelessMakeHandler::new(Arc::new(NoopStartupHandler)));
 
-    let server_addr = "127.0.0.1:5432";
+    let server_addr = "127.0.0.1:5433";
     let listener = TcpListener::bind(server_addr).await.unwrap();
     info!("Listening to {}", server_addr);
     loop {

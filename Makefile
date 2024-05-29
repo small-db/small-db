@@ -1,8 +1,10 @@
 run:
-	# This command will start the "small-db" server at localhost:5432.
+	# This command will start the "small-db" server at localhost:5433.
 	# 
 	# Connect to the server with
-	# `psql -h localhost -p 5432 -d default_db -U xiaochen`
+	# `psql -h localhost -p 5433 -d default_db -U xiaochen`
+	# 
+	# We use "info" log level since there are lots debug logs from the dependencies.
 	RUST_LOG=info cargo run --features "tree_latch"
 
 # Standard test. Doesn't print debug logs.

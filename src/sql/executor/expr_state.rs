@@ -3,9 +3,9 @@ use crate::error::SmallError;
 pub struct Batch {}
 
 /// ExprState represents the evaluation state for a whole expression tree.
-pub struct ExprState {}
+pub struct Stream {}
 
-impl ExprState {
+impl Stream {
     pub fn new() -> Self {
         Self {}
     }

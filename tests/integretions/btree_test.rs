@@ -190,6 +190,8 @@ fn test_concurrent() {
 fn test_speed() {
     use std::env;
 
+    use log::info;
+
     let action_per_thread = env::var("ACTION_PER_THREAD")
         .unwrap()
         .parse::<usize>()
@@ -229,9 +231,9 @@ fn test_speed() {
     }
     let duration = start.elapsed();
     let total_rows = thread_count * action_per_thread;
-    println!("{} insertion threads took: {:?}", thread_count, duration);
-    println!("ms:{:?}", duration.as_millis());
-    println!(
+    info!("{} insertion threads took: {:?}", thread_count, duration);
+    info!("ms:{:?}", duration.as_millis());
+    info!(
         "table.tuples_count(): {:?}, total_rows: {:?}",
         table.tuples_count(),
         total_rows,

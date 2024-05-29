@@ -1,10 +1,10 @@
 use log::info;
 use sqlparser::ast::Join;
 
-use super::expr_state::ExprState;
+use super::expr_state::Stream;
 use crate::error::SmallError;
 
-pub fn handle_join(join: &Join) -> Result<ExprState, SmallError> {
+pub fn handle_join(join: &Join) -> Result<Stream, SmallError> {
     info!("=====");
     info!("handle_join: {:?}", join.relation);
     info!("=====");

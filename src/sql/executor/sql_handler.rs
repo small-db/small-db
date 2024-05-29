@@ -1,11 +1,11 @@
-use log::info;
+use log::{debug, info};
 use sqlparser::{
     ast::{ColumnOption, Statement},
     dialect::GenericDialect,
     parser::Parser,
 };
 
-use super::expr_state::ExprState;
+use super::expr_state::Stream;
 use crate::{
     error::SmallError,
     sql::{executor::select::handle_select, session::QueryResult},
@@ -20,19 +20,17 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
 
     let ast = Parser::parse_sql(&dialect, sql).unwrap();
 
-    println!("AST: {:?}", ast);
-
-    println!("AST: {:?}", ast[0]);
+    info!("AST: {:?}", ast);
 
     let statement = &ast[0];
 
     match statement {
         Statement::CreateTable { name, columns, .. } => {
-            println!("name: {:?}", name);
-            println!("columns: {:?}", columns);
+            info!("name: {:?}", name);
+            info!("columns: {:?}", columns);
 
             let table_name = name.to_string();
-            println!("name: {:?}", table_name);
+            info!("name: {:?}", table_name);
 
             let mut fields: Vec<Field> = Vec::new();
             for column in columns {
@@ -79,6 +77,6 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     todo!()
 }
 
-fn collect_result(_expr_state: &ExprState) -> QueryResult {
+fn collect_result(_expr_state: &Stream) -> QueryResult {
     todo!()
 }

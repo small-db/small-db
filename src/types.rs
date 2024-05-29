@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+use log::info;
+
 use crate::{error::SmallError, utils::HandyRwLock};
 
 // Type alias, not a new type, cannot define methods on it
@@ -137,7 +139,7 @@ impl SmallLock {
 
 impl Drop for SmallLock {
     fn drop(&mut self) {
-        println!("> Dropping {}", self.name);
+        info!("> Dropping {}", self.name);
     }
 }
 
