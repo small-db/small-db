@@ -80,7 +80,9 @@ impl Database {
             SINGLETON = mem::transmute(Box::new(singleton));
         }
 
+        Catalog::load_tables().unwrap();
         Catalog::load_schemas().unwrap();
+
         Database::mut_log_manager().recover().unwrap();
         Database::mut_concurrent_status().clear();
     }

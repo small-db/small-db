@@ -11,7 +11,7 @@ impl TableSchema {
         Self { fields }
     }
 
-    pub fn for_schema_table() -> Self {
+    pub fn for_table_schema() -> Self {
         Self {
             fields: vec![
                 Field::new("table_id", Type::Int64, true),
@@ -19,6 +19,15 @@ impl TableSchema {
                 Field::new("field_name", Type::Bytes(20), false),
                 Field::new("field_type", Type::Bytes(10), false),
                 Field::new("is_primary", Type::Bool, false),
+            ],
+        }
+    }
+
+    pub fn for_schema() -> Self {
+        Self {
+            fields: vec![
+                Field::new("schema_id", Type::Int64, true),
+                Field::new("schema_name", Type::Bytes(20), false),
             ],
         }
     }

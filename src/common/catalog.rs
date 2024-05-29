@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use log::info;
+
 use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
     io::{read_into, Decodeable, Encodeable},
@@ -19,8 +21,13 @@ use crate::{
 
 use super::schema::Schema;
 
-const SCHEMA_TBALE_NAME: &str = "schemas";
-const SCHEMA_TBALE_ID: u32 = 123;
+// The namd and id for the table "table_schemas"
+const TABLE_SCHEMA_NAME: &str = "table_schemas";
+const TABLE_SCHEMA_ID: u32 = 123;
+
+// The namd and id for the table "schemas"
+const SCHEMA_NAME: &str = "schemas";
+const SCHEMA_ID: u32 = 124;
 
 type TableID = u32;
 type TableRC = Arc<RwLock<BTreeTable>>;
@@ -43,25 +50,23 @@ impl Catalog {
         }
     }
 
-    /// Load the catalog from disk.
-    ///
-    /// TODO: remove this api
-    pub fn load_schemas() -> SmallResult {
-        let schema_table_rc = Database::mut_catalog().get_schema_table();
+    /// Load tables from disk.
+    pub fn load_tables() -> SmallResult {
+        let tables = Database::mut_catalog().get_table_schemas();
 
         // Add the system-table "schema", otherwise we cannot load the tables
         // from disk.
         //
         // All "add_table" calls in this function should not persist the table,
         // because we are loading the tables from disk.
-        Catalog::add_table(schema_table_rc.clone(), false);
+        Catalog::add_table(tables.clone(), false);
 
         // scan the catalog table and load all the tables
         let mut schemas = HashMap::new();
         let mut table_names = HashMap::new();
 
         let tx = Transaction::new();
-        let schema_table = schema_table_rc.rl();
+        let schema_table = tables.rl();
         let mut iter = schema_table.iter(&tx);
         while let Some(tuple) = iter.next() {
             let table_id = tuple.get_cell(0).get_int64()?;
@@ -91,27 +96,21 @@ impl Catalog {
 
         tx.commit().unwrap();
 
-        // TODO: init system tables if not exists
-        //
-        // - pg_catalog.pg_class
-        // - pg_catalog.pg_namespace
-        // if Catalog::get_table_by_name("pg_catalog.pg_class").is_none() {
-        //     // create pg_catalog.pg_class
-
-        //     let schema = Schema::new(vec![
-        //         Field::new("relname", Type::Bytes(20), false),
-        //         Field::new("relowner", Type::Int64, true),
-        //         Field::new("relkind", Type::Bytes(20), false),
-        //         Field::new("relnamespace", Type::Int64, false),
-        //     ]);
-
-        //     let table = BTreeTable::new("pg_catalog.pg_class", None, &schema);
-
-        //     Catalog::add_table(Arc::new(RwLock::new(table)), true);
-        //     info!("create pg_catalog.pg_class");
-        // }
-
         Ok(())
+    }
+
+    /// Load tables from disk.
+    pub fn load_schemas() -> SmallResult {
+        let schemas_rc = Database::mut_catalog().get_schemas();
+
+        let tx = Transaction::new();
+        let schemas = schemas_rc.rl();
+        let iter = schemas.iter(&tx);
+        for v in iter {
+            info!("schema: {:?}", v);
+        }
+
+        todo!()
     }
 
     /// Get the table from the catalog.
@@ -125,7 +124,7 @@ impl Catalog {
             return Some(table_rc.clone());
         }
 
-        let schema_table_rc = self.get_schema_table();
+        let schema_table_rc = self.get_table_schemas();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
@@ -169,7 +168,7 @@ impl Catalog {
     }
 
     pub fn get_table_by_name(table_name: &str) -> Option<TableRC> {
-        let schema_table_rc = Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog().get_table_schemas();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
@@ -216,16 +215,30 @@ impl Catalog {
         }
     }
 
-    pub fn get_schema_table(&mut self) -> TableRC {
+    pub fn get_table_schemas(&mut self) -> TableRC {
         self.tables
-            .entry(SCHEMA_TBALE_ID)
+            .entry(TABLE_SCHEMA_ID)
             .or_insert_with(|| {
-                let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
-                    SCHEMA_TBALE_NAME,
-                    Some(SCHEMA_TBALE_ID),
-                    &TableSchema::for_schema_table(),
+                let table_rc = Arc::new(RwLock::new(BTreeTable::new(
+                    TABLE_SCHEMA_NAME,
+                    Some(TABLE_SCHEMA_ID),
+                    &TableSchema::for_table_schema(),
                 )));
-                schema_table_rc
+                table_rc
+            })
+            .clone()
+    }
+
+    pub fn get_schemas(&mut self) -> TableRC {
+        self.tables
+            .entry(SCHEMA_ID)
+            .or_insert_with(|| {
+                let table_rc = Arc::new(RwLock::new(BTreeTable::new(
+                    SCHEMA_NAME,
+                    Some(SCHEMA_ID),
+                    &&TableSchema::for_schema(),
+                )));
+                table_rc
             })
             .clone()
     }
@@ -238,7 +251,7 @@ impl Catalog {
     fn add_table_to_disk(table_rc: TableRC) {
         let table = table_rc.rl();
 
-        let schema_table_rc = Database::mut_catalog().get_schema_table();
+        let schema_table_rc = Database::mut_catalog().get_table_schemas();
         let schema_table = schema_table_rc.rl();
 
         let tx = Transaction::new();
