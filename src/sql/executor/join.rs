@@ -1,7 +1,7 @@
 use log::info;
 use sqlparser::ast::Join;
 
-use super::expr_state::Stream;
+use super::stream::Stream;
 use crate::error::SmallError;
 
 pub fn handle_join(join: &Join) -> Result<Stream, SmallError> {

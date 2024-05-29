@@ -1,7 +1,7 @@
 use log::{debug, info};
 use sqlparser::ast::TableWithJoins;
 
-use super::expr_state::Stream;
+use super::stream::Stream;
 use crate::{error::SmallError, sql::executor::join::handle_join};
 
 pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {

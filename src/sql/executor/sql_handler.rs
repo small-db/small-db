@@ -5,7 +5,7 @@ use sqlparser::{
     parser::Parser,
 };
 
-use super::expr_state::Stream;
+use super::stream::Stream;
 use crate::{
     error::SmallError,
     sql::{executor::select::handle_select, session::QueryResult},
