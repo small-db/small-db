@@ -20,14 +20,7 @@
                     "kind": "lib"
                 }
             },
-            "args": [
-                "--features",
-                "tree_latch",
-            ],
             "cwd": "${workspaceFolder}",
-            "env": {
-                "RUST_LOG": "debug"
-            },
         },
         {
             "type": "lldb",
@@ -37,7 +30,8 @@
                 "args": [
                     "build",
                     "--bin=small-db",
-                    "--package=small-db"
+                    "--package=small-db",
+                    "--features=tree_latch",
                 ],
                 "filter": {
                     "name": "small-db",
@@ -45,7 +39,10 @@
                 }
             },
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_LOG": "debug"
+            },
         },
         {
             "type": "lldb",

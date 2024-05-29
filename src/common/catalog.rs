@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::info;
+use log::{debug, info};
 
 use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
@@ -110,7 +110,8 @@ impl Catalog {
             info!("schema: {:?}", v);
         }
 
-        todo!()
+        info!("load schemas success");
+        Ok(())
     }
 
     /// Get the table from the catalog.
