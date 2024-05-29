@@ -1,3 +1,10 @@
+run:
+	# This command will start the "small-db" server at localhost:5432.
+	# 
+	# Connect to the server with
+	# `psql -h localhost -p 5432 -d default_db -U xiaochen`
+	RUST_LOG=info cargo run --features "tree_latch"
+
 # Standard test. Doesn't print debug logs.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
