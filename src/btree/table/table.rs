@@ -26,7 +26,7 @@ use crate::{
     },
     concurrent_status::Permission,
     storage::{
-        schema::Schema,
+        table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
     transaction::Transaction,
@@ -62,7 +62,7 @@ pub struct BTreeTable {
     pub key_field: usize,
 
     // the tuple descriptor of tuples in the file
-    pub schema: Schema,
+    pub schema: TableSchema,
 
     file: Mutex<File>,
 
@@ -89,7 +89,7 @@ impl fmt::Display for BTreeTable {
 
 // init functions
 impl BTreeTable {
-    pub fn new(table_name: &str, table_id: Option<u32>, schema: &Schema) -> Self {
+    pub fn new(table_name: &str, table_id: Option<u32>, schema: &TableSchema) -> Self {
         let db_path = Database::global().get_path();
         let filename = table_name.to_owned() + ".table";
         let table_path = db_path.join(filename);
@@ -149,7 +149,7 @@ impl BTreeTable {
         self.table_id
     }
 
-    pub fn get_schema(&self) -> Schema {
+    pub fn get_schema(&self) -> TableSchema {
         self.schema.clone()
     }
 

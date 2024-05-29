@@ -9,8 +9,8 @@ use super::stream::Stream;
 use crate::{
     error::SmallError,
     sql::{executor::select::handle_select, session::QueryResult},
-    storage::schema::{Field, Type},
-    BTreeTable, Schema,
+    storage::table_schema::{Field, Type},
+    BTreeTable, TableSchema,
 };
 
 pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
@@ -50,7 +50,7 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
                 fields.push(field);
             }
 
-            let schema = Schema::new(fields);
+            let schema = TableSchema::new(fields);
 
             let _table = BTreeTable::new(&table_name, None, &schema);
         }

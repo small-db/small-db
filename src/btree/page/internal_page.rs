@@ -9,7 +9,7 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     io::{Decodeable, SmallWriter},
-    storage::{schema::Schema, tuple::Cell},
+    storage::{table_schema::TableSchema, tuple::Cell},
     transaction::Transaction,
     types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
@@ -84,7 +84,7 @@ pub struct BTreeInternalPage {
 }
 
 impl BTreeInternalPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
@@ -155,7 +155,7 @@ impl BTreeInternalPage {
         return instance;
     }
 
-    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         let slot_count = Self::get_children_cap(schema);
 
         let mut reader = Cursor::new(bytes);
@@ -570,7 +570,7 @@ impl BTreeInternalPage {
 
     /// Get the capacity of children (pages) in this page. The
     /// capacity of entries is one less than it.
-    pub fn get_children_cap(schema: &Schema) -> usize {
+    pub fn get_children_cap(schema: &TableSchema) -> usize {
         let key_size = schema.get_pkey().get_type().get_disk_size();
 
         let bits_per_entry_including_header = key_size * 8 + INDEX_SIZE * 8 + 1;
@@ -591,7 +591,7 @@ impl BTreeInternalPage {
 }
 
 impl BTreePage for BTreeInternalPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         Self::new(pid, bytes, schema)
     }
 

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::{
     error::SmallError,
     io::{Decodeable, Encodeable, SmallWriter},
-    storage::schema::Type,
+    storage::table_schema::Type,
 };
 
 #[derive(Debug, Clone)]

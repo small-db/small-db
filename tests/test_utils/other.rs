@@ -7,16 +7,16 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Schema,
+    BTreeTable, TableSchema,
 };
 
 pub fn leaf_records_cap() -> usize {
-    let schema = Schema::small_int_schema(2);
+    let schema = TableSchema::small_int_schema(2);
     BTreeLeafPage::get_children_cap(&schema)
 }
 
 pub fn internal_children_cap() -> usize {
-    let schema = Schema::small_int_schema(2);
+    let schema = TableSchema::small_int_schema(2);
     BTreeInternalPage::get_children_cap(&schema)
 }
 

@@ -1,12 +1,12 @@
 use super::{Field, Type};
 
 #[derive(Debug, Clone)]
-pub struct Schema {
+pub struct TableSchema {
     fields: Vec<Field>,
 }
 
 // Constructors
-impl Schema {
+impl TableSchema {
     pub fn new(fields: Vec<Field>) -> Self {
         Self { fields }
     }
@@ -35,7 +35,7 @@ impl Schema {
     }
 }
 
-impl Schema {
+impl TableSchema {
     /// Get tuple size in bytes.
     pub fn get_disk_size(&self) -> usize {
         let mut size = 0;

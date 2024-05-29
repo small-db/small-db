@@ -4,7 +4,7 @@ use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::buffer_pool::BufferPool,
     io::{Decodeable, SmallWriter},
-    storage::schema::Schema,
+    storage::table_schema::TableSchema,
 };
 
 /// # Binary Layout
@@ -112,7 +112,7 @@ impl BTreeRootPointerPage {
 }
 
 impl BTreePage for BTreeRootPointerPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], _tuple_scheme: &Schema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], _tuple_scheme: &TableSchema) -> Self {
         Self::new(pid, bytes)
     }
 

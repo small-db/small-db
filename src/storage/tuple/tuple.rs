@@ -6,7 +6,7 @@ use std::{
 use crate::{
     btree::page::BTreePageID,
     io::{Encodeable, SmallWriter},
-    storage::{schema::Schema, tuple::Cell},
+    storage::{table_schema::TableSchema, tuple::Cell},
 };
 
 pub struct Tuple {
@@ -21,7 +21,7 @@ impl Tuple {
         }
     }
 
-    pub fn read_from<R: std::io::Read>(reader: &mut R, schema: &Schema) -> Self {
+    pub fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
         let mut cells: Vec<Cell> = Vec::new();
         for field in schema.get_fields() {
             let cell = Cell::read_from(reader, &field.get_type());

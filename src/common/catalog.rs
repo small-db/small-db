@@ -8,7 +8,7 @@ use crate::{
     btree::table::{BTreeTableSearchIterator, NestedIterator},
     io::{read_into, Decodeable, Encodeable},
     storage::{
-        schema::{Field, Schema, Type},
+        table_schema::{Field, TableSchema, Type},
         tuple::{Cell, Tuple},
     },
     transaction::Transaction,
@@ -17,20 +17,29 @@ use crate::{
     BTreeTable, Database, Op, Predicate,
 };
 
+use super::schema::Schema;
+
 const SCHEMA_TBALE_NAME: &str = "schemas";
 const SCHEMA_TBALE_ID: u32 = 123;
 
-pub struct Catalog {
-    map: HashMap<Key, Value>,
-}
+type TableID = u32;
+type TableRC = Arc<RwLock<BTreeTable>>;
 
-type Key = u32;
-type Value = Arc<RwLock<BTreeTable>>;
+type SchemaID = u32;
+type SchemaRC = Arc<RwLock<Schema>>;
+
+pub struct Catalog {
+    tables: HashMap<TableID, TableRC>,
+
+    schemas: HashMap<SchemaID, SchemaRC>,
+}
 
 impl Catalog {
     pub fn new() -> Self {
         Self {
-            map: HashMap::new(),
+            tables: HashMap::new(),
+
+            schemas: HashMap::new(),
         }
     }
 
@@ -70,7 +79,7 @@ impl Catalog {
         }
 
         for (table_id, fields) in schemas {
-            let schema = Schema::new(fields);
+            let schema = TableSchema::new(fields);
             let table_name = table_names.get(&table_id).unwrap();
 
             let table = BTreeTable::new(&table_name, Some(table_id as u32), &schema);
@@ -111,8 +120,8 @@ impl Catalog {
     /// search it in the `schemas` table and load it into the map.
     ///
     /// Return the table if it exists, otherwise return `None`.
-    pub fn get_table(&mut self, table_index: &Key) -> Option<Value> {
-        if let Some(table_rc) = self.map.get(table_index) {
+    pub fn get_table(&mut self, table_index: &TableID) -> Option<TableRC> {
+        if let Some(table_rc) = self.tables.get(table_index) {
             return Some(table_rc.clone());
         }
 
@@ -145,12 +154,12 @@ impl Catalog {
 
         match table_name_option {
             Some(table_name) => {
-                let schema = Schema::new(fields);
+                let schema = TableSchema::new(fields);
                 let table = BTreeTable::new(&table_name, Some(*table_index), &schema);
 
                 let table_rc = Arc::new(RwLock::new(table));
 
-                self.map.insert(*table_index, table_rc.clone());
+                self.tables.insert(*table_index, table_rc.clone());
                 Some(table_rc)
             }
             None => {
@@ -159,7 +168,7 @@ impl Catalog {
         }
     }
 
-    pub fn get_table_by_name(table_name: &str) -> Option<Value> {
+    pub fn get_table_by_name(table_name: &str) -> Option<TableRC> {
         let schema_table_rc = Database::mut_catalog().get_schema_table();
         let schema_table = schema_table_rc.rl();
 
@@ -191,13 +200,13 @@ impl Catalog {
 
         match table_id_option {
             Some(table_id) => {
-                let schema = Schema::new(fields);
+                let schema = TableSchema::new(fields);
                 let table = BTreeTable::new(table_name, Some(table_id as u32), &schema);
 
                 let table_rc = Arc::new(RwLock::new(table));
 
                 Database::mut_catalog()
-                    .map
+                    .tables
                     .insert(table_id as u32, table_rc.clone());
                 Some(table_rc)
             }
@@ -207,26 +216,26 @@ impl Catalog {
         }
     }
 
-    pub fn get_schema_table(&mut self) -> Value {
-        self.map
+    pub fn get_schema_table(&mut self) -> TableRC {
+        self.tables
             .entry(SCHEMA_TBALE_ID)
             .or_insert_with(|| {
                 let schema_table_rc = Arc::new(RwLock::new(BTreeTable::new(
                     SCHEMA_TBALE_NAME,
                     Some(SCHEMA_TBALE_ID),
-                    &Schema::for_schema_table(),
+                    &TableSchema::for_schema_table(),
                 )));
                 schema_table_rc
             })
             .clone()
     }
 
-    fn add_table_to_memory(&mut self, table_rc: Value) {
+    fn add_table_to_memory(&mut self, table_rc: TableRC) {
         let id = table_rc.rl().get_id();
-        self.map.insert(id, Arc::clone(&table_rc));
+        self.tables.insert(id, Arc::clone(&table_rc));
     }
 
-    fn add_table_to_disk(table_rc: Value) {
+    fn add_table_to_disk(table_rc: TableRC) {
         let table = table_rc.rl();
 
         let schema_table_rc = Database::mut_catalog().get_schema_table();
@@ -260,7 +269,7 @@ impl Catalog {
         tx.commit().unwrap();
     }
 
-    pub fn add_table(table_rc: Value, persist: bool) {
+    pub fn add_table(table_rc: TableRC, persist: bool) {
         {
             let mut catalog = Database::mut_catalog();
             catalog.add_table_to_memory(table_rc.clone());
@@ -269,5 +278,16 @@ impl Catalog {
         if persist {
             Self::add_table_to_disk(table_rc);
         }
+    }
+
+    pub fn search_schema(&self, schema_name: &str) -> Option<SchemaRC> {
+        for schema_rc in self.schemas.values() {
+            let schema = schema_rc.rl();
+            if schema.name == schema_name {
+                return Some(schema_rc.clone());
+            }
+        }
+
+        None
     }
 }

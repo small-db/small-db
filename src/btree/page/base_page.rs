@@ -1,5 +1,5 @@
 use super::{BTreePage, BTreePageID, PageCategory};
-use crate::{btree::buffer_pool::BufferPool, storage::schema::Schema};
+use crate::{btree::buffer_pool::BufferPool, storage::table_schema::TableSchema};
 
 const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
 
@@ -41,7 +41,7 @@ impl BTreeBasePage {
 }
 
 impl BTreePage for BTreeBasePage {
-    fn new(pid: &BTreePageID, _bytes: &[u8], _tuple_scheme: &Schema) -> Self {
+    fn new(pid: &BTreePageID, _bytes: &[u8], _tuple_scheme: &TableSchema) -> Self {
         Self::new(pid)
     }
 

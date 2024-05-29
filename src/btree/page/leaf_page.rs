@@ -12,7 +12,7 @@ use crate::{
     error::SmallError,
     io::{read_into, SmallWriter},
     storage::{
-        schema::Schema,
+        table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
     utils::{ceil_div, HandyRwLock},
@@ -40,7 +40,7 @@ pub struct BTreeLeafPage {
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
 
-    pub schema: Schema,
+    pub schema: TableSchema,
 
     // use u32 instead of Option<BTreePageID> to reduce memory
     // footprint
@@ -53,7 +53,7 @@ pub struct BTreeLeafPage {
 }
 
 impl BTreeLeafPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
@@ -114,7 +114,7 @@ impl BTreeLeafPage {
         return instance;
     }
 
-    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         let slot_count = Self::get_children_cap(&schema);
 
         let mut reader = Cursor::new(bytes);
@@ -369,7 +369,7 @@ impl BTreeLeafPage {
 /// Methods for accessing const attributes.
 impl BTreeLeafPage {
     /// Get the capacity of children (tuples) in this page.
-    pub fn get_children_cap(schema: &Schema) -> usize {
+    pub fn get_children_cap(schema: &TableSchema) -> usize {
         let bits_per_tuple_including_header = schema.get_disk_size() * 8 + 1;
 
         // extraBits:
@@ -385,7 +385,7 @@ impl BTreeLeafPage {
 }
 
 impl BTreePage for BTreeLeafPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], schema: &Schema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         Self::new(pid, &bytes, schema)
     }
 

@@ -1,7 +1,7 @@
 use super::executor::sql_handler::handle_sql;
 use crate::{
     error::SmallError,
-    storage::{schema::Field, tuple::Tuple},
+    storage::{table_schema::Field, tuple::Tuple},
 };
 
 pub struct Session {}

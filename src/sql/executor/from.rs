@@ -2,7 +2,7 @@ use log::{debug, info};
 use sqlparser::ast::TableWithJoins;
 
 use super::stream::Stream;
-use crate::{error::SmallError, sql::executor::join::handle_join};
+use crate::{error::SmallError, sql::executor::join::handle_join, Database};
 
 pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
     let first_from = &from[0];
@@ -19,12 +19,13 @@ pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
                 if idents.len() == 2 {
                     // find the schema
                     let schema_name = &idents[0].value;
+                    let schema = Database::catalog().search_schema(schema_name).unwrap();
 
                     // find the table
                     let table_name = &idents[1].value;
 
-                    debug!("schema_name: {:?}", schema_name);
-                    debug!("table_name: {:?}", table_name);
+                    info!("schema_name: {:?}", schema_name);
+                    info!("table_name: {:?}", table_name);
 
                     // return the stream of the table
                 }

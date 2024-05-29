@@ -19,7 +19,7 @@ use small_db::{
     storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     utils::{self, HandyRwLock},
-    BTreeTable, Database, Schema,
+    BTreeTable, Database, TableSchema,
 };
 
 use super::internal_children_cap;
@@ -55,7 +55,7 @@ pub enum TreeLayout {
 }
 
 pub fn new_empty_btree_table(table_name: &str, columns: usize) -> Arc<RwLock<BTreeTable>> {
-    let schema = Schema::small_int_schema(columns);
+    let schema = TableSchema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(table_name, None, &schema)));
     Catalog::add_table(Arc::clone(&table_rc), true);
     return table_rc;
@@ -78,7 +78,7 @@ pub fn new_random_btree_table(
     key_field: usize,
     tree_layout: TreeLayout,
 ) -> Arc<RwLock<BTreeTable>> {
-    let schema = Schema::small_int_schema(columns);
+    let schema = TableSchema::small_int_schema(columns);
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(TEST_DB, None, &schema)));
     Catalog::add_table(Arc::clone(&table_rc), true);
 
@@ -134,7 +134,7 @@ fn sequential_insert_into_table(
     tx: &Transaction,
     table: &BTreeTable,
     tuples: &Vec<Tuple>,
-    schema: &Schema,
+    schema: &TableSchema,
     tree_layout: TreeLayout,
 ) -> u32 {
     // stage 1: write leaf pages
