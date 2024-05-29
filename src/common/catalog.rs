@@ -51,6 +51,9 @@ impl Catalog {
     }
 
     /// Load tables from disk.
+    ///
+    /// We cannot pass the `self` reference to this function, since "catalog" is used
+    /// inside the table write/read api, and it will cause permanent blocking.
     pub fn load_tables() -> SmallResult {
         let tables = Database::mut_catalog().get_table_schemas();
 
@@ -100,6 +103,9 @@ impl Catalog {
     }
 
     /// Load tables from disk.
+    ///
+    /// We cannot pass the `self` reference to this function, since "catalog" is used
+    /// inside the table write/read api, and it will cause permanent blocking.
     pub fn load_schemas() -> SmallResult {
         let schemas_rc = Database::mut_catalog().get_schemas();
 
@@ -109,6 +115,15 @@ impl Catalog {
         for v in iter {
             info!("schema: {:?}", v);
         }
+
+        // Insert schema "pg_catalog" if it does not exist.
+        let mut catalog = Database::mut_catalog();
+        catalog.search_schema("pg_catalog").unwrap_or_else(|| {
+            let schema = Schema::new("pg_catalog");
+            let schema_rc = Arc::new(RwLock::new(schema));
+            catalog.schemas.insert(0, schema_rc.clone());
+            schema_rc
+        });
 
         info!("load schemas success");
         Ok(())
@@ -237,7 +252,7 @@ impl Catalog {
                 let table_rc = Arc::new(RwLock::new(BTreeTable::new(
                     SCHEMA_NAME,
                     Some(SCHEMA_ID),
-                    &&TableSchema::for_schema(),
+                    &&TableSchema::for_schemas(),
                 )));
                 table_rc
             })

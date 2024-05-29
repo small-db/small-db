@@ -11,6 +11,9 @@ impl TableSchema {
         Self { fields }
     }
 
+    /// Built-in table: `table_schema`
+    ///
+    /// TODO: change its name to `tables`, change fields to list.
     pub fn for_table_schema() -> Self {
         Self {
             fields: vec![
@@ -23,7 +26,8 @@ impl TableSchema {
         }
     }
 
-    pub fn for_schema() -> Self {
+    /// Built-in table: `schemas`
+    pub fn for_schemas() -> Self {
         Self {
             fields: vec![
                 Field::new("schema_id", Type::Int64, true),
