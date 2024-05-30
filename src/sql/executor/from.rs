@@ -32,8 +32,6 @@ pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Box<dyn Stream>, SmallE
 
                     let stream = TableStream::new();
                     return Ok(Box::new(stream));
-
-                    // return the stream of the table
                 }
             }
             _ => {

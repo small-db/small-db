@@ -139,7 +139,6 @@ impl Catalog {
             });
         }
 
-        info!("load schemas success");
         Ok(())
     }
 
