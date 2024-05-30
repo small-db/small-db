@@ -4,7 +4,7 @@ use sqlparser::ast::Join;
 use super::stream::Stream;
 use crate::error::SmallError;
 
-pub fn handle_join(join: &Join) -> Result<Stream, SmallError> {
+pub fn handle_join(join: &Join) -> Result<Box<dyn Stream>, SmallError> {
     info!("=====");
     info!("handle_join: {:?}", join.relation);
     info!("=====");

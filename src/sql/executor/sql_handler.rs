@@ -59,8 +59,8 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
                 sqlparser::ast::SetExpr::Select(select) => {
                     info!("projection: {:?}", select.projection);
                     info!("from: {:?}", select.from);
-                    let expr_state = handle_select(select)?;
-                    return Ok(collect_result(&expr_state));
+                    let stream = handle_select(select)?;
+                    return Ok(collect_result(stream));
                 }
                 _ => {
                     todo!()
@@ -77,6 +77,6 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     todo!()
 }
 
-fn collect_result(_expr_state: &Stream) -> QueryResult {
+fn collect_result(stream: Box<dyn Stream>) -> QueryResult {
     todo!()
 }

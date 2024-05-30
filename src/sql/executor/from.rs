@@ -2,10 +2,11 @@ use log::{debug, info};
 use sqlparser::ast::TableWithJoins;
 
 use super::stream::Stream;
+use crate::sql::executor::stream::TableStream;
 use crate::utils::HandyRwLock;
 use crate::{error::SmallError, sql::executor::join::handle_join, Database};
 
-pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
+pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Box<dyn Stream>, SmallError> {
     let first_from = &from[0];
 
     if first_from.joins.len() == 0 {
@@ -29,6 +30,9 @@ pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
                     info!("schema_name: {:?}", schema.rl().name);
                     info!("table_name: {:?}", table.rl().name);
 
+                    let stream = TableStream::new();
+                    return Ok(Box::new(stream));
+
                     // return the stream of the table
                 }
             }
@@ -37,11 +41,8 @@ pub fn handle_from(from: &Vec<TableWithJoins>) -> Result<Stream, SmallError> {
             }
         }
 
-        return Ok(Stream::new());
+        unimplemented!();
     }
 
     unimplemented!();
-
-    let first_join = &first_from.joins[0];
-    return handle_join(first_join);
 }
