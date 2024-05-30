@@ -2,6 +2,7 @@ use super::executor::sql_handler::handle_sql;
 use crate::{
     error::SmallError,
     storage::{table_schema::Field, tuple::Tuple},
+    transaction::Transaction,
 };
 
 pub struct Session {}
@@ -15,7 +16,7 @@ impl Session {
         Self {}
     }
 
-    pub fn execute(&mut self, sql_text: &str) -> Result<QueryResult, SmallError> {
-        handle_sql(sql_text)
+    pub fn execute(&mut self, tx: &Transaction, sql_text: &str) -> Result<QueryResult, SmallError> {
+        handle_sql(tx, sql_text)
     }
 }

@@ -6,7 +6,7 @@ use pgwire::{
     error::PgWireResult,
 };
 
-use crate::sql::session::Session;
+use crate::{sql::session::Session, transaction::Transaction};
 
 pub struct PostgresHandler {
     pub session: Arc<Mutex<Session>>,
@@ -25,8 +25,11 @@ impl SimpleQueryHandler for PostgresHandler {
         C: ClientInfo + Unpin + Send + Sync,
     {
         let mut session = self.session.lock().unwrap();
+
+        let tx = Transaction::new();
+
         let _result = session
-            .execute(query)
+            .execute(&tx, query)
             .map_err(|e| pgwire::error::PgWireError::ApiError(Box::new(e)))?;
 
         unimplemented!()

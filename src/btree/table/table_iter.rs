@@ -13,17 +13,14 @@ use crate::{
     BTreeTable, Op, Predicate,
 };
 
-impl<'table, 'tx> BTreeTable {
-    pub fn iter(&'table self, tx: &'tx Transaction) -> BTreeTableIterator
-    where
-        'tx: 'table,
-    {
+impl BTreeTable {
+    pub fn iter(&self, tx: &Transaction) -> BTreeTableIterator {
         BTreeTableIterator::new(tx, self)
     }
 }
 
-pub struct BTreeTableIterator<'t> {
-    tx: &'t Transaction,
+pub struct BTreeTableIterator {
+    tx: Transaction,
 
     page_rc: Arc<RwLock<BTreeLeafPage>>,
     page_it: BTreeLeafPageIteratorRc,
@@ -32,13 +29,13 @@ pub struct BTreeTableIterator<'t> {
     last_page_it: BTreeLeafPageIteratorRc,
 }
 
-impl<'t> BTreeTableIterator<'t> {
-    pub fn new(tx: &'t Transaction, table: &BTreeTable) -> Self {
-        let page_rc = table.get_first_page(tx, Permission::ReadOnly);
-        let last_page_rc = table.get_last_page(tx, Permission::ReadOnly);
+impl BTreeTableIterator {
+    pub fn new(tx: &Transaction, table: &BTreeTable) -> Self {
+        let page_rc = table.get_first_page(&tx, Permission::ReadOnly);
+        let last_page_rc = table.get_last_page(&tx, Permission::ReadOnly);
 
         Self {
-            tx,
+            tx: tx.clone(),
 
             page_rc: Arc::clone(&page_rc),
             page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc)),
@@ -49,7 +46,7 @@ impl<'t> BTreeTableIterator<'t> {
     }
 }
 
-impl Iterator for BTreeTableIterator<'_> {
+impl Iterator for BTreeTableIterator {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -76,7 +73,7 @@ impl Iterator for BTreeTableIterator<'_> {
     }
 }
 
-impl DoubleEndedIterator for BTreeTableIterator<'_> {
+impl DoubleEndedIterator for BTreeTableIterator {
     fn next_back(&mut self) -> Option<Self::Item> {
         let v = self.last_page_it.next_back();
         if !v.is_none() {
@@ -87,7 +84,7 @@ impl DoubleEndedIterator for BTreeTableIterator<'_> {
         match left {
             Some(left) => {
                 let sibling_rc =
-                    BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &left).unwrap();
+                    BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &left).unwrap();
                 let page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
 
                 self.last_page_rc = Arc::clone(&sibling_rc);

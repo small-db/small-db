@@ -8,18 +8,18 @@ use super::{Batch, Stream};
 
 use crate::utils::HandyRwLock;
 
-pub struct TableStream<'tx> {
-    iter: BTreeTableIterator<'tx>,
+pub struct TableStream {
+    iter: BTreeTableIterator,
 }
 
-impl<'tx> TableStream<'tx> {
-    pub fn new(tx: &'tx Transaction, table: Arc<RwLock<BTreeTable>>) -> Self {
+impl TableStream {
+    pub fn new(tx: &Transaction, table: Arc<RwLock<BTreeTable>>) -> Self {
         let iter = BTreeTableIterator::new(tx, &table.rl());
         Self { iter }
     }
 }
 
-impl Stream for TableStream<'_> {
+impl Stream for TableStream {
     fn next_batch(&mut self) -> Result<Option<Batch>, SmallError> {
         todo!()
     }

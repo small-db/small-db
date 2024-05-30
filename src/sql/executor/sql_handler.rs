@@ -10,10 +10,11 @@ use crate::{
     error::SmallError,
     sql::{executor::select::handle_select, session::QueryResult},
     storage::table_schema::{Field, Type},
+    transaction::Transaction,
     BTreeTable, TableSchema,
 };
 
-pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
+pub fn handle_sql(tx: &Transaction, sql: &str) -> Result<QueryResult, SmallError> {
     info!("Query: {}", sql);
 
     let dialect = GenericDialect {}; // or AnsiDialect, or your own dialect ...
@@ -59,7 +60,7 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
                 sqlparser::ast::SetExpr::Select(select) => {
                     info!("projection: {:?}", select.projection);
                     info!("from: {:?}", select.from);
-                    let stream = handle_select(select)?;
+                    let stream = handle_select(tx, select)?;
                     return collect_result(stream);
                 }
                 _ => {

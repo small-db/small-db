@@ -10,7 +10,7 @@ use crate::{error::SmallError, sql::executor::join::handle_join, Database};
 pub fn handle_from(
     tx: &Transaction,
     from: &Vec<TableWithJoins>,
-) -> Result<Box<dyn Stream>, SmallError> {
+) -> Result<Box<TableStream>, SmallError> {
     let first_from = &from[0];
 
     if first_from.joins.len() == 0 {
