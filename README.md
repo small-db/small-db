@@ -18,6 +18,8 @@ A small database.
 
 ## Status
 
+- [ ] Variable length field
+- [x] PostgreSQL protocol
 - [ ] Index (B+ tree)
   - [x] clustered index (InnoDB flavor, index organized tables) (<https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html>)
   - [ ] all-secondary indexes (PostgreSQL flavor, heap organized tables) (<https://rcoh.me/posts/postgres-indexes-under-the-hood/>) (<https://www.postgresql.org/docs/current/btree-implementation.html>)
@@ -28,7 +30,6 @@ A small database.
   - [ ] Innodb
   - [ ] PostgreSQL
 - [ ] Gap Lock
-- [x] PostgreSQL protocol
 - [ ] TPCC benchmark
 - [ ] MVCC (Multi-version concurrency control)
 - [ ] Optimistic concurrency control
