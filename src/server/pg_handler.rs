@@ -38,7 +38,7 @@ impl SimpleQueryHandler for PostgresHandler {
 
         let field_defs = Vec::new();
 
-        let query_response = QueryResponse::new(Arc::new(field_defs), row_stream);
+        let query_response = QueryResponse::new(Arc::new(field_defs), result);
         let response = Response::Query(query_response);
 
         unimplemented!()

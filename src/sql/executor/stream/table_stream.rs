@@ -3,7 +3,8 @@ use std::sync::{Arc, RwLock};
 use log::info;
 
 use crate::{
-    btree::table::BTreeTableIterator, error::SmallError, transaction::Transaction, BTreeTable,
+    btree::table::BTreeTableIterator, error::SmallError, storage::tuple::Tuple,
+    transaction::Transaction, BTreeTable,
 };
 
 use super::{Batch, Stream};
@@ -42,7 +43,4 @@ impl Stream for TableStream {
 
         Ok(Some(Batch::new(tuples)))
     }
-}
-
-impl futures_core::stream::Stream for TableStream {
 }

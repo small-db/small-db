@@ -21,6 +21,17 @@ impl QueryResult {
     }
 }
 
+impl futures_core::stream::Stream for QueryResult {
+    type Item = pgwire::error::PgWireResult<pgwire::messages::data::DataRow>;
+
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        todo!()
+    }
+}
+
 impl Session {
     pub fn new() -> Self {
         Self {}
