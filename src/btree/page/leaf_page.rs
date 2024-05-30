@@ -57,7 +57,7 @@ impl BTreeLeafPage {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(pid, bytes, schema);
+            instance = Self::new_empty_page(pid, schema);
         } else {
             let slot_count = Self::get_children_cap(&schema);
 
@@ -114,7 +114,7 @@ impl BTreeLeafPage {
         return instance;
     }
 
-    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
+    fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
         let slot_count = Self::get_children_cap(&schema);
 
         // let mut reader = Cursor::new(bytes);
@@ -128,11 +128,7 @@ impl BTreeLeafPage {
         // read tuples
         let mut tuples = Vec::new();
         for _ in 0..slot_count {
-            for _ in 0..schema.get_fields().len() {
-            }
             tuples.push(Tuple::new(&Vec::new()));
-            // let t = Tuple::read_from(&mut reader, schema);
-            // tuples.push(t);
         }
 
         let mut base = BTreeBasePage::new(pid);

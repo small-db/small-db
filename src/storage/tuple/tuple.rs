@@ -143,6 +143,10 @@ impl WrappedTuple {
     pub fn get_pid(&self) -> BTreePageID {
         self.pid
     }
+
+    pub fn get_tuple(&self) -> &Tuple {
+        &self.internal
+    }
 }
 
 impl Eq for WrappedTuple {}

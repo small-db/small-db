@@ -21,6 +21,15 @@ impl TableStream {
 
 impl Stream for TableStream {
     fn next_batch(&mut self) -> Result<Option<Batch>, SmallError> {
-        todo!()
+        let mut tuples = Vec::new();
+
+        for _ in 0..100 {
+            match self.iter.next() {
+                Some(tuple) => tuples.push(tuple.get_tuple().clone()),
+                None => break,
+            }
+        }
+
+        Ok(Some(Batch::new(tuples)))
     }
 }
