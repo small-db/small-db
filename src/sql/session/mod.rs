@@ -1,10 +1,5 @@
 use super::executor::{sql_handler::handle_sql, stream::Batch};
-use crate::{
-    error::SmallError,
-    io::Encodeable,
-    storage::{table_schema::Field, tuple::Tuple},
-    transaction::Transaction,
-};
+use crate::{error::SmallError, io::Encodeable, storage::tuple::Tuple, transaction::Transaction};
 
 pub struct Session {}
 

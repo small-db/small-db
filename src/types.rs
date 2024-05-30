@@ -1,9 +1,7 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
-
-use log::info;
 
 use crate::{error::SmallError, utils::HandyRwLock};
 

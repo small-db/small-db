@@ -1,11 +1,10 @@
-use log::{debug, info};
+use log::info;
 use sqlparser::ast::TableWithJoins;
 
-use super::stream::Stream;
-use crate::sql::executor::stream::TableStream;
-use crate::transaction::Transaction;
-use crate::utils::HandyRwLock;
-use crate::{error::SmallError, sql::executor::join::handle_join, Database};
+use crate::{
+    error::SmallError, sql::executor::stream::TableStream, transaction::Transaction,
+    utils::HandyRwLock, Database,
+};
 
 pub fn handle_from(
     tx: &Transaction,

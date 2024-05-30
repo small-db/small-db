@@ -2,16 +2,11 @@ use std::sync::{Arc, RwLock};
 
 use log::info;
 
-use crate::{
-    btree::table::BTreeTableIterator, error::SmallError, storage::tuple::Tuple,
-    transaction::Transaction, BTreeTable,
-};
-
 use super::{Batch, Stream};
-
-use crate::utils::HandyRwLock;
-
-use pgwire;
+use crate::{
+    btree::table::BTreeTableIterator, error::SmallError, transaction::Transaction,
+    utils::HandyRwLock, BTreeTable,
+};
 
 pub struct TableStream {
     iter: BTreeTableIterator,

@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::Ordering, Arc, RwLock, RwLockWriteGuard},
+    sync::{atomic::Ordering, Arc, RwLock},
     usize,
 };
 

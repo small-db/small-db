@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::info;
 use sqlparser::{
     ast::{ColumnOption, Statement},
     dialect::GenericDialect,

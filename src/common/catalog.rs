@@ -4,8 +4,9 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::{debug, info};
+use log::info;
 
+use super::schema::Schema;
 use crate::{
     btree::table::BTreeTableSearchIterator,
     io::{read_into, Decodeable, Encodeable},
@@ -18,8 +19,6 @@ use crate::{
     utils::HandyRwLock,
     BTreeTable, Database, Op, Predicate,
 };
-
-use super::schema::Schema;
 
 // The namd and id for the table "tables"
 const TABLE_SCHEMA_NAME: &str = "tables";
@@ -52,8 +51,9 @@ impl Catalog {
 
     /// Load tables from disk.
     ///
-    /// We cannot pass the `self` reference to this function, since "catalog" is used
-    /// inside the table write/read api, and it will cause permanent blocking.
+    /// We cannot pass the `self` reference to this function, since "catalog" is
+    /// used inside the table write/read api, and it will cause permanent
+    /// blocking.
     pub fn load_tables() -> SmallResult {
         let tables = Database::mut_catalog().get_table_schemas();
 
@@ -116,8 +116,9 @@ impl Catalog {
 
     /// Load tables from disk.
     ///
-    /// We cannot pass the `self` reference to this function, since "catalog" is used
-    /// inside the table write/read api, and it will cause permanent blocking.
+    /// We cannot pass the `self` reference to this function, since "catalog" is
+    /// used inside the table write/read api, and it will cause permanent
+    /// blocking.
     pub fn load_schemas() -> SmallResult {
         let schemas_rc = Database::mut_catalog().get_schemas();
 

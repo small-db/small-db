@@ -1,9 +1,7 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use log::debug;
-
-use crate::{btree::buffer_pool::BufferPool, types::SmallResult, Database};
+use crate::{types::SmallResult, Database};
 
 static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -33,7 +31,8 @@ impl Transaction {
 
         // step 1: flush all related pages to disk (with "UPDATE" log record)
         //
-        // (this is a disk operation, hence should be put before the "COMMIT" record is written)
+        // (this is a disk operation, hence should be put before the "COMMIT" record is
+        // written)
         buffer_pool.flush_pages(self, &mut log_manager);
 
         // step 2: write "COMMIT" log record
@@ -41,7 +40,8 @@ impl Transaction {
 
         // step 3: release latch on dirty pages
         //
-        // (this is a memory operation, hence can be put after the "COMMIT" record is written)
+        // (this is a memory operation, hence can be put after the "COMMIT" record is
+        // written)
         Database::mut_concurrent_status().remove_relation(self);
 
         Ok(())
@@ -57,17 +57,19 @@ impl Transaction {
 
         // step 2: discard all dirty pages
         //
-        // (this is a memory operation, hence can be put after the "ABORT" record is written)
+        // (this is a memory operation, hence can be put after the "ABORT" record is
+        // written)
         for pid in Database::concurrent_status().get_dirty_pages(self) {
             buffer_pool.discard_page(&pid);
         }
 
         // step 3: remove relation between transaction and dirty pages
         //
-        // (this is a memory operation, hence can be put after the "COMMIT" record is written)
+        // (this is a memory operation, hence can be put after the "COMMIT" record is
+        // written)
         //
-        // (this operation should be put after the step 2, since the step 2 accesses these
-        // dirty pages)
+        // (this operation should be put after the step 2, since the step 2 accesses
+        // these dirty pages)
         Database::mut_concurrent_status().remove_relation(self);
 
         Ok(())
