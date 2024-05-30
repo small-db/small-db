@@ -1,6 +1,8 @@
-use crate::error::SmallError;
+use crate::{error::SmallError, storage::tuple::Tuple};
 
-pub struct Batch {}
+pub struct Batch {
+    pub rows: Vec<Tuple>,
+}
 
 /// ExprState represents the evaluation state for a whole expression tree.
 pub trait Stream {

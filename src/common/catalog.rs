@@ -7,7 +7,7 @@ use std::{
 use log::{debug, info};
 
 use crate::{
-    btree::table::{BTreeTableSearchIterator, NestedIterator},
+    btree::table::BTreeTableSearchIterator,
     io::{read_into, Decodeable, Encodeable},
     storage::{
         table_schema::{Field, TableSchema, Type},
