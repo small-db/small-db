@@ -21,8 +21,8 @@ use crate::{
 
 use super::schema::Schema;
 
-// The namd and id for the table "table_schemas"
-const TABLE_SCHEMA_NAME: &str = "table_schemas";
+// The namd and id for the table "tables"
+const TABLE_SCHEMA_NAME: &str = "tables";
 const TABLE_SCHEMA_ID: u32 = 123;
 
 // The namd and id for the table "schemas"
