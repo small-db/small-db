@@ -1,5 +1,7 @@
 use std::sync::{Arc, RwLock};
 
+use log::info;
+
 use crate::{
     btree::table::BTreeTableIterator, error::SmallError, transaction::Transaction, BTreeTable,
 };
@@ -7,6 +9,8 @@ use crate::{
 use super::{Batch, Stream};
 
 use crate::utils::HandyRwLock;
+
+use pgwire;
 
 pub struct TableStream {
     iter: BTreeTableIterator,
@@ -30,6 +34,15 @@ impl Stream for TableStream {
             }
         }
 
+        info!("TableStream::next_batch: tuples.len() = {}", tuples.len());
+
+        if tuples.is_empty() {
+            return Ok(None);
+        }
+
         Ok(Some(Batch::new(tuples)))
     }
+}
+
+impl futures_core::stream::Stream for TableStream {
 }

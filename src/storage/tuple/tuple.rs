@@ -9,6 +9,7 @@ use crate::{
     storage::{table_schema::TableSchema, tuple::Cell},
 };
 
+#[derive(Clone)]
 pub struct Tuple {
     cells: Vec<Cell>,
 }

@@ -1,4 +1,4 @@
-use super::executor::sql_handler::handle_sql;
+use super::executor::{sql_handler::handle_sql, stream::Batch};
 use crate::{
     error::SmallError,
     storage::{table_schema::Field, tuple::Tuple},
@@ -9,6 +9,16 @@ pub struct Session {}
 
 pub struct QueryResult {
     pub data: Vec<Tuple>,
+}
+
+impl QueryResult {
+    pub fn new() -> Self {
+        Self { data: Vec::new() }
+    }
+
+    pub fn push_batch(&mut self, batch: &Batch) {
+        self.data.extend(batch.rows.clone());
+    }
 }
 
 impl Session {

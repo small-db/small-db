@@ -2,7 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use pgwire::{
-    api::{query::SimpleQueryHandler, results::Response, ClientInfo},
+    api::{
+        query::SimpleQueryHandler,
+        results::{QueryResponse, Response},
+        ClientInfo,
+    },
     error::PgWireResult,
 };
 
@@ -28,9 +32,14 @@ impl SimpleQueryHandler for PostgresHandler {
 
         let tx = Transaction::new();
 
-        let _result = session
+        let result = session
             .execute(&tx, query)
             .map_err(|e| pgwire::error::PgWireError::ApiError(Box::new(e)))?;
+
+        let field_defs = Vec::new();
+
+        let query_response = QueryResponse::new(Arc::new(field_defs), row_stream);
+        let response = Response::Query(query_response);
 
         unimplemented!()
     }

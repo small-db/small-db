@@ -79,9 +79,15 @@ pub fn handle_sql(tx: &Transaction, sql: &str) -> Result<QueryResult, SmallError
 }
 
 fn collect_result(mut stream: Box<dyn Stream>) -> Result<QueryResult, SmallError> {
+    let mut result = QueryResult::new();
+
     loop {
-        if let Some(batch) = stream.next_batch()? {}
+        if let Some(batch) = stream.next_batch()? {
+            result.push_batch(&batch);
+        } else {
+            break;
+        }
     }
 
-    todo!()
+    Ok(result)
 }
