@@ -60,7 +60,7 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
                     info!("projection: {:?}", select.projection);
                     info!("from: {:?}", select.from);
                     let stream = handle_select(select)?;
-                    return Ok(collect_result(stream));
+                    return collect_result(stream);
                 }
                 _ => {
                     todo!()
@@ -77,6 +77,10 @@ pub fn handle_sql(sql: &str) -> Result<QueryResult, SmallError> {
     todo!()
 }
 
-fn collect_result(stream: Box<dyn Stream>) -> QueryResult {
+fn collect_result(mut stream: Box<dyn Stream>) -> Result<QueryResult, SmallError> {
+    loop {
+        if let Some(batch) = stream.next_batch()? {}
+    }
+
     todo!()
 }

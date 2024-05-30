@@ -7,7 +7,6 @@ use crate::{
 pub struct Session {}
 
 pub struct QueryResult {
-    pub fields: Vec<Field>,
     pub data: Vec<Tuple>,
 }
 
