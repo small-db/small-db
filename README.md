@@ -75,8 +75,6 @@ Explanation:
 
 <!-- [COMPILATION OPTIONS END] -->
 
-[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
-
 ## Status
 
 - [ ] Test system crash immediately after the transaction commits
