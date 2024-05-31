@@ -34,7 +34,7 @@ def draw():
 
     points_list = []
 
-    for latch_strategy in ["tree-latch", "page-latch"]:
+    for latch_strategy in ["tree_latch", "page_latch"]:
         records = list(
             filter(
                 lambda x: x.target_attributes["latch_strategy"] == latch_strategy,

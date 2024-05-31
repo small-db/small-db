@@ -31,7 +31,7 @@
                     "build",
                     "--bin=small-db",
                     "--package=small-db",
-                    "--features=tree-latch",
+                    "--features=tree_latch",
                 ],
                 "filter": {
                     "name": "small-db",

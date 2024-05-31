@@ -40,15 +40,15 @@ impl BTreeTable {
         // release the leaf page
 
         if !leaf_rc.rl().stable() {
-            if cfg!(feature = "tree-latch") {
+            if cfg!(feature = "tree_latch") {
                 // Before handling the erratic page, request the X-latch on the tree
-                let xlatch = self.tree-latch.wl();
+                let xlatch = self.tree_latch.wl();
 
                 self.handle_erratic_leaf_page(tx, leaf_rc)?;
 
                 // The handling of the erratic page is done, release the X-latch
                 drop(xlatch);
-            } else if cfg!(feature = "page-latch") {
+            } else if cfg!(feature = "page_latch") {
                 self.handle_erratic_leaf_page(tx, leaf_rc)?;
             }
         }

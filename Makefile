@@ -5,14 +5,14 @@ run:
 	# `psql -h localhost -p 5433 -d default_db -U xiaochen`
 	# 
 	# We use "info" log level since there are lots debug logs from the dependencies.
-	RUST_LOG=info cargo run --features "tree-latch"
+	RUST_LOG=info cargo run --features "tree_latch"
 
 # Standard test. Doesn't print debug logs.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
 test:
-	RUST_LOG=info cargo test --features "tree-latch" -- --test-threads=1
-	RUST_LOG=info cargo test --features "page-latch, no_" -- --test-threads=1
+	RUST_LOG=info cargo test --features "tree_latch" -- --test-threads=1
+	RUST_LOG=info cargo test --features "page_latch, no_" -- --test-threads=1
 
 # Used when you need more detail.
 # 
@@ -39,8 +39,8 @@ test-verbose:
 # e.g: make test_redistribute_internal_pages
 test_%:
 	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
-	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "tree-latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "page-latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "tree_latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "page_latch" -- --test-threads=1 --nocapture $* 2>&1 | tee out
 
 gen_report:
 	source ~/code/python_env_xiaochen/bin/activate

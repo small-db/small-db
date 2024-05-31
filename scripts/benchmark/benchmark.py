@@ -40,14 +40,14 @@ def benchmark():
 
     records = []
 
-    # latch_strategy: "page-latch"
+    # latch_strategy: "page_latch"
     for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="page-latch")
+        r = run_test_speed(total_actions, thread_count, latch_strategy="page_latch")
         records.append(r)
 
-    # latch_strategy: "tree-latch"
+    # latch_strategy: "tree_latch"
     for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="tree-latch")
+        r = run_test_speed(total_actions, thread_count, latch_strategy="tree_latch")
         records.append(r)
 
     # dump records to a file in json format

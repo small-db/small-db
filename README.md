@@ -26,8 +26,8 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 
 ### Two Types of Latch Strategies
 
-- **page-latch** strategy (each page has its own latch)
-- **tree-latch** strategy (each leaf page has its own latch, and all other pages are protected by a tree latch)
+- **page_latch** strategy (each page has its own latch)
+- **tree_latch** strategy (each leaf page has its own latch, and all other pages are protected by a tree latch)
 
 ![insertions per second](./docs/img/insertions_per_second.png)
 

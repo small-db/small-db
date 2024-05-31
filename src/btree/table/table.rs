@@ -54,7 +54,7 @@ pub enum SearchFor {
 /// searches down the tree and releases the tree latch when it has the
 /// leaf page latch.
 pub struct BTreeTable {
-    pub(super) tree-latch: RwLock<()>,
+    pub(super) tree_latch: RwLock<()>,
 
     pub name: String,
 
@@ -122,7 +122,7 @@ impl BTreeTable {
         unix_time.hash(&mut hasher);
 
         let instance = Self {
-            tree-latch: RwLock::new(()),
+            tree_latch: RwLock::new(()),
 
             name: table_name.to_string(),
 
