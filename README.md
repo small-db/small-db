@@ -79,6 +79,7 @@ Explanation:
 
 - [ ] Test system crash immediately after the transaction commits
 - [ ] Add "redo" action
+- [ ] Enable error logs in the buffer pool and dig deep
 
 - [ ] Variable length field
 - [x] PostgreSQL protocol
