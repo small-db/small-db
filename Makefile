@@ -10,11 +10,26 @@ run:
 # Standard test. Doesn't print debug logs.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
+# =============== AUTO GENERATED START ===============
 test:
-	RUST_LOG=info cargo test --features "tree_latch, aries-steal" -- --test-threads=1
-	RUST_LOG=info cargo test --features "tree_latch, aries-no-steal" -- --test-threads=1
-	RUST_LOG=info cargo test --features "page_latch, aries-steal" -- --test-threads=1
-	RUST_LOG=info cargo test --features "page_latch, aries-no-steal" -- --test-threads=1
+    touch out
+    @echo "Running tests with features: tree_latch, aries_steal, aries_force" | tee -a out
+    RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: tree_latch, aries_steal, aries_no_force" | tee -a out
+    RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: tree_latch, aries_no_steal, aries_force" | tee -a out
+    RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force" | tee -a out
+    RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: page_latch, aries_steal, aries_force" | tee -a out
+    RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: page_latch, aries_steal, aries_no_force" | tee -a out
+    RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: page_latch, aries_no_steal, aries_force" | tee -a out
+    RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force" -- --test-threads=1 | tee -a out
+    @echo "Running tests with features: page_latch, aries_no_steal, aries_no_force" | tee -a out
+    RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force" -- --test-threads=1 | tee -a out
+# =============== AUTO GENERATED END ===============
 
 # Used when you need more detail.
 # 

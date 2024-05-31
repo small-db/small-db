@@ -38,6 +38,10 @@ impl Transaction {
         // step 2: write "COMMIT" log record
         log_manager.log_commit(self)?;
 
+        if cfg!(feature = "aries_no_force") {
+            buffer_pool.write_pages(self, &mut log_manager);
+        }
+
         // step 3: release latch on dirty pages
         //
         // (this is a memory operation, hence can be put after the "COMMIT" record is

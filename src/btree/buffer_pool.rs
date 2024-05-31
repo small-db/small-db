@@ -241,11 +241,11 @@ impl BufferPool {
 
     /// Flush all dirty pages to database.
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
-        if cfg!(feature = "aries-steal") {
+        if cfg!(feature = "aries_steal") {
             for pid in self.all_keys() {
                 self.flush_page(&pid, log_manager);
             }
-        } else if cfg!(feature = "aries-no-steal") {
+        } else if cfg!(feature = "aries_no-steal") {
             // do nothing
             //
             // In NO-STEAL mode, the dirty pages are not allowed to be written
@@ -266,6 +266,34 @@ impl BufferPool {
         }
     }
 
+    /// Write all dirty pages of the specified transaction to disk.
+    pub(crate) fn write_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
+        let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
+
+        // Note: current implementation of the api "flush_page" request
+        // "ConcurrentStatus", so we must get "dirty_pages" before the for loop.
+        let mut catalog = Database::mut_catalog();
+        for pid in dirty_pages {
+            let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
+            let table = table_pod.read().unwrap();
+
+            match pid.category {
+                PageCategory::RootPointer => {
+                    self.write(&table, &pid, &self.root_pointer_buffer);
+                }
+                PageCategory::Header => {
+                    self.write(&table, &pid, &self.header_buffer);
+                }
+                PageCategory::Internal => {
+                    self.write(&table, &pid, &self.internal_buffer);
+                }
+                PageCategory::Leaf => {
+                    self.write(&table, &pid, &self.leaf_buffer);
+                }
+            }
+        }
+    }
+
     /// Write the content of a specific page to disk.
     fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
@@ -275,49 +303,47 @@ impl BufferPool {
 
         match pid.category {
             PageCategory::RootPointer => {
-                if !self.root_pointer_buffer.contains_key(pid) {
-                    // page not found in buffer pool, so no need to write to disk
-                    //
-                    // why there are some pages not in buffer pool?
-                    return;
-                }
-
-                self.write(&table, pid, &self.root_pointer_buffer, log_manager);
-                self.set_before_image(&pid, &self.root_pointer_buffer);
+                self.log_and_write(&table, pid, &self.root_pointer_buffer, log_manager);
             }
             PageCategory::Header => {
-                if !self.header_buffer.contains_key(pid) {
-                    // page not found in buffer pool, so no need to write to disk
-                    //
-                    // why there are some pages not in buffer pool?
-                    return;
-                }
-
-                self.write(&table, pid, &self.header_buffer, log_manager);
-                self.set_before_image(&pid, &self.header_buffer);
+                self.log_and_write(&table, pid, &self.header_buffer, log_manager);
             }
             PageCategory::Internal => {
-                if !self.internal_buffer.contains_key(pid) {
-                    // page not found in buffer pool, so no need to write to disk
-                    //
-                    // why there are some pages not in buffer pool?
-                    return;
-                }
-
-                self.write(&table, pid, &self.internal_buffer, log_manager);
-                self.set_before_image(&pid, &self.internal_buffer);
+                self.log_and_write(&table, pid, &self.internal_buffer, log_manager);
             }
             PageCategory::Leaf => {
-                if !self.leaf_buffer.contains_key(pid) {
-                    // page not found in buffer pool, so no need to write to disk
-                    //
-                    // why there are some pages not in buffer pool?
-                    return;
+                self.log_and_write(&table, pid, &self.leaf_buffer, log_manager);
+            }
+        }
+    }
+
+    fn log_and_write<PAGE: BTreePage>(
+        &self,
+        table: &BTreeTable,
+        pid: &BTreePageID,
+        buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        log_manager: &mut LogManager,
+    ) {
+        if let Some(page_pod) = buffer.get(pid) {
+            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+                log_manager.log_update(&tx, page_pod.clone()).unwrap();
+
+                if cfg!(feature = "aries_force") {
+                    table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
                 }
 
-                self.write(&table, pid, &self.leaf_buffer, log_manager);
-                self.set_before_image(&pid, &self.leaf_buffer);
+                // What's the purpose of "set_before_image" here?
+                self.set_before_image(&pid, &buffer);
+                return;
+            } else {
+                // not a dirty page, so no need to write to log or disk, just return
+                error!("not a dirty page, pid: {:?}", pid);
             }
+        } else {
+            // page not found in buffer pool, so no need to write to disk
+            //
+            // why there are some pages not in buffer pool?
+            error!("page not found in buffer pool, pid: {:?}", pid);
         }
     }
 
@@ -326,18 +352,21 @@ impl BufferPool {
         table: &BTreeTable,
         pid: &BTreePageID,
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
-        log_manager: &mut LogManager,
     ) {
-        let page_pod = buffer.get(pid).unwrap().clone();
-
-        if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
-            log_manager.log_update(&tx, page_pod.clone()).unwrap();
-            table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
-            return;
+        if let Some(page_pod) = buffer.get(pid) {
+            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+                table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+                return;
+            } else {
+                // not a dirty page, so no need to write to log or disk, just return
+                error!("not a dirty page, pid: {:?}", pid);
+            }
+        } else {
+            // page not found in buffer pool, so no need to write to disk
+            //
+            // why there are some pages not in buffer pool?
+            error!("page not found in buffer pool, pid: {:?}", pid);
         }
-
-        // not a dirty page, so no need to write to log or disk, just return
-        return;
     }
 
     /// Set the page content of "pid" to the specified "page", both in

@@ -167,7 +167,7 @@ impl LogManager {
     pub fn recover(&mut self) -> SmallResult {
         // undo phase
 
-        if cfg!(feature = "aries-no-steal") {
+        if cfg!(feature = "aries_no-steal") {
             self.reset_file()?;
             return Ok(());
         }

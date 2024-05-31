@@ -36,8 +36,12 @@ tree_latch = []
 page_latch = []
 
 # "STEAL" and "NO-STEAL" policies of the ARIES recovery algorithm
-aries-steal = []
-aries-no-steal = []
+aries_steal = []
+aries_no_steal = []
+
+# "FORCE" and "NO-FORCE" policies of the ARIES recovery algorithm
+aries_force = []
+aries_no_force = []
 
 # used for benchmark tests
 benchmark = []
