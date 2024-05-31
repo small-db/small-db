@@ -1,0 +1,21 @@
+name: test (tree_latch, aries_steal, aries_force)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests
+        run: |
+          cargo version
+          make test_tree_latch_aries_steal_aries_force

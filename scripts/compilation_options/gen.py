@@ -73,40 +73,31 @@ def gen_make_test(options: list[dict]):
 
 
 def gen_actions(options: list[dict]):
-    workflow_backup_path = ".github/workflows/test.yml.bak"
-    workflow_path = ".github/workflows/test.yml"
-
-    f = open(workflow_backup_path, "r")
-    v = yaml.safe_load(f)
-
-    ref_job = v["jobs"]
+    workflow_path = ".github/workflows/test.yml.bak"
+    f = open(workflow_path, "r")
+    content = f.read()
 
     option_list = []
-
     for option in options:
         name = list(option.keys())[0]
         sub_options = option[name]
         option_list.append(sub_options)
 
-    jobs = dict()
     for mode in itertools.product(*option_list):
-        test_target = "test_" + "_".join(mode)
-        new_job = dict()
-        new_job = copy.deepcopy(ref_job["test"])
+        target_name = "test_" + "_".join(mode)
+        human_name = ", ".join(mode)
+        human_name = f"test ({human_name})"
+        print(f"Generating {target_name} workflow")
+        pass
 
-        run_scripts = f"make {test_target}"
-        new_job["steps"][1]["run"] = run_scripts
+        new_content = copy.deepcopy(content)
+        new_content = new_content.replace("name: test", f"name: {human_name}")
+        new_content = new_content.replace("make test", f"make {target_name}")
 
-        jobs[test_target] = new_job
-
-    v["jobs"] = jobs
-
-    v["on"] = v[True]
-
-    del v[True]
-
-    with open(workflow_path, "w") as f:
-        yaml.dump(v, f)
+        # write the new content to the workflow file
+        workflow_path = f".github/workflows/{target_name}.yml"
+        f = open(workflow_path, "w")
+        f.write(new_content)
 
 
 def update_content(file_path: str, start_line: str, end_line: str, new_content: str):
