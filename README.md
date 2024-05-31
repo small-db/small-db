@@ -31,6 +31,20 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 
 ![insertions per second](./docs/img/insertions_per_second.png)
 
+### Four Types of ARIES Log Recovery Algorithms
+
+- **STEAL/NO-FORCE** (InnoDB flavor)
+- **NO-STEAL/NO-FORCE** (PostgreSQL flavor)
+- **STEAL/FORCE** (Oracle flavor)
+- **NO-STEAL/FORCE** (SQL Server flavor)
+
+Explanation:
+
+- "STEAL" means that a page can be written to the permanent database on nonvolatile storage before the transaction commits.
+- "NO-STEAL" means it cannot.
+- "FORCE" means a transaction is not allowed to commit until all pages modified by it are written to the permanent version of the database.
+- "NO-FORCE" means it can.
+
 ## Status
 
 - [ ] Variable length field

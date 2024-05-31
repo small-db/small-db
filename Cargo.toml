@@ -35,5 +35,9 @@ bytes = "1.6.0"
 tree_latch = []
 page_latch = []
 
-# used for benchmark and report generation
+# "STEAL" and "NO-STEAL" policies of the ARIES recovery algorithm
+aries_steal = []
+aries_no_steal = []
+
+# used for benchmark tests
 benchmark = []

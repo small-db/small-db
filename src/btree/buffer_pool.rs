@@ -8,6 +8,8 @@ use std::{
     },
 };
 
+use log::error;
+
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
     BTreeRootPointerPage, PageCategory,
@@ -242,8 +244,14 @@ impl BufferPool {
     /// NB: Be careful using this routine -- it writes dirty data to
     /// disk so will break small-db if running in NO STEAL mode.
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
-        for pid in self.all_keys() {
-            self.flush_page(&pid, log_manager);
+        if cfg!(feature = "aries_steal") {
+            for pid in self.all_keys() {
+                self.flush_page(&pid, log_manager);
+            }
+        } else if cfg!(feature = "aries_no_steal") {
+            // do nothing
+        } else {
+            error!("unknown aries mode");
         }
     }
 
