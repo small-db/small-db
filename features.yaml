@@ -1,0 +1,14 @@
+features:
+    - latch strategies:
+          - tree_latch
+          - page_latch
+
+    # "STEAL" and "NO-STEAL" policies of the ARIES recovery algorithm
+    - aries recovery (steal/no-steal):
+          - aries_steal
+          - aries_no_steal
+
+    # "FORCE" and "NO-FORCE" policies of the ARIES recovery algorithm
+    - aries recovery (force/no-force):
+          - aries_force
+          - aries_no_force
