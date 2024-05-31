@@ -48,11 +48,17 @@ Explanation:
 - "FORCE" means a transaction is not allowed to commit until all pages modified by it are written to the permanent version of the database.
 - "NO-FORCE" means it can.
 
-### Three Types of Concurrency Control Algorithms
+### Three Concurrency Control Algorithms
 
 - **Pessimistic Concurrency Control**
 - **Optimistic Concurrency Control**
 - **MVCC (Multi-Version Concurrency Control)**
+
+### Three Isolation Levels
+
+- **Read Uncommitted**
+- **Read Committed**
+- **Serializable**
 
 ## Test
 
