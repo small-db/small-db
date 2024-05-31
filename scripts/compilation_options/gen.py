@@ -33,16 +33,16 @@ def gen_make_test(options: list[dict]):
     START_LINE = "# ===[COMPILATION OPTIONS START]==="
     END_LINE = "# ===[COMPILATION OPTIONS END]==="
 
-    modes = []
+    option_list = []
 
     for option in options:
         name = list(option.keys())[0]
         sub_options = option[name]
-        modes.append(sub_options)
+        option_list.append(sub_options)
 
     content = ""
     test_targets = []
-    for mode in itertools.product(*modes):
+    for mode in itertools.product(*option_list):
         test_target = "test_" + "_".join(mode)
         test_targets.append(test_target)
         # declare target
@@ -68,6 +68,45 @@ def gen_make_test(options: list[dict]):
     content = make_test + "\n\n" + content
 
     update_content("Makefile", START_LINE, END_LINE, content)
+
+
+def gen_actions(options: list[dict]):
+    workflow_path = ".github/workflows/test.yml"
+    f = open(workflow_path, "r")
+    v = yaml.safe_load(f)
+
+    ref_job = v["jobs"]
+    print(f"ref_job: {ref_job}")
+
+    option_list = []
+
+    for option in options:
+        name = list(option.keys())[0]
+        sub_options = option[name]
+        option_list.append(sub_options)
+
+    jobs = []
+    for mode in itertools.product(*option_list):
+        # print(mode)
+
+        test_target = "test_" + "_".join(mode)
+        new_job = dict()
+        new_job[test_target] = ref_job["test"]
+
+        run_scripts = f'echo "Running tests with features: {mode}\n'
+        run_scripts += f"make {test_target}\n"
+
+        new_job[test_target]["steps"][1]["run"] = run_scripts
+
+        jobs.append(new_job)
+
+    for job in jobs:
+        print(job)
+
+    v["jobs"] = jobs
+
+    with open(workflow_path, "w") as f:
+        yaml.dump(v, f)
 
 
 def update_content(file_path: str, start_line: str, end_line: str, new_content: str):
@@ -99,3 +138,5 @@ if __name__ == "__main__":
     gen_cargo_features(options)
 
     gen_make_test(options)
+
+    gen_actions(options)
