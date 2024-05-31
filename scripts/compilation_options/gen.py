@@ -1,4 +1,5 @@
 import itertools
+from pprint import pprint
 import yaml
 
 
@@ -93,8 +94,8 @@ def gen_actions(options: list[dict]):
         new_job = dict()
         new_job[test_target] = ref_job["test"]
 
-        run_scripts = f'echo "Running tests with features: {mode}\n'
-        run_scripts += f"make {test_target}\n"
+        # run_scripts = f'echo "Running tests with features: {mode}\n'
+        run_scripts = f"make {test_target}"
 
         new_job[test_target]["steps"][1]["run"] = run_scripts
 
@@ -104,6 +105,14 @@ def gen_actions(options: list[dict]):
         print(job)
 
     v["jobs"] = jobs
+
+    v["on"] = v[True]
+
+    del v[True]
+
+    pprint(v)
+
+    # pprint(v[True])
 
     with open(workflow_path, "w") as f:
         yaml.dump(v, f)
