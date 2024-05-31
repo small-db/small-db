@@ -68,10 +68,8 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 }
 
 #[test]
+#[cfg(feature = "aries-steal")]
 /// Test if the "flush_page" api writes "UPDATE" record to the log.
-///
-/// TODO: may be we can remove this test if a more comprehensive test
-/// is finished.
 fn test_patch() {
     setup();
 
