@@ -7,6 +7,9 @@ run:
 	# We use "info" log level since there are lots debug logs from the dependencies.
 	RUST_LOG=info cargo run --features "tree_latch"
 
+gen:
+	python scripts/compilation_options/gen.py
+
 # Standard test. Doesn't print debug logs.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "*.log".
