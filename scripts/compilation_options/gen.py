@@ -12,7 +12,24 @@ def get_options():
     return v["compilation_options"]
 
 
-def gen_cargo_features(modes):
+def gen_cargo_features(options: list[dict]):
+    content = ""
+    for option in options:
+        # The only key in the dictionary is the name.
+        name = list(option.keys())[0]
+
+        # Add comment.
+        content += f"# {name}\n"
+
+        sub_options = option[name]
+        for sub_option in sub_options:
+            content += f"{sub_option} = []\n"
+        content += "\n"
+
+    print(content)
+
+    update_content("Cargo.toml", content)
+
     pass
 
 
@@ -46,6 +63,29 @@ def gen_make_test(modes):
                 f.write(line)
 
     # insert content between start_str and end_str
+
+
+def update_content(file_path: str, new_content: str):
+    f = open(file_path, "r")
+    lines = f.readlines()
+    f.close()
+
+    in_range = False
+    with open(file_path, "w") as f:
+        for line in lines:
+            if line.strip() == START_LINE:
+                in_range = True
+                f.write(START_LINE + "\n")
+                f.write(new_content + "\n")
+                continue
+
+            if line.strip() == END_LINE:
+                in_range = False
+                f.write(END_LINE + "\n")
+                continue
+
+            if not in_range:
+                f.write(line)
 
 
 if __name__ == "__main__":
