@@ -26,11 +26,7 @@ def gen_cargo_features(options: list[dict]):
             content += f"{sub_option} = []\n"
         content += "\n"
 
-    print(content)
-
     update_content("Cargo.toml", content)
-
-    pass
 
 
 def gen_make_test(modes):
@@ -76,7 +72,7 @@ def update_content(file_path: str, new_content: str):
             if line.strip() == START_LINE:
                 in_range = True
                 f.write(START_LINE + "\n")
-                f.write(new_content + "\n")
+                f.write(new_content)
                 continue
 
             if line.strip() == END_LINE:
