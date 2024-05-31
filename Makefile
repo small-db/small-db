@@ -14,6 +14,7 @@ test:
 	RUST_LOG=info cargo test --features "tree_latch, aries-steal" -- --test-threads=1
 	RUST_LOG=info cargo test --features "tree_latch, aries-no-steal" -- --test-threads=1
 	RUST_LOG=info cargo test --features "page_latch, aries-steal" -- --test-threads=1
+	RUST_LOG=info cargo test --features "page_latch, aries-no-steal" -- --test-threads=1
 
 # Used when you need more detail.
 # 

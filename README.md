@@ -53,6 +53,8 @@ Explanation:
 
 ## Status
 
+- [ ] Test system crash immediately after the transaction commits
+
 - [ ] Variable length field
 - [x] PostgreSQL protocol
 - [ ] Index (B+ tree)

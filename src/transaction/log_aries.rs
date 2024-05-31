@@ -167,6 +167,11 @@ impl LogManager {
     pub fn recover(&mut self) -> SmallResult {
         // undo phase
 
+        if cfg!(feature = "aries-no-steal") {
+            self.reset_file()?;
+            return Ok(());
+        }
+
         // get all incomplete transactions (transactions that have
         // started but not committed or aborted at the time of the
         // crash)
