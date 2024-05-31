@@ -29,36 +29,42 @@ def gen_cargo_features(options: list[dict]):
     update_content("Cargo.toml", content)
 
 
-def gen_make_test(modes):
-    # Generate all possible combinations of modes.
-    content = "test:\n"
-    content += '\techo "" > out\n'
+def gen_make_test(options: list[dict]):
+    modes = []
+
+    for option in options:
+        name = list(option.keys())[0]
+        sub_options = option[name]
+        modes.append(sub_options)
+
+    content = ""
+    test_targets = []
     for mode in itertools.product(*modes):
+        test_target = "test_" + "_".join(mode)
+        test_targets.append(test_target)
+        # declare target
+        content += f"{test_target}:\n"
+
+        log_path = f"{test_target}.log"
+        # clear log file
+        content += f'\techo "" > {log_path}\n'
+
+        # print mode
+        content += f'\techo "Running tests with features: {mode}" | tee -a {log_path}\n'
+
+        # run tests
         mode_str = ", ".join(mode)
-        content += f'\techo "Running tests with features: {mode_str}" | tee -a out\n'
-        content += f'\tRUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 2>&1 | tee -a out\n'
+        content += f'\tRUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 2>&1 | tee -a {log_path}\n'
 
-    f = open("Makefile", "r")
-    lines = f.readlines()
-    f.close()
-    in_range = False
-    with open("Makefile", "w") as f:
-        for line in lines:
-            if line.strip() == START_LINE:
-                in_range = True
-                f.write(START_LINE + "\n")
-                f.write(content)
-                continue
+        content += "\n"
 
-            if line.strip() == END_LINE:
-                in_range = False
-                f.write(END_LINE + "\n")
-                continue
+    make_test = "test:\n"
+    for test_target in test_targets:
+        make_test += f"\t{test_target}\n"
 
-            if not in_range:
-                f.write(line)
+    content = make_test + "\n\n" + content
 
-    # insert content between start_str and end_str
+    update_content("Makefile", content)
 
 
 def update_content(file_path: str, new_content: str):
@@ -89,4 +95,4 @@ if __name__ == "__main__":
 
     gen_cargo_features(options)
 
-    # gen_make_test(options)
+    gen_make_test(options)

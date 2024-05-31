@@ -9,27 +9,60 @@ run:
 
 # Standard test. Doesn't print debug logs.
 # 
-# The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
-# [MAKE TEST START]
+# The ouput (stdout & stderr) of the test will be redirected to the file "*.log".
+# ===[COMPILATION OPTIONS START]===
 test:
-	echo "" > out
-	echo "Running tests with features: tree_latch, aries_steal, aries_force" | tee -a out
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: tree_latch, aries_steal, aries_no_force" | tee -a out
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_force" | tee -a out
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force" | tee -a out
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: page_latch, aries_steal, aries_force" | tee -a out
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: page_latch, aries_steal, aries_no_force" | tee -a out
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: page_latch, aries_no_steal, aries_force" | tee -a out
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force" -- --test-threads=1 2>&1 | tee -a out
-	echo "Running tests with features: page_latch, aries_no_steal, aries_no_force" | tee -a out
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a out
-# [MAKE TEST END]
+	test_tree_latch_aries_steal_aries_force
+	test_tree_latch_aries_steal_aries_no_force
+	test_tree_latch_aries_no_steal_aries_force
+	test_tree_latch_aries_no_steal_aries_no_force
+	test_page_latch_aries_steal_aries_force
+	test_page_latch_aries_steal_aries_no_force
+	test_page_latch_aries_no_steal_aries_force
+	test_page_latch_aries_no_steal_aries_no_force
+
+
+test_tree_latch_aries_steal_aries_force:
+	echo "" > test_tree_latch_aries_steal_aries_force.log
+	echo "Running tests with features: ('tree_latch', 'aries_steal', 'aries_force')" | tee -a test_tree_latch_aries_steal_aries_force.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_force.log
+
+test_tree_latch_aries_steal_aries_no_force:
+	echo "" > test_tree_latch_aries_steal_aries_no_force.log
+	echo "Running tests with features: ('tree_latch', 'aries_steal', 'aries_no_force')" | tee -a test_tree_latch_aries_steal_aries_no_force.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_no_force.log
+
+test_tree_latch_aries_no_steal_aries_force:
+	echo "" > test_tree_latch_aries_no_steal_aries_force.log
+	echo "Running tests with features: ('tree_latch', 'aries_no_steal', 'aries_force')" | tee -a test_tree_latch_aries_no_steal_aries_force.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_force.log
+
+test_tree_latch_aries_no_steal_aries_no_force:
+	echo "" > test_tree_latch_aries_no_steal_aries_no_force.log
+	echo "Running tests with features: ('tree_latch', 'aries_no_steal', 'aries_no_force')" | tee -a test_tree_latch_aries_no_steal_aries_no_force.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_no_force.log
+
+test_page_latch_aries_steal_aries_force:
+	echo "" > test_page_latch_aries_steal_aries_force.log
+	echo "Running tests with features: ('page_latch', 'aries_steal', 'aries_force')" | tee -a test_page_latch_aries_steal_aries_force.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_force.log
+
+test_page_latch_aries_steal_aries_no_force:
+	echo "" > test_page_latch_aries_steal_aries_no_force.log
+	echo "Running tests with features: ('page_latch', 'aries_steal', 'aries_no_force')" | tee -a test_page_latch_aries_steal_aries_no_force.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_no_force.log
+
+test_page_latch_aries_no_steal_aries_force:
+	echo "" > test_page_latch_aries_no_steal_aries_force.log
+	echo "Running tests with features: ('page_latch', 'aries_no_steal', 'aries_force')" | tee -a test_page_latch_aries_no_steal_aries_force.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_force.log
+
+test_page_latch_aries_no_steal_aries_no_force:
+	echo "" > test_page_latch_aries_no_steal_aries_no_force.log
+	echo "Running tests with features: ('page_latch', 'aries_no_steal', 'aries_no_force')" | tee -a test_page_latch_aries_no_steal_aries_no_force.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_no_force.log
+
+# ===[COMPILATION OPTIONS END]===
 
 # Used when you need more detail.
 # 
