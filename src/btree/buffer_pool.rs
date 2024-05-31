@@ -337,13 +337,17 @@ impl BufferPool {
                 return;
             } else {
                 // not a dirty page, so no need to write to log or disk, just return
-                error!("not a dirty page, pid: {:?}", pid);
+                //
+                // TODO: enable the following line
+                // error!("not a dirty page, pid: {:?}", pid);
             }
         } else {
             // page not found in buffer pool, so no need to write to disk
             //
             // why there are some pages not in buffer pool?
-            error!("page not found in buffer pool, pid: {:?}", pid);
+            //
+            // TODO: enable the following line
+            // error!("page not found in buffer pool, pid: {:?}", pid);
         }
     }
 
@@ -359,7 +363,7 @@ impl BufferPool {
                 return;
             } else {
                 // not a dirty page, so no need to write to log or disk, just return
-                // 
+                //
                 // TODO: enable the following line
                 // error!("not a dirty page, pid: {:?}", pid);
             }
@@ -367,7 +371,7 @@ impl BufferPool {
             // page not found in buffer pool, so no need to write to disk
             //
             // why there are some pages not in buffer pool?
-            // 
+            //
             // TODO: enable the following line
             // error!("page not found in buffer pool, pid: {:?}", pid);
         }
