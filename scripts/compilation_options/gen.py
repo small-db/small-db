@@ -109,6 +109,18 @@ def gen_actions(options: list[dict]):
         f.write(new_content)
 
 
+def gen_readme(options: list[dict]):
+    test_targets = get_test_targets(options)
+    budgets = ""
+    for test_target in test_targets:
+        budget = f"[![{test_target.human_name}](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml)\n"
+        budgets += budget
+
+    START_LINE = "<!-- [COMPILATION OPTIONS START] -->"
+    END_LINE = "<!-- [COMPILATION OPTIONS END] -->"
+    update_content("README.md", START_LINE, END_LINE, budgets)
+
+
 def update_content(file_path: str, start_line: str, end_line: str, new_content: str):
     f = open(file_path, "r")
     lines = f.readlines()
@@ -140,3 +152,5 @@ if __name__ == "__main__":
     gen_make_test(options)
 
     gen_actions(options)
+
+    gen_readme(options)
