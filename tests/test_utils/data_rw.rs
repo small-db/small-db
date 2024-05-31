@@ -19,3 +19,8 @@ pub fn insert_tuples(table: &BTreeTable, count: usize) {
     }
     tx.commit().unwrap();
 }
+
+pub fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
+    let tuple = Tuple::new_int_tuples(key, 2);
+    table.insert_tuple(tx, &tuple).unwrap();
+}

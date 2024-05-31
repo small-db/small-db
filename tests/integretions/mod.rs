@@ -4,3 +4,4 @@ mod btree_scan_test;
 mod btree_test;
 mod log_test;
 mod sql_test;
+mod tx_isolation_test;

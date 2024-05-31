@@ -8,14 +8,9 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, crash, get_leaf_page, new_empty_btree_table, new_random_btree_table, search_key,
-    setup, TreeLayout,
+    assert_true, crash, get_leaf_page, insert_row, new_empty_btree_table, new_random_btree_table,
+    search_key, setup, TreeLayout,
 };
-
-fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
-    let tuple = Tuple::new_int_tuples(key, 2);
-    table.insert_tuple(tx, &tuple).unwrap();
-}
 
 /// Insert two tuples into the table, then commit the transaction. There is a
 /// flush action in the middle of the transaction.
