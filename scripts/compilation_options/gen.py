@@ -1,9 +1,6 @@
 import itertools
 import yaml
 
-START_LINE = "# ===[COMPILATION OPTIONS START]==="
-END_LINE = "# ===[COMPILATION OPTIONS END]==="
-
 
 def get_options():
     compilation_options_path = "compilation-options.yaml"
@@ -13,6 +10,9 @@ def get_options():
 
 
 def gen_cargo_features(options: list[dict]):
+    START_LINE = "# ===[COMPILATION OPTIONS START]==="
+    END_LINE = "# ===[COMPILATION OPTIONS END]==="
+
     content = ""
     for option in options:
         # The only key in the dictionary is the name.
@@ -26,10 +26,13 @@ def gen_cargo_features(options: list[dict]):
             content += f"{sub_option} = []\n"
         content += "\n"
 
-    update_content("Cargo.toml", content)
+    update_content("Cargo.toml", START_LINE, END_LINE, content)
 
 
 def gen_make_test(options: list[dict]):
+    START_LINE = "# ===[COMPILATION OPTIONS START]==="
+    END_LINE = "# ===[COMPILATION OPTIONS END]==="
+
     modes = []
 
     for option in options:
@@ -64,10 +67,10 @@ def gen_make_test(options: list[dict]):
 
     content = make_test + "\n\n" + content
 
-    update_content("Makefile", content)
+    update_content("Makefile", START_LINE, END_LINE, content)
 
 
-def update_content(file_path: str, new_content: str):
+def update_content(file_path: str, start_line: str, end_line: str, new_content: str):
     f = open(file_path, "r")
     lines = f.readlines()
     f.close()
@@ -75,15 +78,15 @@ def update_content(file_path: str, new_content: str):
     in_range = False
     with open(file_path, "w") as f:
         for line in lines:
-            if line.strip() == START_LINE:
+            if line.strip() == start_line:
                 in_range = True
-                f.write(START_LINE + "\n")
+                f.write(start_line + "\n")
                 f.write(new_content)
                 continue
 
-            if line.strip() == END_LINE:
+            if line.strip() == end_line:
                 in_range = False
-                f.write(END_LINE + "\n")
+                f.write(end_line + "\n")
                 continue
 
             if not in_range:

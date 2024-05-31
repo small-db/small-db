@@ -55,6 +55,14 @@ Explanation:
 - **Optimistic Concurrency Control**
 - **MVCC (Multi-Version Concurrency Control)**
 
+## Test
+
+<!-- [COMPILATION OPTIONS START] -->
+
+[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
+
+<!-- [COMPILATION OPTIONS END] -->
+
 ## Status
 
 - [ ] Test system crash immediately after the transaction commits
