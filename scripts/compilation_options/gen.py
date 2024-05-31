@@ -73,7 +73,7 @@ def gen_make_test(options: list[dict]):
 
 
 def gen_actions(options: list[dict]):
-    workflow_backup_path = ".github/workflows/test_backup.yml"
+    workflow_backup_path = ".github/workflows/test.yml.bak"
     workflow_path = ".github/workflows/test.yml"
 
     f = open(workflow_backup_path, "r")
