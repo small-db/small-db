@@ -37,21 +37,7 @@ impl BTreeTable {
             // way to upgrade the latch from S to X without gap.
             let x_latch = self.tree_latch.wl();
 
-            let root_pid = self.get_root_pid(tx);
-
-            // Find and lock the left-most leaf page corresponding to the key field.
-            let field = tuple.get_cell(self.key_field);
-            let mut leaf_rc = self.find_leaf_page(
-                tx,
-                Permission::ReadWrite,
-                root_pid,
-                &SearchFor::Target(field),
-            );
-
-            if leaf_rc.rl().empty_slots_count() == 0 {
-                // Split the leaf page if there are no more slots available.
-                leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
-            }
+            let leaf_rc = self.get_available_leaf(tx, tuple)?;
 
             // Until now, we don't have to modify the structure of the tree, just release
             // the X-latch.
@@ -60,27 +46,37 @@ impl BTreeTable {
             // Insert the tuple into the leaf page.
             leaf_rc.wl().insert_tuple(&tuple)?;
         } else if cfg!(feature = "page_latch") {
-            let root_pid = self.get_root_pid(tx);
-
-            // Find and lock the left-most leaf page corresponding to the key field.
-            let field = tuple.get_cell(self.key_field);
-            let mut leaf_rc = self.find_leaf_page(
-                tx,
-                Permission::ReadWrite,
-                root_pid,
-                &SearchFor::Target(field),
-            );
-
-            if leaf_rc.rl().empty_slots_count() == 0 {
-                // Split the leaf page if there are no more slots available.
-                leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
-            }
+            let leaf_rc = self.get_available_leaf(tx, tuple)?;
 
             // Insert the tuple into the leaf page.
             leaf_rc.wl().insert_tuple(&tuple)?;
         }
 
         return Ok(());
+    }
+
+    pub fn get_available_leaf(
+        &self,
+        tx: &Transaction,
+        tuple: &Tuple,
+    ) -> Result<Arc<RwLock<BTreeLeafPage>>, SmallError> {
+        let root_pid = self.get_root_pid(tx);
+
+        // Find and lock the left-most leaf page corresponding to the key field.
+        let field = tuple.get_cell(self.key_field);
+        let mut leaf_rc = self.find_leaf_page(
+            tx,
+            Permission::ReadWrite,
+            root_pid,
+            &SearchFor::Target(field),
+        );
+
+        if leaf_rc.rl().empty_slots_count() == 0 {
+            // Split the leaf page if there are no more slots available.
+            leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
+        }
+
+        Ok(leaf_rc)
     }
 
     /// Split a leaf page to make room for new tuples and
