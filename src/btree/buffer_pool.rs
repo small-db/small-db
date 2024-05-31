@@ -248,7 +248,7 @@ impl BufferPool {
         } else if cfg!(feature = "aries-no-steal") {
             // do nothing
             //
-            // In NO-STEAL mode, the dirty pages are not allowed to be write
+            // In NO-STEAL mode, the dirty pages are not allowed to be written
             // to database arbitrarily.
         } else {
             error!("unknown aries mode");
