@@ -1,18 +1,22 @@
 import itertools
-import subprocess
+import yaml
+
+START_LINE = "# ===[COMPILATION OPTIONS START]==="
+END_LINE = "# ===[COMPILATION OPTIONS END]==="
 
 
-def gen_make_test():
-    modes = [
-        ["tree_latch", "page_latch"],
-        ["aries_steal", "aries_no_steal"],
-        ["aries_force", "aries_no_force"],
-    ]
+def get_options():
+    compilation_options_path = "compilation-options.yaml"
+    f = open(compilation_options_path, "r")
+    v = yaml.safe_load(f)
+    return v["compilation_options"]
 
-    # remove old content
-    start_str = "# [MAKE TEST START]"
-    end_str = "# [MAKE TEST END]"
 
+def gen_cargo_features(modes):
+    pass
+
+
+def gen_make_test(modes):
     # Generate all possible combinations of modes.
     content = "test:\n"
     content += '\techo "" > out\n'
@@ -27,15 +31,15 @@ def gen_make_test():
     in_range = False
     with open("Makefile", "w") as f:
         for line in lines:
-            if line.strip() == start_str:
+            if line.strip() == START_LINE:
                 in_range = True
-                f.write(start_str + "\n")
+                f.write(START_LINE + "\n")
                 f.write(content)
                 continue
 
-            if line.strip() == end_str:
+            if line.strip() == END_LINE:
                 in_range = False
-                f.write(end_str + "\n")
+                f.write(END_LINE + "\n")
                 continue
 
             if not in_range:
@@ -45,4 +49,8 @@ def gen_make_test():
 
 
 if __name__ == "__main__":
-    gen_make_test()
+    options = get_options()
+
+    gen_cargo_features(options)
+
+    # gen_make_test(options)

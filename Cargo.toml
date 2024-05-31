@@ -31,6 +31,10 @@ futures-core = "0.3.30"
 bytes = "1.6.0"
 
 [features]
+# used for benchmark tests
+benchmark = []
+
+# ===[COMPILATION OPTIONS START]===
 # latch strategies
 tree_latch = []
 page_latch = []
@@ -42,6 +46,4 @@ aries_no_steal = []
 # "FORCE" and "NO-FORCE" policies of the ARIES recovery algorithm
 aries_force = []
 aries_no_force = []
-
-# used for benchmark tests
-benchmark = []
+# ===[COMPILATION OPTIONS END]===
