@@ -31,41 +31,57 @@ def gen_cargo_features(options: list[dict]):
     update_content("Cargo.toml", START_LINE, END_LINE, content)
 
 
-def gen_make_test(options: list[dict]):
-    START_LINE = "# ===[COMPILATION OPTIONS START]==="
-    END_LINE = "# ===[COMPILATION OPTIONS END]==="
+class TestTarget:
+    target_name: str
+    human_name: str
+    featuers_args: str
 
+
+def get_test_targets(options: list[dict]) -> list[TestTarget]:
     option_list = []
-
     for option in options:
         name = list(option.keys())[0]
         sub_options = option[name]
         option_list.append(sub_options)
 
-    content = ""
-    test_targets = []
+    targets = []
     for mode in itertools.product(*option_list):
-        test_target = "test_" + "_".join(mode)
-        test_targets.append(test_target)
-        # declare target
-        content += f"{test_target}:\n"
+        target = TestTarget()
+        target.target_name = "test_" + "_".join(mode)
+        target.featuers_args = ", ".join(mode)
+        target.human_name = f"test ({target.featuers_args})"
 
-        log_path = f"{test_target}.log"
+        targets.append(target)
+
+    return targets
+
+
+def gen_make_test(options: list[dict]):
+    START_LINE = "# ===[COMPILATION OPTIONS START]==="
+    END_LINE = "# ===[COMPILATION OPTIONS END]==="
+
+    test_targets = get_test_targets(options)
+
+    content = ""
+    for test_target in test_targets:
+        # declare target
+        content += f"{test_target.target_name}:\n"
+
+        log_path = f"{test_target.target_name}.log"
         # clear log file
         content += f'\techo "" > {log_path}\n'
 
         # print mode
-        content += f'\techo "Running tests with features: {mode}" | tee -a {log_path}\n'
+        content += f'\techo "Running tests with features: {test_target.featuers_args}" | tee -a {log_path}\n'
 
         # run tests
-        mode_str = ", ".join(mode)
-        content += f'\tRUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 2>&1 | tee -a {log_path}\n'
+        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 2>&1 | tee -a {log_path}\n'
 
         content += "\n"
 
     make_test = "test:\n"
     for test_target in test_targets:
-        make_test += f"\t{test_target}\n"
+        make_test += f"\t{test_target.target_name}\n"
 
     content = make_test + "\n\n" + content
 
@@ -77,25 +93,18 @@ def gen_actions(options: list[dict]):
     f = open(workflow_path, "r")
     content = f.read()
 
-    option_list = []
-    for option in options:
-        name = list(option.keys())[0]
-        sub_options = option[name]
-        option_list.append(sub_options)
-
-    for mode in itertools.product(*option_list):
-        target_name = "test_" + "_".join(mode)
-        human_name = ", ".join(mode)
-        human_name = f"test ({human_name})"
-        print(f"Generating {target_name} workflow")
-        pass
-
+    test_targets = get_test_targets(options)
+    for test_target in test_targets:
         new_content = copy.deepcopy(content)
-        new_content = new_content.replace("name: test", f"name: {human_name}")
-        new_content = new_content.replace("make test", f"make {target_name}")
+        new_content = new_content.replace(
+            "name: test", f"name: {test_target.human_name}"
+        )
+        new_content = new_content.replace(
+            "make test", f"make {test_target.target_name}"
+        )
 
         # write the new content to the workflow file
-        workflow_path = f".github/workflows/{target_name}.yml"
+        workflow_path = f".github/workflows/{test_target.target_name}.yml"
         f = open(workflow_path, "w")
         f.write(new_content)
 

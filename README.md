@@ -59,6 +59,8 @@ Explanation:
 
 <!-- [COMPILATION OPTIONS START] -->
 
+[![test (page_latch, aries_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml)
+
 [![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 
 <!-- [COMPILATION OPTIONS END] -->
