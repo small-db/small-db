@@ -7,6 +7,21 @@ A small database.
 
 **Thanks for your attention. For any issues/bugs/thoughts, please feel free to open an [issue](https://github.com/small-db/small-db/issues) or send an email to [Xiaochen Cui](mailto:jcnlcxc.new@gmail.com)**
 
+## Quick Start
+
+### Start a Server
+
+```bash
+# this will start a server on port 5433, which is compatible with PostgreSQL
+make run
+```
+
+### Connect to the Server
+
+```bash
+psql -h localhost -p 5433 -d default_db -U xiaochen
+```
+
 ## Features
 
 ### Two Types of Latch Strategies
