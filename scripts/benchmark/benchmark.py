@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -39,14 +40,14 @@ def benchmark():
 
     records = []
 
-    # latch_strategy: "page_latch"
+    # latch_strategy: "page-latch"
     for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="page_latch")
+        r = run_test_speed(total_actions, thread_count, latch_strategy="page-latch")
         records.append(r)
 
-    # latch_strategy: "tree_latch"
+    # latch_strategy: "tree-latch"
     for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="tree_latch")
+        r = run_test_speed(total_actions, thread_count, latch_strategy="tree-latch")
         records.append(r)
 
     # dump records to a file in json format

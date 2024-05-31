@@ -6,7 +6,7 @@
             "total_actions": 1000,
             "thread_count": 1,
             "action_per_thread": 1000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 262,
@@ -20,7 +20,7 @@
             "total_actions": 1000,
             "thread_count": 2,
             "action_per_thread": 500,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 261,
@@ -34,7 +34,7 @@
             "total_actions": 1000,
             "thread_count": 5,
             "action_per_thread": 200,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 277,

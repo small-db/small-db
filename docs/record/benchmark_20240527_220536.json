@@ -6,7 +6,7 @@
             "total_actions": 100000,
             "thread_count": 1,
             "action_per_thread": 100000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 31049,
@@ -20,7 +20,7 @@
             "total_actions": 100000,
             "thread_count": 10,
             "action_per_thread": 10000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 31498,
@@ -34,7 +34,7 @@
             "total_actions": 100000,
             "thread_count": 20,
             "action_per_thread": 5000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32070,
@@ -48,7 +48,7 @@
             "total_actions": 100000,
             "thread_count": 30,
             "action_per_thread": 3333,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 31709,
@@ -62,7 +62,7 @@
             "total_actions": 100000,
             "thread_count": 40,
             "action_per_thread": 2500,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 31486,
@@ -76,7 +76,7 @@
             "total_actions": 100000,
             "thread_count": 50,
             "action_per_thread": 2000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32135,
@@ -90,7 +90,7 @@
             "total_actions": 100000,
             "thread_count": 60,
             "action_per_thread": 1666,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 33164,
@@ -104,7 +104,7 @@
             "total_actions": 100000,
             "thread_count": 70,
             "action_per_thread": 1428,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32311,
@@ -118,7 +118,7 @@
             "total_actions": 100000,
             "thread_count": 80,
             "action_per_thread": 1250,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32691,
@@ -132,7 +132,7 @@
             "total_actions": 100000,
             "thread_count": 90,
             "action_per_thread": 1111,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32397,
@@ -146,7 +146,7 @@
             "total_actions": 100000,
             "thread_count": 100,
             "action_per_thread": 1000,
-            "latch_strategy": "page_latch"
+            "latch_strategy": "page-latch"
         },
         "test_result": {
             "duration_ms": 32950,
@@ -160,7 +160,7 @@
             "total_actions": 100000,
             "thread_count": 1,
             "action_per_thread": 100000,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 25228,
@@ -174,7 +174,7 @@
             "total_actions": 100000,
             "thread_count": 10,
             "action_per_thread": 10000,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22661,
@@ -188,7 +188,7 @@
             "total_actions": 100000,
             "thread_count": 20,
             "action_per_thread": 5000,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 23147,
@@ -202,7 +202,7 @@
             "total_actions": 100000,
             "thread_count": 30,
             "action_per_thread": 3333,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22950,
@@ -216,7 +216,7 @@
             "total_actions": 100000,
             "thread_count": 40,
             "action_per_thread": 2500,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22829,
@@ -230,7 +230,7 @@
             "total_actions": 100000,
             "thread_count": 50,
             "action_per_thread": 2000,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22561,
@@ -244,7 +244,7 @@
             "total_actions": 100000,
             "thread_count": 60,
             "action_per_thread": 1666,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 23090,
@@ -258,7 +258,7 @@
             "total_actions": 100000,
             "thread_count": 70,
             "action_per_thread": 1428,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22505,
@@ -272,7 +272,7 @@
             "total_actions": 100000,
             "thread_count": 80,
             "action_per_thread": 1250,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22568,
@@ -286,7 +286,7 @@
             "total_actions": 100000,
             "thread_count": 90,
             "action_per_thread": 1111,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 22650,
@@ -300,7 +300,7 @@
             "total_actions": 100000,
             "thread_count": 100,
             "action_per_thread": 1000,
-            "latch_strategy": "tree_latch"
+            "latch_strategy": "tree-latch"
         },
         "test_result": {
             "duration_ms": 23073,

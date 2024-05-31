@@ -33,10 +33,10 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 
 ### Four Types of ARIES Log Recovery Algorithms
 
-- **STEAL/NO-FORCE** (InnoDB flavor)
-- **NO-STEAL/NO-FORCE** (PostgreSQL flavor)
-- **STEAL/FORCE** (Oracle flavor)
-- **NO-STEAL/FORCE** (SQL Server flavor)
+- **STEAL/NO-FORCE**
+- **NO-STEAL/NO-FORCE**
+- **STEAL/FORCE**
+- **NO-STEAL/FORCE**
 
 Explanation:
 
@@ -44,6 +44,12 @@ Explanation:
 - "NO-STEAL" means it cannot.
 - "FORCE" means a transaction is not allowed to commit until all pages modified by it are written to the permanent version of the database.
 - "NO-FORCE" means it can.
+
+### Three Types of Concurrency Control Algorithms
+
+- **Pessimistic Concurrency Control**
+- **Optimistic Concurrency Control**
+- **MVCC (Multi-Version Concurrency Control)**
 
 ## Status
 

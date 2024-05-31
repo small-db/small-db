@@ -191,9 +191,9 @@ impl ConcurrentStatus {
     }
 
     pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
-        if cfg!(feature = "tree_latch") {
+        if cfg!(feature = "tree-latch") {
             return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-        } else if cfg!(feature = "page_latch") {
+        } else if cfg!(feature = "page-latch") {
             return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
         }
 
@@ -219,24 +219,24 @@ impl ConcurrentStatus {
 
     /// Remove the relation between the transaction and its related pages.
     pub fn remove_relation(&mut self, tx: &Transaction) {
-        if cfg!(feature = "tree_latch") {
+        if cfg!(feature = "tree-latch") {
             self.dirty_pages.remove(tx);
-        } else if cfg!(feature = "page_latch") {
+        } else if cfg!(feature = "page-latch") {
             self.release_lock_by_tx(tx).unwrap();
         }
     }
 
     pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
-        if cfg!(feature = "tree_latch") {
-            // For the "tree_latch" strategy, we need to check the dirty_pages map, since
+        if cfg!(feature = "tree-latch") {
+            // For the "tree-latch" strategy, we need to check the dirty_pages map, since
             // the "x_lock_map" only contains leaf pages.
             for (tx, pages) in self.dirty_pages.iter() {
                 if pages.contains(page_id) {
                     return Some(tx.clone());
                 }
             }
-        } else if cfg!(feature = "page_latch") {
-            // For the "page_latch" strategy, the "x_lock_map" contains all pages, so we
+        } else if cfg!(feature = "page-latch") {
+            // For the "page-latch" strategy, the "x_lock_map" contains all pages, so we
             // can get the result directly.
             if let Some(v) = self.x_lock_map.get(page_id) {
                 return Some(v.clone());

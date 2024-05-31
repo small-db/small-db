@@ -141,8 +141,8 @@ impl BufferPool {
         // exclusive access.
 
         // step 1: request lock from concurrent status
-        if cfg!(feature = "tree_latch") {
-            // For the "tree_latch" mode, the tree latch and RWLock on the leaf pages
+        if cfg!(feature = "tree-latch") {
+            // For the "tree-latch" mode, the tree latch and RWLock on the leaf pages
             // are enough, don't have to request lock from concurrent status.
 
             // When requesting a "ReadWrite" permission, the page should be added to the
@@ -150,7 +150,7 @@ impl BufferPool {
             if perm == Permission::ReadWrite {
                 Database::mut_concurrent_status().add_relation(tx, key);
             }
-        } else if cfg!(feature = "page_latch") {
+        } else if cfg!(feature = "page-latch") {
             ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
         }
 
@@ -239,23 +239,20 @@ impl BufferPool {
         page_pod.wl().set_before_image();
     }
 
-    /// Flush all dirty pages to disk.
-    ///
-    /// NB: Be careful using this routine -- it writes dirty data to
-    /// disk so will break small-db if running in NO STEAL mode.
+    /// Flush all dirty pages to database.
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
-        for pid in self.all_keys() {
-            self.flush_page(&pid, log_manager);
+        if cfg!(feature = "aries-steal") {
+            for pid in self.all_keys() {
+                self.flush_page(&pid, log_manager);
+            }
+        } else if cfg!(feature = "aries-no-steal") {
+            // do nothing
+            //
+            // In NO-STEAL mode, the dirty pages are not allowed to be write
+            // to database arbitrarily.
+        } else {
+            error!("unknown aries mode");
         }
-        // if cfg!(feature = "aries_steal") {
-        //     for pid in self.all_keys() {
-        //         self.flush_page(&pid, log_manager);
-        //     }
-        // } else if cfg!(feature = "aries_no_steal") {
-        //     // do nothing
-        // } else {
-        //     error!("unknown aries mode");
-        // }
     }
 
     /// Write all pages of the specified transaction to disk.

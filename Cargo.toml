@@ -32,12 +32,12 @@ bytes = "1.6.0"
 
 [features]
 # latch strategies
-tree_latch = []
-page_latch = []
+tree-latch = []
+page-latch = []
 
 # "STEAL" and "NO-STEAL" policies of the ARIES recovery algorithm
-aries_steal = []
-aries_no_steal = []
+aries-steal = []
+aries-no-steal = []
 
 # used for benchmark tests
 benchmark = []

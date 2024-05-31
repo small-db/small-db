@@ -3,9 +3,9 @@ import json
 import os
 import re
 import subprocess
+
 import matplotlib.pyplot as plt
 import numpy as np
-
 from benchmark import BenchmarkRecord, json_loader
 
 
@@ -34,7 +34,7 @@ def draw():
 
     points_list = []
 
-    for latch_strategy in ["tree_latch", "page_latch"]:
+    for latch_strategy in ["tree-latch", "page-latch"]:
         records = list(
             filter(
                 lambda x: x.target_attributes["latch_strategy"] == latch_strategy,
