@@ -18,8 +18,8 @@ def gen_make_test():
     content += '\techo "" > out\n'
     for mode in itertools.product(*modes):
         mode_str = ", ".join(mode)
-        content += f'\t@echo "Running tests with features: {mode_str}" | tee -a out\n'
-        content += f'\t@RUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 | tee -a out\n'
+        content += f'\techo "Running tests with features: {mode_str}" | tee -a out\n'
+        content += f'\tRUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 | tee -a out\n'
 
     f = open("Makefile", "r")
     lines = f.readlines()
