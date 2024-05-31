@@ -58,10 +58,21 @@ Explanation:
 ## Test
 
 <!-- [COMPILATION OPTIONS START] -->
+[![test (tree_latch, aries_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force.yml)
+
+[![test (tree_latch, aries_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force.yml)
+
+[![test (tree_latch, aries_no_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force.yml)
+
+[![test (tree_latch, aries_no_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force.yml)
+
+[![test (page_latch, aries_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force.yml)
 
 [![test (page_latch, aries_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml)
 
-[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
+[![test (page_latch, aries_no_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force.yml)
+
+[![test (page_latch, aries_no_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml)
 
 <!-- [COMPILATION OPTIONS END] -->
 

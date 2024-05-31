@@ -113,7 +113,7 @@ def gen_readme(options: list[dict]):
     test_targets = get_test_targets(options)
     budgets = ""
     for test_target in test_targets:
-        budget = f"[![{test_target.human_name}](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml)\n"
+        budget = f"[![{test_target.human_name}](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml)\n\n"
         budgets += budget
 
     START_LINE = "<!-- [COMPILATION OPTIONS START] -->"
