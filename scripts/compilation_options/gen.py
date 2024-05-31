@@ -1,3 +1,4 @@
+import copy
 import itertools
 from pprint import pprint
 import yaml
@@ -72,12 +73,13 @@ def gen_make_test(options: list[dict]):
 
 
 def gen_actions(options: list[dict]):
+    workflow_backup_path = ".github/workflows/test_backup.yml"
     workflow_path = ".github/workflows/test.yml"
-    f = open(workflow_path, "r")
+
+    f = open(workflow_backup_path, "r")
     v = yaml.safe_load(f)
 
     ref_job = v["jobs"]
-    print(f"ref_job: {ref_job}")
 
     option_list = []
 
@@ -86,33 +88,22 @@ def gen_actions(options: list[dict]):
         sub_options = option[name]
         option_list.append(sub_options)
 
-    jobs = []
+    jobs = dict()
     for mode in itertools.product(*option_list):
-        # print(mode)
-
         test_target = "test_" + "_".join(mode)
         new_job = dict()
-        new_job[test_target] = ref_job["test"]
+        new_job = copy.deepcopy(ref_job["test"])
 
-        # run_scripts = f'echo "Running tests with features: {mode}\n'
         run_scripts = f"make {test_target}"
+        new_job["steps"][1]["run"] = run_scripts
 
-        new_job[test_target]["steps"][1]["run"] = run_scripts
-
-        jobs.append(new_job)
-
-    for job in jobs:
-        print(job)
+        jobs[test_target] = new_job
 
     v["jobs"] = jobs
 
     v["on"] = v[True]
 
     del v[True]
-
-    pprint(v)
-
-    # pprint(v[True])
 
     with open(workflow_path, "w") as f:
         yaml.dump(v, f)
