@@ -1,6 +1,5 @@
 # small-db
 
-[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
 A small database.
@@ -75,6 +74,8 @@ Explanation:
 [![test (page_latch, aries_no_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml)
 
 <!-- [COMPILATION OPTIONS END] -->
+
+[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 
 ## Status
 
