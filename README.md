@@ -78,6 +78,7 @@ Explanation:
 ## Status
 
 - [ ] Test system crash immediately after the transaction commits
+- [ ] Add "redo" action
 
 - [ ] Variable length field
 - [x] PostgreSQL protocol
