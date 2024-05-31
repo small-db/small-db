@@ -13,11 +13,6 @@ def gen_make_test():
     start_str = "# [MAKE TEST START]"
     end_str = "# [MAKE TEST END]"
 
-    # remove all lines between start_str and end_str
-    _ = subprocess.check_output(
-        f"sed -i '/{start_str}/,/{end_str}/d' Makefile", shell=True
-    )
-
     # Generate all possible combinations of modes.
     content = "test:\n"
     content += '\techo "" > out\n'
@@ -26,10 +21,27 @@ def gen_make_test():
         content += f'\t@echo "Running tests with features: {mode_str}" | tee -a out\n'
         content += f'\t@RUST_LOG=info cargo test --features "{mode_str}" -- --test-threads=1 | tee -a out\n'
 
+    f = open("Makefile", "r")
+    lines = f.readlines()
+    f.close()
+    in_range = False
+    with open("Makefile", "w") as f:
+        for line in lines:
+            if line.strip() == start_str:
+                in_range = True
+                f.write(start_str + "\n")
+                f.write(content)
+                continue
+
+            if line.strip() == end_str:
+                in_range = False
+                f.write(end_str + "\n")
+                continue
+
+            if not in_range:
+                f.write(line)
+
     # insert content between start_str and end_str
-    _ = subprocess.check_output(
-        f"sed -i '/{start_str}/a {content}' Makefile", shell=True
-    )
 
 
 if __name__ == "__main__":
