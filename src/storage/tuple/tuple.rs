@@ -7,10 +7,15 @@ use crate::{
     btree::page::BTreePageID,
     io::{Encodeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
+    transaction::TransactionID,
 };
 
 #[derive(Clone)]
+/// Tuple is only visible to transaction that has an id between xmin and xmax
 pub struct Tuple {
+    xmin: TransactionID,
+    xmax: TransactionID,
+
     cells: Vec<Cell>,
 }
 
@@ -18,6 +23,9 @@ pub struct Tuple {
 impl Tuple {
     pub fn new(cells: &Vec<Cell>) -> Self {
         Self {
+            xmin: TransactionID::MIN,
+            xmax: TransactionID::MAX,
+
             cells: cells.to_vec(),
         }
     }
