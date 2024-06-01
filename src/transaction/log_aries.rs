@@ -8,7 +8,6 @@ use std::{
 
 use log::debug;
 
-use super::{Transaction, TransactionID};
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -19,11 +18,12 @@ use crate::{
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile, SmallWriter},
-    transaction::TRANSACTION_ID_LEN,
     types::SmallResult,
     utils::HandyRwLock,
     Database,
 };
+
+use super::{Transaction, TransactionID};
 
 // TODO: add docs for it
 static START_RECORD_LEN: u64 = 17;
@@ -775,7 +775,8 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        TRANSACTION_ID_LEN, tid,
+                        std::mem::size_of::<TransactionID>(),
+                        tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -793,7 +794,8 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        TRANSACTION_ID_LEN, tid,
+                        std::mem::size_of::<TransactionID>(),
+                        tid,
                     ));
 
                     let pid: BTreePageID = read_into(&mut self.file);
@@ -828,7 +830,8 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        TRANSACTION_ID_LEN, tid,
+                        std::mem::size_of::<TransactionID>(),
+                        tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -881,7 +884,8 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        TRANSACTION_ID_LEN, tid,
+                        std::mem::size_of::<TransactionID>(),
+                        tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);

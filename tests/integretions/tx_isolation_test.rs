@@ -2,7 +2,7 @@ use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLoc
 
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
 
-// #[test]
+#[test]
 fn test_read_committed() {
     setup();
     let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);

@@ -55,6 +55,10 @@ impl Tuple {
 
     pub fn get_size_disk(&self) -> usize {
         let mut size = 0;
+
+        // xmin
+        size += std::mem::size_of::<TransactionID>();
+
         for cell in &self.cells {
             size += cell.get_size_disk();
         }
