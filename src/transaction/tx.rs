@@ -3,6 +3,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::{types::SmallResult, Database};
 
+pub type TransactionID = u32;
+
+pub const TRANSACTION_ID_LEN: usize = 4;
+
 static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Eq, PartialEq, Clone)]
@@ -10,8 +14,6 @@ pub struct Transaction {
     // increase monotonically by 1
     uuid: TransactionID,
 }
-
-pub type TransactionID = u32;
 
 impl Transaction {
     pub fn new() -> Self {
