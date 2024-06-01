@@ -37,11 +37,6 @@ impl SmallFile {
         obj.encode(&mut writer);
         writer.write_to(&mut self.file);
         Ok(())
-
-        // match self.file.write(&obj.to_bytes()) {
-        //     Ok(_) => Ok(()),
-        //     Err(e) => Err(SmallError::new(&e.to_string())),
-        // }
     }
 
     pub fn get_size(&self) -> Result<u64, SmallError> {

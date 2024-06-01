@@ -22,6 +22,8 @@ use small_db::{
     BTreeTable, Database, TableSchema,
 };
 
+use crate::test_utils::new_int_tuples;
+
 use super::internal_children_cap;
 
 pub const TEST_DB: &str = "test";
@@ -86,7 +88,7 @@ pub fn new_random_btree_table(
     let mut rng = rand::thread_rng();
     for _ in 0..rows {
         let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-        let tuple = Tuple::new_int_tuples(insert_value, columns);
+        let tuple = new_int_tuples(insert_value, columns);
         tuples.push(tuple);
     }
 

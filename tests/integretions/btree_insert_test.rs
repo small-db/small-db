@@ -12,7 +12,7 @@ use small_db::{
 
 use crate::test_utils::{
     assert_true, get_internal_page, get_leaf_page, insert_tuples, internal_children_cap,
-    leaf_records_cap, new_random_btree_table, search_key, setup, TreeLayout,
+    leaf_records_cap, new_int_tuples, new_random_btree_table, search_key, setup, TreeLayout,
 };
 
 #[test]
@@ -30,7 +30,7 @@ fn test_insert_tuple() {
     let mut insert_count = leaf_records_cap();
     let tx = Transaction::new();
     for _ in 0..insert_count {
-        let tuple = Tuple::new_int_tuples(insert_value, 2);
+        let tuple = new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
         insert_value += 1;
         assert_eq!(1, table.pages_count());
@@ -40,7 +40,7 @@ fn test_insert_tuple() {
     // greater than all existing tuples in the file
     insert_count = ceil_div(leaf_records_cap(), 2);
     for _ in 0..insert_count {
-        let tuple = Tuple::new_int_tuples(insert_value, 2);
+        let tuple = new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
         insert_value += 1;
 
@@ -49,7 +49,7 @@ fn test_insert_tuple() {
     }
 
     // one more insert should cause page 2 to split
-    let tuple = Tuple::new_int_tuples(insert_value, 2);
+    let tuple = new_int_tuples(insert_value, 2);
     table.insert_tuple(&tx, &tuple).unwrap();
 
     // there are 4 pages: 1 root page + 3 leaf pages
@@ -78,7 +78,7 @@ fn test_insert_duplicate_tuples() {
     let repetition_count = 600;
     for i in 0..5 {
         for _ in 0..repetition_count {
-            let tuple = Tuple::new_int_tuples(i, 2);
+            let tuple = new_int_tuples(i, 2);
             table.insert_tuple(&tx, &tuple).unwrap();
         }
     }
@@ -184,7 +184,7 @@ fn test_split_root_page() {
     let mut rng = rand::thread_rng();
     for _ in 0..10000 {
         let insert_value = rng.gen_range(0, i64::MAX);
-        let tuple = Tuple::new_int_tuples(insert_value, 2);
+        let tuple = new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
@@ -241,7 +241,7 @@ fn test_split_internal_page() {
     let rows_increment = 100;
     for _i in 0..rows_increment {
         let insert_value = rng.gen_range(0, i64::MAX);
-        let tuple = Tuple::new_int_tuples(insert_value, 2);
+        let tuple = new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
         assert_true(search_key(&table, &tx, &tuple.get_cell(0)) >= 1, &table);
@@ -289,7 +289,7 @@ fn test_insert_benchmark() {
         let tx = Transaction::new();
 
         let insert_value = rng.gen_range(0, i64::MAX);
-        let tuple = Tuple::new_int_tuples(insert_value, 2);
+        let tuple = new_int_tuples(insert_value, 2);
         table.insert_tuple(&tx, &tuple).unwrap();
 
         tx.commit().unwrap();

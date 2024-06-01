@@ -11,7 +11,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    assert_true, internal_children_cap, leaf_records_cap, new_random_btree_table, setup, TreeLayout,
+    assert_true, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
+    setup, TreeLayout,
 };
 
 // Insert one tuple into the table
@@ -22,7 +23,7 @@ fn inserter(
 ) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-    let tuple = Tuple::new_int_tuples(insert_value, column_count);
+    let tuple = new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
 
@@ -246,7 +247,7 @@ fn inserter2(row_count: usize, column_count: usize, table_rc: &Pod<BTreeTable>) 
 
     for _ in 0..row_count {
         let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-        let tuple = Tuple::new_int_tuples(insert_value, column_count);
+        let tuple = new_int_tuples(insert_value, column_count);
 
         let tx = Transaction::new();
 

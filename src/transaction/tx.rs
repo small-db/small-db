@@ -79,7 +79,7 @@ impl Transaction {
         Ok(())
     }
 
-    pub fn get_id(&self) -> u64 {
+    pub fn get_id(&self) -> TransactionID {
         self.uuid
     }
 }

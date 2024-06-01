@@ -9,6 +9,7 @@ use crate::{
     storage::{table_schema::TableSchema, tuple::Cell},
 };
 
+
 #[derive(Clone)]
 pub struct Tuple {
     cells: Vec<Cell>,
@@ -28,16 +29,6 @@ impl Tuple {
             let cell = Cell::read_from(reader, &field.get_type());
             cells.push(cell);
         }
-        Tuple { cells }
-    }
-
-    // TODO: remove this api
-    pub fn new_int_tuples(value: i64, width: usize) -> Self {
-        let mut cells: Vec<Cell> = Vec::new();
-        for _ in 0..width {
-            cells.push(Cell::Int64(value));
-        }
-
         Tuple { cells }
     }
 }
@@ -161,23 +152,5 @@ impl fmt::Display for WrappedTuple {
 impl fmt::Debug for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use log::debug;
-
-    use super::*;
-    use crate::utils::init_log;
-
-    #[test]
-    fn test_tuple_clone() {
-        init_log();
-
-        let tuple = Tuple::new_int_tuples(35, 2);
-        debug!("tuple: {}", tuple);
-        let new_tuple = tuple.clone();
-        debug!("new tuple: {}", new_tuple);
     }
 }

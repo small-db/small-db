@@ -192,10 +192,10 @@ impl LogManager {
             match record_type {
                 RecordType::START => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
                 }
                 RecordType::UPDATE => {
                     let tid = read_into(&mut self.file);
@@ -242,7 +242,7 @@ impl LogManager {
                     let tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
-                        let _: u64 = read_into(&mut self.file);
+                        let _: TransactionID = read_into(&mut self.file);
 
                         // skip the start position
                         let _: u64 = read_into(&mut self.file);
@@ -253,14 +253,14 @@ impl LogManager {
                 }
                 RecordType::COMMIT => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
                     let _: u64 = read_into(&mut self.file);
                 }
                 RecordType::ABORT => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
                     let _: u64 = read_into(&mut self.file);
@@ -287,7 +287,7 @@ impl LogManager {
         Ok(())
     }
 
-    fn get_incomplete_transactions(&mut self) -> Result<HashSet<u64>, SmallError> {
+    fn get_incomplete_transactions(&mut self) -> Result<HashSet<TransactionID>, SmallError> {
         self.file.seek(SeekFrom::Start(0))?;
         let last_checkpoint_position = read_into(&mut self.file);
 
@@ -326,12 +326,6 @@ impl LogManager {
         while self.file.get_current_position()? < file_size {
             let record_type = read_into(&mut self.file);
 
-            // debug!(
-            //     "record type: {:?}, pos: {}",
-            //     record_type,
-            //     self.file.get_current_position()?
-            // );
-
             match record_type {
                 RecordType::START => {
                     let tid = read_into(&mut self.file);
@@ -342,7 +336,7 @@ impl LogManager {
                 }
                 RecordType::UPDATE => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the page id
                     let _: BTreePageID = read_into(&mut self.file);
@@ -567,12 +561,11 @@ impl LogManager {
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
             let record_type = read_into(&mut self.file);
-            // debug!("record_type: {:?}", record_type);
 
             match record_type {
                 RecordType::START => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
                     let _: u64 = read_into(&mut self.file);
@@ -615,7 +608,7 @@ impl LogManager {
                     let tx_count: u64 = read_into(&mut self.file);
                     for _ in 0..tx_count {
                         // skip the transaction id
-                        let _: u64 = read_into(&mut self.file);
+                        let _: TransactionID = read_into(&mut self.file);
 
                         // skip the start position
                         let _: u64 = read_into(&mut self.file);
@@ -626,14 +619,14 @@ impl LogManager {
                 }
                 RecordType::COMMIT => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
                     let _: u64 = read_into(&mut self.file);
                 }
                 RecordType::ABORT => {
                     // skip the transaction id
-                    let _: u64 = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file);
 
                     // skip the start position
                     let _: u64 = read_into(&mut self.file);
@@ -778,7 +771,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: u64 = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -793,7 +786,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: u64 = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let pid: BTreePageID = read_into(&mut self.file);
@@ -825,7 +818,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: u64 = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -854,7 +847,7 @@ impl LogManager {
                         tx_count,
                     ));
                     for _ in 0..tx_count {
-                        let tx_id: u64 = read_into(&mut self.file);
+                        let tx_id: TransactionID = read_into(&mut self.file);
                         depiction.push_str(&format!("│   │   ├── [8 bytes] tx id: {}\n", tx_id,));
                         let tx_start_offset: u64 = read_into(&mut self.file);
                         depiction.push_str(&format!(
@@ -875,7 +868,7 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: u64 = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!("│   ├── [8 bytes] tid: {}\n", tid,));
 
                     let start_offset: u64 = read_into(&mut self.file);

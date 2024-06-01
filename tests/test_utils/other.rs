@@ -4,6 +4,7 @@ use small_db::{
         page::{BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage, BTreePage},
     },
     concurrent_status::Permission,
+    storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
@@ -78,4 +79,12 @@ pub fn get_leaf_page(table: &BTreeTable, level: usize, index: usize) -> Pod<BTre
             return leaf_pod;
         }
     }
+}
+
+pub fn new_int_tuples(value: i64, width: usize) -> Tuple {
+    let mut cells: Vec<Cell> = Vec::new();
+    for _ in 0..width {
+        cells.push(Cell::Int64(value));
+    }
+    Tuple::new(&cells)
 }
