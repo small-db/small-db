@@ -8,6 +8,7 @@ use std::{
 
 use log::debug;
 
+use super::{Transaction, TransactionID};
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -22,8 +23,6 @@ use crate::{
     utils::HandyRwLock,
     Database,
 };
-
-use super::{Transaction, TransactionID};
 
 // TODO: add docs for it
 static START_RECORD_LEN: u64 = 17;

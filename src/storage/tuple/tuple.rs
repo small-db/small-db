@@ -1,4 +1,3 @@
-use crate::io::Decodeable;
 use std::{
     fmt::{self},
     usize,
@@ -6,7 +5,7 @@ use std::{
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Encodeable, SmallWriter},
+    io::{Decodeable, Encodeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::TransactionID,
 };
