@@ -485,7 +485,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
 
             if page.is_slot_used(cursor) {
                 let tuple = page.tuples[cursor].clone();
-                if tuple.get_xmax() > self.tx_id {
+                if self.tx_id > tuple.get_xmax() {
                     continue;
                 }
 

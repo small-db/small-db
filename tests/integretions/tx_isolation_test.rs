@@ -29,7 +29,6 @@ fn test_read_committed() {
     {
         write_tx.commit().unwrap();
 
-        info!("write_tx committed");
         debug!(
             "serach result: {}",
             search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key))

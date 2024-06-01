@@ -15,6 +15,9 @@ use crate::{
 /// Tuple is only visible to transaction that has an id between xmin and xmax
 pub struct Tuple {
     xmin: TransactionID,
+
+    // The last transaction that modified this tuple and committed. Transactions
+    // with id > xmax cannot see this tuple.
     xmax: TransactionID,
 
     cells: Vec<Cell>,
@@ -24,8 +27,8 @@ pub struct Tuple {
 impl Tuple {
     pub fn new(cells: &Vec<Cell>) -> Self {
         Self {
-            xmin: TransactionID::MIN,
-            xmax: TransactionID::MAX,
+            xmin: TransactionID::MAX,
+            xmax: TransactionID::MIN,
 
             cells: cells.to_vec(),
         }
