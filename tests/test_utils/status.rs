@@ -231,7 +231,7 @@ fn sequential_insert_into_table(
             {
                 let left_rc = leaves[leaf_index].clone();
                 let right_rc = leaves[leaf_index + 1].clone();
-                let mut it = BTreeLeafPageIteratorRc::new(right_rc.clone());
+                let mut it = BTreeLeafPageIteratorRc::new(tx, right_rc.clone());
                 let key = it.next().unwrap().get_cell(table.key_field);
 
                 let mut internal = internal_rc.wl();

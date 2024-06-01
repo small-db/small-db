@@ -15,6 +15,7 @@ use crate::{
         table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
+    transaction::{Transaction, TransactionID},
     utils::{ceil_div, HandyRwLock},
 };
 
@@ -117,15 +118,13 @@ impl BTreeLeafPage {
     fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
         let slot_count = Self::get_children_cap(&schema);
 
-        // let mut reader = Cursor::new(bytes);
-
         let parent_pid =
             BTreePageID::new(PageCategory::Internal, pid.get_table_id(), EMPTY_PAGE_ID);
 
         let mut header = BitVec::new();
         header.grow(slot_count, false);
 
-        // read tuples
+        // use empty tuples
         let mut tuples = Vec::new();
         for _ in 0..slot_count {
             tuples.push(Tuple::new(&Vec::new()));
@@ -363,6 +362,12 @@ impl BTreeLeafPage {
     pub fn iter(&self) -> BTreeLeafPageIterator {
         BTreeLeafPageIterator::new(self)
     }
+
+    pub(crate) fn update_xmax(&mut self, xmax: TransactionID) {
+        for tuple in &mut self.tuples {
+            tuple.set_xmax(xmax);
+        }
+    }
 }
 
 /// Methods for accessing const attributes.
@@ -449,15 +454,19 @@ pub struct BTreeLeafPageIteratorRc {
     page: Arc<RwLock<BTreeLeafPage>>,
     cursor: i64,
     reverse_cursor: i64,
+
+    tx_id: TransactionID,
 }
 
 impl BTreeLeafPageIteratorRc {
-    pub fn new(page: Arc<RwLock<BTreeLeafPage>>) -> Self {
+    pub fn new(tx: &Transaction, page: Arc<RwLock<BTreeLeafPage>>) -> Self {
         let slot_count = page.rl().get_slots_count();
         Self {
             page,
             cursor: -1,
             reverse_cursor: slot_count as i64,
+
+            tx_id: tx.get_id(),
         }
     }
 }
@@ -475,6 +484,11 @@ impl Iterator for BTreeLeafPageIteratorRc {
             }
 
             if page.is_slot_used(cursor) {
+                let tuple = page.tuples[cursor].clone();
+                if tuple.get_xmax() > self.tx_id {
+                    continue;
+                }
+
                 return Some(WrappedTuple::new(
                     &page.tuples[cursor].clone(),
                     cursor,

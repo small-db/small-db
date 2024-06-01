@@ -1,3 +1,4 @@
+use crate::io::Decodeable;
 use std::{
     fmt::{self},
     usize,
@@ -30,17 +31,29 @@ impl Tuple {
         }
     }
 
-    pub fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
+    pub(crate) fn new_x(xmin: TransactionID, xmax: TransactionID, cells: &Vec<Cell>) -> Self {
+        Self {
+            xmin,
+            xmax,
+
+            cells: cells.to_vec(),
+        }
+    }
+
+    pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
+        let xmin = TransactionID::decode_from(reader);
+        let xmax = TransactionID::decode_from(reader);
+
         let mut cells: Vec<Cell> = Vec::new();
         for field in schema.get_fields() {
             let cell = Cell::read_from(reader, &field.get_type());
             cells.push(cell);
         }
-        Self::new(&cells)
+        Self::new_x(xmin, xmax, &cells)
     }
 
-    pub fn clone(&self) -> Self {
-        Self::new(&self.cells.clone())
+    pub(crate) fn clone(&self) -> Self {
+        Self::new_x(self.xmin, self.xmax, &self.cells.clone())
     }
 }
 
@@ -59,15 +72,37 @@ impl Tuple {
         // xmin
         size += std::mem::size_of::<TransactionID>();
 
+        // xmax
+        size += std::mem::size_of::<TransactionID>();
+
         for cell in &self.cells {
             size += cell.get_size_disk();
         }
         size
     }
+
+    pub(crate) fn set_xmin(&mut self, xmin: TransactionID) {
+        self.xmin = xmin;
+    }
+
+    pub(crate) fn set_xmax(&mut self, xmax: TransactionID) {
+        self.xmax = xmax;
+    }
+
+    pub(crate) fn get_xmin(&self) -> TransactionID {
+        self.xmin
+    }
+
+    pub(crate) fn get_xmax(&self) -> TransactionID {
+        self.xmax
+    }
 }
 
 impl Encodeable for Tuple {
     fn encode(&self, writer: &mut SmallWriter) {
+        self.xmin.encode(writer);
+        self.xmax.encode(writer);
+
         for cell in &self.cells {
             cell.encode(writer);
         }

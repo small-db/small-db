@@ -256,6 +256,8 @@ impl BufferPool {
     }
 
     /// Write all pages of the specified transaction to disk.
+    ///
+    /// TODO: remove the "log_manager" parameter
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
         let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
 
@@ -435,5 +437,21 @@ impl BufferPool {
         }
 
         keys
+    }
+
+    pub(crate) fn update_xmax(&self, tx: &Transaction) {
+        let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
+
+        for pid in dirty_pages {
+            if pid.category != PageCategory::Leaf {
+                continue;
+            }
+
+            if let Some(page_pod) = self.leaf_buffer.get(&pid) {
+                page_pod.wl().update_xmax(tx.get_id());
+            } else {
+                error!("page not found in buffer pool, pid: {:?}", pid);
+            }
+        }
     }
 }

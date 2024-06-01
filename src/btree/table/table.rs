@@ -537,7 +537,7 @@ impl BTreeTable {
         let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid).unwrap();
         let lock_state = lock_state(page_rc.clone());
 
-        let mut it = BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc));
+        let mut it = BTreeLeafPageIteratorRc::new(tx, Arc::clone(&page_rc));
         let first_tuple = it.next();
 
         let page = page_rc.rl();

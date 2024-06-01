@@ -38,10 +38,10 @@ impl BTreeTableIterator {
             tx: tx.clone(),
 
             page_rc: Arc::clone(&page_rc),
-            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&page_rc)),
+            page_it: BTreeLeafPageIteratorRc::new(tx, Arc::clone(&page_rc)),
 
             last_page_rc: Arc::clone(&last_page_rc),
-            last_page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&last_page_rc)),
+            last_page_it: BTreeLeafPageIteratorRc::new(tx, Arc::clone(&last_page_rc)),
         }
     }
 }
@@ -60,7 +60,7 @@ impl Iterator for BTreeTableIterator {
             Some(right) => {
                 let sibling_rc =
                     BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &right).unwrap();
-                let page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
+                let page_it = BTreeLeafPageIteratorRc::new(&self.tx, Arc::clone(&sibling_rc));
 
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page_it = page_it;
@@ -85,7 +85,7 @@ impl DoubleEndedIterator for BTreeTableIterator {
             Some(left) => {
                 let sibling_rc =
                     BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &left).unwrap();
-                let page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&sibling_rc));
+                let page_it = BTreeLeafPageIteratorRc::new(&self.tx, Arc::clone(&sibling_rc));
 
                 self.last_page_rc = Arc::clone(&sibling_rc);
                 self.last_page_it = page_it;
@@ -142,7 +142,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
         Self {
             tx,
             current_page_rc: Arc::clone(&start_page_rc),
-            page_it: BTreeLeafPageIteratorRc::new(Arc::clone(&start_page_rc)),
+            page_it: BTreeLeafPageIteratorRc::new(tx, Arc::clone(&start_page_rc)),
             predicate: predicate.clone(),
             search_field: predicate.field_index,
             is_key_search: predicate.field_index == table.key_field,
@@ -157,6 +157,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let tuple = self.page_it.next();
+
             match tuple {
                 Some(t) => match self.predicate.op {
                     Op::Equals => {
@@ -206,7 +207,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                             let rc = BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &pid)
                                 .unwrap();
                             self.current_page_rc = Arc::clone(&rc);
-                            self.page_it = BTreeLeafPageIteratorRc::new(Arc::clone(&rc));
+                            self.page_it = BTreeLeafPageIteratorRc::new(self.tx, Arc::clone(&rc));
                             continue;
                         }
                         None => {
