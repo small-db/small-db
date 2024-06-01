@@ -36,7 +36,11 @@ impl Tuple {
             let cell = Cell::read_from(reader, &field.get_type());
             cells.push(cell);
         }
-        Tuple { cells }
+        Self::new(&cells)
+    }
+
+    pub fn clone(&self) -> Self {
+        Self::new(&self.cells.clone())
     }
 }
 
@@ -47,12 +51,6 @@ impl Tuple {
 
     pub fn get_cells(&self) -> Vec<Cell> {
         self.cells.clone()
-    }
-
-    pub fn clone(&self) -> Tuple {
-        Tuple {
-            cells: self.cells.clone(),
-        }
     }
 
     pub fn get_size_disk(&self) -> usize {
