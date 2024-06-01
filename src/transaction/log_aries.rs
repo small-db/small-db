@@ -540,7 +540,7 @@ impl LogManager {
         let tx_count: u64 = read_into(&mut self.file);
         let mut tx_start_position = 0;
         for _ in 0..tx_count {
-            let tx_id: u64 = read_into(&mut self.file);
+            let tx_id: TransactionID = read_into(&mut self.file);
             if tx_id == tx.get_id() {
                 tx_start_position = read_into(&mut self.file);
                 break;
@@ -571,7 +571,7 @@ impl LogManager {
                     let _: u64 = read_into(&mut self.file);
                 }
                 RecordType::UPDATE => {
-                    let tid: u64 = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file);
                     if tid == tx.get_id() {
                         let pid: BTreePageID = read_into(&mut self.file);
 

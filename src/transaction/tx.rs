@@ -1,9 +1,9 @@
 use core::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::{types::SmallResult, Database};
 
-static TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
+static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct Transaction {
@@ -11,7 +11,7 @@ pub struct Transaction {
     uuid: TransactionID,
 }
 
-pub type TransactionID = u64;
+pub type TransactionID = u32;
 
 impl Transaction {
     pub fn new() -> Self {
