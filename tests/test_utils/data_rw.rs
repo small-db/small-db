@@ -1,6 +1,4 @@
-use small_db::{
-    btree::table::BTreeTableIterator, storage::tuple::Tuple, transaction::Transaction, BTreeTable,
-};
+use small_db::{btree::table::BTreeTableIterator, transaction::Transaction, BTreeTable};
 
 use super::new_int_tuples;
 

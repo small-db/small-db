@@ -4,7 +4,7 @@ use small_db::{
         buffer_pool::BufferPool,
         table::{BTreeTableIterator, BTreeTableSearchIterator},
     },
-    storage::tuple::{Cell, Tuple},
+    storage::tuple::Cell,
     transaction::Transaction,
     utils::{ceil_div, HandyRwLock},
     Op, Predicate,

@@ -1,8 +1,6 @@
-use small_db::{storage::tuple::Cell, transaction::Transaction};
+use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLock};
 
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
-
-use small_db::utils::HandyRwLock;
 
 // #[test]
 fn test_read_committed() {

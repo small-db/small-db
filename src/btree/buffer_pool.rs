@@ -336,7 +336,8 @@ impl BufferPool {
                 self.set_before_image(&pid, &buffer);
                 return;
             } else {
-                // not a dirty page, so no need to write to log or disk, just return
+                // not a dirty page, so no need to write to log or disk, just
+                // return
                 //
                 // TODO: enable the following line
                 // error!("not a dirty page, pid: {:?}", pid);
@@ -362,7 +363,8 @@ impl BufferPool {
                 table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
                 return;
             } else {
-                // not a dirty page, so no need to write to log or disk, just return
+                // not a dirty page, so no need to write to log or disk, just
+                // return
                 //
                 // TODO: enable the following line
                 // error!("not a dirty page, pid: {:?}", pid);

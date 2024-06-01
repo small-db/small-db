@@ -1,15 +1,12 @@
 use log::debug;
 use small_db::{
-    btree::page::BTreePage,
-    storage::tuple::{Cell, Tuple},
-    transaction::Transaction,
-    utils::HandyRwLock,
+    btree::page::BTreePage, storage::tuple::Cell, transaction::Transaction, utils::HandyRwLock,
     BTreeTable, Database,
 };
 
 use crate::test_utils::{
-    assert_true, crash, get_leaf_page, insert_row, new_empty_btree_table, new_random_btree_table,
-    search_key, setup, TreeLayout,
+    assert_true, crash, insert_row, new_empty_btree_table, new_random_btree_table, search_key,
+    setup, TreeLayout,
 };
 
 /// Insert two tuples into the table, then commit the transaction. There is a

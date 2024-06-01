@@ -22,9 +22,8 @@ use small_db::{
     BTreeTable, Database, TableSchema,
 };
 
-use crate::test_utils::new_int_tuples;
-
 use super::internal_children_cap;
+use crate::test_utils::new_int_tuples;
 
 pub const TEST_DB: &str = "test";
 
