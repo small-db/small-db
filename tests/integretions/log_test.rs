@@ -63,6 +63,8 @@ fn abort_insert(table: &BTreeTable, key_1: i64, key_2: i64) {
 #[cfg(feature = "aries_steal")]
 /// Test if the "flush_page" api writes "UPDATE" record to the log.
 fn test_patch() {
+    use crate::test_utils::get_leaf_page;
+
     setup();
 
     // Create an empty B+ tree file keyed on the second field of a

@@ -39,7 +39,7 @@ impl Transaction {
         log_manager.log_commit(self)?;
 
         if cfg!(feature = "aries_no_force") {
-            buffer_pool.write_pages(self, &mut log_manager);
+            buffer_pool.write_pages(self);
         }
 
         // step 3: release latch on dirty pages

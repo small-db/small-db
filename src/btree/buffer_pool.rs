@@ -267,7 +267,7 @@ impl BufferPool {
     }
 
     /// Write all dirty pages of the specified transaction to disk.
-    pub(crate) fn write_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
+    pub(crate) fn write_pages(&self, tx: &Transaction) {
         let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
 
         // Note: current implementation of the api "flush_page" request
@@ -359,7 +359,7 @@ impl BufferPool {
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         if let Some(page_pod) = buffer.get(pid) {
-            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+            if let Some(_) = Database::concurrent_status().get_page_tx(pid) {
                 table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
                 return;
             } else {

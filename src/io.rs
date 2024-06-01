@@ -1,16 +1,14 @@
 use std::{
     convert::TryInto,
     fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Seek, SeekFrom, Write},
     mem::size_of,
     path::Path,
 };
 
 use bit_vec::BitVec;
 
-use crate::{btree::page::BTreePage, error::SmallError, types::SmallResult};
-
-const MAX_BYTES_SIZE: usize = u16::MAX as usize;
+use crate::{error::SmallError, types::SmallResult};
 
 pub struct SmallFile {
     file: File,

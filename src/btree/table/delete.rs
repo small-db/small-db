@@ -570,7 +570,7 @@ impl BTreeTable {
                 let iter = BTreeLeafPageIterator::new(&left);
                 let mut deleted_indexes = Vec::new();
                 for tuple in iter.rev().take(move_count) {
-                    right.insert_tuple(&tuple);
+                    right.insert_tuple(&tuple)?;
                     deleted_indexes.push(tuple.get_slot_number());
                     key = tuple.get_cell(self.key_field);
                 }

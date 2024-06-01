@@ -1,7 +1,7 @@
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage, BTreePage},
+        page::{BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage},
     },
     concurrent_status::Permission,
     storage::tuple::{Cell, Tuple},

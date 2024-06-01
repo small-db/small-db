@@ -93,8 +93,6 @@ impl ConcurrentStatus {
             Database::concurrent_status(),
         );
 
-        panic!("acquire_lock timeout");
-
         return Err(SmallError::new("acquire lock timeout"));
     }
 
