@@ -1,0 +1,6 @@
+{
+    // The environment variables for test and debug.
+    "rust-analyzer.runnables.extraEnv": {
+        "RUST_LOG": "debug",
+    },
+}
