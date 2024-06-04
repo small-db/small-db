@@ -91,7 +91,7 @@ test-verbose:
 # 
 # e.g: make test_redistribute_internal_pages
 test_%:
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "page_latch, aries_steal, aries_force" -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "tree_latch, aries_steal, aries_force" -- --test-threads=1 --nocapture $* 2>&1 | tee out
 
 gen_report:
 	source ~/code/python_env_xiaochen/bin/activate

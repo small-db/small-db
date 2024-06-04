@@ -167,7 +167,9 @@ Run a specific test and store the output to file "out". Log level is "debug".
 ### MVCC (Multi-Version Concurrency Control)
 
 - each transaction has a unique transaction id
-- each row has a "xmin" and "xmax" field, only transactions with id in the range of [xmin, xmax) can see the row
+- each row has a "xmin" and "xmax" field, only transactions with following conditions can see the row:
+  - the transaction's id is in the range of [xmin, xmax)
+  - the row should be committed (in the current implementation, it means the page which contains the row is not a dirty page)
 - when a transaction create a row, it sets "xmin" to its own id, so it can see the row
 
 ### questions about mysql

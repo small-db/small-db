@@ -9,15 +9,15 @@ fn test_read_committed() {
 
     let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
-    // start a read transaction
-    let read_tx = Transaction::new();
-
     // start a write transaction
     let write_tx = Transaction::new();
 
+    // start a read transaction
+    let read_tx = Transaction::new();
+
     let key = 123;
 
-    // write something, the read transaction should not see it
+    // write something, the read transaction should not be able to see it
     {
         let table = table_pod.wl();
         insert_row(&table, &write_tx, key);
@@ -25,7 +25,7 @@ fn test_read_committed() {
         assert!(search_key(&table, &read_tx, &Cell::Int64(key)) == 0);
     }
 
-    // commit, the read transaction should see it
+    // commit, then the read transaction should be able to see the it
     {
         write_tx.commit().unwrap();
 
