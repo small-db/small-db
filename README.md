@@ -155,19 +155,25 @@ Run a specific test and store the output to file "out". Log level is "debug".
 
 ## Notes
 
-### questions about mysql
-
-- what is "bufferfixed"?
-- what is "fsp latch"?
-
-### The simplified version of the B+ tree latch strategy
+### the simplified version of the B+ tree latch strategy
 
 - no tree latch
 - when accessing a page (either leaf or internal), all ancestor pages of the page must be latched (why? if not latched, two directions of tree-traversal may happen at the same time, and lead to a deadlock)
 
-### The imitate-mysql version of the B+ tree latch strategy
+### the imitate-mysql version of the B+ tree latch strategy
 
-- there is a tree latch
+- there is a tree latch protecting the tree (all pages except leaf pages)
+
+### MVCC (Multi-Version Concurrency Control)
+
+- each transaction has a unique transaction id
+- each row has a "xmin" and "xmax" field, only transactions with id in the range of [xmin, xmax) can see the row
+- when a transaction create a row, it sets "xmin" to its own id, so it can see the row
+
+### questions about mysql
+
+- what is "bufferfixed"?
+- what is "fsp latch"?
 
 ### Draft
 

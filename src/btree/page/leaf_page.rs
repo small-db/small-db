@@ -363,6 +363,12 @@ impl BTreeLeafPage {
         BTreeLeafPageIterator::new(self)
     }
 
+    pub(crate) fn update_xmin(&mut self, xmin: TransactionID) {
+        for tuple in &mut self.tuples {
+            tuple.set_xmin(xmin);
+        }
+    }
+
     pub(crate) fn update_xmax(&mut self, xmax: TransactionID) {
         for tuple in &mut self.tuples {
             tuple.set_xmax(xmax);
@@ -485,7 +491,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
 
             if page.is_slot_used(cursor) {
                 let tuple = page.tuples[cursor].clone();
-                if self.tx_id > tuple.get_xmax() {
+                if self.tx_id < tuple.get_xmin() {
                     continue;
                 }
 

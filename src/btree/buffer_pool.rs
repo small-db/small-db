@@ -439,6 +439,22 @@ impl BufferPool {
         keys
     }
 
+    pub(crate) fn update_xmin(&self, tx: &Transaction) {
+        let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
+
+        for pid in dirty_pages {
+            if pid.category != PageCategory::Leaf {
+                continue;
+            }
+
+            if let Some(page_pod) = self.leaf_buffer.get(&pid) {
+                page_pod.wl().update_xmin(tx.get_id());
+            } else {
+                error!("page not found in buffer pool, pid: {:?}", pid);
+            }
+        }
+    }
+
     pub(crate) fn update_xmax(&self, tx: &Transaction) {
         let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
 

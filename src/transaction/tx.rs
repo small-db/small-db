@@ -30,7 +30,7 @@ impl Transaction {
         let buffer_pool = &mut Database::mut_buffer_pool();
 
         // update x_max of all tuples
-        buffer_pool.update_xmax(self);
+        buffer_pool.update_xmin(self);
 
         // step 1: flush all related pages to disk (with "UPDATE" log record)
         //

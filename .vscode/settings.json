@@ -1,6 +1,13 @@
 {
-    // The environment variables for test and debug.
+    // The environment variables for test and debug. (the built-in test and debug, which
+    // is above the test function)
     "rust-analyzer.runnables.extraEnv": {
         "RUST_LOG": "debug",
     },
+    // The arguments (features) for test and debug. (the built-in test and debug, which
+    // is above the test function)
+    "rust-analyzer.runnables.extraArgs": [
+        "--features",
+        "page_latch, aries_steal, aries_force",
+    ],
 }
