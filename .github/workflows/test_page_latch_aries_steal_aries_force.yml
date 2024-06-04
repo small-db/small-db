@@ -13,6 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # the job will be killed and marked as "failed" after running for 3 minutes
     timeout-minutes: 3
 
     steps:
