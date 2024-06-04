@@ -27,6 +27,9 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
+        let mut new_tuple = tuple.clone();
+        new_tuple.set_xmin(tx.get_id());
+
         if cfg!(feature = "tree_latch") {
             // Request an X-latch on the tree.
             //
@@ -37,19 +40,19 @@ impl BTreeTable {
             // way to upgrade the latch from S to X without gap.
             let x_latch = self.tree_latch.wl();
 
-            let leaf_rc = self.get_available_leaf(tx, tuple)?;
+            let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
 
             // Until now, we don't have to modify the structure of the tree, just release
             // the X-latch.
             drop(x_latch);
 
             // Insert the tuple into the leaf page.
-            leaf_rc.wl().insert_tuple(&tuple)?;
+            leaf_rc.wl().insert_tuple(&new_tuple)?;
         } else if cfg!(feature = "page_latch") {
-            let leaf_rc = self.get_available_leaf(tx, tuple)?;
+            let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
 
             // Insert the tuple into the leaf page.
-            leaf_rc.wl().insert_tuple(&tuple)?;
+            leaf_rc.wl().insert_tuple(&new_tuple)?;
         }
 
         return Ok(());
