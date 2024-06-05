@@ -15,7 +15,7 @@ use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, T
 fn test_read_self() {
     setup();
 
-    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_pod = new_random_btree_table(2, 0, None, 1000, TreeLayout::LastTwoEvenlyDistributed);
 
     let tx = Transaction::new();
 
@@ -53,7 +53,7 @@ fn test_anomaly_dirty_write() {}
 fn test_anomaly_dirty_read() {
     setup();
 
-    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_pod = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     // start a write transaction
     let write_tx = Transaction::new();
@@ -94,4 +94,41 @@ fn test_anomaly_dirty_read() {
 /// A Phantom Read occurs when a transaction re-executes a query returning a set
 /// of rows that satisfies a search condition and finds that the set of rows has
 /// changed due to another transaction.
-fn test_anomaly_phantom() {}
+fn test_anomaly_phantom() {
+    setup();
+
+    let table_pod = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+
+    let key = 123;
+    let init_count = 20;
+    {
+        let init_tx = Transaction::new();
+        let table = table_pod.wl();
+        for _ in 0..init_count {
+            insert_row(&table, &init_tx, key);
+        }
+    }
+
+    // start a read transaction
+    let read_tx = Transaction::new();
+
+    // search for the key, the result should be init_count
+    {
+        assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
+    }
+
+    // start a write transaction, insert some new rows, then commit
+    {
+        let write_tx = Transaction::new();
+        let table = table_pod.wl();
+        for _ in 0..5 {
+            insert_row(&table, &write_tx, key);
+        }
+        write_tx.commit().unwrap();
+    }
+
+    // re-search for the key, the result should be stay the same
+    {
+        assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
+    }
+}
