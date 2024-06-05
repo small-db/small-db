@@ -3,11 +3,14 @@ use std::{
     usize,
 };
 
+use log::error;
+
 use crate::{
     btree::page::BTreePageID,
     io::{Decodeable, Encodeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
-    transaction::TransactionID,
+    transaction::{TransactionID, TransactionStatus},
+    Database,
 };
 
 #[derive(Clone)]
@@ -115,7 +118,21 @@ impl Tuple {
 
         // tid in the range (xmin, xmax), the tuple is visible if the transaction that
         // created it has committed
-        todo!()
+        if let Some(status) = Database::concurrent_status()
+            .transaction_status
+            .get(&self.xmin)
+        {
+            if status == &TransactionStatus::Committed {
+                // it is visible only if the transaction that created it has committed
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            // cannot find the status of the transaction that created this tuple
+            error!("txn not found: {}", self.xmin);
+            return false;
+        }
     }
 }
 

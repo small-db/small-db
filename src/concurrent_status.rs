@@ -10,7 +10,7 @@ use log::error;
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
-    transaction::{Transaction, TransactionStatus},
+    transaction::{Transaction, TransactionID, TransactionStatus},
     types::SmallResult,
     Database,
 };
@@ -46,7 +46,7 @@ pub struct ConcurrentStatus {
     // Transaction status, used for transaction isolation, the idea is from PostgreSQL.
     //
     // PostgreSQL maintains a data structure for transaction status, such that given a transaction ID, it gives the transaction state (running, aborted, committed).
-    transaction_status: HashMap<Transaction, TransactionStatus>,
+    pub(crate) transaction_status: HashMap<TransactionID, TransactionStatus>,
 }
 
 impl ConcurrentStatus {

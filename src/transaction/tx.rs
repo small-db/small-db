@@ -3,8 +3,9 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::{types::SmallResult, Database};
 
+#[derive(Clone, PartialEq)]
 pub(crate) enum TransactionStatus {
-    Running,
+    Active,
     Aborted,
     Committed,
 }
@@ -16,14 +17,19 @@ static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 #[derive(Eq, PartialEq, Clone)]
 pub struct Transaction {
     // increase monotonically by 1
-    uuid: TransactionID,
+    id: TransactionID,
 }
 
 impl Transaction {
     pub fn new() -> Self {
         let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-        let instance = Self { uuid: id };
+        let instance = Self { id };
         instance.start().unwrap();
+
+        Database::mut_concurrent_status()
+            .transaction_status
+            .insert(id, TransactionStatus::Active);
+
         instance
     }
 
@@ -57,6 +63,10 @@ impl Transaction {
         // written)
         Database::mut_concurrent_status().remove_relation(self);
 
+        Database::mut_concurrent_status()
+            .transaction_status
+            .insert(self.id, TransactionStatus::Committed);
+
         Ok(())
     }
 
@@ -85,23 +95,27 @@ impl Transaction {
         // these dirty pages)
         Database::mut_concurrent_status().remove_relation(self);
 
+        Database::mut_concurrent_status()
+            .transaction_status
+            .insert(self.id, TransactionStatus::Aborted);
+
         Ok(())
     }
 
     pub fn get_id(&self) -> TransactionID {
-        self.uuid
+        self.id
     }
 }
 
 impl std::hash::Hash for Transaction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.uuid.hash(state);
+        self.id.hash(state);
     }
 }
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "tx_{}", self.uuid)
+        write!(f, "tx_{}", self.id)
     }
 }
 
