@@ -1,10 +1,12 @@
 use std::sync::{Arc, RwLock};
 
+use ouroboros::self_referencing;
+
 use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeLeafPage, BTreeLeafPageIteratorRc},
+        page::{BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc},
     },
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,
@@ -55,6 +57,7 @@ impl Iterator for BTreeTableIterator {
             return v;
         }
 
+        // init iterator on next page and continue search
         let right = self.page_rc.rl().get_right_pid();
         match right {
             Some(right) => {

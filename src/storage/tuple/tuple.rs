@@ -13,10 +13,12 @@ use crate::{
 #[derive(Clone)]
 /// Tuple is only visible to transaction that has an id between xmin and xmax
 pub struct Tuple {
+    /// The transaction that created this tuple.
     xmin: TransactionID,
 
-    // The last transaction that modified this tuple and committed. Transactions
-    // with id > xmax cannot see this tuple.
+    /// The transaction that deleted or updated this tuple.
+    ///
+    /// (The update is treated as deletion of the older tuple and insertion of the new tuple.)
     xmax: TransactionID,
 
     cells: Vec<Cell>,
