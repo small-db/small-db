@@ -29,7 +29,6 @@ async-trait = "0.1.68"
 tokio = { version = "1.28.1", features = ["full"] }
 futures-core = "0.3.30"
 bytes = "1.6.0"
-ouroboros = "0.18.4"
 
 [features]
 # used for benchmark tests
