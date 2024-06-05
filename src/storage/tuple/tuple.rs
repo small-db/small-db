@@ -18,7 +18,8 @@ pub struct Tuple {
 
     /// The transaction that deleted or updated this tuple.
     ///
-    /// (The update is treated as deletion of the older tuple and insertion of the new tuple.)
+    /// (The update is treated as deletion of the older tuple and insertion of
+    /// the new tuple.)
     xmax: TransactionID,
 
     cells: Vec<Cell>,
