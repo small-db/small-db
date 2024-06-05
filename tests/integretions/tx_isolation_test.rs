@@ -18,7 +18,11 @@ fn test_anomaly_dirty_write() {}
 ///
 /// This anomaly happens in "read uncommitted" isolation level. Isolation levels
 /// which have a higher strictness should be able to pass this test.
-#[cfg(feature = "read_committed")]
+#[cfg(any(
+    feature = "read_committed",
+    feature = "repeatable_read",
+    feature = "serializable"
+))]
 fn test_anomaly_dirty_read() {
     setup();
 

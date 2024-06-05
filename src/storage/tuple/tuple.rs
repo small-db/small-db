@@ -32,8 +32,8 @@ pub struct Tuple {
 impl Tuple {
     pub fn new(cells: &Vec<Cell>) -> Self {
         Self {
-            xmin: TransactionID::MAX,
-            xmax: TransactionID::MIN,
+            xmin: TransactionID::MIN,
+            xmax: TransactionID::MAX,
 
             cells: cells.to_vec(),
         }
