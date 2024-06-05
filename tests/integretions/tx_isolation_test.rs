@@ -117,7 +117,7 @@ fn test_anomaly_phantom() {
         assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
 
-    // start a write transaction, insert some new rows, then commit
+    // start a write transaction, insert some new rows, then commit the write transaction
     {
         let write_tx = Transaction::new();
         let table = table_pod.wl();
@@ -127,7 +127,7 @@ fn test_anomaly_phantom() {
         write_tx.commit().unwrap();
     }
 
-    // re-search for the key, the result should be stay the same
+    // re-search for the key, the result should stay the same
     {
         assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
