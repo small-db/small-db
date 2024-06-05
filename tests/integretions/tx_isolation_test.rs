@@ -3,6 +3,10 @@ use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLoc
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
 
 #[test]
+/// Dirty write happens when a transaction can see and update dirty
+/// (uncommitted) data, that has been dirtied by another transaction. This can
+/// cause the database to become highly inconsistent. This anomaly is avoided by
+/// most of the databases, at even the weakest isolation level.
 fn test_anomaly_dirty_write() {}
 
 #[test]
