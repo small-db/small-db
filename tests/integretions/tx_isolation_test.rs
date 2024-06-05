@@ -58,7 +58,14 @@ fn test_anomaly_dirty_read() {
 }
 
 #[test]
-/// A transaction should be able to read its own writes.
+/// A transaction should be able to read its own writes, no matter what isolation
+/// level we are using.
+#[cfg(any(
+    feature = "read_uncommitted",
+    feature = "read_committed",
+    feature = "repeatable_read",
+    feature = "serializable"
+))]
 fn test_read_self() {
     setup();
 
