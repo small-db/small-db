@@ -30,10 +30,6 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 
 ![insertions per second](./docs/img/insertions_per_second.png)
 
-- Why the "tree latch" strategy is faster than the "page latch" strategy?
-
-  TODO
-
 ### Four Types of ARIES Log Recovery Algorithms
 
 - **STEAL/NO-FORCE**
@@ -54,10 +50,11 @@ Explanation:
 - **Optimistic Concurrency Control**
 - **MVCC (Multi-Version Concurrency Control)**
 
-### Three Isolation Levels
+### Four Isolation Levels
 
 - **Read Uncommitted**
 - **Read Committed**
+- **Repeatable Read (Snapshot Isolation)**
 - **Serializable**
 
 ## Test
@@ -202,6 +199,10 @@ Run a specific test and store the output to file "out". Log level is "debug".
   ```
 
 ## Notes
+
+- Why the "tree latch" strategy is faster than the "page latch" strategy?
+
+  TODO
 
 ### the simplified version of the B+ tree latch strategy
 

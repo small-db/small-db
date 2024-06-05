@@ -8,7 +8,10 @@ use std::{
 use log::error;
 
 use crate::{
-    btree::page::BTreePageID, error::SmallError, transaction::Transaction, types::SmallResult,
+    btree::page::BTreePageID,
+    error::SmallError,
+    transaction::{Transaction, TransactionStatus},
+    types::SmallResult,
     Database,
 };
 
@@ -39,6 +42,11 @@ pub struct ConcurrentStatus {
     hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 
     dirty_pages: HashMap<Transaction, HashSet<BTreePageID>>,
+
+    // Transaction status, used for transaction isolation, the idea is from PostgreSQL.
+    //
+    // PostgreSQL maintains a data structure for transaction status, such that given a transaction ID, it gives the transaction state (running, aborted, committed).
+    transaction_status: HashMap<Transaction, TransactionStatus>,
 }
 
 impl ConcurrentStatus {
@@ -49,6 +57,8 @@ impl ConcurrentStatus {
             hold_pages: HashMap::new(),
 
             dirty_pages: HashMap::new(),
+
+            transaction_status: HashMap::new(),
         }
     }
 }

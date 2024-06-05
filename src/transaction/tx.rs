@@ -3,7 +3,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::{types::SmallResult, Database};
 
-pub type TransactionID = u32;
+pub(crate) enum TransactionStatus {
+    Running,
+    Aborted,
+    Committed,
+}
+
+pub(crate) type TransactionID = u32;
 
 static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 
