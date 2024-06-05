@@ -8,7 +8,7 @@ use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, T
 ///
 /// This anomaly happens in "Read Uncommitted" isolation level. Isolation levels which have
 /// a higher strictness should be able to pass this test.
-#[cfg(feature = "benchmark")]
+#[cfg(feature = "read_commited")]
 fn test_anomaly_dirty_read() {
     setup();
 
