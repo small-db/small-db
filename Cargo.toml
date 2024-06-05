@@ -34,6 +34,11 @@ bytes = "1.6.0"
 # used for benchmark tests
 benchmark = []
 
+# the default features
+# 
+# https://doc.rust-lang.org/cargo/reference/features.html
+# default = ["tree_latch", "aries_steal", "aries_force", "read_committed"]
+
 # ===[COMPILATION OPTIONS START]===
 # latch strategies
 tree_latch = []

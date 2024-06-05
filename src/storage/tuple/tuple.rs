@@ -101,6 +101,22 @@ impl Tuple {
     pub(crate) fn get_xmax(&self) -> TransactionID {
         self.xmax
     }
+
+    pub(crate) fn visible_to(&self, tid: TransactionID) -> bool {
+        // out of the range [xmin, xmax), not visible
+        if tid < self.xmin || self.xmax <= tid {
+            return false;
+        }
+
+        if tid == self.xmin {
+            // the tuple is visible to the transaction that created it
+            return true;
+        }
+
+        // tid in the range (xmin, xmax), the tuple is visible if the transaction that
+        // created it has committed
+        todo!()
+    }
 }
 
 impl Encodeable for Tuple {

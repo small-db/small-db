@@ -1,14 +1,19 @@
-use log::debug;
 use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLock};
 
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
 
 #[test]
-/// Test the "dirty read" anomaly.
+fn test_anomaly_dirty_write() {}
+
+#[test]
+/// A "dirty read" in SQL occurs when a transaction reads data that has been
+/// modifiedby another transaction, but not yet committed. In other words, a
+/// transaction reads uncommitted data from another transaction, which can lead
+/// to incorrect or inconsistent results.
 ///
-/// This anomaly happens in "Read Uncommitted" isolation level. Isolation levels which have
-/// a higher strictness should be able to pass this test.
-#[cfg(feature = "read_commited")]
+/// This anomaly happens in "read uncommitted" isolation level. Isolation levels
+/// which have a higher strictness should be able to pass this test.
+#[cfg(feature = "read_committed")]
 fn test_anomaly_dirty_read() {
     setup();
 

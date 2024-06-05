@@ -4,11 +4,12 @@
     "rust-analyzer.runnables.extraEnv": {
         "RUST_LOG": "debug",
     },
-    // The arguments (features) for test and debug. (the built-in test and debug, which
-    // is the buttons above the test function)
-    "rust-analyzer.runnables.extraArgs": [
-        "--features",
-        // these are the current default features
-        "tree_latch, aries_steal, aries_force, read_commited",
+    // The features for the cargo, including check, test and debug. (the built-in test and
+    // debug, which is the buttons above the test function)
+    "rust-analyzer.cargo.features": [
+        "tree_latch",
+        "aries_steal",
+        "aries_force",
+        "read_committed",
     ],
 }

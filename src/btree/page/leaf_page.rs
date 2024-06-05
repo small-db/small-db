@@ -491,7 +491,7 @@ impl Iterator for BTreeLeafPageIteratorRc {
 
             if page.is_slot_used(cursor) {
                 let tuple = page.tuples[cursor].clone();
-                if self.tx_id < tuple.get_xmin() {
+                if !tuple.visible_to(self.tx_id) {
                     continue;
                 }
 
