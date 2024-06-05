@@ -127,7 +127,8 @@ impl BTreeLeafPage {
         // use empty tuples
         let mut tuples = Vec::new();
         for _ in 0..slot_count {
-            tuples.push(Tuple::new(&Vec::new()));
+            // use 0 as the tx id for placeholder tuples
+            tuples.push(Tuple::new(&Vec::new(), 0));
         }
 
         let mut base = BTreeBasePage::new(pid);

@@ -81,10 +81,10 @@ pub fn get_leaf_page(table: &BTreeTable, level: usize, index: usize) -> Pod<BTre
     }
 }
 
-pub fn new_int_tuples(value: i64, width: usize) -> Tuple {
+pub fn new_int_tuples(value: i64, width: usize, tx: &Transaction) -> Tuple {
     let mut cells: Vec<Cell> = Vec::new();
     for _ in 0..width {
         cells.push(Cell::Int64(value));
     }
-    Tuple::new(&cells)
+    Tuple::new(&cells, tx.get_id())
 }

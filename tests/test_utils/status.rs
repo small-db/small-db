@@ -83,11 +83,13 @@ pub fn new_random_btree_table(
     let table_rc = Arc::new(RwLock::new(BTreeTable::new(TEST_DB, None, &schema)));
     Catalog::add_table(Arc::clone(&table_rc), true);
 
+    let mut write_tx = Transaction::new();
+
     let mut tuples: Vec<Tuple> = Vec::new();
     let mut rng = rand::thread_rng();
     for _ in 0..rows {
         let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-        let tuple = new_int_tuples(insert_value, columns);
+        let tuple = new_int_tuples(insert_value, columns, &write_tx);
         tuples.push(tuple);
     }
 
@@ -102,8 +104,6 @@ pub fn new_random_btree_table(
             inner_tuples.push(row);
         }
     }
-
-    let mut write_tx = Transaction::new();
 
     // borrow of table_rc start here
     {

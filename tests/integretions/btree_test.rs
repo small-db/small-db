@@ -23,10 +23,10 @@ fn inserter(
 ) {
     let mut rng = rand::thread_rng();
     let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-    let tuple = new_int_tuples(insert_value, column_count);
 
     let tx = Transaction::new();
 
+    let tuple = new_int_tuples(insert_value, column_count, &tx);
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 
@@ -247,10 +247,10 @@ fn inserter2(row_count: usize, column_count: usize, table_rc: &Pod<BTreeTable>) 
 
     for _ in 0..row_count {
         let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-        let tuple = new_int_tuples(insert_value, column_count);
 
         let tx = Transaction::new();
 
+        let tuple = new_int_tuples(insert_value, column_count, &tx);
         table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
         tx.commit().unwrap();
     }

@@ -14,13 +14,13 @@ pub fn delete_tuples(table: &BTreeTable, count: usize) {
 pub fn insert_tuples(table: &BTreeTable, count: usize) {
     let tx = Transaction::new();
     for value in 0..count {
-        let tuple = new_int_tuples(value as i64, 2);
+        let tuple = new_int_tuples(value as i64, 2, &tx);
         table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
 }
 
 pub fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
-    let tuple = new_int_tuples(key, 2);
+    let tuple = new_int_tuples(key, 2, tx);
     table.insert_tuple(tx, &tuple).unwrap();
 }
