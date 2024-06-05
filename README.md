@@ -32,10 +32,10 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 
 ### Four Types of ARIES Log Recovery Algorithms
 
-- **STEAL/NO-FORCE**
-- **NO-STEAL/NO-FORCE**
-- **STEAL/FORCE**
-- **NO-STEAL/FORCE**
+- **steal + no-force**
+- **no-steal + no-force**
+- **steal + force**
+- **no-steal + force**
 
 Explanation:
 
@@ -46,16 +46,16 @@ Explanation:
 
 ### Three Concurrency Control Algorithms
 
-- **Pessimistic Concurrency Control**
-- **Optimistic Concurrency Control**
-- **MVCC (Multi-Version Concurrency Control)**
+- **pessimistic concurrency control**
+- **optimistic concurrency control**
+- **mvcc (multi-version concurrency control)**
 
 ### Four Isolation Levels
 
-- **Read Uncommitted**
-- **Read Committed**
-- **Repeatable Read (Snapshot Isolation)**
-- **Serializable**
+- **read uncommitted**
+- **read committed**
+- **repeatable read (snapshot isolation)**
+- **serializable**
 
 ## Test
 
