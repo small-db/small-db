@@ -8,7 +8,7 @@
     // is the buttons above the test function)
     "rust-analyzer.runnables.extraArgs": [
         "--features",
-        // "page_latch, aries_steal, aries_force",
-        "tree_latch, aries_steal, aries_force",
+        // these are the current default features
+        "tree_latch, aries_steal, aries_force, read_commited",
     ],
 }

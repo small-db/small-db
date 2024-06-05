@@ -1,0 +1,24 @@
+name: test (tree_latch, aries_steal, aries_force, read_uncommitted)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # the job will be killed and marked as "failed" after running for 3 minutes
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests
+        run: |
+          cargo version
+          make test_tree_latch_aries_steal_aries_force_read_uncommitted

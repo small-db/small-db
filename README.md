@@ -63,21 +63,69 @@ Explanation:
 ## Test
 
 <!-- [COMPILATION OPTIONS START] -->
-[![test (tree_latch, aries_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force.yml)
+[![test (tree_latch, aries_steal, aries_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_read_uncommitted.yml)
 
-[![test (tree_latch, aries_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force.yml)
+[![test (tree_latch, aries_steal, aries_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_read_committed.yml)
 
-[![test (tree_latch, aries_no_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force.yml)
+[![test (tree_latch, aries_steal, aries_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_repeatable_read.yml)
 
-[![test (tree_latch, aries_no_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force.yml)
+[![test (tree_latch, aries_steal, aries_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_force_serializable.yml)
 
-[![test (page_latch, aries_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force.yml)
+[![test (tree_latch, aries_steal, aries_no_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_read_uncommitted.yml)
 
-[![test (page_latch, aries_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force.yml)
+[![test (tree_latch, aries_steal, aries_no_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_read_committed.yml)
 
-[![test (page_latch, aries_no_steal, aries_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force.yml)
+[![test (tree_latch, aries_steal, aries_no_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_repeatable_read.yml)
 
-[![test (page_latch, aries_no_steal, aries_no_force)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force.yml)
+[![test (tree_latch, aries_steal, aries_no_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_steal_aries_no_force_serializable.yml)
+
+[![test (tree_latch, aries_no_steal, aries_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_read_uncommitted.yml)
+
+[![test (tree_latch, aries_no_steal, aries_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_read_committed.yml)
+
+[![test (tree_latch, aries_no_steal, aries_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_repeatable_read.yml)
+
+[![test (tree_latch, aries_no_steal, aries_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_force_serializable.yml)
+
+[![test (tree_latch, aries_no_steal, aries_no_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted.yml)
+
+[![test (tree_latch, aries_no_steal, aries_no_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_read_committed.yml)
+
+[![test (tree_latch, aries_no_steal, aries_no_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_repeatable_read.yml)
+
+[![test (tree_latch, aries_no_steal, aries_no_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_tree_latch_aries_no_steal_aries_no_force_serializable.yml)
+
+[![test (page_latch, aries_steal, aries_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_read_uncommitted.yml)
+
+[![test (page_latch, aries_steal, aries_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_read_committed.yml)
+
+[![test (page_latch, aries_steal, aries_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_repeatable_read.yml)
+
+[![test (page_latch, aries_steal, aries_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_force_serializable.yml)
+
+[![test (page_latch, aries_steal, aries_no_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_read_uncommitted.yml)
+
+[![test (page_latch, aries_steal, aries_no_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_read_committed.yml)
+
+[![test (page_latch, aries_steal, aries_no_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_repeatable_read.yml)
+
+[![test (page_latch, aries_steal, aries_no_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_steal_aries_no_force_serializable.yml)
+
+[![test (page_latch, aries_no_steal, aries_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_read_uncommitted.yml)
+
+[![test (page_latch, aries_no_steal, aries_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_read_committed.yml)
+
+[![test (page_latch, aries_no_steal, aries_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_repeatable_read.yml)
+
+[![test (page_latch, aries_no_steal, aries_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_force_serializable.yml)
+
+[![test (page_latch, aries_no_steal, aries_no_force, read_uncommitted)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_read_uncommitted.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_read_uncommitted.yml)
+
+[![test (page_latch, aries_no_steal, aries_no_force, read_committed)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_read_committed.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_read_committed.yml)
+
+[![test (page_latch, aries_no_steal, aries_no_force, repeatable_read)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_repeatable_read.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_repeatable_read.yml)
+
+[![test (page_latch, aries_no_steal, aries_no_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_page_latch_aries_no_steal_aries_no_force_serializable.yml)
 
 <!-- [COMPILATION OPTIONS END] -->
 
