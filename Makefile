@@ -56,196 +56,100 @@ test_all_modes:
 
 
 test_tree_latch_aries_steal_aries_force_read_uncommitted:
-	echo "" > test_tree_latch_aries_steal_aries_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_force, read_uncommitted" | tee -a test_tree_latch_aries_steal_aries_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_force_read_committed:
-	echo "" > test_tree_latch_aries_steal_aries_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_force, read_committed" | tee -a test_tree_latch_aries_steal_aries_force_read_committed.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_force_read_committed.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_committed" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_force_repeatable_read:
-	echo "" > test_tree_latch_aries_steal_aries_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_force, repeatable_read" | tee -a test_tree_latch_aries_steal_aries_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_force_serializable:
-	echo "" > test_tree_latch_aries_steal_aries_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_force, serializable" | tee -a test_tree_latch_aries_steal_aries_force_serializable.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, serializable" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_force_serializable.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, serializable" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_no_force_read_uncommitted:
-	echo "" > test_tree_latch_aries_steal_aries_no_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_no_force, read_uncommitted" | tee -a test_tree_latch_aries_steal_aries_no_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_no_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_no_force_read_committed:
-	echo "" > test_tree_latch_aries_steal_aries_no_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_no_force, read_committed" | tee -a test_tree_latch_aries_steal_aries_no_force_read_committed.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_no_force_read_committed.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_no_force_repeatable_read:
-	echo "" > test_tree_latch_aries_steal_aries_no_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_no_force, repeatable_read" | tee -a test_tree_latch_aries_steal_aries_no_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_no_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1
 
 test_tree_latch_aries_steal_aries_no_force_serializable:
-	echo "" > test_tree_latch_aries_steal_aries_no_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_steal, aries_no_force, serializable" | tee -a test_tree_latch_aries_steal_aries_no_force_serializable.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_steal_aries_no_force_serializable.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_force_read_uncommitted:
-	echo "" > test_tree_latch_aries_no_steal_aries_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_force, read_uncommitted" | tee -a test_tree_latch_aries_no_steal_aries_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_force_read_committed:
-	echo "" > test_tree_latch_aries_no_steal_aries_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_force, read_committed" | tee -a test_tree_latch_aries_no_steal_aries_force_read_committed.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_force_read_committed.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_force_repeatable_read:
-	echo "" > test_tree_latch_aries_no_steal_aries_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_force, repeatable_read" | tee -a test_tree_latch_aries_no_steal_aries_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_force_serializable:
-	echo "" > test_tree_latch_aries_no_steal_aries_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_force, serializable" | tee -a test_tree_latch_aries_no_steal_aries_force_serializable.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_force_serializable.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted:
-	echo "" > test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force, read_uncommitted" | tee -a test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_no_force_read_committed:
-	echo "" > test_tree_latch_aries_no_steal_aries_no_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force, read_committed" | tee -a test_tree_latch_aries_no_steal_aries_no_force_read_committed.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_no_force_read_committed.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_no_force_repeatable_read:
-	echo "" > test_tree_latch_aries_no_steal_aries_no_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force, repeatable_read" | tee -a test_tree_latch_aries_no_steal_aries_no_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_no_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1
 
 test_tree_latch_aries_no_steal_aries_no_force_serializable:
-	echo "" > test_tree_latch_aries_no_steal_aries_no_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: tree_latch, aries_no_steal, aries_no_force, serializable" | tee -a test_tree_latch_aries_no_steal_aries_no_force_serializable.log
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1 2>&1 | tee -a test_tree_latch_aries_no_steal_aries_no_force_serializable.log
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_force_read_uncommitted:
-	echo "" > test_page_latch_aries_steal_aries_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_force, read_uncommitted" | tee -a test_page_latch_aries_steal_aries_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_force_read_committed:
-	echo "" > test_page_latch_aries_steal_aries_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_force, read_committed" | tee -a test_page_latch_aries_steal_aries_force_read_committed.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_force_read_committed.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_committed" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_force_repeatable_read:
-	echo "" > test_page_latch_aries_steal_aries_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_force, repeatable_read" | tee -a test_page_latch_aries_steal_aries_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_force_serializable:
-	echo "" > test_page_latch_aries_steal_aries_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_force, serializable" | tee -a test_page_latch_aries_steal_aries_force_serializable.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, serializable" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_force_serializable.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, serializable" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_no_force_read_uncommitted:
-	echo "" > test_page_latch_aries_steal_aries_no_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_no_force, read_uncommitted" | tee -a test_page_latch_aries_steal_aries_no_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_no_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_no_force_read_committed:
-	echo "" > test_page_latch_aries_steal_aries_no_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_no_force, read_committed" | tee -a test_page_latch_aries_steal_aries_no_force_read_committed.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_no_force_read_committed.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_no_force_repeatable_read:
-	echo "" > test_page_latch_aries_steal_aries_no_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_no_force, repeatable_read" | tee -a test_page_latch_aries_steal_aries_no_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_no_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1
 
 test_page_latch_aries_steal_aries_no_force_serializable:
-	echo "" > test_page_latch_aries_steal_aries_no_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_steal, aries_no_force, serializable" | tee -a test_page_latch_aries_steal_aries_no_force_serializable.log
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_steal_aries_no_force_serializable.log
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_force_read_uncommitted:
-	echo "" > test_page_latch_aries_no_steal_aries_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_force, read_uncommitted" | tee -a test_page_latch_aries_no_steal_aries_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_force_read_committed:
-	echo "" > test_page_latch_aries_no_steal_aries_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_force, read_committed" | tee -a test_page_latch_aries_no_steal_aries_force_read_committed.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_force_read_committed.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_force_repeatable_read:
-	echo "" > test_page_latch_aries_no_steal_aries_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_force, repeatable_read" | tee -a test_page_latch_aries_no_steal_aries_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_force_serializable:
-	echo "" > test_page_latch_aries_no_steal_aries_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_force, serializable" | tee -a test_page_latch_aries_no_steal_aries_force_serializable.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_force_serializable.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_no_force_read_uncommitted:
-	echo "" > test_page_latch_aries_no_steal_aries_no_force_read_uncommitted.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_no_force, read_uncommitted" | tee -a test_page_latch_aries_no_steal_aries_no_force_read_uncommitted.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_no_force_read_uncommitted.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_no_force_read_committed:
-	echo "" > test_page_latch_aries_no_steal_aries_no_force_read_committed.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_no_force, read_committed" | tee -a test_page_latch_aries_no_steal_aries_no_force_read_committed.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_no_force_read_committed.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_no_force_repeatable_read:
-	echo "" > test_page_latch_aries_no_steal_aries_no_force_repeatable_read.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_no_force, repeatable_read" | tee -a test_page_latch_aries_no_steal_aries_no_force_repeatable_read.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_no_force_repeatable_read.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1
 
 test_page_latch_aries_no_steal_aries_no_force_serializable:
-	echo "" > test_page_latch_aries_no_steal_aries_no_force_serializable.log
-	set -o pipefail
-	echo "Running tests with features: page_latch, aries_no_steal, aries_no_force, serializable" | tee -a test_page_latch_aries_no_steal_aries_no_force_serializable.log
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1 2>&1 | tee -a test_page_latch_aries_no_steal_aries_no_force_serializable.log
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1
 
 # ===[COMPILATION OPTIONS END]===
 

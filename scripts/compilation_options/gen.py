@@ -67,18 +67,13 @@ def gen_make_test(options: list[dict]):
         # declare target
         content += f"{test_target.target_name}:\n"
 
-        log_path = f"{test_target.target_name}.log"
-        # clear log file
-        content += f'\techo "" > {log_path}\n'
-
-        # preserve the exit code during pipe
-        content += f'\tset -o pipefail\n'
-
-        # print mode
-        content += f'\techo "Running tests with features: {test_target.featuers_args}" | tee -a {log_path}\n'
+        # Note: don't use fancy pipeline and redirection operators in the makefile, because
+        # they don't work on github acitons.
+        # 
+        # Github actions will use "sh" for the makefile, which doesn't support bash options.
 
         # run tests
-        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 2>&1 | tee -a {log_path}\n'
+        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1\n'
 
         content += "\n"
 
