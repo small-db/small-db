@@ -1,4 +1,3 @@
-use log::debug;
 use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLock};
 
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
@@ -103,7 +102,8 @@ fn test_anomaly_phantom() {
         for _ in 0..init_count {
             insert_row(&table, &init_tx, key);
         }
-        // we have to drop the table here, since we need to access it in the commit phase
+        // we have to drop the table here, since we need to access it in the commit
+        // phase
         drop(table);
 
         init_tx.commit().unwrap();
@@ -117,7 +117,8 @@ fn test_anomaly_phantom() {
         assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
 
-    // start a write transaction, insert some new rows, then commit the write transaction
+    // start a write transaction, insert some new rows, then commit the write
+    // transaction
     {
         let write_tx = Transaction::new();
 
@@ -125,7 +126,8 @@ fn test_anomaly_phantom() {
         for _ in 0..5 {
             insert_row(&table, &write_tx, key);
         }
-        // we have to drop the table here, since we need to access it in the commit phase
+        // we have to drop the table here, since we need to access it in the commit
+        // phase
         drop(table);
 
         write_tx.commit().unwrap();

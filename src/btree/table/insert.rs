@@ -27,7 +27,7 @@ impl BTreeTable {
     /// sorted order. May cause pages to split if the page where
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        let mut new_tuple = tuple.clone();
+        let new_tuple = tuple.clone();
 
         if cfg!(feature = "tree_latch") {
             // Request an X-latch on the tree.

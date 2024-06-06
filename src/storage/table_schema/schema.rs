@@ -1,6 +1,5 @@
-use crate::transaction::TRANSACTION_ID_BYTES;
-
 use super::{Field, Type};
+use crate::transaction::TRANSACTION_ID_BYTES;
 
 #[derive(Debug, Clone)]
 pub struct TableSchema {
