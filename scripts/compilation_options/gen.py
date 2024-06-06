@@ -79,7 +79,7 @@ def gen_make_test(options: list[dict]):
 
         content += "\n"
 
-    make_test = "test:\n"
+    make_test = "test_all_modes:\n"
     for test_target in test_targets:
         make_test += f"\t{test_target.target_name}\n"
 
@@ -89,7 +89,7 @@ def gen_make_test(options: list[dict]):
 
 
 def gen_actions(options: list[dict]):
-    workflow_path = ".github/workflows/test.yml.bak"
+    workflow_path = ".github/workflows/test.yml"
     f = open(workflow_path, "r")
     content = f.read()
 

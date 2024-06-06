@@ -10,11 +10,16 @@ run:
 gen:
 	python scripts/compilation_options/gen.py
 
+test:
+	echo "" > test.log
+	echo "Running tests with default features" | tee -a test.log
+	RUST_LOG=info cargo test -- --test-threads=1 2>&1 | tee -a test.log
+
 # Standard test. Doesn't print debug logs.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "*.log".
 # ===[COMPILATION OPTIONS START]===
-test:
+test_all_modes:
 	test_tree_latch_aries_steal_aries_force_read_uncommitted
 	test_tree_latch_aries_steal_aries_force_read_committed
 	test_tree_latch_aries_steal_aries_force_repeatable_read
