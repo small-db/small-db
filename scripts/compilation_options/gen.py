@@ -71,6 +71,9 @@ def gen_make_test(options: list[dict]):
         # clear log file
         content += f'\techo "" > {log_path}\n'
 
+        # preserve the exit code during pipe
+        content += f'\tset -o pipefail\n'
+
         # print mode
         content += f'\techo "Running tests with features: {test_target.featuers_args}" | tee -a {log_path}\n'
 
