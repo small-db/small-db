@@ -363,18 +363,6 @@ impl BTreeLeafPage {
     pub fn iter(&self) -> BTreeLeafPageIterator {
         BTreeLeafPageIterator::new(self)
     }
-
-    pub(crate) fn update_xmin(&mut self, xmin: TransactionID) {
-        for tuple in &mut self.tuples {
-            tuple.set_xmin(xmin);
-        }
-    }
-
-    pub(crate) fn update_xmax(&mut self, xmax: TransactionID) {
-        for tuple in &mut self.tuples {
-            tuple.set_xmax(xmax);
-        }
-    }
 }
 
 /// Methods for accessing const attributes.

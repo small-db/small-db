@@ -28,7 +28,6 @@ impl BTreeTable {
     /// tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         let mut new_tuple = tuple.clone();
-        new_tuple.set_xmin(tx.get_id());
 
         if cfg!(feature = "tree_latch") {
             // Request an X-latch on the tree.

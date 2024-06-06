@@ -301,7 +301,7 @@ impl BufferPool {
         // stage 1: get table
         let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
-        let table = table_pod.read().unwrap();
+        let table = table_pod.rl();
 
         match pid.category {
             PageCategory::RootPointer => {
@@ -437,37 +437,5 @@ impl BufferPool {
         }
 
         keys
-    }
-
-    pub(crate) fn update_xmin(&self, tx: &Transaction) {
-        let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
-
-        for pid in dirty_pages {
-            if pid.category != PageCategory::Leaf {
-                continue;
-            }
-
-            if let Some(page_pod) = self.leaf_buffer.get(&pid) {
-                page_pod.wl().update_xmin(tx.get_id());
-            } else {
-                error!("page not found in buffer pool, pid: {:?}", pid);
-            }
-        }
-    }
-
-    pub(crate) fn update_xmax(&self, tx: &Transaction) {
-        let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
-
-        for pid in dirty_pages {
-            if pid.category != PageCategory::Leaf {
-                continue;
-            }
-
-            if let Some(page_pod) = self.leaf_buffer.get(&pid) {
-                page_pod.wl().update_xmax(tx.get_id());
-            } else {
-                error!("page not found in buffer pool, pid: {:?}", pid);
-            }
-        }
     }
 }
