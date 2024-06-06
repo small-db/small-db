@@ -381,7 +381,7 @@ impl BTreeLeafPage {
 impl BTreeLeafPage {
     /// Get the capacity of children (tuples) in this page.
     pub fn get_children_cap(schema: &TableSchema) -> usize {
-        let bits_per_tuple_including_header = schema.get_disk_size() * 8 + 1;
+        let bits_per_tuple_including_header = schema.get_tuple_size() * 8 + 1;
 
         // extraBits:
         // - page category (4 bytes)

@@ -12,6 +12,8 @@ pub(crate) enum TransactionStatus {
 
 pub(crate) type TransactionID = u32;
 
+pub(crate) const TRANSACTION_ID_BYTES: usize = 4;
+
 static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Eq, PartialEq, Clone)]

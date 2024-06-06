@@ -19,6 +19,7 @@ use crate::{
     },
     error::SmallError,
     io::{read_exact, read_into, Decodeable, Encodeable, SmallFile, SmallWriter},
+    transaction::TRANSACTION_ID_BYTES,
     types::SmallResult,
     utils::HandyRwLock,
     Database,
@@ -774,8 +775,7 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        std::mem::size_of::<TransactionID>(),
-                        tid,
+                        TRANSACTION_ID_BYTES, tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -793,8 +793,7 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        std::mem::size_of::<TransactionID>(),
-                        tid,
+                        TRANSACTION_ID_BYTES, tid,
                     ));
 
                     let pid: BTreePageID = read_into(&mut self.file);
@@ -829,8 +828,7 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        std::mem::size_of::<TransactionID>(),
-                        tid,
+                        TRANSACTION_ID_BYTES, tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);
@@ -883,8 +881,7 @@ impl LogManager {
                     let tid: TransactionID = read_into(&mut self.file);
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
-                        std::mem::size_of::<TransactionID>(),
-                        tid,
+                        TRANSACTION_ID_BYTES, tid,
                     ));
 
                     let start_offset: u64 = read_into(&mut self.file);

@@ -1,3 +1,5 @@
+use crate::transaction::TRANSACTION_ID_BYTES;
+
 use super::{Field, Type};
 
 #[derive(Debug, Clone)]
@@ -62,8 +64,15 @@ impl TableSchema {
 
 impl TableSchema {
     /// Get tuple size in bytes.
-    pub fn get_disk_size(&self) -> usize {
+    pub(crate) fn get_tuple_size(&self) -> usize {
         let mut size = 0;
+
+        // xmin of the tuple
+        size += TRANSACTION_ID_BYTES;
+
+        // xmax of the tuple
+        size += TRANSACTION_ID_BYTES;
+
         for field in self.get_fields() {
             size += field.get_type().get_disk_size();
         }

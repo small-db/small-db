@@ -107,6 +107,7 @@ fn test_anomaly_phantom() {
         for _ in 0..init_count {
             insert_row(&table, &init_tx, key);
         }
+        init_tx.commit().unwrap();
     }
 
     // start a read transaction
@@ -114,6 +115,10 @@ fn test_anomaly_phantom() {
 
     // search for the key, the result should be init_count
     {
+        debug!(
+            "serach result: {}",
+            search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key))
+        );
         assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
 

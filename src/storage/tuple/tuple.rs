@@ -9,7 +9,7 @@ use crate::{
     btree::page::BTreePageID,
     io::{Decodeable, Encodeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
-    transaction::{TransactionID, TransactionStatus},
+    transaction::{TransactionID, TransactionStatus, TRANSACTION_ID_BYTES},
     Database,
 };
 
@@ -78,10 +78,10 @@ impl Tuple {
         let mut size = 0;
 
         // xmin
-        size += std::mem::size_of::<TransactionID>();
+        size += TRANSACTION_ID_BYTES;
 
         // xmax
-        size += std::mem::size_of::<TransactionID>();
+        size += TRANSACTION_ID_BYTES;
 
         for cell in &self.cells {
             size += cell.get_size_disk();
