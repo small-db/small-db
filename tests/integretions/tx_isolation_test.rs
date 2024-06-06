@@ -3,9 +3,9 @@ use small_db::{storage::tuple::Cell, transaction::Transaction, utils::HandyRwLoc
 
 use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, TreeLayout};
 
-#[test]
 /// A transaction should be able to read its own writes, no matter what
 /// isolation level we are using.
+#[test]
 #[cfg(any(
     feature = "read_uncommitted",
     feature = "read_committed",
@@ -30,19 +30,13 @@ fn test_read_self() {
     }
 }
 
-#[test]
 /// Dirty write happens when a transaction can see and update dirty
 /// (uncommitted) data, that has been dirtied by another transaction. This can
 /// cause the database to become highly inconsistent. This anomaly is avoided by
 /// most of the databases, at even the weakest isolation level.
+#[test]
 fn test_anomaly_dirty_write() {}
 
-#[test]
-#[cfg(any(
-    feature = "read_committed",
-    feature = "repeatable_read",
-    feature = "serializable"
-))]
 /// A "dirty read" in SQL occurs when a transaction reads data that has been
 /// modifiedby another transaction, but not yet committed. In other words, a
 /// transaction reads uncommitted data from another transaction, which can lead
@@ -50,6 +44,12 @@ fn test_anomaly_dirty_write() {}
 ///
 /// This anomaly happens in "read uncommitted" isolation level. Isolation levels
 /// which have a higher strictness should be able to pass this test.
+#[test]
+#[cfg(any(
+    feature = "read_committed",
+    feature = "repeatable_read",
+    feature = "serializable"
+))]
 fn test_anomaly_dirty_read() {
     setup();
 
@@ -79,6 +79,9 @@ fn test_anomaly_dirty_read() {
     }
 }
 
+/// A Phantom Read occurs when a transaction re-executes a query returning a set
+/// of rows that satisfies a search condition and finds that the set of rows has
+/// changed due to another transaction.
 #[test]
 #[cfg(any(
     feature = "read_uncommitted",
@@ -86,9 +89,6 @@ fn test_anomaly_dirty_read() {
     feature = "repeatable_read",
     feature = "serializable"
 ))]
-/// A Phantom Read occurs when a transaction re-executes a query returning a set
-/// of rows that satisfies a search condition and finds that the set of rows has
-/// changed due to another transaction.
 fn test_anomaly_phantom() {
     setup();
 
