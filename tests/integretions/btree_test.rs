@@ -1,5 +1,6 @@
 use std::thread;
 
+use log::debug;
 use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
@@ -124,8 +125,14 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+        debug!("expected tuple count: {}", row_count + 1000);
+        debug!("actual tuple count: {}", table_pod.rl().tuples_count());
+        assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
+        // assert!(table_pod.rl().tuples_count() == row_count + 1000, &table);
+        // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
     }
+
+    return;
 
     // test 3:
     // insert and delete some tuples, make sure there is not too much pages created

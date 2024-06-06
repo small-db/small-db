@@ -106,7 +106,7 @@ impl Tuple {
             .transaction_status
             .get(&self.xmin)
         {
-            if status == &TransactionStatus::Committed {
+            if *status == TransactionStatus::Committed {
                 // it is visible only if the transaction that created it has committed
                 return true;
             } else {
