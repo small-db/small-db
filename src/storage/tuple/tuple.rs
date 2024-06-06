@@ -89,22 +89,6 @@ impl Tuple {
         size
     }
 
-    pub(crate) fn set_xmin(&mut self, xmin: TransactionID) {
-        self.xmin = xmin;
-    }
-
-    pub(crate) fn set_xmax(&mut self, xmax: TransactionID) {
-        self.xmax = xmax;
-    }
-
-    pub(crate) fn get_xmin(&self) -> TransactionID {
-        self.xmin
-    }
-
-    pub(crate) fn get_xmax(&self) -> TransactionID {
-        self.xmax
-    }
-
     pub(crate) fn visible_to(&self, tid: TransactionID) -> bool {
         // out of the range [xmin, xmax), not visible
         if tid < self.xmin || self.xmax <= tid {
