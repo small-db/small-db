@@ -11,10 +11,11 @@ gen:
 	python scripts/compilation_options/gen.py
 
 test:
-	echo "" > test.log
-	echo "Running tests with default features" | tee -a test.log
-	set -o pipefail
-	RUST_LOG=info cargo test -- --test-threads=1 2>&1 | tee -a test.log
+	# Note: don't use fancy pipeline and redirection operators in the makefile, because
+	# they don't work on github acitons.
+	# 
+	# Github actions will use "sh" for the makefile, which doesn't support bash options.
+	RUST_LOG=info cargo test -- --test-threads=1
 
 # Standard test. Doesn't print debug logs.
 # 
