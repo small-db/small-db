@@ -1,4 +1,4 @@
-name: test
+name: test (page_latch, aries_steal, aries_force, repeatable_read)
 
 on:
   push:
@@ -23,4 +23,4 @@ jobs:
         shell: bash
         run: |
           cargo version
-          make test
+          make test_page_latch_aries_steal_aries_force_repeatable_read

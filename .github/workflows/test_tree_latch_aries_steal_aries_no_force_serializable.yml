@@ -1,4 +1,4 @@
-name: test
+name: test (tree_latch, aries_steal, aries_no_force, serializable)
 
 on:
   push:
@@ -23,4 +23,4 @@ jobs:
         shell: bash
         run: |
           cargo version
-          make test
+          make test_tree_latch_aries_steal_aries_no_force_serializable
