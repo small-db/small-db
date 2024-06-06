@@ -1,5 +1,6 @@
 # small-db
 
+[![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
 A small database.
