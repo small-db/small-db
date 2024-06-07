@@ -532,6 +532,7 @@ impl BTreeTable {
         let mut depiction = "".to_string();
 
         let print_sibling = false;
+        let print_all_tuples = true;
 
         let mut prefix = "│   ".repeat(level);
         let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid).unwrap();
@@ -566,8 +567,15 @@ impl BTreeTable {
         }
 
         prefix = "│   ".repeat(level + 1);
-        depiction.push_str(&format!("{}├── first tuple: {:?}\n", prefix, first_tuple));
-        depiction.push_str(&format!("{}└── last tuple:  {:?}\n", prefix, last_tuple));
+        if print_all_tuples {
+            let it = BTreeLeafPageIterator::new(&page);
+            for tuple in it {
+                depiction.push_str(&format!("{}├── tuple: {:?}\n", prefix, tuple));
+            }
+        } else {
+            depiction.push_str(&format!("{}├── first tuple: {:?}\n", prefix, first_tuple));
+            depiction.push_str(&format!("{}└── last tuple:  {:?}\n", prefix, last_tuple));
+        }
 
         return depiction;
     }

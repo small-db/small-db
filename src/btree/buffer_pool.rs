@@ -327,7 +327,8 @@ impl BufferPool {
         log_manager: &mut LogManager,
     ) {
         if let Some(page_pod) = buffer.get(pid) {
-            if let Some(tx) = Database::concurrent_status().get_page_tx(pid) {
+            let v = Database::concurrent_status().get_page_tx(pid);
+            if let Some(tx) = v {
                 log_manager.log_update(&tx, page_pod.clone()).unwrap();
 
                 if cfg!(feature = "aries_force") {

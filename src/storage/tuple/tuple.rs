@@ -3,7 +3,7 @@ use std::{
     usize,
 };
 
-use log::error;
+use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID,
@@ -102,6 +102,8 @@ impl Tuple {
 
         // tid in the range (xmin, xmax), the tuple is visible if the transaction that
         // created it has committed
+        // debug!("status: {:?}", Database::concurrent_status().transaction_status);
+        // Database::concurrent_status().transaction_status;
         if let Some(status) = Database::concurrent_status()
             .transaction_status
             .get(&self.xmin)
@@ -110,6 +112,7 @@ impl Tuple {
                 // it is visible only if the transaction that created it has committed
                 return true;
             } else {
+                // debug!("status: {:?}", status);
                 return false;
             }
         } else {
@@ -148,11 +151,20 @@ impl Eq for Tuple {}
 impl fmt::Display for Tuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut content: String = "{".to_owned();
+
+        // xmin
+        content.push_str(&format!("xmin: {:?}, ", self.xmin));
+
+        // xmax
+        content.push_str(&format!("xmax: {:?}, ", self.xmax));
+
+        // cells
         for cell in &self.cells {
             let cell_str = format!("{:?}, ", cell);
             content.push_str(&cell_str);
         }
         content = content[..content.len() - 2].to_string();
+
         content.push_str(&"}");
         write!(f, "{}", content,)
     }
@@ -202,7 +214,7 @@ impl WrappedTuple {
         self.pid
     }
 
-    pub fn get_tuple(&self) -> &Tuple {
+    pub(crate) fn get_tuple(&self) -> &Tuple {
         &self.internal
     }
 }
@@ -211,7 +223,7 @@ impl Eq for WrappedTuple {}
 
 impl fmt::Display for WrappedTuple {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.cells)
+        write!(f, "{:?}", self.get_tuple())
     }
 }
 
