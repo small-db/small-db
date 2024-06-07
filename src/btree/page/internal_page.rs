@@ -9,10 +9,14 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     io::{Decodeable, SmallWriter},
-    storage::{table_schema::TableSchema, tuple::Cell},
+    storage::{
+        table_schema::{self, TableSchema},
+        tuple::Cell,
+    },
     transaction::Transaction,
     types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
+    Database,
 };
 
 /// The internal page is used to store the keys and the page id of the
@@ -623,8 +627,17 @@ impl BTreePage for BTreeInternalPage {
         writer.write(&self.header);
 
         // write keys
-        for i in 1..self.slot_count {
-            writer.write(&self.keys[i]);
+        //
+        // TODO: optimize the encoding of the keys
+        {
+            let table_rc = Database::mut_catalog()
+                .get_table(&self.get_pid().get_table_id())
+                .unwrap();
+            let table_schema = table_rc.rl().get_schema();
+            let t = table_schema.get_pkey().get_type();
+            for i in 1..self.slot_count {
+                self.keys[i].encode(&mut writer, &t);
+            }
         }
 
         // write children

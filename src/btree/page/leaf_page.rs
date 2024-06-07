@@ -17,6 +17,7 @@ use crate::{
     },
     transaction::{Transaction, TransactionID},
     utils::{ceil_div, HandyRwLock},
+    Database,
 };
 
 /// A leaf page in the B+ tree.
@@ -426,8 +427,16 @@ impl BTreePage for BTreeLeafPage {
         writer.write(&self.header);
 
         // write tuples
-        for tuple in &self.tuples {
-            writer.write(tuple);
+        //
+        // TODO: optimize the encoding of the keys
+        {
+            let table_rc = Database::mut_catalog()
+                .get_table(&self.get_pid().get_table_id())
+                .unwrap();
+            let table_schema = table_rc.rl().get_schema();
+            for tuple in &self.tuples {
+                tuple.encode(&mut writer, &table_schema);
+            }
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());

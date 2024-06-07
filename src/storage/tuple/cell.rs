@@ -3,7 +3,8 @@ use std::fmt::Debug;
 use crate::{
     error::SmallError,
     io::{Decodeable, Encodeable, SmallWriter},
-    storage::table_schema::Type,
+    storage::table_schema::{self, Type},
+    TableSchema,
 };
 
 #[derive(Debug, Clone)]
@@ -78,7 +79,40 @@ impl Cell {
         }
     }
 
-    pub(crate) fn encode(&self, writer: &mut SmallWriter) {
+    pub(crate) fn encode(&self, writer: &mut SmallWriter, t: &Type) {
+        match self {
+            Cell::Null => todo!(),
+            Cell::Bool(v) => {
+                writer.write(v);
+            }
+            Cell::Int64(v) => {
+                writer.write(v);
+            }
+            Cell::Float64(v) => {
+                writer.write(v);
+            }
+            Cell::Bytes(v) => {
+                // write size
+                let size = v.len() as u16;
+                writer.write(&size);
+
+                // write payload
+                writer.write_bytes(v);
+
+                if let Type::Bytes(size) = t {
+                    let remain = *size as usize - v.len();
+                    for _ in 0..remain {
+                        writer.write(&0u8);
+                    }
+                } else {
+                    panic!("type not match, expect bytes, got {:?}", t);
+                }
+            }
+        }
+    }
+
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => {
@@ -99,6 +133,7 @@ impl Cell {
                 writer.write_bytes(v);
             }
         }
+        writer.to_bytes()
     }
 }
 
