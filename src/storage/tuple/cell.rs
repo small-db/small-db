@@ -78,13 +78,26 @@ impl Cell {
         }
     }
 
-    pub fn get_size_disk(&self) -> usize {
+    pub(crate) fn encode(&self, writer: &mut SmallWriter) {
         match self {
-            Cell::Null => 0,
-            Cell::Bool(_) => 1,
-            Cell::Int64(_) => 8,
-            Cell::Float64(_) => 8,
-            Cell::Bytes(v) => v.len() + 2,
+            Cell::Null => todo!(),
+            Cell::Bool(v) => {
+                writer.write(v);
+            }
+            Cell::Int64(v) => {
+                writer.write(v);
+            }
+            Cell::Float64(v) => {
+                writer.write(v);
+            }
+            Cell::Bytes(v) => {
+                // write size
+                let size = v.len() as u16;
+                writer.write(&size);
+
+                // write payload
+                writer.write_bytes(v);
+            }
         }
     }
 }
@@ -118,34 +131,30 @@ impl Ord for Cell {
     }
 }
 
-impl Encodeable for Cell {
-    fn encode(&self, writer: &mut SmallWriter) {
-        match self {
-            Cell::Null => todo!(),
-            // Cell::Bool(v) => vec![*v as u8],
-            Cell::Bool(v) => {
-                // writer.write(&(*v as u8)),
-                writer.write(v);
-            }
-            // Cell::Int64(v) => v.to_le_bytes().to_vec(),
-            Cell::Int64(v) => {
-                // writer.write_bytes(&v.to_le_bytes());
-                writer.write(v);
-            }
-            // Cell::Float64(v) => v.to_le_bytes().to_vec(),
-            Cell::Float64(v) => {
-                // writer.write_bytes(&v.to_le_bytes()),
-                writer.write(v);
-            }
-            // Cell::Bytes(v) => v.encode(),
-            Cell::Bytes(v) => {
-                // writer.write_bytes(&((v.len() as u16).to_le_bytes()));
-                // writer.write_bytes(&v);
-                writer.write(v);
-            }
-        }
-    }
-}
+// impl Encodeable for Cell {
+//     fn encode(&self, writer: &mut SmallWriter) {
+//         match self {
+//             Cell::Null => todo!(),
+//             Cell::Bool(v) => {
+//                 writer.write(v);
+//             }
+//             Cell::Int64(v) => {
+//                 writer.write(v);
+//             }
+//             Cell::Float64(v) => {
+//                 writer.write(v);
+//             }
+//             Cell::Bytes(v) => {
+//                 // write size
+//                 let size = v.len() as u16;
+//                 writer.write(&size);
+
+//                 // write payload
+//                 writer.write_bytes(v);
+//             }
+//         }
+//     }
+// }
 
 impl Decodeable for Cell {
     fn decode_from<R: std::io::Read>(_reader: &mut R) -> Self {

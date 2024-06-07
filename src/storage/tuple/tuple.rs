@@ -74,21 +74,6 @@ impl Tuple {
         self.cells.clone()
     }
 
-    pub fn get_size_disk(&self) -> usize {
-        let mut size = 0;
-
-        // xmin
-        size += TRANSACTION_ID_BYTES;
-
-        // xmax
-        size += TRANSACTION_ID_BYTES;
-
-        for cell in &self.cells {
-            size += cell.get_size_disk();
-        }
-        size
-    }
-
     pub(crate) fn visible_to(&self, tid: TransactionID) -> bool {
         // out of the range [xmin, xmax), not visible
         if tid < self.xmin || self.xmax <= tid {
@@ -123,16 +108,16 @@ impl Tuple {
     }
 }
 
-impl Encodeable for Tuple {
-    fn encode(&self, writer: &mut SmallWriter) {
-        self.xmin.encode(writer);
-        self.xmax.encode(writer);
+// impl Encodeable for Tuple {
+//     fn encode(&self, writer: &mut SmallWriter) {
+//         self.xmin.encode(writer);
+//         self.xmax.encode(writer);
 
-        for cell in &self.cells {
-            cell.encode(writer);
-        }
-    }
-}
+//         for cell in &self.cells {
+//             cell.encode(writer);
+//         }
+//     }
+// }
 
 impl PartialEq for Tuple {
     fn eq(&self, other: &Self) -> bool {
