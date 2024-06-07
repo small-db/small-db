@@ -88,7 +88,7 @@ fn test_patch() {
     //
     // We don't use `assert_true` here because it requires a write
     // lock on the log manager.
-    assert_eq!(Database::log_file().records_count(), 6);
+    assert_eq!(Database::log_manager().records_count(), 6);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().

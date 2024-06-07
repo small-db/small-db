@@ -3,12 +3,7 @@ use std::thread;
 use log::debug;
 use rand::Rng;
 use small_db::{
-    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
-    storage::tuple::Tuple,
-    transaction::Transaction,
-    types::Pod,
-    utils::HandyRwLock,
-    BTreeTable, Op, Predicate,
+    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator}, storage::tuple::Tuple, transaction::Transaction, types::Pod, utils::HandyRwLock, BTreeTable, Database, Op, Predicate
 };
 
 use crate::test_utils::{
@@ -51,6 +46,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
         table.delete_tuple(&tx, &target).unwrap();
     } else {
         debug!("tuple not found: {:?}", tuple);
+        Database::mut_log_manager().show_log_contents();
         table.draw_tree(-1);
     }
 

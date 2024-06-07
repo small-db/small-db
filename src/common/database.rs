@@ -107,16 +107,12 @@ impl Database {
         Self::global().catalog.wl()
     }
 
-    pub fn log_file() -> RwLockReadGuard<'static, LogManager> {
+    pub fn log_manager() -> RwLockReadGuard<'static, LogManager> {
         Self::global().log_manager.rl()
     }
 
     pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager> {
         Self::global().log_manager.wl()
-    }
-
-    pub fn log_file_pod() -> Arc<RwLock<LogManager>> {
-        Self::global().log_manager.clone()
     }
 
     pub fn global() -> &'static Self {
