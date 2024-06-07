@@ -21,12 +21,12 @@ pub trait BTreePage {
     ///
     /// # Returns
     /// A byte array representing the contents of this page.
-    fn get_page_data(&self) -> Vec<u8>;
+    fn get_page_data(&self, table_schema: &TableSchema) -> Vec<u8>;
 
     /// Set the before image of this page to the current state of the page.
-    fn set_before_image(&mut self);
+    fn set_before_image(&mut self, table_schema: &TableSchema);
 
     /// Provide a representation of this page before any modifications
     /// were made to it. Used by recovery.
-    fn get_before_image(&self) -> Vec<u8>;
+    fn get_before_image(&self, table_schema: &TableSchema) -> Vec<u8>;
 }

@@ -644,10 +644,15 @@ impl LogManager {
         let page = page_pod.read().unwrap();
         self.file.write(&page.get_pid())?;
 
-        let before_data = page.get_before_image();
+        let table_rc = Database::mut_catalog()
+            .get_table(&page.get_pid().table_id)
+            .unwrap();
+        let table_schema = table_rc.rl().get_schema();
+
+        let before_data = page.get_before_image(&table_schema);
         self.file.write(&before_data)?;
 
-        let after_data = page.get_page_data();
+        let after_data = page.get_page_data(&table_schema);
         self.file.write(&after_data)?;
 
         return Ok(());
@@ -678,7 +683,7 @@ impl LogManager {
                 BufferPool::recover_page(&pid, page, &mut buffer_pool.internal_buffer);
             }
             PageCategory::Header => {
-                let page = BTreeHeaderPage::new(&pid, &before_image);
+                let page = BTreeHeaderPage::new(&pid, &before_image, &schema);
                 BufferPool::recover_page(&pid, page, &mut buffer_pool.header_buffer);
             }
         }
@@ -712,7 +717,7 @@ impl LogManager {
                 return Ok(Arc::new(RwLock::new(page)));
             }
             PageCategory::Header => {
-                let page = BTreeHeaderPage::new(&pid, &data);
+                let page = BTreeHeaderPage::new(&pid, &data, &schema);
                 return Ok(Arc::new(RwLock::new(page)));
             }
         }
@@ -721,7 +726,7 @@ impl LogManager {
     // We're about to append a log record. If we weren't sure whether
     // the DB wants to do recovery, we're sure now -- it didn't.
     // So truncate the log.
-    // 
+    //
     // TODO: update the doc comment, since it's ambiguous and unclear
     fn pre_append(&mut self) -> SmallResult {
         self.total_records += 1;

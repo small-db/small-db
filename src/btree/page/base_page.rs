@@ -63,15 +63,15 @@ impl BTreePage for BTreeBasePage {
         self.parent_page_index = pid.page_index;
     }
 
-    fn get_page_data(&self) -> Vec<u8> {
+    fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {
         unimplemented!()
     }
 
-    fn set_before_image(&mut self) {
+    fn set_before_image(&mut self, _table_schema: &TableSchema) {
         unimplemented!()
     }
 
-    fn get_before_image(&self) -> Vec<u8> {
+    fn get_before_image(&self, _table_schema: &TableSchema) -> Vec<u8> {
         unimplemented!()
     }
 }

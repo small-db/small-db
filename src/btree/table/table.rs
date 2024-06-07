@@ -211,7 +211,7 @@ impl BTreeTable {
         // create the new page
         let page_index = self.get_empty_page_index(tx);
         let page_id = BTreePageID::new(PageCategory::Header, self.table_id, page_index);
-        let page = BTreeHeaderPage::new(&page_id, &BTreeBasePage::empty_page_data());
+        let page = BTreeHeaderPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
 
         self.write_empty_page_to_disk(&page_id);
 
@@ -389,7 +389,7 @@ impl BTreeTable {
                 let pid = BTreePageID::new(PageCategory::RootPointer, table_index, 0);
 
                 let page = BTreeRootPointerPage::new_empty_page(&pid);
-                let data = page.get_page_data();
+                let data = page.get_page_data(&self.schema);
                 file.write(&data).unwrap();
             }
 

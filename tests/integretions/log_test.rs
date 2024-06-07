@@ -94,7 +94,10 @@ fn test_patch() {
     // Page.setBeforeImage().
     let page_rc = get_leaf_page(&table, 0, 0);
     let page = page_rc.rl();
-    assert_eq!(page.get_page_data(), page.get_before_image());
+    assert_eq!(
+        page.get_page_data(&table.schema),
+        page.get_before_image(&table.schema)
+    );
 }
 
 #[test]

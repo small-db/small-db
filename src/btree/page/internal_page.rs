@@ -88,13 +88,13 @@ pub struct BTreeInternalPage {
 }
 
 impl BTreeInternalPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], table_schema: &TableSchema) -> Self {
         let mut instance: Self;
 
         if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(pid, bytes, schema);
+            instance = Self::new_empty_page(pid, bytes, table_schema);
         } else {
-            let slot_count = Self::get_children_cap(schema);
+            let slot_count = Self::get_children_cap(table_schema);
 
             let mut reader = Cursor::new(bytes);
 
@@ -155,7 +155,7 @@ impl BTreeInternalPage {
             };
         }
 
-        instance.set_before_image();
+        instance.set_before_image(table_schema);
         return instance;
     }
 
@@ -611,7 +611,7 @@ impl BTreePage for BTreeInternalPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn get_page_data(&self) -> Vec<u8> {
+    fn get_page_data(&self, table_schema: &TableSchema) -> Vec<u8> {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
@@ -630,10 +630,6 @@ impl BTreePage for BTreeInternalPage {
         //
         // TODO: optimize the encoding of the keys
         {
-            let table_rc = Database::mut_catalog()
-                .get_table(&self.get_pid().get_table_id())
-                .unwrap();
-            let table_schema = table_rc.rl().get_schema();
             let t = table_schema.get_pkey().get_type();
             for i in 1..self.slot_count {
                 self.keys[i].encode(&mut writer, &t);
@@ -648,11 +644,11 @@ impl BTreePage for BTreeInternalPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
-    fn set_before_image(&mut self) {
-        self.old_data = self.get_page_data();
+    fn set_before_image(&mut self, table_schema: &TableSchema) {
+        self.old_data = self.get_page_data(table_schema);
     }
 
-    fn get_before_image(&self) -> Vec<u8> {
+    fn get_before_image(&self, _table_schema: &TableSchema) -> Vec<u8> {
         if self.old_data.is_empty() {
             panic!("before image is not set");
         }

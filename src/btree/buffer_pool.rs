@@ -20,7 +20,7 @@ use crate::{
     transaction::{LogManager, Transaction},
     types::ResultPod,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable, Database, TableSchema,
 };
 
 pub const DEFAULT_PAGE_SIZE: usize = 4096;
@@ -234,9 +234,10 @@ impl BufferPool {
         &self,
         pid: &BTreePageID,
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
+        table_schema: &TableSchema,
     ) {
         let page_pod = buffer.get(pid).unwrap();
-        page_pod.wl().set_before_image();
+        page_pod.wl().set_before_image(table_schema);
     }
 
     /// Flush all dirty pages to database.
@@ -333,11 +334,11 @@ impl BufferPool {
                 log_manager.log_update(&tx, page_pod.clone()).unwrap();
 
                 if cfg!(feature = "aries_force") {
-                    table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+                    table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
                 }
 
                 // What's the purpose of "set_before_image" here?
-                self.set_before_image(&pid, &buffer);
+                self.set_before_image(&pid, &buffer, &table.schema);
                 return;
             } else {
                 // not a dirty page, so no need to write to log or disk, just
@@ -365,7 +366,7 @@ impl BufferPool {
     ) {
         if let Some(page_pod) = buffer.get(pid) {
             if let Some(_) = Database::concurrent_status().get_page_tx(pid) {
-                table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+                table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
                 return;
             } else {
                 // not a dirty page, so no need to write to log or disk, just
@@ -408,7 +409,7 @@ impl BufferPool {
         table: &BTreeTable,
         page_pod: Arc<RwLock<PAGE>>,
     ) {
-        table.write_page_to_disk(pid, &page_pod.rl().get_page_data());
+        table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
     }
 
     fn insert_page_dispatch<PAGE: BTreePage + ?Sized>(

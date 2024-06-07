@@ -33,7 +33,7 @@ pub struct BTreeRootPointerPage {
 }
 
 impl BTreeRootPointerPage {
-    fn new(pid: &BTreePageID, bytes: &[u8]) -> Self {
+    fn new(pid: &BTreePageID, bytes: &[u8], table_schema: &TableSchema) -> Self {
         let mut reader = Cursor::new(bytes);
 
         // read page category
@@ -64,7 +64,7 @@ impl BTreeRootPointerPage {
             old_data: Vec::new(),
         };
 
-        instance.set_before_image();
+        instance.set_before_image(table_schema);
         return instance;
     }
 
@@ -112,8 +112,8 @@ impl BTreeRootPointerPage {
 }
 
 impl BTreePage for BTreeRootPointerPage {
-    fn new(pid: &BTreePageID, bytes: &[u8], _tuple_scheme: &TableSchema) -> Self {
-        Self::new(pid, bytes)
+    fn new(pid: &BTreePageID, bytes: &[u8], table_schema: &TableSchema) -> Self {
+        Self::new(pid, bytes, table_schema)
     }
 
     fn get_pid(&self) -> BTreePageID {
@@ -128,7 +128,7 @@ impl BTreePage for BTreeRootPointerPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn get_page_data(&self) -> Vec<u8> {
+    fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
@@ -146,11 +146,11 @@ impl BTreePage for BTreeRootPointerPage {
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
-    fn set_before_image(&mut self) {
-        self.old_data = self.get_page_data();
+    fn set_before_image(&mut self, table_schema: &TableSchema) {
+        self.old_data = self.get_page_data(table_schema);
     }
 
-    fn get_before_image(&self) -> Vec<u8> {
+    fn get_before_image(&self, _table_schema: &TableSchema) -> Vec<u8> {
         if self.old_data.is_empty() {
             panic!("no before image");
         }
