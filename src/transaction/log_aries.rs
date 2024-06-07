@@ -442,6 +442,8 @@ impl LogManager {
         self.write_page(page_pod)?;
         self.file.write(&self.current_offset)?;
 
+        self.file.flush()?;
+
         let current_offset = self.file.get_current_position()?;
         self.current_offset = current_offset;
 
@@ -719,10 +721,11 @@ impl LogManager {
     // We're about to append a log record. If we weren't sure whether
     // the DB wants to do recovery, we're sure now -- it didn't.
     // So truncate the log.
+    // 
+    // TODO: update the doc comment, since it's ambiguous and unclear
     fn pre_append(&mut self) -> SmallResult {
         self.total_records += 1;
 
-        // let size = self.file.seek(pos)
         if self.file.get_size()? == 0 {
             self.reset_file()?;
         }

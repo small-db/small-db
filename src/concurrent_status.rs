@@ -5,7 +5,7 @@ use std::{
     time::Instant,
 };
 
-use log::error;
+use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID,
@@ -74,6 +74,8 @@ impl ConcurrentStatus {
             .get_mut(tx)
             .unwrap()
             .insert(page_id.clone());
+
+        debug!("add_relation: <tx: {}, page_id: {:?}>", tx, page_id,);
     }
 }
 
@@ -199,7 +201,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
+    pub(crate) fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
         if cfg!(feature = "tree_latch") {
             return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
         } else if cfg!(feature = "page_latch") {

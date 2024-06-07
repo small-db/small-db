@@ -3,7 +3,12 @@ use std::thread;
 use log::debug;
 use rand::Rng;
 use small_db::{
-    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator}, storage::tuple::Tuple, transaction::Transaction, types::Pod, utils::HandyRwLock, BTreeTable, Database, Op, Predicate
+    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
+    storage::tuple::Tuple,
+    transaction::Transaction,
+    types::Pod,
+    utils::HandyRwLock,
+    BTreeTable, Database, Op, Predicate,
 };
 
 use crate::test_utils::{
@@ -18,11 +23,11 @@ fn inserter(
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
     let mut rng = rand::thread_rng();
-    let insert_value = rng.gen_range(i64::MIN, i64::MAX);
+    // let insert_value = rng.gen_range(i64::MIN, i64::MAX);
 
     let tx = Transaction::new();
 
-    let tuple = new_int_tuples(insert_value, column_count, &tx);
+    let tuple = new_int_tuples(tx.get_id() as i64, column_count, &tx);
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 

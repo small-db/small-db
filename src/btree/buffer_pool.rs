@@ -8,7 +8,7 @@ use std::{
     },
 };
 
-use log::error;
+use log::{debug, error};
 
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
@@ -260,6 +260,7 @@ impl BufferPool {
     /// TODO: remove the "log_manager" parameter
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
         let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
+        debug!("tx: {:?}, dirty_pages: {:?}", tx, dirty_pages);
 
         // Note: current implementation of the api "flush_page" request
         // "ConcurrentStatus", so we must get "dirty_pages" before the for loop.
@@ -343,7 +344,7 @@ impl BufferPool {
                 // return
                 //
                 // TODO: enable the following line
-                // error!("not a dirty page, pid: {:?}", pid);
+                error!("not a dirty page, pid: {:?}", pid);
             }
         } else {
             // page not found in buffer pool, so no need to write to disk
@@ -351,8 +352,9 @@ impl BufferPool {
             // why there are some pages not in buffer pool?
             //
             // TODO: enable the following line
-            // error!("page not found in buffer pool, pid: {:?}", pid);
+            error!("page not found in buffer pool, pid: {:?}", pid);
         }
+        error!("pid: {:?}", pid);
     }
 
     fn write<PAGE: BTreePage>(
