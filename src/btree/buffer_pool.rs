@@ -301,8 +301,9 @@ impl BufferPool {
     /// Write the content of a specific page to disk.
     fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
-        let mut catalog = Database::mut_catalog();
-        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
+        let table_pod = Database::mut_catalog()
+            .get_table(&pid.get_table_id())
+            .unwrap();
         let table = table_pod.rl();
 
         match pid.category {
