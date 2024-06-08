@@ -87,9 +87,15 @@ impl BTreeLeafPage {
 
             // read tuples
             let mut tuples = Vec::new();
-            for _ in 0..slot_count {
-                let t = Tuple::decode(&mut reader, schema);
-                tuples.push(t);
+            for i in 0..slot_count {
+                let tuple: Tuple;
+                if !header[i] {
+                    // skip empty tuple
+                    tuple = Tuple::new(&Vec::new(), 0);
+                } else {
+                    tuple = Tuple::decode(&mut reader, schema);
+                }
+                tuples.push(tuple);
             }
 
             let mut base = BTreeBasePage::new(pid);
@@ -421,8 +427,15 @@ impl BTreePage for BTreeLeafPage {
         self.header.encode(&mut writer, &());
 
         // write tuples
-        for tuple in &self.tuples {
-            tuple.encode(&mut writer, &table_schema);
+        for i in 0..self.slot_count {
+            if self.is_slot_used(i) {
+                self.tuples[i].encode(&mut writer, table_schema);
+            } else {
+                // write empty bytes
+                let mut bytes: Vec<u8> = Vec::new();
+                bytes.resize(table_schema.get_tuple_size(), 0);
+                bytes.encode(&mut writer, &());
+            }
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
