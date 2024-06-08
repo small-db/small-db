@@ -18,7 +18,7 @@ use crate::{
         },
     },
     error::SmallError,
-    io::{read_exact, read_into, Decodeable, Encodeable, Serializeable, SmallFile, SmallWriter},
+    io::{read_exact, read_into, Serializeable, SmallFile, SmallWriter},
     transaction::TRANSACTION_ID_BYTES,
     types::SmallResult,
     utils::HandyRwLock,
@@ -55,16 +55,16 @@ impl RecordType {
     }
 }
 
-impl Encodeable for RecordType {
-    fn encode(&self, writer: &mut SmallWriter) {
-        writer.write_disk_format(&(*self as u8));
-    }
-}
+impl Serializeable for RecordType {
+    type Reference = ();
 
-impl Decodeable for RecordType {
-    fn decode_from<R: Read>(reader: &mut R) -> Self {
-        let value = read_exact(reader, 1);
-        RecordType::from_u8(value[0])
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
+        (*self as u8).encode(writer, &());
+    }
+
+    fn decode<R: Read>(reader: &mut R, _: &Self::Reference) -> Self {
+        let value = u8::decode(reader, &());
+        RecordType::from_u8(value)
     }
 }
 
@@ -186,26 +186,26 @@ impl LogManager {
                 .seek(SeekFrom::Current(-word_size))
                 .or(Err(SmallError::new("io error")))?;
 
-            let record_start_pos = read_into(&mut self.file);
+            let record_start_pos = read_into(&mut self.file, &());
             self.file.seek(SeekFrom::Start(record_start_pos))?;
-            let record_type = read_into(&mut self.file);
+            let record_type = read_into(&mut self.file, &());
 
             match record_type {
                 RecordType::START => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
                 }
                 RecordType::UPDATE => {
-                    let tid = read_into(&mut self.file);
+                    let tid = read_into(&mut self.file, &());
 
                     if incomplete_transactions.contains(&tid) {
                         // skip the page id
-                        let pid: BTreePageID = read_into(&mut self.file);
+                        let pid: BTreePageID = read_into(&mut self.file, &());
 
-                        let before_page: Vec<u8> = read_into(&mut self.file);
+                        let before_page: Vec<u8> = read_into(&mut self.file, &());
 
                         // TODO: construct a new page from the before
                         // page
@@ -217,54 +217,54 @@ impl LogManager {
                         table.write_page_to_disk(&pid, &before_page);
 
                         // skip the after page
-                        let _: Vec<u8> = read_into(&mut self.file);
+                        let _: Vec<u8> = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     } else {
                         // skip the page id
-                        let _: BTreePageID = read_into(&mut self.file);
+                        let _: BTreePageID = read_into(&mut self.file, &());
 
                         // skip the before page
-                        let _: Vec<u8> = read_into(&mut self.file);
+                        let _: Vec<u8> = read_into(&mut self.file, &());
 
                         // skip the after page
-                        let _: Vec<u8> = read_into(&mut self.file);
+                        let _: Vec<u8> = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     }
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _: i64 = read_into(&mut self.file);
+                    let _: i64 = read_into(&mut self.file, &());
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let tx_count: u64 = read_into(&mut self.file, &());
                     for _ in 0..tx_count {
                         // skip the transaction id
-                        let _: TransactionID = read_into(&mut self.file);
+                        let _: TransactionID = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     }
 
                     // skip the current offset
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::COMMIT => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::ABORT => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
             }
 
@@ -283,14 +283,14 @@ impl LogManager {
             .set_len(0)
             .or(Err(SmallError::new("set_len failed")))?;
         self.file.seek(SeekFrom::Start(0))?;
-        self.file.write(&NO_CHECKPOINT)?;
+        self.file.write(&NO_CHECKPOINT, &())?;
         self.current_offset = self.file.get_current_position()?;
         Ok(())
     }
 
     fn get_incomplete_transactions(&mut self) -> Result<HashSet<TransactionID>, SmallError> {
         self.file.seek(SeekFrom::Start(0))?;
-        let last_checkpoint_position = read_into(&mut self.file);
+        let last_checkpoint_position = read_into(&mut self.file, &());
 
         let mut incomplete_transactions = HashSet::new();
 
@@ -299,90 +299,90 @@ impl LogManager {
             self.file.seek(SeekFrom::Start(last_checkpoint_position))?;
 
             // check the record type
-            let record_type: RecordType = read_into(&mut self.file);
+            let record_type: RecordType = read_into(&mut self.file, &());
             if record_type != RecordType::CHECKPOINT {
                 return Err(SmallError::new("invalid checkpoint record type"));
             }
 
             // skip the checkpoint id
-            let _: i64 = read_into(&mut self.file);
+            let _: i64 = read_into(&mut self.file, &());
 
             // read the list of outstanding transactions
-            let tx_count: u64 = read_into(&mut self.file);
+            let tx_count: u64 = read_into(&mut self.file, &());
             for _ in 0..tx_count {
-                let tid = read_into(&mut self.file);
+                let tid = read_into(&mut self.file, &());
                 incomplete_transactions.insert(tid);
 
                 // skip the start position
-                let _: u64 = read_into(&mut self.file);
+                let _: u64 = read_into(&mut self.file, &());
             }
 
             // skip the start position
-            let _: u64 = read_into(&mut self.file);
+            let _: u64 = read_into(&mut self.file, &());
         }
 
         // step 5: read the log records, stop when we encounter the
         // EOF
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
-            let record_type = read_into(&mut self.file);
+            let record_type = read_into(&mut self.file, &());
 
             match record_type {
                 RecordType::START => {
-                    let tid = read_into(&mut self.file);
+                    let tid = read_into(&mut self.file, &());
                     incomplete_transactions.insert(tid);
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::UPDATE => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the page id
-                    let _: BTreePageID = read_into(&mut self.file);
+                    let _: BTreePageID = read_into(&mut self.file, &());
 
                     // skip the before page
-                    let _: Vec<u8> = read_into(&mut self.file);
+                    let _: Vec<u8> = read_into(&mut self.file, &());
 
                     // skip the after page
-                    let _: Vec<u8> = read_into(&mut self.file);
+                    let _: Vec<u8> = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _: i64 = read_into(&mut self.file);
+                    let _: i64 = read_into(&mut self.file, &());
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let tx_count: u64 = read_into(&mut self.file, &());
                     for _ in 0..tx_count {
                         // skip the transaction id
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     }
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::COMMIT => {
-                    let tid = read_into(&mut self.file);
+                    let tid = read_into(&mut self.file, &());
                     incomplete_transactions.remove(&tid);
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::ABORT => {
-                    let tid = read_into(&mut self.file);
+                    let tid = read_into(&mut self.file, &());
                     incomplete_transactions.remove(&tid);
 
                     self.show_log_contents();
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
             }
         }
@@ -393,9 +393,9 @@ impl LogManager {
     pub fn log_start(&mut self, tx: &Transaction) -> SmallResult {
         self.pre_append()?;
 
-        self.file.write(&RecordType::START)?;
-        self.file.write(&tx.get_id())?;
-        self.file.write(&self.current_offset)?;
+        self.file.write(&RecordType::START, &())?;
+        self.file.write(&tx.get_id(), &())?;
+        self.file.write(&self.current_offset, &())?;
 
         self.tx_start_position
             .insert(tx.get_id(), self.current_offset);
@@ -411,9 +411,9 @@ impl LogManager {
         self.rollback(tx, page_cache)?;
         self.file.seek(SeekFrom::Start(original_offset))?;
 
-        self.file.write(&RecordType::ABORT)?;
-        self.file.write(&tx.get_id())?;
-        self.file.write(&self.current_offset)?;
+        self.file.write(&RecordType::ABORT, &())?;
+        self.file.write(&tx.get_id(), &())?;
+        self.file.write(&self.current_offset, &())?;
 
         self.current_offset = self.file.get_current_position()?;
         self.tx_start_position.remove(&tx.get_id());
@@ -437,10 +437,10 @@ impl LogManager {
         // start offset
         // 4 + 8 + before page + after page + 8
 
-        self.file.write(&RecordType::UPDATE)?;
-        self.file.write(&tx.get_id())?;
+        self.file.write(&RecordType::UPDATE, &())?;
+        self.file.write(&tx.get_id(), &())?;
         self.write_page(page_pod)?;
-        self.file.write(&self.current_offset)?;
+        self.file.write(&self.current_offset, &())?;
 
         self.file.flush()?;
 
@@ -462,18 +462,18 @@ impl LogManager {
 
         let checkpoint_start_position = self.file.get_current_position()?;
 
-        self.file.write(&RecordType::CHECKPOINT)?;
+        self.file.write(&RecordType::CHECKPOINT, &())?;
 
         // no tid , but leave space for convenience
         //
         // TODO: Figure out what this is used for, and if it's needed.
-        self.file.write(&NO_CHECKPOINT)?;
+        self.file.write(&NO_CHECKPOINT, &())?;
 
         // write list of outstanding transactions
-        self.file.write(&self.tx_start_position.len())?;
+        self.file.write(&self.tx_start_position.len(), &())?;
         for (tid, start_position) in &self.tx_start_position {
-            self.file.write(tid)?;
-            self.file.write(start_position)?;
+            self.file.write(tid, &())?;
+            self.file.write(start_position, &())?;
         }
 
         let checkpoint_end_position = self.file.get_current_position()?;
@@ -481,14 +481,14 @@ impl LogManager {
         // once the CP is written, make sure the CP location at the
         // beginning of the log file is updated
         self.file.seek(SeekFrom::Start(0)).unwrap();
-        self.file.write(&checkpoint_start_position)?;
+        self.file.write(&checkpoint_start_position, &())?;
 
         self.file
             .seek(SeekFrom::Start(checkpoint_end_position))
             .unwrap();
 
         // write start position of this record
-        self.file.write(&checkpoint_start_position)?;
+        self.file.write(&checkpoint_start_position, &())?;
         self.current_offset = self.file.get_current_position()?;
 
         return Ok(());
@@ -497,9 +497,9 @@ impl LogManager {
     pub fn log_commit(&mut self, tx: &Transaction) -> SmallResult {
         self.pre_append()?;
 
-        self.file.write(&RecordType::COMMIT)?;
-        self.file.write(&tx.get_id())?;
-        self.file.write(&self.current_offset)?;
+        self.file.write(&RecordType::COMMIT, &())?;
+        self.file.write(&tx.get_id(), &())?;
+        self.file.write(&self.current_offset, &())?;
 
         self.current_offset = self.file.get_current_position()?;
         self.tx_start_position.remove(&tx.get_id());
@@ -515,7 +515,7 @@ impl LogManager {
     fn rollback(&mut self, tx: &Transaction, page_cache: &mut BufferPool) -> SmallResult {
         // step 1: get the position of last checkpoint
         self.file.seek(SeekFrom::Start(0))?;
-        let last_checkpoint_position = read_into(&mut self.file);
+        let last_checkpoint_position = read_into(&mut self.file, &());
         if last_checkpoint_position == NO_CHECKPOINT {
             // If there is no checkpoint, we can't rollback, just discard cached
             // pages related to this transaction.
@@ -532,24 +532,24 @@ impl LogManager {
 
         // step 3: read checkpoint, get the position of the specific
         // tx
-        let record_type = RecordType::decode_from(&mut self.file);
-        // let record_type: RecordType = read_into(&mut self.file);
+        let record_type = RecordType::decode(&mut self.file, &());
+        // let record_type: RecordType = read_into(&mut self.file, &());
         if record_type != RecordType::CHECKPOINT {
             panic!("invalid checkpoint");
         }
         // checkpoint id
-        let _: i64 = read_into(&mut self.file);
+        let _: i64 = read_into(&mut self.file, &());
         // read list of outstanding(active) transactions
-        let tx_count: u64 = read_into(&mut self.file);
+        let tx_count: u64 = read_into(&mut self.file, &());
         let mut tx_start_position = 0;
         for _ in 0..tx_count {
-            let tx_id: TransactionID = read_into(&mut self.file);
+            let tx_id: TransactionID = read_into(&mut self.file, &());
             if tx_id == tx.get_id() {
-                tx_start_position = read_into(&mut self.file);
+                tx_start_position = read_into(&mut self.file, &());
                 break;
             } else {
                 // skip the start position
-                let _: u64 = read_into(&mut self.file);
+                let _: u64 = read_into(&mut self.file, &());
             }
         }
         if tx_start_position == 0 {
@@ -563,76 +563,76 @@ impl LogManager {
         // we encounter the EOF
         let file_size = self.file.get_size()?;
         while self.file.get_current_position()? < file_size {
-            let record_type = read_into(&mut self.file);
+            let record_type = read_into(&mut self.file, &());
 
             match record_type {
                 RecordType::START => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::UPDATE => {
-                    let tid: TransactionID = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file, &());
                     if tid == tx.get_id() {
-                        let pid: BTreePageID = read_into(&mut self.file);
+                        let pid: BTreePageID = read_into(&mut self.file, &());
 
                         // skip the before page
-                        let before_image: Vec<u8> = read_into(&mut self.file);
+                        let before_image: Vec<u8> = read_into(&mut self.file, &());
                         self.recover_page(&pid, &before_image, page_cache)?;
 
                         // skip the after page
                         let _ = self.read_page(&pid)?;
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     } else {
                         // skip this record
 
                         // skip the page id
-                        let _: BTreePageID = read_into(&mut self.file);
+                        let _: BTreePageID = read_into(&mut self.file, &());
 
                         // skip the before page
-                        let _: Vec<u8> = read_into(&mut self.file);
+                        let _: Vec<u8> = read_into(&mut self.file, &());
 
                         // skip the after page
-                        let _: Vec<u8> = read_into(&mut self.file);
+                        let _: Vec<u8> = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     }
                 }
                 RecordType::CHECKPOINT => {
                     // skip the checkpoint id
-                    let _: i64 = read_into(&mut self.file);
+                    let _: i64 = read_into(&mut self.file, &());
 
                     // skip the list of outstanding transactions
-                    let tx_count: u64 = read_into(&mut self.file);
+                    let tx_count: u64 = read_into(&mut self.file, &());
                     for _ in 0..tx_count {
                         // skip the transaction id
-                        let _: TransactionID = read_into(&mut self.file);
+                        let _: TransactionID = read_into(&mut self.file, &());
 
                         // skip the start position
-                        let _: u64 = read_into(&mut self.file);
+                        let _: u64 = read_into(&mut self.file, &());
                     }
 
                     // skip the current offset
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::COMMIT => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
                 RecordType::ABORT => {
                     // skip the transaction id
-                    let _: TransactionID = read_into(&mut self.file);
+                    let _: TransactionID = read_into(&mut self.file, &());
 
                     // skip the start position
-                    let _: u64 = read_into(&mut self.file);
+                    let _: u64 = read_into(&mut self.file, &());
                 }
             }
         }
@@ -642,7 +642,7 @@ impl LogManager {
 
     fn write_page<PAGE: BTreePage>(&mut self, page_pod: Arc<RwLock<PAGE>>) -> SmallResult {
         let page = page_pod.read().unwrap();
-        self.file.write(&page.get_pid())?;
+        self.file.write(&page.get_pid(), &())?;
 
         let table_rc = Database::mut_catalog()
             .get_table(&page.get_pid().table_id)
@@ -650,10 +650,10 @@ impl LogManager {
         let table_schema = table_rc.rl().get_schema();
 
         let before_data = page.get_before_image(&table_schema);
-        self.file.write(&before_data)?;
+        self.file.write(&before_data, &())?;
 
         let after_data = page.get_page_data(&table_schema);
-        self.file.write(&after_data)?;
+        self.file.write(&after_data, &())?;
 
         return Ok(());
     }
@@ -692,9 +692,9 @@ impl LogManager {
     }
 
     fn read_page(&mut self, pid: &BTreePageID) -> Result<Arc<RwLock<dyn BTreePage>>, SmallError> {
-        // let pid: BTreePageID = read_into(&mut self.file);
+        // let pid: BTreePageID = read_into(&mut self.file, &());
 
-        let data: Vec<u8> = read_into(&mut self.file);
+        let data: Vec<u8> = read_into(&mut self.file, &());
 
         let mut catalog = Database::mut_catalog();
         let table_pod = catalog.get_table(&pid.table_id).unwrap();
@@ -745,7 +745,7 @@ impl LogManager {
 
         self.file.seek(SeekFrom::Start(0)).unwrap();
 
-        let last_checkpoint: u64 = read_into(&mut self.file);
+        let last_checkpoint: u64 = read_into(&mut self.file, &());
 
         if last_checkpoint != NO_CHECKPOINT {
             depiction.push_str(&format!(
@@ -766,7 +766,7 @@ impl LogManager {
                 break;
             }
 
-            let record_type = read_into(&mut self.file);
+            let record_type = read_into(&mut self.file, &());
 
             depiction.push_str(&format!(
                 "├── {:?}-[pos {}]-[record {}]\n",
@@ -780,13 +780,13 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: TransactionID = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
                         TRANSACTION_ID_BYTES, tid,
                     ));
 
-                    let start_offset: u64 = read_into(&mut self.file);
+                    let start_offset: u64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -798,30 +798,30 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: TransactionID = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
                         TRANSACTION_ID_BYTES, tid,
                     ));
 
-                    let pid: BTreePageID = read_into(&mut self.file);
+                    let pid: BTreePageID = read_into(&mut self.file, &());
                     depiction.push_str(&format!("│   ├── [8 bytes] pid: {:?}\n", pid,));
 
-                    let before_page: Vec<u8> = read_into(&mut self.file);
+                    let before_page: Vec<u8> = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] before page: {}\n",
                         before_page.len(),
                         self.parsed_page_content(&before_page, &pid),
                     ));
 
-                    let after_page: Vec<u8> = read_into(&mut self.file);
+                    let after_page: Vec<u8> = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] after page: {}\n",
                         after_page.len(),
                         self.parsed_page_content(&after_page, &pid),
                     ));
 
-                    let start_offset: u64 = read_into(&mut self.file);
+                    let start_offset: u64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -833,13 +833,13 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: TransactionID = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
                         TRANSACTION_ID_BYTES, tid,
                     ));
 
-                    let start_offset: u64 = read_into(&mut self.file);
+                    let start_offset: u64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -851,30 +851,30 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let checkpoint_id: i64 = read_into(&mut self.file);
+                    let checkpoint_id: i64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [8 bytes] checkpoint id: {}\n",
                         checkpoint_id,
                     ));
 
                     // read list of outstanding(active) transactions
-                    let tx_count: usize = read_into(&mut self.file);
+                    let tx_count: usize = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] active tx count: {}\n",
                         std::mem::size_of::<usize>(),
                         tx_count,
                     ));
                     for _ in 0..tx_count {
-                        let tx_id: TransactionID = read_into(&mut self.file);
+                        let tx_id: TransactionID = read_into(&mut self.file, &());
                         depiction.push_str(&format!("│   │   ├── [8 bytes] tx id: {}\n", tx_id,));
-                        let tx_start_offset: u64 = read_into(&mut self.file);
+                        let tx_start_offset: u64 = read_into(&mut self.file, &());
                         depiction.push_str(&format!(
                             "│   │   └── [8 bytes] tx start offset: {}\n",
                             tx_start_offset,
                         ));
                     }
 
-                    let checkpoint_end_position: u64 = read_into(&mut self.file);
+                    let checkpoint_end_position: u64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start position: {}\n",
                         checkpoint_end_position,
@@ -886,13 +886,13 @@ impl LogManager {
                         record_type,
                     ));
 
-                    let tid: TransactionID = read_into(&mut self.file);
+                    let tid: TransactionID = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   ├── [{} bytes] tid: {}\n",
                         TRANSACTION_ID_BYTES, tid,
                     ));
 
-                    let start_offset: u64 = read_into(&mut self.file);
+                    let start_offset: u64 = read_into(&mut self.file, &());
                     depiction.push_str(&format!(
                         "│   └── [8 bytes] start offset: {}\n",
                         start_offset,
@@ -907,7 +907,7 @@ impl LogManager {
     }
 
     pub fn parsed_page_content(&self, bytes: &[u8], pid: &BTreePageID) -> String {
-        let page_category = PageCategory::decode_from(&mut Cursor::new(bytes));
+        let page_category = PageCategory::decode(&mut Cursor::new(bytes), &());
 
         match page_category {
             PageCategory::Leaf => {
@@ -918,9 +918,10 @@ impl LogManager {
 
                 let page = BTreeLeafPage::new(&pid, bytes, &schema);
                 let iter = page.iter();
+                let typ = schema.get_fields()[0].get_type();
                 let content = iter
                     .take(15)
-                    .map(|x| x.get_cell(0).to_bytes())
+                    .map(|x| x.get_cell(0).to_bytes(&typ))
                     .collect::<Vec<_>>();
 
                 return format!("{:?}, content: {:?}...", page_category, content,);

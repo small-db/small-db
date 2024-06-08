@@ -30,9 +30,9 @@ impl SmallFile {
         Self { file }
     }
 
-    pub fn write<T: Encodeable>(&mut self, obj: &T) -> SmallResult {
+    pub fn write<T: Serializeable>(&mut self, obj: &T, reference: &T::Reference) -> SmallResult {
         let mut writer = SmallWriter::new();
-        obj.encode(&mut writer);
+        obj.encode(&mut writer, reference);
         writer.write_to(&mut self.file);
         Ok(())
     }
@@ -80,8 +80,11 @@ impl std::io::Read for SmallFile {
 /// more concise.
 ///
 /// TODO: rename
-pub fn read_into<T: Decodeable, R: std::io::Read>(reader: &mut R) -> T {
-    T::decode_from(reader)
+pub fn read_into<T: Serializeable, R: std::io::Read>(
+    reader: &mut R,
+    reference: &T::Reference,
+) -> T {
+    T::decode(reader, reference)
 }
 
 pub fn read_exact<R: std::io::Read>(reader: &mut R, bytes_count: usize) -> Vec<u8> {
@@ -110,11 +113,7 @@ impl SmallWriter {
         Self { buf }
     }
 
-    pub(crate) fn write<T: Serializeable>(
-        &mut self,
-        obj: &T,
-        reference: &T::Reference,
-    ) {
+    pub(crate) fn write<T: Serializeable>(&mut self, obj: &T, reference: &T::Reference) {
         obj.encode(self, reference);
     }
 
@@ -149,21 +148,6 @@ impl SmallWriter {
         self.buf.resize(size, 0);
         std::mem::take(&mut self.buf)
     }
-}
-
-pub trait Encodeable {
-    fn encode(&self, writer: &mut SmallWriter);
-
-    /// TODO: remove this api
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut writer = SmallWriter::new();
-        self.encode(&mut writer);
-        writer.to_bytes()
-    }
-}
-
-pub trait Decodeable {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self;
 }
 
 pub(crate) trait Serializeable {
@@ -211,16 +195,16 @@ impl Serializeable for bool {
     }
 }
 
-impl Decodeable for String {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-        // read size
-        let size = u8::from_le_bytes(read_exact(reader, 1).try_into().unwrap());
+// impl Decodeable for String {
+//     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+//         // read size
+//         let size = u8::from_le_bytes(read_exact(reader, 1).try_into().unwrap());
 
-        // read payload
-        let bytes = read_exact(reader, size as usize);
-        String::from_utf8(bytes).unwrap()
-    }
-}
+//         // read payload
+//         let bytes = read_exact(reader, size as usize);
+//         String::from_utf8(bytes).unwrap()
+//     }
+// }
 
 /// # Format
 /// - 2 byte: size of the payload (range: 0 - 64 KB)
@@ -271,30 +255,6 @@ impl Serializeable for Vec<u8> {
     }
 }
 
-/// # Format
-/// - 2 byte: size of the string (range: 0 - 64 KB)
-/// - n bytes: string
-// impl Encodeable for Vec<u8> {
-//     fn encode(&self, writer: &mut SmallWriter) {
-//         // write size
-//         let size = self.len() as u16;
-//         writer.write_disk_format(&size);
-
-//         // write payload
-//         writer.write_bytes(self);
-//     }
-// }
-
-// impl Decodeable for Vec<u8> {
-//     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-//         // read size
-//         let size: u16 = read_into(reader);
-
-//         // read payload
-//         read_exact(reader, size as usize)
-//     }
-// }
-
 macro_rules! impl_serialization {
     (for $($t:ty),+) => {
         $(
@@ -306,13 +266,6 @@ macro_rules! impl_serialization {
                 }
 
                 fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
-                    let bytes = read_exact(reader, size_of::<Self>());
-                    Self::from_le_bytes(bytes.try_into().unwrap())
-                }
-            }
-
-            impl Decodeable for $t {
-                fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
                     let bytes = read_exact(reader, size_of::<Self>());
                     Self::from_le_bytes(bytes.try_into().unwrap())
                 }

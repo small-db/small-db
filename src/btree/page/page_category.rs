@@ -1,4 +1,4 @@
-use crate::io::{Decodeable, Encodeable, Serializeable, SmallWriter};
+use crate::io::{Serializeable, SmallWriter};
 
 #[derive(PartialEq, Copy, Clone, Eq, Hash, Debug)]
 pub enum PageCategory {

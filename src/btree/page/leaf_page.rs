@@ -73,15 +73,15 @@ impl BTreeLeafPage {
             }
 
             // read parent page index
-            let parent_id = read_into(&mut reader);
+            let parent_id = read_into(&mut reader, &());
             let parent_pid =
                 BTreePageID::new(PageCategory::Internal, pid.get_table_id(), parent_id);
 
             // read left sibling page index
-            let left_sibling_id = read_into(&mut reader);
+            let left_sibling_id = read_into(&mut reader, &());
 
             // read right sibling page index
-            let right_sibling_id = read_into(&mut reader);
+            let right_sibling_id = read_into(&mut reader, &());
 
             // read header
             let header = BitVec::decode(&mut reader, &());

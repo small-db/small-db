@@ -2,7 +2,7 @@ use std::{fmt::Debug, io::Read};
 
 use crate::{
     error::SmallError,
-    io::{read_exact, read_into, Decodeable, Encodeable, Serializeable, SmallWriter},
+    io::{read_exact, read_into, Serializeable, SmallWriter},
     storage::table_schema::{self, Type},
     TableSchema,
 };
@@ -69,25 +69,6 @@ impl Cell {
             _ => Err(SmallError::new("not bytes")),
         }
     }
-
-    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
-    //     match t {
-    //         Type::Bool => Cell::Bool(bool::decode_from(reader, &())),
-    //         Type::Int64 => Cell::Int64(i64::decode_from(reader)),
-    //         Type::Float64 => Cell::Float64(f64::decode_from(reader)),
-    //         Type::Bytes(x) => {
-    //             // read size
-    //             let size: u16 = read_into(reader);
-
-    //             // read payload
-    //             let payload = read_exact(reader, *x as usize);
-
-    //             let actual = payload[..size as usize].to_vec();
-
-    //             return Cell::Bytes(actual);
-    //         }
-    //     }
-    // }
 }
 
 impl Serializeable for Cell {
@@ -117,7 +98,7 @@ impl Serializeable for Cell {
                 if let Type::Bytes(size) = reference {
                     let remain = *size as usize - v.len();
                     for _ in 0..remain {
-                        writer.write(&0u8, &());
+                        0u8.encode(writer, &());
                     }
                 } else {
                     panic!("type not match, expect bytes, got {:?}", reference);
@@ -141,39 +122,6 @@ impl Serializeable for Cell {
                 let actual = payload[..size as usize].to_vec();
 
                 return Cell::Bytes(actual);
-            }
-        }
-    }
-
-    fn encode(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
-        match self {
-            Cell::Null => todo!(),
-            Cell::Bool(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Int64(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Float64(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Bytes(v) => {
-                // write payload size
-                let size = v.len() as u16;
-                writer.write_disk_format(&size);
-
-                // write payload
-                writer.write_bytes(v);
-
-                // padding
-                if let Type::Bytes(size) = reference {
-                    let remain = *size as usize - v.len();
-                    for _ in 0..remain {
-                        writer.write_disk_format(&0u8);
-                    }
-                } else {
-                    panic!("type not match, expect bytes, got {:?}", reference);
-                }
             }
         }
     }
@@ -205,36 +153,5 @@ impl Eq for Cell {}
 impl Ord for Cell {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.partial_cmp(other).unwrap()
-    }
-}
-
-// impl Encodeable for Cell {
-//     fn encode(&self, writer: &mut SmallWriter) {
-//         match self {
-//             Cell::Null => todo!(),
-//             Cell::Bool(v) => {
-//                 writer.write(v);
-//             }
-//             Cell::Int64(v) => {
-//                 writer.write(v);
-//             }
-//             Cell::Float64(v) => {
-//                 writer.write(v);
-//             }
-//             Cell::Bytes(v) => {
-//                 // write size
-//                 let size = v.len() as u16;
-//                 writer.write(&size);
-
-//                 // write payload
-//                 writer.write_bytes(v);
-//             }
-//         }
-//     }
-// }
-
-impl Decodeable for Cell {
-    fn decode_from<R: std::io::Read>(_reader: &mut R) -> Self {
-        todo!()
     }
 }

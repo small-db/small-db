@@ -5,7 +5,7 @@ use bit_vec::BitVec;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{Decodeable, Serializeable, SmallWriter},
+    io::{Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
 };
 

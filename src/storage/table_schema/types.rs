@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::io::{read_exact, Decodeable, Encodeable, SmallWriter};
+use crate::io::{read_exact, Serializeable, SmallWriter};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Type {
@@ -27,8 +27,10 @@ impl Type {
     }
 }
 
-impl Encodeable for Type {
-    fn encode(&self, writer: &mut SmallWriter) {
+impl Serializeable for Type {
+    type Reference = ();
+
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
         match self {
             Type::Bool => writer.write_bytes(&[0, 1]),
             Type::Int64 => writer.write_bytes(&[1, 8]),
@@ -36,10 +38,8 @@ impl Encodeable for Type {
             Type::Bytes(size) => writer.write_bytes(&[3, *size]),
         }
     }
-}
 
-impl Decodeable for Type {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
         let bytes: [u8; 2] = read_exact(reader, 2).try_into().unwrap();
 
         match bytes {

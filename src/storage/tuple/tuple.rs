@@ -7,7 +7,7 @@ use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Decodeable, Encodeable, Serializeable, SmallWriter},
+    io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::{TransactionID, TransactionStatus, TRANSACTION_ID_BYTES},
     Database,
@@ -123,12 +123,12 @@ impl Serializeable for Tuple {
     }
 
     fn decode<R: std::io::Read>(reader: &mut R, reference: &Self::Reference) -> Self {
-        let xmin = TransactionID::decode_from(reader);
-        let xmax = TransactionID::decode_from(reader);
+        let xmin = TransactionID::decode(reader, &());
+        let xmax = TransactionID::decode(reader, &());
 
         let mut cells: Vec<Cell> = Vec::new();
         for field in reference.get_fields() {
-            let cell = Cell::decode_from(reader, &field.get_type());
+            let cell = Cell::decode(reader, &field.get_type());
             cells.push(cell);
         }
         Self::new_x(xmin, xmax, &cells)

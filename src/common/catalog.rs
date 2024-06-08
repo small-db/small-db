@@ -9,7 +9,7 @@ use log::info;
 use super::schema::Schema;
 use crate::{
     btree::table::BTreeTableSearchIterator,
-    io::{read_into, Decodeable, Encodeable},
+    io::{read_into, Serializeable},
     storage::{
         table_schema::{Field, TableSchema, Type},
         tuple::{Cell, Tuple},
@@ -75,7 +75,7 @@ impl Catalog {
             let table_id = tuple.get_cell(0).get_int64()?;
             let table_name = String::from_utf8(tuple.get_cell(1).get_bytes()?).unwrap();
             let field_name = String::from_utf8(tuple.get_cell(2).get_bytes()?).unwrap();
-            let field_type = Type::decode_from(&mut Cursor::new(tuple.get_cell(3).get_bytes()?));
+            let field_type = Type::decode(&mut Cursor::new(tuple.get_cell(3).get_bytes()?), &());
             let is_primary = tuple.get_cell(4).get_bool()?;
 
             let field = Field::new(&field_name, field_type, is_primary);
@@ -168,13 +168,19 @@ impl Catalog {
         let mut fields = Vec::new();
         let mut table_name_option: Option<String> = None;
         for tuple in iter {
-            table_name_option = Some(read_into(&mut Cursor::new(
-                tuple.get_cell(1).get_bytes().unwrap(),
-            )));
+            table_name_option = Some(read_into(
+                &mut Cursor::new(tuple.get_cell(1).get_bytes().unwrap()),
+                &(),
+            ));
 
-            let field_name: String =
-                read_into(&mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()));
-            let field_type = read_into(&mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()));
+            let field_name: String = read_into(
+                &mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()),
+                &(),
+            );
+            let field_type = read_into(
+                &mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()),
+                &(),
+            );
             let is_primary = tuple.get_cell(4).get_bool().unwrap();
 
             let field = Field::new(&field_name, field_type, is_primary);
@@ -219,7 +225,10 @@ impl Catalog {
             table_id_option = Some(tuple.get_cell(0).get_int64().unwrap());
 
             let field_name = String::from_utf8(tuple.get_cell(2).get_bytes().unwrap()).unwrap();
-            let field_type = read_into(&mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()));
+            let field_type = read_into(
+                &mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()),
+                &(),
+            );
             let is_primary = tuple.get_cell(4).get_bool().unwrap();
 
             let field = Field::new(&field_name, field_type, is_primary);
@@ -302,7 +311,7 @@ impl Catalog {
                 // field name
                 Cell::new_bytes(&field.name.as_bytes(), &field_name_type),
                 // field type
-                Cell::new_bytes(&field.get_type().to_bytes(), &field_type_type),
+                Cell::new_bytes(&field.get_type().to_bytes(&()), &field_type_type),
                 // is primary
                 Cell::new_bool(field.is_primary),
             ];

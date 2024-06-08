@@ -3,7 +3,7 @@ use std::fmt;
 use super::PageCategory;
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{read_into, Decodeable, Encodeable, Serializeable, SmallWriter},
+    io::{read_into, Serializeable, SmallWriter},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;
@@ -84,27 +84,6 @@ impl Serializeable for BTreePageID {
         }
     }
 }
-
-// impl Encodeable for BTreePageID {
-//     fn encode(&self, writer: &mut SmallWriter) {
-//         writer.write_disk_format(&self.category);
-//         writer.write_disk_format(&self.page_index);
-//         writer.write_disk_format(&self.table_id);
-//     }
-// }
-
-// impl Decodeable for BTreePageID {
-//     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-//         let category = read_into(reader);
-//         let page_index = read_into(reader);
-//         let table_id = read_into(reader);
-//         Self {
-//             category,
-//             page_index,
-//             table_id,
-//         }
-//     }
-// }
 
 pub fn empty_page_data() -> Vec<u8> {
     let data: Vec<u8> = vec![0; BufferPool::get_page_size()];

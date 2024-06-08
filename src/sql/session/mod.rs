@@ -1,7 +1,7 @@
 use super::executor::{sql_handler::handle_sql, stream::Batch};
 use crate::{
     error::SmallError,
-    io::{Encodeable, Serializeable},
+    io::{Serializeable},
     storage::tuple::Tuple,
     transaction::Transaction,
 };

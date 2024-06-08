@@ -8,7 +8,7 @@ use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     concurrent_status::Permission,
     error::SmallError,
-    io::{Decodeable, Serializeable, SmallWriter},
+    io::{Serializeable, SmallWriter},
     storage::{
         table_schema::{self, TableSchema},
         tuple::Cell,
@@ -113,7 +113,7 @@ impl BTreeInternalPage {
             let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
                 pid.get_table_id(),
-                u32::decode_from(&mut reader),
+                u32::decode(&mut reader, &()),
             );
 
             // read children category
@@ -126,7 +126,7 @@ impl BTreeInternalPage {
             let mut keys: Vec<Cell> = Vec::new();
             keys.push(Cell::Int64(0));
             for _ in 1..slot_count {
-                let key = i64::decode_from(&mut reader);
+                let key = i64::decode(&mut reader, &());
                 keys.push(Cell::Int64(key));
             }
 
@@ -136,7 +136,7 @@ impl BTreeInternalPage {
                 let child = BTreePageID::new(
                     children_category,
                     pid.get_table_id(),
-                    u32::decode_from(&mut reader),
+                    u32::decode(&mut reader, &()),
                 );
                 children.push(child);
             }
@@ -176,7 +176,7 @@ impl BTreeInternalPage {
         let mut keys: Vec<Cell> = Vec::new();
         keys.push(Cell::Int64(0));
         for _ in 1..slot_count {
-            let key = i64::decode_from(&mut reader);
+            let key = i64::decode(&mut reader, &());
             keys.push(Cell::Int64(key));
         }
 
@@ -186,7 +186,7 @@ impl BTreeInternalPage {
             let child = BTreePageID::new(
                 children_category,
                 pid.get_table_id(),
-                u32::decode_from(&mut reader),
+                u32::decode(&mut reader, &()),
             );
             children.push(child);
         }
