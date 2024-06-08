@@ -63,17 +63,6 @@ impl Tuple {
     pub(crate) fn clone(&self) -> Self {
         Self::new_x(self.xmin, self.xmax, &self.cells.clone())
     }
-
-    pub(crate) fn encode(&self, writer: &mut SmallWriter, schema: &TableSchema) {
-        self.xmin.encode(writer);
-        self.xmax.encode(writer);
-
-        for i in 0..self.cells.len() {
-            let cell = &self.cells[i];
-            let t = &schema.get_fields()[i].get_type();
-            cell.encode_disk(writer, t);
-        }
-    }
 }
 
 impl Tuple {
@@ -115,6 +104,30 @@ impl Tuple {
             // cannot find the status of the transaction that created this tuple
             error!("txn not found: {}", self.xmin);
             return false;
+        }
+    }
+}
+
+impl Serializeable for Tuple {
+    type Reference = TableSchema;
+
+    fn encode_memory(&self, writer: &mut SmallWriter) {
+        self.xmin.encode(writer);
+        self.xmax.encode(writer);
+
+        for cell in &self.cells {
+            cell.encode_memory(writer);
+        }
+    }
+
+    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
+        self.xmin.encode(writer);
+        self.xmax.encode(writer);
+
+        for i in 0..self.cells.len() {
+            let cell = &self.cells[i];
+            let t = reference.get_fields()[i].get_type();
+            cell.encode_disk(writer, &t);
         }
     }
 }

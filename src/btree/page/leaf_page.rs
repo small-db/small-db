@@ -10,7 +10,7 @@ use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
-    io::{read_into, SmallWriter},
+    io::{read_into, Serializeable, SmallWriter},
     storage::{
         table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
@@ -424,7 +424,7 @@ impl BTreePage for BTreeLeafPage {
 
         // write tuples
         for tuple in &self.tuples {
-            tuple.encode(&mut writer, &table_schema);
+            tuple.encode_disk(&mut writer, &table_schema);
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
