@@ -630,8 +630,7 @@ impl BTreePage for BTreeInternalPage {
 
         // write children
         for i in 0..self.slot_count {
-            self.children[i].encode(&mut writer, &());
-            // writer.write_disk_format(&self.children[i].page_index, &());
+            self.children[i].page_index.encode(&mut writer, &());
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
