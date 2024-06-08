@@ -94,17 +94,12 @@ impl Tuple {
             .transaction_status
             .get(&self.xmin)
         {
-            if *status == TransactionStatus::Committed {
-                // it is visible only if the transaction that created it has committed
-                return true;
-            } else {
-                // debug!("status: {:?}", status);
-                return false;
-            }
+            return *status == TransactionStatus::Committed;
         } else {
-            // cannot find the status of the transaction that created this tuple
-            error!("txn not found: {}", self.xmin);
-            return false;
+            // Cannot find the status of the transaction, which means the transaction
+            // has been committed. (If the transaction has been aborted, the page will
+            // be recovered in the recovery process, and we will not see the tuple here.)
+            return true;
         }
     }
 }

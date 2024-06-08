@@ -911,7 +911,6 @@ impl LogManager {
 
         match page_category {
             PageCategory::Leaf => {
-                // TODO: use real value for schema, key_field and pid
                 let mut catalog = Database::mut_catalog();
                 let table_rc = catalog.get_table(&pid.table_id).unwrap();
                 let schema = table_rc.rl().get_schema();

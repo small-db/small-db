@@ -154,6 +154,8 @@ impl Catalog {
             return Some(table_rc.clone());
         }
 
+        return None;
+
         let schema_table_rc = self.get_table_schemas();
         let schema_table = schema_table_rc.rl();
 

@@ -261,7 +261,6 @@ impl BufferPool {
     /// TODO: remove the "log_manager" parameter
     pub fn flush_pages(&self, tx: &Transaction, log_manager: &mut LogManager) {
         let dirty_pages = Database::concurrent_status().get_dirty_pages(tx);
-        debug!("tx: {:?}, dirty_pages: {:?}", tx, dirty_pages);
 
         // Note: current implementation of the api "flush_page" request
         // "ConcurrentStatus", so we must get "dirty_pages" before the for loop.

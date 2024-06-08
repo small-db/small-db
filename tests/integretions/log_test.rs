@@ -410,3 +410,17 @@ fn test_open_crash() {
     assert_true(search_key(&table_1, &tx, &Cell::Int64(9)) == 0, &table_1);
     tx.commit().unwrap();
 }
+
+/// Create a table, test if it still exists after a crash.
+#[test]
+fn test_new_table() {
+    setup();
+
+    let table_name = "table_abc";
+
+    let _ = new_empty_btree_table(table_name, 2);
+
+    crash();
+
+    assert!(Database::catalog().search_table(table_name).is_some());
+}

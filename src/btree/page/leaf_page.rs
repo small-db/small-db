@@ -434,7 +434,7 @@ impl BTreePage for BTreeLeafPage {
                 // write empty bytes
                 let mut bytes: Vec<u8> = Vec::new();
                 bytes.resize(table_schema.get_tuple_size(), 0);
-                bytes.encode(&mut writer, &());
+                writer.write_bytes(&bytes);
             }
         }
 

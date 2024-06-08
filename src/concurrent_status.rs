@@ -74,8 +74,6 @@ impl ConcurrentStatus {
             .get_mut(tx)
             .unwrap()
             .insert(page_id.clone());
-
-        debug!("add_relation: <tx: {}, page_id: {:?}>", tx, page_id,);
     }
 }
 
