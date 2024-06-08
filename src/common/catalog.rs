@@ -149,60 +149,12 @@ impl Catalog {
     /// search it in the `schemas` table and load it into the map.
     ///
     /// Return the table if it exists, otherwise return `None`.
-    pub fn get_table(&mut self, table_index: &TableID) -> Option<TableRC> {
+    pub(crate) fn get_table(&mut self, table_index: &TableID) -> Option<TableRC> {
         if let Some(table_rc) = self.tables.get(table_index) {
             return Some(table_rc.clone());
         }
 
         return None;
-
-        let schema_table_rc = self.get_table_schemas();
-        let schema_table = schema_table_rc.rl();
-
-        let tx = Transaction::new();
-
-        let predicate = Predicate::new(
-            schema_table.key_field,
-            Op::Equals,
-            &Cell::Int64(*table_index as i64),
-        );
-        let iter = BTreeTableSearchIterator::new(&tx, &schema_table, &predicate);
-        let mut fields = Vec::new();
-        let mut table_name_option: Option<String> = None;
-        for tuple in iter {
-            table_name_option = Some(read_into(
-                &mut Cursor::new(tuple.get_cell(1).get_bytes().unwrap()),
-                &(),
-            ));
-
-            let field_name: String = read_into(
-                &mut Cursor::new(tuple.get_cell(2).get_bytes().unwrap()),
-                &(),
-            );
-            let field_type = read_into(
-                &mut Cursor::new(tuple.get_cell(3).get_bytes().unwrap()),
-                &(),
-            );
-            let is_primary = tuple.get_cell(4).get_bool().unwrap();
-
-            let field = Field::new(&field_name, field_type, is_primary);
-            fields.push(field);
-        }
-
-        match table_name_option {
-            Some(table_name) => {
-                let schema = TableSchema::new(fields);
-                let table = BTreeTable::new(&table_name, Some(*table_index), &schema);
-
-                let table_rc = Arc::new(RwLock::new(table));
-
-                self.tables.insert(*table_index, table_rc.clone());
-                Some(table_rc)
-            }
-            None => {
-                return None;
-            }
-        }
     }
 
     /// TODO: remove this old api

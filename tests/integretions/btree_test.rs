@@ -55,7 +55,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
     tx.commit().unwrap();
 }
 
-// #[test]
+#[test]
 /// Doing lots of inserts and deletes simultaneously, this test aims to test the
 /// correctness of the B+ tree implementation under concurrent environment.
 ///
