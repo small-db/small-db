@@ -64,26 +64,26 @@ impl BTreePageID {
     }
 }
 
-impl Encodeable for BTreePageID {
-    fn encode(&self, writer: &mut SmallWriter) {
-        writer.write(&self.category);
-        writer.write(&self.page_index);
-        writer.write(&self.table_id);
-    }
-}
+// impl Encodeable for BTreePageID {
+//     fn encode(&self, writer: &mut SmallWriter) {
+//         writer.write_disk_format(&self.category);
+//         writer.write_disk_format(&self.page_index);
+//         writer.write_disk_format(&self.table_id);
+//     }
+// }
 
-impl Decodeable for BTreePageID {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-        let category = read_into(reader);
-        let page_index = read_into(reader);
-        let table_id = read_into(reader);
-        Self {
-            category,
-            page_index,
-            table_id,
-        }
-    }
-}
+// impl Decodeable for BTreePageID {
+//     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
+//         let category = read_into(reader);
+//         let page_index = read_into(reader);
+//         let table_id = read_into(reader);
+//         Self {
+//             category,
+//             page_index,
+//             table_id,
+//         }
+//     }
+// }
 
 pub fn empty_page_data() -> Vec<u8> {
     let data: Vec<u8> = vec![0; BufferPool::get_page_size()];

@@ -5,7 +5,7 @@ use bit_vec::BitVec;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{Decodeable, SmallWriter},
+    io::{Decodeable, Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
 };
 
@@ -31,17 +31,16 @@ impl BTreeHeaderPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid);
         } else {
-            // let mut reader = Cursor::new(bytes);
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let page_category = PageCategory::decode_from(&mut reader);
+            let page_category = PageCategory::decode_disk(&mut reader, &());
             if page_category != PageCategory::Header {
                 panic!("invalid page category: {:?}", page_category);
             }
 
             // read header
-            let header = BitVec::decode_from(&mut reader);
+            let header = BitVec::decode_disk(&mut reader, &());
 
             let slot_count = header.len();
 
@@ -111,10 +110,10 @@ impl BTreePage for BTreeHeaderPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write(&self.get_pid().category);
+        writer.write_disk_format(&self.get_pid().category, &());
 
         // write header
-        writer.write(&self.header);
+        writer.write_disk_format(&self.header, &());
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }

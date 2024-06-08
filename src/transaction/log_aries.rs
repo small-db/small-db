@@ -57,7 +57,7 @@ impl RecordType {
 
 impl Encodeable for RecordType {
     fn encode(&self, writer: &mut SmallWriter) {
-        writer.write(&(*self as u8));
+        writer.write_disk_format(&(*self as u8));
     }
 }
 

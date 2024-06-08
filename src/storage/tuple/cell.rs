@@ -97,18 +97,18 @@ impl Serializeable for Cell {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Int64(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Float64(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Bytes(v) => {
                 // write size
                 let size = v.len() as u16;
-                writer.write(&size);
+                writer.write_disk_format(&size);
 
                 // write payload
                 writer.write_bytes(v);
@@ -120,18 +120,18 @@ impl Serializeable for Cell {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Int64(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Float64(v) => {
-                writer.write(v);
+                writer.write_disk_format(v);
             }
             Cell::Bytes(v) => {
                 // write payload size
                 let size = v.len() as u16;
-                writer.write(&size);
+                writer.write_disk_format(&size);
 
                 // write payload
                 writer.write_bytes(v);
@@ -140,7 +140,7 @@ impl Serializeable for Cell {
                 if let Type::Bytes(size) = reference {
                     let remain = *size as usize - v.len();
                     for _ in 0..remain {
-                        writer.write(&0u8);
+                        writer.write_disk_format(&0u8);
                     }
                 } else {
                     panic!("type not match, expect bytes, got {:?}", reference);

@@ -3,7 +3,7 @@ use std::io::Cursor;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{Decodeable, SmallWriter},
+    io::{Decodeable, Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
 };
 
@@ -37,7 +37,7 @@ impl BTreeRootPointerPage {
         let mut reader = Cursor::new(bytes);
 
         // read page category
-        let page_category = PageCategory::decode_from(&mut reader);
+        let page_category = PageCategory::decode_disk(&mut reader, &());
         if page_category != PageCategory::RootPointer {
             panic!("invalid page category: {:?}", page_category);
         }
@@ -46,7 +46,7 @@ impl BTreeRootPointerPage {
         let root_page_index = u32::decode_from(&mut reader);
 
         // read root page category
-        let root_page_category = PageCategory::decode_from(&mut reader);
+        let root_page_category = PageCategory::decode_disk(&mut reader, &());
 
         // read header page index
         let header_page_index = u32::decode_from(&mut reader);
@@ -132,16 +132,16 @@ impl BTreePage for BTreeRootPointerPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write(&self.get_pid().category);
+        writer.write_disk_format(&self.get_pid().category, &());
 
         // write root page index
-        writer.write(&self.root_pid.page_index);
+        writer.write_disk_format(&self.root_pid.page_index, &());
 
         // write root page category
-        writer.write(&self.root_pid.category);
+        writer.write_disk_format(&self.root_pid.category, &());
 
         // write header page index
-        writer.write(&self.header_page_index);
+        writer.write_disk_format(&self.header_page_index, &());
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }

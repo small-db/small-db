@@ -48,17 +48,17 @@ impl Tuple {
         }
     }
 
-    pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
-        let xmin = TransactionID::decode_from(reader);
-        let xmax = TransactionID::decode_from(reader);
+    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
+    //     let xmin = TransactionID::decode_from(reader);
+    //     let xmax = TransactionID::decode_from(reader);
 
-        let mut cells: Vec<Cell> = Vec::new();
-        for field in schema.get_fields() {
-            let cell = Cell::read_from(reader, &field.get_type());
-            cells.push(cell);
-        }
-        Self::new_x(xmin, xmax, &cells)
-    }
+    //     let mut cells: Vec<Cell> = Vec::new();
+    //     for field in schema.get_fields() {
+    //         let cell = Cell::read_from(reader, &field.get_type());
+    //         cells.push(cell);
+    //     }
+    //     Self::new_x(xmin, xmax, &cells)
+    // }
 
     pub(crate) fn clone(&self) -> Self {
         Self::new_x(self.xmin, self.xmax, &self.cells.clone())
@@ -112,17 +112,29 @@ impl Serializeable for Tuple {
     type Reference = TableSchema;
 
     fn encode_memory(&self, writer: &mut SmallWriter) {
-        self.xmin.encode(writer);
-        self.xmax.encode(writer);
+        self.xmin.encode_memory(writer);
+        self.xmax.encode_memory(writer);
 
         for cell in &self.cells {
             cell.encode_memory(writer);
         }
     }
 
+    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+        let xmin = TransactionID::decode_from(reader);
+        let xmax = TransactionID::decode_from(reader);
+
+        let mut cells: Vec<Cell> = Vec::new();
+        for field in reference.get_fields() {
+            let cell = Cell::decode_from(reader, &field.get_type());
+            cells.push(cell);
+        }
+        Self::new_x(xmin, xmax, &cells)
+    }
+
     fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
-        self.xmin.encode(writer);
-        self.xmax.encode(writer);
+        self.xmin.encode_disk(writer, &());
+        self.xmax.encode_disk(writer, &());
 
         for i in 0..self.cells.len() {
             let cell = &self.cells[i];

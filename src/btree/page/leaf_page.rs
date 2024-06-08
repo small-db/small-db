@@ -64,7 +64,7 @@ impl BTreeLeafPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category: PageCategory = read_into(&mut reader);
+            let category = PageCategory::decode_memory(&mut reader);
             if category != PageCategory::Leaf {
                 panic!(
                     "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -84,13 +84,12 @@ impl BTreeLeafPage {
             let right_sibling_id = read_into(&mut reader);
 
             // read header
-            // let header = BitVec::decode_from(&mut reader);
-            let header = read_into(&mut reader);
+            let header = BitVec::decode_disk(&mut reader, &());
 
             // read tuples
             let mut tuples = Vec::new();
             for _ in 0..slot_count {
-                let t = Tuple::read_from(&mut reader, schema);
+                let t = Tuple::decode_disk(&mut reader, schema);
                 tuples.push(t);
             }
 
@@ -408,19 +407,19 @@ impl BTreePage for BTreeLeafPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write(&self.get_pid().category);
+        writer.write_disk_format(&self.get_pid().category, &());
 
         // write parent page index
-        writer.write(&self.get_parent_pid().page_index);
+        writer.write_disk_format(&self.get_parent_pid().page_index, &());
 
         // write left sibling page index
-        writer.write(&self.left_sibling_id);
+        writer.write_disk_format(&self.left_sibling_id, &());
 
         // write right sibling page index
-        writer.write(&self.right_sibling_id);
+        writer.write_disk_format(&self.right_sibling_id, &());
 
         // write header
-        writer.write(&self.header);
+        writer.write_disk_format(&self.header, &());
 
         // write tuples
         for tuple in &self.tuples {
