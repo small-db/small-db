@@ -70,14 +70,70 @@ impl Cell {
         }
     }
 
-    pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
-        match t {
-            Type::Bool => Cell::Bool(bool::decode_from(reader)),
-            Type::Int64 => Cell::Int64(i64::decode_from(reader)),
-            Type::Float64 => Cell::Float64(f64::decode_from(reader)),
+    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
+    //     match t {
+    //         Type::Bool => Cell::Bool(bool::decode_from(reader, &())),
+    //         Type::Int64 => Cell::Int64(i64::decode_from(reader)),
+    //         Type::Float64 => Cell::Float64(f64::decode_from(reader)),
+    //         Type::Bytes(x) => {
+    //             // read size
+    //             let size: u16 = read_into(reader);
+
+    //             // read payload
+    //             let payload = read_exact(reader, *x as usize);
+
+    //             let actual = payload[..size as usize].to_vec();
+
+    //             return Cell::Bytes(actual);
+    //         }
+    //     }
+    // }
+}
+
+impl Serializeable for Cell {
+    type Reference = Type;
+
+    fn encode(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
+        match self {
+            Cell::Null => todo!(),
+            Cell::Bool(v) => {
+                v.encode(writer, &());
+            }
+            Cell::Int64(v) => {
+                v.encode(writer, &());
+            }
+            Cell::Float64(v) => {
+                v.encode(writer, &());
+            }
+            Cell::Bytes(v) => {
+                // write payload size
+                let size = v.len() as u16;
+                size.encode(writer, &());
+
+                // write payload
+                writer.write_bytes(v);
+
+                // padding
+                if let Type::Bytes(size) = reference {
+                    let remain = *size as usize - v.len();
+                    for _ in 0..remain {
+                        writer.write(&0u8, &());
+                    }
+                } else {
+                    panic!("type not match, expect bytes, got {:?}", reference);
+                }
+            }
+        }
+    }
+
+    fn decode<R: Read>(reader: &mut R, reference: &Self::Reference) -> Self {
+        match reference {
+            Type::Bool => Cell::Bool(bool::decode(reader, &())),
+            Type::Int64 => Cell::Int64(i64::decode(reader, &())),
+            Type::Float64 => Cell::Float64(f64::decode(reader, &())),
             Type::Bytes(x) => {
                 // read size
-                let size: u16 = read_into(reader);
+                let size = u16::decode(reader, &());
 
                 // read payload
                 let payload = read_exact(reader, *x as usize);
@@ -88,35 +144,8 @@ impl Cell {
             }
         }
     }
-}
 
-impl Serializeable for Cell {
-    type Reference = Type;
-
-    fn encode_memory(&self, writer: &mut SmallWriter) {
-        match self {
-            Cell::Null => todo!(),
-            Cell::Bool(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Int64(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Float64(v) => {
-                writer.write_disk_format(v);
-            }
-            Cell::Bytes(v) => {
-                // write size
-                let size = v.len() as u16;
-                writer.write_disk_format(&size);
-
-                // write payload
-                writer.write_bytes(v);
-            }
-        }
-    }
-
-    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
+    fn encode(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => {

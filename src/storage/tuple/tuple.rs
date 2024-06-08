@@ -111,16 +111,18 @@ impl Tuple {
 impl Serializeable for Tuple {
     type Reference = TableSchema;
 
-    fn encode_memory(&self, writer: &mut SmallWriter) {
-        self.xmin.encode_memory(writer);
-        self.xmax.encode_memory(writer);
+    fn encode(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
+        self.xmin.encode(writer, &());
+        self.xmax.encode(writer, &());
 
-        for cell in &self.cells {
-            cell.encode_memory(writer);
+        for i in 0..self.cells.len() {
+            let cell = &self.cells[i];
+            let t = reference.get_fields()[i].get_type();
+            cell.encode(writer, &t);
         }
     }
 
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R, reference: &Self::Reference) -> Self {
         let xmin = TransactionID::decode_from(reader);
         let xmax = TransactionID::decode_from(reader);
 
@@ -130,17 +132,6 @@ impl Serializeable for Tuple {
             cells.push(cell);
         }
         Self::new_x(xmin, xmax, &cells)
-    }
-
-    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
-        self.xmin.encode_disk(writer, &());
-        self.xmax.encode_disk(writer, &());
-
-        for i in 0..self.cells.len() {
-            let cell = &self.cells[i];
-            let t = reference.get_fields()[i].get_type();
-            cell.encode_disk(writer, &t);
-        }
     }
 }
 

@@ -40,9 +40,11 @@ impl futures_core::stream::Stream for QueryResult {
         let tuple = &self.data[self.cursor];
         let mut bytes_list: Vec<Option<bytes::Bytes>> = Vec::new();
         for cell in tuple.get_cells() {
-            let bytes = cell.to_bytes_memory();
-            let v = bytes::Bytes::copy_from_slice(&bytes);
-            bytes_list.push(Some(v));
+            todo!();
+
+            // let bytes = cell.to_bytes();
+            // let v = bytes::Bytes::copy_from_slice(&bytes);
+            // bytes_list.push(Some(v));
         }
 
         let data_row = pgwire::messages::data::DataRow::new(bytes_list);

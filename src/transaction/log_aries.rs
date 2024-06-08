@@ -920,7 +920,7 @@ impl LogManager {
                 let iter = page.iter();
                 let content = iter
                     .take(15)
-                    .map(|x| x.get_cell(0).to_bytes_memory())
+                    .map(|x| x.get_cell(0).to_bytes())
                     .collect::<Vec<_>>();
 
                 return format!("{:?}, content: {:?}...", page_category, content,);

@@ -3,7 +3,7 @@ use std::fmt;
 use super::PageCategory;
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{read_into, Decodeable, Encodeable, SmallWriter},
+    io::{read_into, Decodeable, Encodeable, Serializeable, SmallWriter},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;
@@ -61,6 +61,27 @@ impl BTreePageID {
 
     pub fn get_short_repr(&self) -> String {
         format!("{:?}_{}", self.category, self.page_index)
+    }
+}
+
+impl Serializeable for BTreePageID {
+    type Reference = ();
+
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
+        self.category.encode(writer, &());
+        self.page_index.encode(writer, &());
+        self.table_id.encode(writer, &());
+    }
+
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
+        let category = PageCategory::decode(reader, &());
+        let page_index = u32::decode(reader, &());
+        let table_id = u32::decode(reader, &());
+        Self {
+            category,
+            page_index,
+            table_id,
+        }
     }
 }
 

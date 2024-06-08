@@ -64,7 +64,7 @@ impl BTreeLeafPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::decode_memory(&mut reader);
+            let category = PageCategory::decode(&mut reader, &());
             if category != PageCategory::Leaf {
                 panic!(
                     "BTreeLeafPage::new: page category is not leaf, category: {:?}",
@@ -84,12 +84,12 @@ impl BTreeLeafPage {
             let right_sibling_id = read_into(&mut reader);
 
             // read header
-            let header = BitVec::decode_disk(&mut reader, &());
+            let header = BitVec::decode(&mut reader, &());
 
             // read tuples
             let mut tuples = Vec::new();
             for _ in 0..slot_count {
-                let t = Tuple::decode_disk(&mut reader, schema);
+                let t = Tuple::decode(&mut reader, schema);
                 tuples.push(t);
             }
 
@@ -407,23 +407,23 @@ impl BTreePage for BTreeLeafPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write_disk_format(&self.get_pid().category, &());
+        self.get_pid().category.encode(&mut writer, &());
 
         // write parent page index
-        writer.write_disk_format(&self.get_parent_pid().page_index, &());
+        self.get_parent_pid().page_index.encode(&mut writer, &());
 
         // write left sibling page index
-        writer.write_disk_format(&self.left_sibling_id, &());
+        self.left_sibling_id.encode(&mut writer, &());
 
         // write right sibling page index
-        writer.write_disk_format(&self.right_sibling_id, &());
+        self.right_sibling_id.encode(&mut writer, &());
 
         // write header
-        writer.write_disk_format(&self.header, &());
+        self.header.encode(&mut writer, &());
 
         // write tuples
         for tuple in &self.tuples {
-            tuple.encode_disk(&mut writer, &table_schema);
+            tuple.encode(&mut writer, &table_schema);
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());

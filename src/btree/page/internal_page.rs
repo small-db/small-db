@@ -99,7 +99,7 @@ impl BTreeInternalPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let category = PageCategory::decode_disk(&mut reader, &());
+            let category = PageCategory::decode(&mut reader, &());
             if category != PageCategory::Internal {
                 panic!(
                     "The page category of the internal page is not
@@ -117,10 +117,10 @@ impl BTreeInternalPage {
             );
 
             // read children category
-            let children_category = PageCategory::decode_disk(&mut reader, &());
+            let children_category = PageCategory::decode(&mut reader, &());
 
             // read header
-            let header = BitVec::decode_disk(&mut reader, &());
+            let header = BitVec::decode(&mut reader, &());
 
             // read keys
             let mut keys: Vec<Cell> = Vec::new();
@@ -615,26 +615,27 @@ impl BTreePage for BTreeInternalPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write_disk_format(&self.get_pid().category, &());
+        self.get_pid().category.encode(&mut writer, &());
 
         // write parent page index
-        writer.write_disk_format(&self.get_parent_pid().page_index, &());
+        self.get_parent_pid().page_index.encode(&mut writer, &());
 
         // write children category
-        writer.write_disk_format(&self.children_category, &());
+        self.children_category.encode(&mut writer, &());
 
         // write header
-        writer.write_disk_format(&self.header, &());
+        self.header.encode(&mut writer, &());
 
         // write keys
         let t = table_schema.get_pkey().get_type();
         for i in 1..self.slot_count {
-            writer.write_disk_format(&self.keys[i], &t);
+            self.keys[i].encode(&mut writer, &t);
         }
 
         // write children
         for i in 0..self.slot_count {
-            writer.write_disk_format(&self.children[i].page_index, &());
+            self.children[i].encode(&mut writer, &());
+            // writer.write_disk_format(&self.children[i].page_index, &());
         }
 
         return writer.to_padded_bytes(BufferPool::get_page_size());

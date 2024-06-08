@@ -34,13 +34,13 @@ impl BTreeHeaderPage {
             let mut reader = Cursor::new(bytes);
 
             // read page category
-            let page_category = PageCategory::decode_disk(&mut reader, &());
+            let page_category = PageCategory::decode(&mut reader, &());
             if page_category != PageCategory::Header {
                 panic!("invalid page category: {:?}", page_category);
             }
 
             // read header
-            let header = BitVec::decode_disk(&mut reader, &());
+            let header = BitVec::decode(&mut reader, &());
 
             let slot_count = header.len();
 
@@ -110,10 +110,10 @@ impl BTreePage for BTreeHeaderPage {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
-        writer.write_disk_format(&self.get_pid().category, &());
+        self.get_pid().category.encode(&mut writer, &());
 
         // write header
-        writer.write_disk_format(&self.header, &());
+        self.header.encode(&mut writer, &());
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }

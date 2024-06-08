@@ -16,7 +16,7 @@ const HEADER: [u8; 4] = [0, 0, 0, 3];
 impl Serializeable for PageCategory {
     type Reference = ();
 
-    fn encode_memory(&self, writer: &mut SmallWriter) {
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
         match self {
             PageCategory::RootPointer => writer.write_bytes(&ROOT_POINTER),
             PageCategory::Internal => writer.write_bytes(&INTERNAL),
@@ -25,7 +25,7 @@ impl Serializeable for PageCategory {
         }
     }
 
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
         let mut buffer = [0; 4];
         reader.read_exact(&mut buffer).unwrap();
         match buffer {

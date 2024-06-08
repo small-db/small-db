@@ -110,12 +110,12 @@ impl SmallWriter {
         Self { buf }
     }
 
-    pub(crate) fn write_disk_format<T: Serializeable>(
+    pub(crate) fn write<T: Serializeable>(
         &mut self,
         obj: &T,
         reference: &T::Reference,
     ) {
-        obj.encode_disk(self, reference);
+        obj.encode(self, reference);
     }
 
     pub fn write_bytes(&mut self, obj: &[u8]) {
@@ -169,49 +169,29 @@ pub trait Decodeable {
 pub(crate) trait Serializeable {
     type Reference;
 
-    // return the (memory) bytes representation of the object
-    fn to_bytes_memory(&self) -> Vec<u8> {
+    // return the bytes representation of the object
+    fn to_bytes(&self, reference: &Self::Reference) -> Vec<u8> {
         let mut writer = SmallWriter::new();
-        self.encode_memory(&mut writer);
+        self.encode(&mut writer, reference);
         writer.to_bytes()
     }
 
-    // return the (disk) bytes representation of the object
-    fn to_bytes_disk(&self, reference: &Self::Reference) -> Vec<u8> {
-        let mut writer = SmallWriter::new();
-        self.encode_disk(&mut writer, reference);
-        writer.to_bytes()
-    }
+    // encode the object to the writer
+    fn encode(&self, writer: &mut SmallWriter, reference: &Self::Reference);
 
-    // encode the object to the writer using the memory format
-    fn encode_memory(&self, writer: &mut SmallWriter);
-
-    // decode the object from the reader (memory format)
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self;
-
-    // encode the object to the writer using the disk format
-    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
-        self.encode_memory(writer);
-    }
-
-    // decode the object from the reader (disk format)
-    fn decode_disk<R: std::io::Read>(reader: &mut R, reference: &Self::Reference) -> Self
-    where
-        Self: Sized,
-    {
-        Self::decode_memory(reader)
-    }
+    // decode the object from the reader
+    fn decode<R: std::io::Read>(reader: &mut R, reference: &Self::Reference) -> Self;
 }
 
 impl Serializeable for BitVec {
     type Reference = ();
 
-    fn encode_memory(&self, writer: &mut SmallWriter) {
-        writer.write_bytes(&self.to_bytes());
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
+        self.to_bytes().encode(writer, &());
     }
 
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
-        let buffer = Vec::<u8>::decode_memory(reader);
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
+        let buffer = Vec::<u8>::decode(reader, &());
         BitVec::from_bytes(&buffer)
     }
 }
@@ -219,17 +199,17 @@ impl Serializeable for BitVec {
 /// # Format
 ///
 /// - 1 byte (0 for false, 1 for true)
-// impl Encodeable for bool {
-//     fn encode(&self, writer: &mut SmallWriter) {
-//         writer.write_disk_format(&(*self as u8));
-//     }
-// }
+impl Serializeable for bool {
+    type Reference = ();
 
-// impl Decodeable for bool {
-//     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
-//         u8::decode_from(reader) == 1
-//     }
-// }
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
+        writer.write_bytes(&(*self as u8).to_le_bytes());
+    }
+
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
+        u8::decode(reader, &()) == 1
+    }
+}
 
 impl Decodeable for String {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
@@ -248,7 +228,7 @@ impl Decodeable for String {
 impl Serializeable for String {
     type Reference = ();
 
-    fn encode_memory(&self, writer: &mut SmallWriter) {
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
         // write size
         let size = self.len() as u16;
         writer.write_bytes(&size.to_le_bytes());
@@ -257,21 +237,13 @@ impl Serializeable for String {
         writer.write_bytes(self.as_bytes());
     }
 
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
         // read size
-        let size = u16::decode_memory(reader);
+        let size = u16::decode(reader, &());
 
         // read payload
         let bytes = read_exact(reader, size as usize);
         String::from_utf8(bytes).unwrap()
-    }
-
-    fn encode_disk(&self, writer: &mut SmallWriter, _: &Self::Reference) {
-        unimplemented!()
-    }
-
-    fn decode_disk<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
-        unimplemented!()
     }
 }
 
@@ -281,7 +253,7 @@ impl Serializeable for String {
 impl Serializeable for Vec<u8> {
     type Reference = ();
 
-    fn encode_memory(&self, writer: &mut SmallWriter) {
+    fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
         // write size
         let size = self.len() as u16;
         writer.write_bytes(&size.to_le_bytes());
@@ -290,9 +262,9 @@ impl Serializeable for Vec<u8> {
         writer.write_bytes(self);
     }
 
-    fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+    fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
         // read size
-        let size = u16::decode_memory(reader);
+        let size = u16::decode(reader, &());
 
         // read payload
         read_exact(reader, size as usize)
@@ -329,11 +301,11 @@ macro_rules! impl_serialization {
             impl Serializeable for $t {
                 type Reference = ();
 
-                fn encode_memory(&self, writer: &mut SmallWriter) {
+                fn encode(&self, writer: &mut SmallWriter, _: &Self::Reference) {
                     writer.write_bytes(&self.to_le_bytes());
                 }
 
-                fn decode_memory<R: std::io::Read>(reader: &mut R) -> Self {
+                fn decode<R: std::io::Read>(reader: &mut R, _: &Self::Reference) -> Self {
                     let bytes = read_exact(reader, size_of::<Self>());
                     Self::from_le_bytes(bytes.try_into().unwrap())
                 }
