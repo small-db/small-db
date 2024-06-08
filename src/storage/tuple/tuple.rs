@@ -3,8 +3,6 @@ use std::{
     usize,
 };
 
-use log::error;
-
 use crate::{
     btree::page::BTreePageID,
     io::{Serializeable, SmallWriter},
