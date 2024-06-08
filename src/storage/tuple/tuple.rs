@@ -7,7 +7,7 @@ use log::{debug, error};
 
 use crate::{
     btree::page::BTreePageID,
-    io::{Decodeable, Encodeable, SmallWriter},
+    io::{Decodeable, Encodeable, Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::{TransactionID, TransactionStatus, TRANSACTION_ID_BYTES},
     Database,
@@ -71,7 +71,7 @@ impl Tuple {
         for i in 0..self.cells.len() {
             let cell = &self.cells[i];
             let t = &schema.get_fields()[i].get_type();
-            cell.encode(writer, t);
+            cell.encode_disk(writer, t);
         }
     }
 }

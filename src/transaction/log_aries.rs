@@ -18,7 +18,7 @@ use crate::{
         },
     },
     error::SmallError,
-    io::{read_exact, read_into, Decodeable, Encodeable, SmallFile, SmallWriter},
+    io::{read_exact, read_into, Decodeable, Encodeable, Serializeable, SmallFile, SmallWriter},
     transaction::TRANSACTION_ID_BYTES,
     types::SmallResult,
     utils::HandyRwLock,
@@ -920,7 +920,7 @@ impl LogManager {
                 let iter = page.iter();
                 let content = iter
                     .take(15)
-                    .map(|x| x.get_cell(0).to_bytes())
+                    .map(|x| x.get_cell(0).to_bytes_memory())
                     .collect::<Vec<_>>();
 
                 return format!("{:?}, content: {:?}...", page_category, content,);

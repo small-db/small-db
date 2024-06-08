@@ -8,7 +8,7 @@ use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     concurrent_status::Permission,
     error::SmallError,
-    io::{Decodeable, SmallWriter},
+    io::{Decodeable, Serializeable, SmallWriter},
     storage::{
         table_schema::{self, TableSchema},
         tuple::Cell,
@@ -632,7 +632,7 @@ impl BTreePage for BTreeInternalPage {
         {
             let t = table_schema.get_pkey().get_type();
             for i in 1..self.slot_count {
-                self.keys[i].encode(&mut writer, &t);
+                self.keys[i].encode_disk(&mut writer, &t);
             }
         }
 

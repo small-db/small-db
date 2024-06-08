@@ -1,8 +1,8 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, io::Read};
 
 use crate::{
     error::SmallError,
-    io::{Decodeable, Encodeable, SmallWriter},
+    io::{read_exact, read_into, Decodeable, Encodeable, Serializeable, SmallWriter},
     storage::table_schema::{self, Type},
     TableSchema,
 };
@@ -70,16 +70,30 @@ impl Cell {
         }
     }
 
-    pub fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
+    pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, t: &Type) -> Self {
         match t {
             Type::Bool => Cell::Bool(bool::decode_from(reader)),
             Type::Int64 => Cell::Int64(i64::decode_from(reader)),
             Type::Float64 => Cell::Float64(f64::decode_from(reader)),
-            Type::Bytes(_) => Cell::Bytes(Vec::decode_from(reader)),
+            Type::Bytes(x) => {
+                // read size
+                let size: u16 = read_into(reader);
+
+                // read payload
+                let payload = read_exact(reader, *x as usize);
+
+                let actual = payload[..size as usize].to_vec();
+
+                return Cell::Bytes(actual);
+            }
         }
     }
+}
 
-    pub(crate) fn encode(&self, writer: &mut SmallWriter, t: &Type) {
+impl Serializeable for Cell {
+    type Reference = Type;
+
+    fn encode_memory(&self, writer: &mut SmallWriter) {
         match self {
             Cell::Null => todo!(),
             Cell::Bool(v) => {
@@ -98,42 +112,41 @@ impl Cell {
 
                 // write payload
                 writer.write_bytes(v);
+            }
+        }
+    }
 
-                if let Type::Bytes(size) = t {
+    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference) {
+        match self {
+            Cell::Null => todo!(),
+            Cell::Bool(v) => {
+                writer.write(v);
+            }
+            Cell::Int64(v) => {
+                writer.write(v);
+            }
+            Cell::Float64(v) => {
+                writer.write(v);
+            }
+            Cell::Bytes(v) => {
+                // write payload size
+                let size = v.len() as u16;
+                writer.write(&size);
+
+                // write payload
+                writer.write_bytes(v);
+
+                // padding
+                if let Type::Bytes(size) = reference {
                     let remain = *size as usize - v.len();
                     for _ in 0..remain {
                         writer.write(&0u8);
                     }
                 } else {
-                    panic!("type not match, expect bytes, got {:?}", t);
+                    panic!("type not match, expect bytes, got {:?}", reference);
                 }
             }
         }
-    }
-
-    pub(crate) fn to_bytes(&self) -> Vec<u8> {
-        let mut writer = SmallWriter::new();
-        match self {
-            Cell::Null => todo!(),
-            Cell::Bool(v) => {
-                writer.write(v);
-            }
-            Cell::Int64(v) => {
-                writer.write(v);
-            }
-            Cell::Float64(v) => {
-                writer.write(v);
-            }
-            Cell::Bytes(v) => {
-                // write size
-                let size = v.len() as u16;
-                writer.write(&size);
-
-                // write payload
-                writer.write_bytes(v);
-            }
-        }
-        writer.to_bytes()
     }
 }
 

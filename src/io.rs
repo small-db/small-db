@@ -162,6 +162,30 @@ pub trait Decodeable {
     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self;
 }
 
+pub(crate) trait Serializeable {
+    type Reference;
+
+    // return the (memory) bytes representation of the object
+    fn to_bytes_memory(&self) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
+        self.encode_memory(&mut writer);
+        writer.to_bytes()
+    }
+
+    // return the (disk) bytes representation of the object
+    fn to_bytes_disk(&self, reference: &Self::Reference) -> Vec<u8> {
+        let mut writer = SmallWriter::new();
+        self.encode_disk(&mut writer, reference);
+        writer.to_bytes()
+    }
+
+    // encode the object to the writer using the memory format
+    fn encode_memory(&self, writer: &mut SmallWriter);
+
+    // encode the object to the writer using the disk format
+    fn encode_disk(&self, writer: &mut SmallWriter, reference: &Self::Reference);
+}
+
 impl Encodeable for BitVec {
     fn encode(&self, writer: &mut SmallWriter) {
         writer.write(&self.to_bytes());
