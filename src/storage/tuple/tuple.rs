@@ -3,13 +3,13 @@ use std::{
     usize,
 };
 
-use log::{debug, error};
+use log::error;
 
 use crate::{
     btree::page::BTreePageID,
     io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
-    transaction::{TransactionID, TransactionStatus, TRANSACTION_ID_BYTES},
+    transaction::{TransactionID, TransactionStatus},
     Database,
 };
 
@@ -48,9 +48,10 @@ impl Tuple {
         }
     }
 
-    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema: &TableSchema) -> Self {
-    //     let xmin = TransactionID::decode_from(reader);
-    //     let xmax = TransactionID::decode_from(reader);
+    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema:
+    // &TableSchema) -> Self {     let xmin =
+    // TransactionID::decode_from(reader);     let xmax =
+    // TransactionID::decode_from(reader);
 
     //     let mut cells: Vec<Cell> = Vec::new();
     //     for field in schema.get_fields() {

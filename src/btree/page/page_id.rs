@@ -3,7 +3,7 @@ use std::fmt;
 use super::PageCategory;
 use crate::{
     btree::buffer_pool::BufferPool,
-    io::{read_into, Serializeable, SmallWriter},
+    io::{Serializeable, SmallWriter},
 };
 
 pub const EMPTY_PAGE_ID: u32 = 0;

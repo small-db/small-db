@@ -2,9 +2,8 @@ use std::{fmt::Debug, io::Read};
 
 use crate::{
     error::SmallError,
-    io::{read_exact, read_into, Serializeable, SmallWriter},
-    storage::table_schema::{self, Type},
-    TableSchema,
+    io::{read_exact, Serializeable, SmallWriter},
+    storage::table_schema::Type,
 };
 
 #[derive(Debug, Clone)]

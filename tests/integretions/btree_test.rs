@@ -11,10 +11,7 @@ use small_db::{
     BTreeTable, Database, Op, Predicate,
 };
 
-use crate::test_utils::{
-    assert_true, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
-    setup, TreeLayout,
-};
+use crate::test_utils::{new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
 // Insert one tuple into the table
 fn inserter(
@@ -22,7 +19,7 @@ fn inserter(
     table_rc: &Pod<BTreeTable>,
     s: &crossbeam::channel::Sender<Tuple>,
 ) {
-    let mut rng = rand::thread_rng();
+    let rng = rand::thread_rng();
     // let insert_value = rng.gen_range(i64::MIN, i64::MAX);
 
     let tx = Transaction::new();
@@ -97,8 +94,8 @@ fn test_concurrent() {
     //         let local_table = table_pod.clone();
     //         let local_sender = sender.clone();
 
-    //         let handle = thread::spawn(move || inserter(column_count, &local_table, &local_sender));
-    //         insert_threads.push(handle);
+    //         let handle = thread::spawn(move || inserter(column_count,
+    // &local_table, &local_sender));         insert_threads.push(handle);
     //     }
     //     // wait for all threads to finish
     //     for handle in insert_threads {
@@ -144,7 +141,8 @@ fn test_concurrent() {
         // debug!("actual tuple count: {}", table_pod.rl().tuples_count());
         // assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
         // assert!(table_pod.rl().tuples_count() == row_count + 1000, &table);
-        // assert_true(table_pod.rl().tuples_count() == row_count + 1000, &table);
+        // assert_true(table_pod.rl().tuples_count() == row_count + 1000,
+        // &table);
     }
 
     return;

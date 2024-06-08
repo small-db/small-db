@@ -198,7 +198,8 @@ impl Serializeable for bool {
 // impl Decodeable for String {
 //     fn decode_from<R: std::io::Read>(reader: &mut R) -> Self {
 //         // read size
-//         let size = u8::from_le_bytes(read_exact(reader, 1).try_into().unwrap());
+//         let size = u8::from_le_bytes(read_exact(reader,
+// 1).try_into().unwrap());
 
 //         // read payload
 //         let bytes = read_exact(reader, size as usize);

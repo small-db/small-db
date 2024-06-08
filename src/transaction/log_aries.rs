@@ -18,7 +18,7 @@ use crate::{
         },
     },
     error::SmallError,
-    io::{read_exact, read_into, Serializeable, SmallFile, SmallWriter},
+    io::{read_into, Serializeable, SmallFile, SmallWriter},
     transaction::TRANSACTION_ID_BYTES,
     types::SmallResult,
     utils::HandyRwLock,

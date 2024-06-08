@@ -9,14 +9,10 @@ use crate::{
     concurrent_status::Permission,
     error::SmallError,
     io::{Serializeable, SmallWriter},
-    storage::{
-        table_schema::{self, TableSchema},
-        tuple::Cell,
-    },
+    storage::{table_schema::TableSchema, tuple::Cell},
     transaction::Transaction,
     types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
-    Database,
 };
 
 /// The internal page is used to store the keys and the page id of the

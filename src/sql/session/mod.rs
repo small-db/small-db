@@ -1,10 +1,5 @@
 use super::executor::{sql_handler::handle_sql, stream::Batch};
-use crate::{
-    error::SmallError,
-    io::{Serializeable},
-    storage::tuple::Tuple,
-    transaction::Transaction,
-};
+use crate::{error::SmallError, storage::tuple::Tuple, transaction::Transaction};
 
 pub struct Session {}
 
@@ -38,7 +33,7 @@ impl futures_core::stream::Stream for QueryResult {
         }
 
         let tuple = &self.data[self.cursor];
-        let mut bytes_list: Vec<Option<bytes::Bytes>> = Vec::new();
+        let bytes_list: Vec<Option<bytes::Bytes>> = Vec::new();
         for cell in tuple.get_cells() {
             todo!();
 

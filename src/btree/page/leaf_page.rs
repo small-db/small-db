@@ -17,7 +17,6 @@ use crate::{
     },
     transaction::{Transaction, TransactionID},
     utils::{ceil_div, HandyRwLock},
-    Database,
 };
 
 /// A leaf page in the B+ tree.
