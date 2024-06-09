@@ -128,7 +128,7 @@ fn test_concurrent() {
         }
 
         table.draw_tree(3);
-        table.check_integrity(true);
+        table.check_integrity(true).unwrap();
 
         debug!("tuple count: {}", table.tuples_count());
         assert_eq!(table.tuples_count(), row_count + 1000);

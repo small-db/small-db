@@ -90,14 +90,14 @@ fn test_delete_root_page() {
     );
     let table = table_rc.rl();
     table.draw_tree(-1);
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
     // there should be one internal page and 2 leaf pages
     assert_eq!(3, table.pages_count());
 
     // delete the first two tuples
     delete_tuples(&table, leaf_records_cap());
 
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
     table.draw_tree(-1);
     let root_pod = get_leaf_page(&table, 0, 0);
     assert_eq!(root_pod.rl().empty_slots_count(), 0);
@@ -117,7 +117,7 @@ fn test_reuse_deleted_pages() {
     );
     let table = table_rc.rl();
     table.draw_tree(-1);
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
 
     // 3 leaf pages, 1 internal page
     assert_eq!(4, table.pages_count());
@@ -128,7 +128,7 @@ fn test_reuse_deleted_pages() {
     // now there should be 2 leaf pages, 1 internal page, 1 unused
     // leaf page, 1 header page
     table.draw_tree(-1);
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
     assert_eq!(5, table.pages_count());
 
     // insert enough tuples to ensure one of the leaf pages splits
@@ -213,7 +213,7 @@ fn test_redistribute_internal_pages() {
     );
 
     // Perform a complete verification
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn test_delete_internal_pages() {
         new_random_btree_table(2, row_count, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let table = table_rc.rl();
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
 
     let root_pod = get_internal_page(&table, 0, 0);
     let second_child_pod = get_internal_page(&table, 1, 1);
@@ -264,7 +264,7 @@ fn test_delete_internal_pages() {
         .unwrap();
     let first_child_pod = get_internal_page(&table, 1, 0);
     let second_child_pod = get_internal_page(&table, 1, 1);
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
     assert!(
         e.get_key()
             <= BTreeInternalPageIterator::new(&second_child_pod.rl())
@@ -280,5 +280,5 @@ fn test_delete_internal_pages() {
     // successfully and replaced the root.
     let root_pod = get_internal_page(&table, 0, 0);
     assert_eq!(0, root_pod.rl().empty_slots_count());
-    table.check_integrity(true);
+    table.check_integrity(true).unwrap();
 }
