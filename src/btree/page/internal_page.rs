@@ -391,7 +391,7 @@ impl BTreeInternalPage {
         upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
-    ) {
+    ) -> SmallResult {
         assert_eq!(self.get_pid().category, PageCategory::Internal);
         assert_eq!(&self.get_parent_pid(), parent_pid);
 
@@ -399,14 +399,16 @@ impl BTreeInternalPage {
         let it = BTreeInternalPageIterator::new(self);
         for e in it {
             if let Some(previous) = previous {
-                assert!(
-                    previous <= e.get_key(),
-                    "entries are not in order, previous (lower_bound): {:?}, current entry: {}, current pid: {}, parent pid: {}",
-                    previous,
-                    e,
-                    self.get_pid(),
-                    self.get_parent_pid(),
-                );
+                if previous > e.get_key() {
+                    let err_msg = format!(
+                        "entries are not in order, previous (lower_bound): {:?}, current entry: {}, current pid: {}, parent pid: {}",
+                        previous,
+                        e,
+                        self.get_pid(),
+                        self.get_parent_pid(),
+                    );
+                    return Err(SmallError::new(&err_msg));
+                }
             }
             previous = Some(e.get_key());
         }
@@ -418,14 +420,18 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            assert!(
-                self.children_count() >= self.slot_count / 2,
-                "children count: {}, max children: {}, pid: {:?}",
-                self.children_count(),
-                self.slot_count / 2,
-                self.get_pid(),
-            );
+            if self.children_count() < self.slot_count / 2 {
+                let err_msg = format!(
+                    "children count: {}, max children: {}, pid: {:?}",
+                    self.children_count(),
+                    self.slot_count / 2,
+                    self.get_pid(),
+                );
+                return Err(SmallError::new(&err_msg));
+            }
         }
+
+        Ok(())
     }
 }
 
