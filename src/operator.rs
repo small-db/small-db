@@ -1,6 +1,8 @@
+use std::fmt;
+
 use crate::storage::tuple::Cell;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Op {
     Equals,
     GreaterThan,
@@ -37,5 +39,15 @@ impl Predicate {
             Op::Like => todo!(),
             Op::NotEquals => cell != &self.cell,
         }
+    }
+}
+
+impl fmt::Display for Predicate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "field_index: {}, op: {:?}, cell: {:?}",
+            self.field_index, self.op, self.cell
+        )
     }
 }

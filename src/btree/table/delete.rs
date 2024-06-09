@@ -5,6 +5,7 @@ use std::{
     usize,
 };
 
+use log::debug;
 use sqlparser::keywords::SQLSTATE;
 
 use crate::{
@@ -64,30 +65,14 @@ impl BTreeTable {
     }
 
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
-        // step 1: delete all tuples that satisfy the predicate
         if cfg!(feature = "tree_latch") {
-            // Before handling the erratic page, request the X-latch on the tree
-            let slatch = self.tree_latch.rl();
-
-            self.delete_tuples_inner(tx, predicate)?;
-
-            // The handling of the erratic page is done, release the X-latch
-            drop(slatch);
-        } else if cfg!(feature = "page_latch") {
-            self.delete_tuples_inner(tx, predicate)?;
-        }
-
-        // step 2: handle all erratic leaf pages
-        if cfg!(feature = "tree_latch") {
-            // Before handling the erratic page, request the X-latch on the tree
             let xlatch = self.tree_latch.wl();
 
-            self.handle_all_erratic_leaf_pages(tx)?;
+            self.delete_tuples_inner(tx, predicate)?;
 
-            // The handling of the erratic page is done, release the X-latch
             drop(xlatch);
         } else if cfg!(feature = "page_latch") {
-            self.handle_all_erratic_leaf_pages(tx)?;
+            self.delete_tuples_inner(tx, predicate)?;
         }
 
         Ok(())
@@ -99,34 +84,12 @@ impl BTreeTable {
             self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
 
         loop {
-            let right: Option<BTreePageID>;
-            {
-                let mut page = page_rc.wl();
-                let slots = page.search(predicate);
-
-                for slot in slots {
-                    page.delete_tuple(slot);
-                }
-
-                right = page.get_right_pid();
+            let slots = page_rc.rl().search(predicate);
+            // debug!("delete_tuples_inner slots: {:?}", slots);
+            for slot in &slots {
+                page_rc.wl().delete_tuple(slot.clone());
             }
 
-            if let Some(v) = right {
-                page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
-            } else {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn handle_all_erratic_leaf_pages(&self, tx: &Transaction) -> SmallResult {
-        let root_pid = self.get_root_pid(tx);
-        let mut page_rc =
-            self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
-
-        loop {
             if !page_rc.rl().stable() {
                 self.handle_erratic_leaf_page(tx, page_rc.clone())?;
             }
@@ -406,7 +369,6 @@ impl BTreeTable {
         let root_ptr_rc = self.get_root_ptr_page(tx);
         let header_rc: Arc<RwLock<BTreeHeaderPage>>;
 
-        // let mut root_ptr = root_ptr_rc.wl();
         match root_ptr_rc.rl().get_header_pid() {
             Some(header_pid) => {
                 header_rc =

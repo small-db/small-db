@@ -346,16 +346,17 @@ impl BufferPool {
                 //
                 // TODO: enable the following line
                 error!("not a dirty page, pid: {:?}", pid);
+                return;
             }
         } else {
-            // page not found in buffer pool, so no need to write to disk
+            // Page not found in buffer pool, so no need to write to disk. This happens
+            // when a page is deleted during the transaction.
             //
-            // why there are some pages not in buffer pool?
-            //
-            // TODO: enable the following line
-            error!("page not found in buffer pool, pid: {:?}", pid);
+            // E.g., when a transaction deletes some tuples, may cause a leaf page to be
+            // empty and be discarded from the buffer pool. But the page is still recorded
+            // in the relationship map.
+            return;
         }
-        error!("pid: {:?}", pid);
     }
 
     fn write<PAGE: BTreePage>(

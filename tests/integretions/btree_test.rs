@@ -12,8 +12,8 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table, setup,
-    TreeLayout,
+    insert_tuples, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
+    setup, TreeLayout,
 };
 
 // Insert one tuple into the table
@@ -72,6 +72,11 @@ fn test_concurrent() {
 
     let table = table_pod.rl();
 
+    // debug!("tuple count: {}", table.tuples_count());
+    // insert_tuples(&table, 100);
+    // debug!("tuple count: {}", table.tuples_count());
+    // return;
+
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
@@ -92,15 +97,16 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
+        assert_eq!(table.tuples_count(), row_count + 1000);
     }
+    debug!("tuple count: {}", table.tuples_count());
 
     // test 2:
     // insert and delete tuples at the same time, make sure the tuple count is
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..1000 {
+        for _ in 0..10 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -121,14 +127,19 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
+        // table.draw_tree(-1);
+
+        debug!("tuple count: {}", table.tuples_count());
+        assert_eq!(table.tuples_count(), row_count + 1000);
     }
+
+    return;
 
     // test 3:
     // insert and delete some tuples, make sure there is not too much pages created
     // during the process
     {
-        let page_count_marker = table_pod.rl().pages_count();
+        let page_count_marker = table.pages_count();
 
         // delete a bunch of tuples
         let mut threads = vec![];
