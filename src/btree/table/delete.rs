@@ -5,6 +5,8 @@ use std::{
     usize,
 };
 
+use sqlparser::keywords::SQLSTATE;
+
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -20,8 +22,10 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable, Database, Predicate,
+    BTreeTable, Database, Op, Predicate,
 };
+
+use super::SearchFor;
 
 /// delete-related methods
 impl BTreeTable {
@@ -29,6 +33,8 @@ impl BTreeTable {
     ///
     /// May cause pages to merge or redistribute entries/tuples if the
     /// pages become less than half full.
+    ///
+    /// TODO: remove this api
     pub fn delete_tuple(&self, tx: &Transaction, tuple: &WrappedTuple) -> SmallResult {
         let pid = tuple.get_pid();
         let leaf_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid).unwrap();
@@ -58,10 +64,80 @@ impl BTreeTable {
     }
 
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
-        let it = BTreeTableSearchIterator::new(&tx, self, &predicate);
+        // step 1: delete all tuples that satisfy the predicate
+        if cfg!(feature = "tree_latch") {
+            // Before handling the erratic page, request the X-latch on the tree
+            let slatch = self.tree_latch.rl();
 
-        for tuple in it {
-            self.delete_tuple(&tx, &tuple)?;
+            self.delete_tuples_inner(tx, predicate)?;
+
+            // The handling of the erratic page is done, release the X-latch
+            drop(slatch);
+        } else if cfg!(feature = "page_latch") {
+            self.delete_tuples_inner(tx, predicate)?;
+        }
+
+        // step 2: handle all erratic leaf pages
+        if cfg!(feature = "tree_latch") {
+            // Before handling the erratic page, request the X-latch on the tree
+            let xlatch = self.tree_latch.wl();
+
+            self.handle_all_erratic_leaf_pages(tx)?;
+
+            // The handling of the erratic page is done, release the X-latch
+            drop(xlatch);
+        } else if cfg!(feature = "page_latch") {
+            self.handle_all_erratic_leaf_pages(tx)?;
+        }
+
+        Ok(())
+    }
+
+    fn delete_tuples_inner(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
+        let root_pid = self.get_root_pid(tx);
+        let mut page_rc =
+            self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
+
+        loop {
+            let right: Option<BTreePageID>;
+            {
+                let mut page = page_rc.wl();
+                let slots = page.search(predicate);
+
+                for slot in slots {
+                    page.delete_tuple(slot);
+                }
+
+                right = page.get_right_pid();
+            }
+
+            if let Some(v) = right {
+                page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
+            } else {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn handle_all_erratic_leaf_pages(&self, tx: &Transaction) -> SmallResult {
+        let root_pid = self.get_root_pid(tx);
+        let mut page_rc =
+            self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
+
+        loop {
+            if !page_rc.rl().stable() {
+                self.handle_erratic_leaf_page(tx, page_rc.clone())?;
+            }
+
+            let right = page_rc.rl().get_right_pid();
+
+            if let Some(v) = right {
+                page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
+            } else {
+                break;
+            }
         }
 
         Ok(())

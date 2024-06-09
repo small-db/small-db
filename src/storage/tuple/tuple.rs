@@ -98,10 +98,10 @@ impl Tuple {
             if *status == TransactionStatus::Committed {
                 return true;
             } else {
-                debug!(
-                    "transaction {:?} has not committed yet, status: {:?}, tuple: {:?}",
-                    self.xmin, v, self
-                );
+                // debug!(
+                //     "transaction {:?} has not committed yet, status: {:?}, tuple: {:?}",
+                //     self.xmin, v, self
+                // );
                 return false;
             }
         } else {

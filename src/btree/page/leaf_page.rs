@@ -17,6 +17,7 @@ use crate::{
     },
     transaction::{Transaction, TransactionID},
     utils::{ceil_div, HandyRwLock},
+    Predicate,
 };
 
 /// A leaf page in the B+ tree.
@@ -295,7 +296,7 @@ impl BTreeLeafPage {
         None
     }
 
-    pub fn delete_tuple(&mut self, slot_index: usize) {
+    pub(crate) fn delete_tuple(&mut self, slot_index: usize) {
         self.mark_slot_status(slot_index, false);
     }
 
@@ -363,6 +364,21 @@ impl BTreeLeafPage {
 
     pub fn iter(&self) -> BTreeLeafPageIterator {
         BTreeLeafPageIterator::new(self)
+    }
+
+    /// Return all slots that satisfy the predicate.
+    pub(crate) fn search(&self, predicate: &Predicate) -> Vec<usize> {
+        let mut result = Vec::new();
+        for i in 0..self.slot_count {
+            if self.is_slot_used(i) {
+                let tuple = &self.tuples[i];
+                let cell = tuple.get_cell(predicate.field_index);
+                if predicate.matches(&cell) {
+                    result.push(i);
+                }
+            }
+        }
+        return result;
     }
 }
 

@@ -26,4 +26,16 @@ impl Predicate {
             cell: cell.clone(),
         }
     }
+
+    pub(crate) fn matches(&self, cell: &Cell) -> bool {
+        match self.op {
+            Op::Equals => cell == &self.cell,
+            Op::GreaterThan => cell > &self.cell,
+            Op::GreaterThanOrEq => cell >= &self.cell,
+            Op::LessThan => cell < &self.cell,
+            Op::LessThanOrEq => cell <= &self.cell,
+            Op::Like => todo!(),
+            Op::NotEquals => cell != &self.cell,
+        }
+    }
 }
