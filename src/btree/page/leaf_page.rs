@@ -16,6 +16,7 @@ use crate::{
         tuple::{Cell, Tuple, WrappedTuple},
     },
     transaction::{Transaction, TransactionID},
+    types::SmallResult,
     utils::{ceil_div, HandyRwLock},
     Predicate,
 };
@@ -306,60 +307,66 @@ impl BTreeLeafPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
+    fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }
 
-    pub fn check_integrity(
+    pub(crate) fn check_integrity(
         &self,
         parent_pid: &BTreePageID,
         lower_bound: &Option<Cell>,
         upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
-    ) {
-        let bt = Backtrace::new();
+    ) -> SmallResult {
+        if self.get_pid().category != PageCategory::Leaf {
+            return Err(SmallError::new("page category is not leaf"));
+        }
 
-        assert_eq!(self.get_pid().category, PageCategory::Leaf);
-        assert_eq!(
-            &self.get_parent_pid(),
-            parent_pid,
-            "parent pid incorrect, current page: {:?}, actual parent pid: {:?}, expect parent pid: {:?}, backtrace: {:?}",
-            self.get_pid(),
-            self.get_parent_pid(),
-            parent_pid,
-            bt,
-        );
+        if &self.get_parent_pid() != parent_pid {
+            let err_msg = format!(
+                "parent pid incorrect, current page: {:?}, actual parent pid: {:?}, expect parent pid: {:?}",
+                self.get_pid(),
+                self.get_parent_pid(),
+                parent_pid,
+            );
+            return Err(SmallError::new(&err_msg));
+        }
 
         let mut previous = lower_bound.clone();
         let it = BTreeLeafPageIterator::new(self);
         for tuple in it {
             if let Some(previous) = previous {
-                assert!(
-                    previous <= tuple.get_cell(self.key_field),
-                    "previous: {:?}, current: {:?}, page_id: {:?}",
-                    previous,
-                    tuple.get_cell(self.key_field),
-                    self.get_pid(),
-                );
+                if previous > tuple.get_cell(self.key_field) {
+                    let err_msg = format!(
+                        "previous: {:?}, current: {:?}, page_id: {:?}",
+                        previous,
+                        tuple.get_cell(self.key_field),
+                        self.get_pid(),
+                    );
+                    return Err(SmallError::new(&err_msg));
+                }
             }
             previous = Some(tuple.get_cell(self.key_field));
         }
 
         if let Some(upper_bound) = upper_bound {
             if let Some(previous) = previous {
-                assert!(
-                    &previous <= upper_bound,
-                    "the last tuple exceeds upper_bound, last tuple: {:?}, upper bound: {:?}",
-                    previous,
-                    upper_bound,
-                );
+                if &previous > upper_bound {
+                    let err_msg = format!(
+                        "the last tuple exceeds upper_bound, last tuple: {:?}, upper bound: {:?}",
+                        previous, upper_bound,
+                    );
+                    return Err(SmallError::new(&err_msg));
+                }
             }
         }
 
         if check_occupancy && depth > 0 {
             assert!(self.tuples_count() >= self.get_slots_count() / 2);
         }
+
+        return Ok(());
     }
 
     pub fn iter(&self) -> BTreeLeafPageIterator {

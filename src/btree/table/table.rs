@@ -707,7 +707,7 @@ impl BTreeTable {
             PageCategory::Leaf => {
                 let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid).unwrap();
                 let page = page_rc.rl();
-                page.check_integrity(parent_pid, lower_bound, upper_bound, check_occupancy, depth);
+                page.check_integrity(parent_pid, lower_bound, upper_bound, check_occupancy, depth)?;
 
                 let summary = SubtreeSummary {
                     left_ptr: page.get_left_pid(),
