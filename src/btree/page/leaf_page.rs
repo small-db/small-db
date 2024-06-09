@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use backtrace::Backtrace;
 use bit_vec::BitVec;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};

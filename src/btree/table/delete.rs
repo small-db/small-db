@@ -5,9 +5,7 @@ use std::{
     usize,
 };
 
-use log::debug;
-use sqlparser::keywords::SQLSTATE;
-
+use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -15,7 +13,6 @@ use crate::{
             BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
             BTreeLeafPageIterator, BTreePage, BTreePageID, Entry, PageCategory,
         },
-        table::BTreeTableSearchIterator,
     },
     concurrent_status::Permission,
     error::SmallError,
@@ -23,10 +20,8 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable, Database, Op, Predicate,
+    BTreeTable, Database, Predicate,
 };
-
-use super::SearchFor;
 
 /// delete-related methods
 impl BTreeTable {
@@ -101,10 +96,11 @@ impl BTreeTable {
         Ok(())
     }
 
-    // fn delete_tuples_inner(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
-    //     let root_pid = self.get_root_pid(tx);
+    // fn delete_tuples_inner(&self, tx: &Transaction, predicate: &Predicate) ->
+    // SmallResult {     let root_pid = self.get_root_pid(tx);
     //     let mut page_rc =
-    //         self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
+    //         self.find_leaf_page(&tx, Permission::ReadOnly, root_pid,
+    // &SearchFor::LeftMost);
 
     //     loop {
     //         let slots = page_rc.rl().search(predicate);
@@ -120,8 +116,8 @@ impl BTreeTable {
     //         let right = page_rc.rl().get_right_pid();
 
     //         if let Some(v) = right {
-    //             page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
-    //         } else {
+    //             page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly,
+    // &v).unwrap();         } else {
     //             break;
     //         }
     //     }

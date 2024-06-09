@@ -1,10 +1,10 @@
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::{Arc, RwLock};
 
-use super::{table, SearchFor};
+use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc},
+        page::{BTreeLeafPage, BTreeLeafPageIteratorRc},
     },
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,

@@ -674,12 +674,14 @@ impl BTreeTable {
             0,
         )?;
         if root_summary.left_ptr.is_some() {
-            // the "root_summary" stands for the whole tree, so the left pointer should be none.
+            // the "root_summary" stands for the whole tree, so the left pointer should be
+            // none.
             let err_msg = format!("root left pointer is not none: {:?}", root_summary.left_ptr);
             return Err(SmallError::new(&err_msg));
         }
         if root_summary.right_ptr.is_some() {
-            // the "root_summary" stands for the whole tree, so the right pointer should be none.
+            // the "root_summary" stands for the whole tree, so the right pointer should be
+            // none.
             let err_msg = format!(
                 "root right pointer is not none: {:?}",
                 root_summary.right_ptr

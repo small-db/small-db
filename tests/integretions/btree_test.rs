@@ -1,19 +1,19 @@
 use std::thread;
 
-use log::{debug, error};
+use log::debug;
 use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
-    transaction::{Transaction, TransactionID, TransactionStatus},
+    transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Op, Predicate,
+    BTreeTable, Op, Predicate,
 };
 
 use crate::test_utils::{
-    insert_tuples, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
-    setup, TreeLayout,
+    internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table, setup,
+    TreeLayout,
 };
 
 // Insert one tuple into the table
