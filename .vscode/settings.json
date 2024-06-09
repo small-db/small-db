@@ -6,10 +6,16 @@
     },
     // The features for the cargo, including check, test and debug. (the built-in test and
     // debug, which is the buttons above the test function)
+    // "rust-analyzer.cargo.features": [
+    //     "tree_latch",
+    //     "aries_steal",
+    //     "aries_force",
+    //     "read_committed",
+    // ],
     "rust-analyzer.cargo.features": [
         "tree_latch",
         "aries_steal",
         "aries_force",
-        "read_committed",
+        "repeatable_read",
     ],
 }

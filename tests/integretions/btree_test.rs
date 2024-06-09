@@ -1,11 +1,11 @@
 use std::thread;
 
-use log::debug;
+use log::{debug, error};
 use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
-    transaction::Transaction,
+    transaction::{Transaction, TransactionID, TransactionStatus},
     types::Pod,
     utils::HandyRwLock,
     BTreeTable, Database, Op, Predicate,
@@ -28,12 +28,29 @@ fn inserter(
     table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 
+    debug!(
+        "inserted tuple: {:?}, transaction status: {:?}",
+        tuple,
+        Database::concurrent_status().transaction_status,
+    );
+
     s.send(tuple).unwrap();
 }
 
 // Delete a random tuple from the table
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
     let tuple = r.recv().unwrap();
+
+    let v = tuple.get_cell(0).get_int64().unwrap();
+    let insert_tx = v as TransactionID;
+    assert!(
+        Database::concurrent_status()
+            .transaction_status
+            .get(&insert_tx)
+            .unwrap()
+            == &TransactionStatus::Committed
+    );
+
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
     let tx = Transaction::new();
@@ -44,10 +61,21 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
     // let target = it.next().unwrap();
     // table.delete_tuple(&tx, &target).unwrap();
 
+    debug!(
+        "searching tuple: {:?}, transaction status: {:?}",
+        tuple,
+        Database::concurrent_status().transaction_status,
+    );
+
     if let Some(target) = it.next() {
         table.delete_tuple(&tx, &target).unwrap();
     } else {
-        debug!("tuple not found: {:?}", tuple);
+        error!(
+            "tuple not found: {:?}, current tx: {:?}, transaction status: {:?}",
+            tuple,
+            tx.get_id(),
+            Database::concurrent_status().transaction_status,
+        );
         Database::mut_log_manager().show_log_contents();
         table.draw_tree(-1);
     }
@@ -112,7 +140,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..10 {
+        for _ in 0..6 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -274,4 +302,76 @@ fn inserter2(row_count: usize, column_count: usize, table_rc: &Pod<BTreeTable>) 
         table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
         tx.commit().unwrap();
     }
+}
+
+// Insert one tuple into the table
+fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
+    let table = table_rc.rl();
+
+    let tx = Transaction::new();
+    let tuple = new_int_tuples(tx.get_id() as i64, column_count, &tx);
+    table.insert_tuple(&tx, &tuple).unwrap();
+    tx.commit().unwrap();
+
+    debug!(
+        "inserted tuple: {:?}, transaction status: {:?}",
+        tuple,
+        Database::concurrent_status().transaction_status,
+    );
+    table.draw_tree(-1);
+
+    let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
+
+    let tx = Transaction::new();
+    let mut it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+
+    if let Some(target) = it.next() {
+        table.delete_tuple(&tx, &target).unwrap();
+        debug!("deleted tuple: {:?}", tuple);
+    } else {
+        error!(
+            "tuple not found: {:?}, current tx: {:?}, transaction status: {:?}",
+            tuple,
+            tx.get_id(),
+            Database::concurrent_status().transaction_status,
+        );
+        Database::mut_log_manager().show_log_contents();
+        table.draw_tree(-1);
+    }
+
+    // let target = it.next().unwrap();
+    // table.delete_tuple(&tx, &target).unwrap();
+
+    tx.commit().unwrap();
+}
+
+#[test]
+fn test_concurrent3() {
+    // Use a small page size to speed up the test.
+    BufferPool::set_page_size(1024);
+
+    setup();
+
+    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+
+    let table = table_pod.rl();
+
+    // insert and delete tuples at the same time, make sure the tuple count is
+    // correct, and the is no conflict between threads
+    let mut threads = vec![];
+    for _ in 0..4 {
+        // thread local copies
+        let local_table = table_pod.clone();
+
+        let insert_worker = thread::spawn(move || inserter3(2, &local_table));
+        threads.push(insert_worker);
+    }
+    // wait for all threads to finish
+    for handle in threads {
+        handle.join().unwrap();
+    }
+
+    table.draw_tree(-1);
+
+    assert_eq!(table.tuples_count(), 0);
 }

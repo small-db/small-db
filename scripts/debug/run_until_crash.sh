@@ -3,10 +3,10 @@
 # Run a specific test until it crashes.
 #
 # Usage:
-#   ./scripts/run_until_crash.sh <test_name>
+#   ./scripts/debug/run_until_crash.sh <test_name>
 #
 # e.g:
-#   ./scripts/run_until_crash.sh test_concurrent
+#   ./scripts/debug/run_until_crash.sh test_concurrent
 
 set -o errexit
 set -o nounset

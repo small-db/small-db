@@ -12,6 +12,7 @@ use crate::{
             BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
             BTreeLeafPageIterator, BTreePage, BTreePageID, Entry, PageCategory,
         },
+        table::BTreeTableSearchIterator,
     },
     concurrent_status::Permission,
     error::SmallError,
@@ -19,7 +20,7 @@ use crate::{
     transaction::Transaction,
     types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable, Database, Predicate,
 };
 
 /// delete-related methods
@@ -51,6 +52,16 @@ impl BTreeTable {
             } else if cfg!(feature = "page_latch") {
                 self.handle_erratic_leaf_page(tx, leaf_rc)?;
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
+        let it = BTreeTableSearchIterator::new(&tx, self, &predicate);
+
+        for tuple in it {
+            self.delete_tuple(&tx, &tuple)?;
         }
 
         Ok(())

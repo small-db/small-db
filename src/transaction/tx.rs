@@ -4,13 +4,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use crate::{types::SmallResult, Database};
 
 #[derive(Clone, PartialEq, Debug)]
-pub(crate) enum TransactionStatus {
+pub enum TransactionStatus {
     Active,
     Aborted,
     Committed,
 }
 
-pub(crate) type TransactionID = u32;
+pub type TransactionID = u32;
 
 pub(crate) const TRANSACTION_ID_BYTES: usize = 4;
 

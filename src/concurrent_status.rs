@@ -47,7 +47,7 @@ pub struct ConcurrentStatus {
     //
     // PostgreSQL maintains a data structure for transaction status, such that given a transaction
     // ID, it gives the transaction state (running, aborted, committed).
-    pub(crate) transaction_status: HashMap<TransactionID, TransactionStatus>,
+    pub transaction_status: HashMap<TransactionID, TransactionStatus>,
 }
 
 impl ConcurrentStatus {

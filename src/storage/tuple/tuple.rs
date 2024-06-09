@@ -3,6 +3,8 @@ use std::{
     usize,
 };
 
+use log::debug;
+
 use crate::{
     btree::page::BTreePageID,
     io::{Serializeable, SmallWriter},
@@ -86,13 +88,22 @@ impl Tuple {
 
         // tid in the range (xmin, xmax), the tuple is visible if the transaction that
         // created it has committed
-        // debug!("status: {:?}", Database::concurrent_status().transaction_status);
-        // Database::concurrent_status().transaction_status;
-        if let Some(status) = Database::concurrent_status()
-            .transaction_status
-            .get(&self.xmin)
-        {
-            return *status == TransactionStatus::Committed;
+        // debug!(
+        //     "status: {:?}",
+        //     Database::concurrent_status().transaction_status
+        // );
+        let v = Database::concurrent_status().transaction_status.clone();
+        // if let Some(status) = Database::concurrent_status()
+        if let Some(status) = v.get(&self.xmin) {
+            if *status == TransactionStatus::Committed {
+                return true;
+            } else {
+                debug!(
+                    "transaction {:?} has not committed yet, status: {:?}, tuple: {:?}",
+                    self.xmin, v, self
+                );
+                return false;
+            }
         } else {
             // Cannot find the status of the transaction, which means the transaction
             // has been committed. (If the transaction has been aborted, the page will
