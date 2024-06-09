@@ -25,11 +25,13 @@ use crate::{
         },
     },
     concurrent_status::Permission,
+    error::SmallError,
     storage::{
         table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
     },
     transaction::Transaction,
+    types::SmallResult,
     utils::{lock_state, HandyRwLock},
     Database,
 };
@@ -532,7 +534,7 @@ impl BTreeTable {
         let mut depiction = "".to_string();
 
         let print_sibling = false;
-        let print_all_tuples = true;
+        let print_all_tuples = false;
 
         let mut prefix = "│   ".repeat(level);
         let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid).unwrap();
@@ -655,7 +657,7 @@ impl BTreeTable {
     ///
     /// TODO: remove argument `check_occupancy` and always check
     /// occupancy.
-    pub fn check_integrity(&self, check_occupancy: bool) {
+    pub fn check_integrity(&self, check_occupancy: bool) -> SmallResult {
         Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();
@@ -670,19 +672,24 @@ impl BTreeTable {
             &None,
             check_occupancy,
             0,
-        );
-        assert!(
-            root_summary.left_ptr.is_none(),
-            "left pointer is not none: {:?}",
-            root_summary.left_ptr
-        );
-        assert!(
-            root_summary.right_ptr.is_none(),
-            "right pointer is not none: {:?}",
-            root_summary.right_ptr,
-        );
+        )?;
+        if root_summary.left_ptr.is_some() {
+            // the "root_summary" stands for the whole tree, so the left pointer should be none.
+            let err_msg = format!("root left pointer is not none: {:?}", root_summary.left_ptr);
+            return Err(SmallError::new(&err_msg));
+        }
+        if root_summary.right_ptr.is_some() {
+            // the "root_summary" stands for the whole tree, so the right pointer should be none.
+            let err_msg = format!(
+                "root right pointer is not none: {:?}",
+                root_summary.right_ptr
+            );
+            return Err(SmallError::new(&err_msg));
+        }
 
         tx.commit().unwrap();
+
+        Ok(())
     }
 
     /// panic on any error found.
@@ -695,14 +702,14 @@ impl BTreeTable {
         upper_bound: &Option<Cell>,
         check_occupancy: bool,
         depth: usize,
-    ) -> SubtreeSummary {
+    ) -> Result<SubtreeSummary, SmallError> {
         match pid.category {
             PageCategory::Leaf => {
                 let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &pid).unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(parent_pid, lower_bound, upper_bound, check_occupancy, depth);
 
-                return SubtreeSummary {
+                let summary = SubtreeSummary {
                     left_ptr: page.get_left_pid(),
                     right_ptr: page.get_right_pid(),
 
@@ -711,6 +718,7 @@ impl BTreeTable {
 
                     depth,
                 };
+                return Ok(summary);
             }
 
             PageCategory::Internal => {
@@ -740,10 +748,10 @@ impl BTreeTable {
                         &Some(entry.get_key()),
                         check_occupancy,
                         depth + 1,
-                    );
+                    )?;
                     match summary {
                         Some(ref mut s) => {
-                            s.check_and_merge(&current_summary);
+                            s.check_and_merge(&current_summary)?;
                         }
                         None => {
                             summary = Some(current_summary);
@@ -763,15 +771,15 @@ impl BTreeTable {
                     upper_bound,
                     check_occupancy,
                     depth + 1,
-                );
+                )?;
 
                 match summary {
                     Some(ref mut s) => {
-                        s.check_and_merge(&last_right_summary);
-                        return s.clone();
+                        s.check_and_merge(&last_right_summary)?;
+                        return Ok(s.clone());
                     }
                     None => {
-                        return last_right_summary;
+                        return Ok(last_right_summary);
                     }
                 }
             }
@@ -794,25 +802,39 @@ struct SubtreeSummary {
 }
 
 impl SubtreeSummary {
-    fn check_and_merge(&mut self, right: &SubtreeSummary) {
-        assert_eq!(self.depth, right.depth);
-        assert_eq!(
-            self.right_ptr, right.left_most_pid,
-            "depth: {}, left_ptr: {:?}, right_ptr: {:?}",
-            self.depth, self.right_ptr, right.left_most_pid
-        );
-        assert_eq!(self.right_most_pid, right.left_ptr);
+    fn check_and_merge(&mut self, right: &SubtreeSummary) -> SmallResult {
+        if self.depth != right.depth {
+            // the depth of the two subtrees should be the same
+            let err_msg = format!("depth mismatch: {} != {}", self.depth, right.depth,);
+            return Err(SmallError::new(&err_msg));
+        }
 
+        assert_eq!(self.depth, right.depth);
+
+        if self.right_ptr != right.left_most_pid {
+            // the right pointer of the left subtree should be the leftmost
+            // page of the right subtree
+            let err_msg = format!(
+                "right pointer mismatch: {:?} != {:?}",
+                self.right_ptr, right.left_most_pid,
+            );
+            return Err(SmallError::new(&err_msg));
+        }
+
+        if self.right_most_pid != right.left_ptr {
+            // the rightmost page of the left subtree should be the left
+            // pointer of the right subtree
+            let err_msg = format!(
+                "rightmost page mismatch: {:?} != {:?}",
+                self.right_most_pid, right.left_ptr,
+            );
+            return Err(SmallError::new(&err_msg));
+        }
+
+        // merge the two summaries
         self.right_ptr = right.right_ptr;
         self.right_most_pid = right.right_most_pid;
 
-        // let acc = SubtreeSummary {
-        //     depth: self.depth,
-        //     left_ptr: self.left_ptr,
-        //     left_most_pid: self.left_most_pid,
-        //     right_ptr: right.right_ptr,
-        //     right_most_pid: right.right_most_pid,
-        // };
-        // return acc;
+        Ok(())
     }
 }

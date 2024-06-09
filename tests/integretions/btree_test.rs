@@ -106,7 +106,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..10 {
+        for _ in 0..100 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -127,7 +127,8 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        // table.draw_tree(-1);
+        table.draw_tree(3);
+        table.check_integrity(true);
 
         debug!("tuple count: {}", table.tuples_count());
         assert_eq!(table.tuples_count(), row_count + 1000);

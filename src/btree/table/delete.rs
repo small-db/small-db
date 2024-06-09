@@ -65,20 +65,8 @@ impl BTreeTable {
     }
 
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
-        if cfg!(feature = "tree_latch") {
-            let xlatch = self.tree_latch.wl();
+        let xlatch = self.tree_latch.wl();
 
-            self.delete_tuples_inner(tx, predicate)?;
-
-            drop(xlatch);
-        } else if cfg!(feature = "page_latch") {
-            self.delete_tuples_inner(tx, predicate)?;
-        }
-
-        Ok(())
-    }
-
-    fn delete_tuples_inner(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
         let root_pid = self.get_root_pid(tx);
         let mut page_rc =
             self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
@@ -94,6 +82,11 @@ impl BTreeTable {
                 self.handle_erratic_leaf_page(tx, page_rc.clone())?;
             }
 
+            // self.draw_tree(-1);
+            if slots.len() > 0 {
+                self.check_integrity(true);
+            }
+
             let right = page_rc.rl().get_right_pid();
 
             if let Some(v) = right {
@@ -103,8 +96,38 @@ impl BTreeTable {
             }
         }
 
+        drop(xlatch);
+
         Ok(())
     }
+
+    // fn delete_tuples_inner(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
+    //     let root_pid = self.get_root_pid(tx);
+    //     let mut page_rc =
+    //         self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
+
+    //     loop {
+    //         let slots = page_rc.rl().search(predicate);
+    //         // debug!("delete_tuples_inner slots: {:?}", slots);
+    //         for slot in &slots {
+    //             page_rc.wl().delete_tuple(slot.clone());
+    //         }
+
+    //         if !page_rc.rl().stable() {
+    //             self.handle_erratic_leaf_page(tx, page_rc.clone())?;
+    //         }
+
+    //         let right = page_rc.rl().get_right_pid();
+
+    //         if let Some(v) = right {
+    //             page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
+    //         } else {
+    //             break;
+    //         }
+    //     }
+
+    //     Ok(())
+    // }
 
     /// Handle the case when a leaf page becomes less than half full
     /// due to deletions.
