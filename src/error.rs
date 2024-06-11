@@ -10,9 +10,12 @@ pub struct SmallError {
 impl SmallError {
     pub fn new(msg: &str) -> SmallError {
         let bt = Backtrace::new();
-        let details = format!("msg: [{}], backtrace: {:?}", msg, bt);
-        // let details = format!("msg: [{}]", msg);
+        let details = format!("msg: [{}]\nerror backtrace: {:?}", msg, bt);
         SmallError { details }
+    }
+
+    pub fn show_backtrace(&self) {
+        println!("{}", self.details);
     }
 }
 
@@ -25,5 +28,16 @@ impl fmt::Display for SmallError {
 impl Error for SmallError {
     fn description(&self) -> &str {
         &self.details
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error() {
+        let err = SmallError::new("test error");
+        err.show_backtrace();
     }
 }

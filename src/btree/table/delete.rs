@@ -80,7 +80,8 @@ impl BTreeTable {
             if slots.len() > 0 {
                 if let Err(e) = self.check_integrity(true) {
                     self.draw_tree(-1);
-                    panic!("delete_tuples check_integrity failed: {:?}", e);
+                    e.show_backtrace();
+                    panic!();
                 }
             }
 
