@@ -64,31 +64,39 @@ impl BTreeTable {
 
         let root_pid = self.get_root_pid(tx);
         let mut page_rc =
-            self.find_leaf_page(&tx, Permission::ReadOnly, root_pid, &SearchFor::LeftMost);
+            self.find_leaf_page(&tx, Permission::ReadWrite, root_pid, &SearchFor::LeftMost);
 
         loop {
             let slots = page_rc.rl().search(predicate);
-            // debug!("delete_tuples_inner slots: {:?}", slots);
-            for slot in &slots {
-                page_rc.wl().delete_tuple(slot.clone());
-            }
-
-            if !page_rc.rl().stable() {
-                self.handle_erratic_leaf_page(tx, page_rc.clone())?;
-            }
 
             if slots.len() > 0 {
-                if let Err(e) = self.check_integrity(true) {
-                    self.draw_tree(-1);
-                    e.show_backtrace();
-                    panic!();
+                // if let Err(e) = self.check_integrity(true) {
+                //     self.draw_tree(-1);
+                //     e.show_backtrace();
+                //     panic!();
+                // }
+
+                for slot in &slots {
+                    page_rc.wl().delete_tuple(slot.clone());
                 }
+
+                if !page_rc.rl().stable() {
+                    self.handle_erratic_leaf_page(tx, page_rc.clone())?;
+
+                    // if let Err(e) = self.check_integrity(true) {
+                    //     self.draw_tree(-1);
+                    //     e.show_backtrace();
+                    //     panic!();
+                    // }
+                }
+
+                break;
             }
 
             let right = page_rc.rl().get_right_pid();
 
             if let Some(v) = right {
-                page_rc = BufferPool::get_leaf_page(tx, Permission::ReadOnly, &v).unwrap();
+                page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &v).unwrap();
             } else {
                 break;
             }

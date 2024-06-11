@@ -341,11 +341,8 @@ impl BufferPool {
                 self.set_before_image(&pid, &buffer, &table.schema);
                 return;
             } else {
-                // not a dirty page, so no need to write to log or disk, just
-                // return
-                //
-                // TODO: enable the following line
-                error!("not a dirty page, pid: {:?}", pid);
+                // Not a dirty page, so no need to write to log or disk, just return.
+                // This happens when "flass_all_pages" is called.
                 return;
             }
         } else {

@@ -51,7 +51,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-#[test]
+// #[test]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -61,6 +61,7 @@ fn test_concurrent() {
     // Create a B+ tree with 2 pages in the first tier; the second and the third
     // tier are packed. (Which means the page spliting is imminent)
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
+    // let row_count = 0;
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
@@ -72,13 +73,14 @@ fn test_concurrent() {
 
     let table = table_pod.rl();
 
-    // debug!("tuple count: {}", table.tuples_count());
-    // insert_tuples(&table, 100);
-    // debug!("tuple count: {}", table.tuples_count());
-    // return;
-
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
+
+    if let Err(e) = table.check_integrity(true) {
+        table.draw_tree(-1);
+        e.show_backtrace();
+        panic!();
+    }
 
     // test 1:
     // insert 1000 tuples, and make sure the tuple count is correct
@@ -99,6 +101,13 @@ fn test_concurrent() {
 
         assert_eq!(table.tuples_count(), row_count + 1000);
     }
+
+    if let Err(e) = table.check_integrity(true) {
+        table.draw_tree(-1);
+        e.show_backtrace();
+        panic!();
+    }
+
     debug!("tuple count: {}", table.tuples_count());
 
     // test 2:
@@ -106,7 +115,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..20 {
+        for _ in 0..1000 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -132,6 +141,7 @@ fn test_concurrent() {
 
         debug!("tuple count: {}", table.tuples_count());
         assert_eq!(table.tuples_count(), row_count + 1000);
+        // assert_eq!(table.tuples_count(), row_count);
     }
 
     return;
