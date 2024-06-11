@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use backtrace::Backtrace;
+
 #[derive(Debug)]
 pub struct SmallError {
     details: String,
@@ -7,10 +9,9 @@ pub struct SmallError {
 
 impl SmallError {
     pub fn new(msg: &str) -> SmallError {
-        // let bt = Backtrace::new();
-        // let details = format!("msg: [{}], backtrace: {:?}", msg,
-        // bt);
-        let details = format!("msg: [{}]", msg);
+        let bt = Backtrace::new();
+        let details = format!("msg: [{}], backtrace: {:?}", msg, bt);
+        // let details = format!("msg: [{}]", msg);
         SmallError { details }
     }
 }

@@ -77,9 +77,11 @@ impl BTreeTable {
                 self.handle_erratic_leaf_page(tx, page_rc.clone())?;
             }
 
-            if self.check_integrity(true).is_err() {
-                self.draw_tree(-1);
-                panic!("delete_tuples check_integrity failed");
+            if slots.len() > 0 {
+                if let Err(e) = self.check_integrity(true) {
+                    self.draw_tree(-1);
+                    panic!("delete_tuples check_integrity failed: {:?}", e);
+                }
             }
 
             let right = page_rc.rl().get_right_pid();

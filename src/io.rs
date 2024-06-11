@@ -113,10 +113,6 @@ impl SmallWriter {
         Self { buf }
     }
 
-    pub(crate) fn write<T: Serializeable>(&mut self, obj: &T, reference: &T::Reference) {
-        obj.encode(self, reference);
-    }
-
     pub fn write_bytes(&mut self, obj: &[u8]) {
         self.buf.write_all(obj).unwrap();
     }

@@ -106,7 +106,7 @@ impl BTreePage for BTreeHeaderPage {
         self.base.set_parent_pid(pid)
     }
 
-    fn get_page_data(&self, table_schema: &TableSchema) -> Vec<u8> {
+    fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {
         let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category

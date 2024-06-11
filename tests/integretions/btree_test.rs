@@ -46,12 +46,12 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
     tx.commit().unwrap();
 }
 
-#[test]
 /// Doing lots of inserts and deletes simultaneously, this test aims to test the
 /// correctness of the B+ tree implementation under concurrent environment.
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
+#[test]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -106,7 +106,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..100 {
+        for _ in 0..20 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();

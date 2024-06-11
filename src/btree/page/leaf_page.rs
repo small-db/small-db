@@ -467,7 +467,7 @@ impl BTreePage for BTreeLeafPage {
         self.old_data = self.get_page_data(table_schema);
     }
 
-    fn get_before_image(&self, table_schema: &TableSchema) -> Vec<u8> {
+    fn get_before_image(&self, _table_schema: &TableSchema) -> Vec<u8> {
         if self.old_data.is_empty() {
             panic!("before image is not set");
         }

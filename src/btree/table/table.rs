@@ -733,7 +733,7 @@ impl BTreeTable {
                     &upper_bound,
                     check_occupancy,
                     depth,
-                );
+                )?;
 
                 let it = BTreeInternalPageIterator::new(&page);
 
