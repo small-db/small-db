@@ -25,7 +25,7 @@ use crate::{
         },
     },
     concurrent_status::Permission,
-    error::SmallError,
+    error::{get_caller, SmallError},
     storage::{
         table_schema::TableSchema,
         tuple::{Cell, Tuple, WrappedTuple},
@@ -510,7 +510,12 @@ impl BTreeTable {
 
         depiction.push_str(&format!("\n\n----- PRINT TREE STRUCTURE END   -----\n\n"));
 
-        debug!("tree_structure, level {}: {}", max_level, depiction);
+        debug!(
+            "[{}] tree_structure, level {}: {}",
+            get_caller(),
+            max_level,
+            depiction
+        );
         tx.commit().unwrap();
     }
 

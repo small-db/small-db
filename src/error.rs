@@ -1,6 +1,7 @@
 use std::{error::Error, fmt};
 
 use backtrace::Backtrace;
+use log::{debug, info};
 
 #[derive(Debug)]
 pub struct SmallError {
@@ -8,13 +9,13 @@ pub struct SmallError {
 }
 
 impl SmallError {
-    pub fn new(msg: &str) -> SmallError {
+    pub(crate) fn new(msg: &str) -> SmallError {
         let bt = Backtrace::new();
-        let details = format!("msg: [{}]\nerror backtrace: {:?}", msg, bt);
+        let details = format!("msg: [{}]\nerror backtrace:\n{:?}", msg, bt);
         SmallError { details }
     }
 
-    pub fn show_backtrace(&self) {
+    pub(crate) fn show_backtrace(&self) {
         println!("{}", self.details);
     }
 }
@@ -31,6 +32,20 @@ impl Error for SmallError {
     }
 }
 
+/// Get the line number and file name of the caller
+pub(crate) fn get_caller() -> String {
+    let bt = Backtrace::new();
+    let frames = bt.frames();
+
+    let frame = frames.iter().nth(6).unwrap();
+    let symbol = frame.symbols().iter().next().unwrap();
+    format!(
+        "{}:{}",
+        symbol.filename().unwrap().to_string_lossy(),
+        symbol.lineno().unwrap()
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,5 +54,15 @@ mod tests {
     fn test_error() {
         let err = SmallError::new("test error");
         err.show_backtrace();
+    }
+
+    #[test]
+    fn test_caller() {
+        fn foo() {
+            let caller = get_caller();
+            println!("{}", caller);
+        }
+
+        foo();
     }
 }
