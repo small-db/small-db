@@ -324,7 +324,7 @@ impl BufferPool {
         log_manager: &mut LogManager,
     ) {
         if let Some(page_pod) = buffer.get(pid) {
-            let v = Database::concurrent_status().get_page_tx(pid);
+            let v = Database::concurrent_status().dirty_page_tx(pid);
             if let Some(tx) = v {
                 log_manager.log_update(&tx, page_pod.clone()).unwrap();
 
@@ -337,7 +337,9 @@ impl BufferPool {
                 return;
             } else {
                 // Not a dirty page, so no need to write to log or disk, just return.
-                // This happens when "flass_all_pages" is called.
+                // 
+                // This happens when "flass_all_pages" is called, and the some pages
+                // are not dirty.
                 return;
             }
         } else {

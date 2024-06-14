@@ -75,7 +75,7 @@ impl ConcurrentStatus {
     }
 
     /// Request a lock on the given page. This api is blocking.
-    pub fn request_lock(
+    pub(crate) fn request_lock(
         tx: &Transaction,
         lock: &Lock,
         page_id: &BTreePageID,
@@ -157,7 +157,13 @@ impl ConcurrentStatus {
         return Ok(true);
     }
 
-    fn release_lock_by_tx(&mut self, tx: &Transaction) -> SmallResult {
+    /// Remove the relation between the transaction and its related pages.
+    pub(crate) fn remove_relation(&mut self, tx: &Transaction) {
+        self.dirty_pages.remove(tx);
+        self.release_locks(tx).unwrap();
+    }
+
+    fn release_locks(&mut self, tx: &Transaction) -> SmallResult {
         if !self.hold_pages.contains_key(tx) {
             return Ok(());
         }
@@ -202,42 +208,12 @@ impl ConcurrentStatus {
         return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
     }
 
-    pub fn holds_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> bool {
-        if let Some(v) = self.s_lock_map.get(page_id) {
-            if v.contains(tx) {
-                return true;
-            }
-        }
-
-        if let Some(v) = self.x_lock_map.get(page_id) {
-            if v == tx {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// Remove the relation between the transaction and its related pages.
-    pub fn remove_relation(&mut self, tx: &Transaction) {
-        self.dirty_pages.remove(tx);
-        self.release_lock_by_tx(tx).unwrap();
-    }
-
-    pub(crate) fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
-        if cfg!(feature = "tree_latch") {
-            // For the "tree_latch" strategy, we need to check the dirty_pages map, since
-            // the "x_lock_map" only contains leaf pages.
-            for (tx, pages) in self.dirty_pages.iter() {
-                if pages.contains(page_id) {
-                    return Some(tx.clone());
-                }
-            }
-        } else if cfg!(feature = "page_latch") {
-            // For the "page_latch" strategy, the "x_lock_map" contains all pages, so we
-            // can get the result directly.
-            if let Some(v) = self.x_lock_map.get(page_id) {
-                return Some(v.clone());
+    /// Get the corresponding transaction of the dirty page, return None if the page is not a
+    /// dirty page.
+    pub(crate) fn dirty_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
+        for (tx, pages) in self.dirty_pages.iter() {
+            if pages.contains(page_id) {
+                return Some(tx.clone());
             }
         }
 

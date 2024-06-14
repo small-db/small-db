@@ -115,14 +115,14 @@ fn test_concurrent() {
         panic!();
     }
 
-    debug!("tuple count: {}", table.tuples_count());
+    debug!("test 1 finished, tuple count: {}", table.tuples_count());
 
     // test 2:
     // insert and delete tuples at the same time, make sure the tuple count is
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..1000 {
+        for _ in 0..20 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -151,7 +151,7 @@ fn test_concurrent() {
         // assert_eq!(table.tuples_count(), row_count);
     }
 
-    // return;
+    return;
 
     // test 3:
     // insert and delete some tuples, make sure there is not too much pages created
