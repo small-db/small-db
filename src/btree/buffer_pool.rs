@@ -144,11 +144,18 @@ impl BufferPool {
         if cfg!(feature = "tree_latch") {
             // For the "tree_latch" mode, the tree latch and RWLock on the leaf pages
             // are enough, don't have to request lock from concurrent status.
+            //
+            // TODO: No, it's not enough, we need to request lock from concurrent status.
+            // Example: two transactions require a same leaf page here, it will cause
+            // data inconsistency without the management of the concurrent status.
 
             // When requesting a "ReadWrite" permission, the page should be added to the
             // dirty pages of the transaction.
-            if perm == Permission::ReadWrite {
-                Database::mut_concurrent_status().add_relation(tx, key);
+            // if perm == Permission::ReadWrite {
+            //     Database::mut_concurrent_status().add_relation(tx, key);
+            // }
+            if key.category == PageCategory::Leaf {
+                ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
             }
         } else if cfg!(feature = "page_latch") {
             ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;

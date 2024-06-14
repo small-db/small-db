@@ -1,6 +1,7 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
+    sync::atomic::AtomicU32,
     thread::sleep,
     time::Instant,
 };
@@ -14,6 +15,8 @@ use crate::{
     types::SmallResult,
     Database,
 };
+
+static TIMEOUT: AtomicU32 = AtomicU32::new(10);
 
 #[derive(Debug)]
 pub enum Lock {
@@ -78,6 +81,11 @@ impl ConcurrentStatus {
 }
 
 impl ConcurrentStatus {
+    /// Set the timeout (in seconds) for acquiring a lock.
+    pub fn set_timeout(timeout: u32) {
+        TIMEOUT.store(timeout, std::sync::atomic::Ordering::Relaxed);
+    }
+
     /// Request a lock on the given page. This api is blocking.
     pub fn request_lock(
         tx: &Transaction,
@@ -86,23 +94,15 @@ impl ConcurrentStatus {
     ) -> Result<(), SmallError> {
         let start_time = Instant::now();
 
-        while Instant::now().duration_since(start_time).as_secs() < 10000 {
+        let timeout_secs = TIMEOUT.load(std::sync::atomic::Ordering::Relaxed);
+
+        while Instant::now().duration_since(start_time).as_secs() < timeout_secs as u64 {
             if Database::mut_concurrent_status().add_lock(tx, lock, page_id)? {
                 return Ok(());
             }
 
             sleep(std::time::Duration::from_millis(10));
         }
-
-        error!(
-            "acquire_lock timeout
-            request: <tx: {}, lock: {:?}, page_id: {:?}>
-            concurrent_status_map: {:?}",
-            tx,
-            lock,
-            page_id,
-            Database::concurrent_status(),
-        );
 
         return Err(SmallError::new("acquire lock timeout"));
     }
@@ -200,11 +200,13 @@ impl ConcurrentStatus {
     }
 
     pub(crate) fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
-        if cfg!(feature = "tree_latch") {
-            return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-        } else if cfg!(feature = "page_latch") {
-            return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-        }
+        // if cfg!(feature = "tree_latch") {
+        //     return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+        // } else if cfg!(feature = "page_latch") {
+        //     return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+        // }
+
+        return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
 
         error!("unsupported latch strategy");
         return HashSet::new();
@@ -230,6 +232,7 @@ impl ConcurrentStatus {
     pub fn remove_relation(&mut self, tx: &Transaction) {
         if cfg!(feature = "tree_latch") {
             self.dirty_pages.remove(tx);
+            self.release_lock_by_tx(tx).unwrap();
         } else if cfg!(feature = "page_latch") {
             self.release_lock_by_tx(tx).unwrap();
         }

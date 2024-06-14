@@ -1,11 +1,14 @@
+use log::debug;
 use small_db::{
     btree::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPageIterator, BTreePage},
         table::BTreeTableIterator,
     },
+    storage::tuple::Cell,
     transaction::Transaction,
     utils::{ceil_div, floor_div, HandyRwLock},
+    Predicate,
 };
 
 use crate::test_utils::{
@@ -281,4 +284,25 @@ fn test_delete_internal_pages() {
     let root_pod = get_internal_page(&table, 0, 0);
     assert_eq!(0, root_pod.rl().empty_slots_count());
     table.check_integrity(true).unwrap();
+}
+
+#[test]
+fn test_delete_by_condition() {
+    setup();
+
+    let table_rc = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+
+    let table = table_rc.rl();
+    table.check_integrity(true).unwrap();
+
+    table.draw_tree(-1);
+
+    // Delete all tuples with key < 0
+    let tx = Transaction::new();
+    let predicate = Predicate::new(0, small_db::Op::GreaterThan, &Cell::Int64(0));
+    table.delete_tuples(&tx, &predicate).unwrap();
+    tx.commit().unwrap();
+
+    table.draw_tree(-1);
+    debug!("tuples count: {}", table.tuples_count());
 }
