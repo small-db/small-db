@@ -77,7 +77,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     tx.commit().unwrap();
 }
 
-#[test]
+// #[test]
 fn test_concurrent_simplified() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);

@@ -18,7 +18,7 @@ use crate::{
     transaction::Transaction,
     types::ResultPod,
     utils::HandyRwLock,
-    BTreeTable,
+    BTreeTable, Database,
 };
 
 // insert-related functions
@@ -29,6 +29,7 @@ impl BTreeTable {
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         let new_tuple = tuple.clone();
 
+        let leaf_rc: Arc<RwLock<BTreeLeafPage>>;
         if cfg!(feature = "tree_latch") {
             // Request an X-latch on the tree.
             //
@@ -39,20 +40,25 @@ impl BTreeTable {
             // way to upgrade the latch from S to X without gap.
             let x_latch = self.tree_latch.wl();
 
-            let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
+            leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
 
             // Until now, we don't have to modify the structure of the tree, just release
             // the X-latch.
             drop(x_latch);
-
-            // Insert the tuple into the leaf page.
-            leaf_rc.wl().insert_tuple(&new_tuple)?;
         } else if cfg!(feature = "page_latch") {
-            let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
-
-            // Insert the tuple into the leaf page.
-            leaf_rc.wl().insert_tuple(&new_tuple)?;
+            leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
+        } else {
+            log::error!("No latch mechanism is enabled.");
+            panic!();
         }
+
+        // Insert the tuple into the leaf page.
+        leaf_rc.wl().insert_tuple(&new_tuple)?;
+
+        // Q: Why we need to release the page latch here, not when the transaction is committed?
+        // A: We release the page latch here so that other transactions can access the page, even
+        // before the current transaction is committed.
+        Database::mut_concurrent_status().release_lock(tx, &leaf_rc.rl().get_pid())?;
 
         return Ok(());
     }

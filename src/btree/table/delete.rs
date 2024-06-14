@@ -47,14 +47,16 @@ impl BTreeTable {
                 // Before handling the erratic page, request the X-latch on the tree
                 let xlatch = self.tree_latch.wl();
 
-                self.handle_erratic_leaf_page(tx, leaf_rc)?;
+                self.handle_erratic_leaf_page(tx, leaf_rc.clone())?;
 
                 // The handling of the erratic page is done, release the X-latch
                 drop(xlatch);
             } else if cfg!(feature = "page_latch") {
-                self.handle_erratic_leaf_page(tx, leaf_rc)?;
+                self.handle_erratic_leaf_page(tx, leaf_rc.clone())?;
             }
         }
+
+        Database::mut_concurrent_status().release_lock(tx, &leaf_rc.rl().get_pid())?;
 
         Ok(())
     }

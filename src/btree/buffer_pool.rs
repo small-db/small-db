@@ -337,8 +337,9 @@ impl BufferPool {
                 return;
             } else {
                 // Not a dirty page, so no need to write to log or disk, just return.
-                // 
-                // This happens when "flass_all_pages" is called, and the some pages
+                //
+                // Q: What's the possiable scenario for this case?
+                // A: This happens when "flass_all_pages" is called, and the some pages
                 // are not dirty.
                 return;
             }
@@ -346,9 +347,12 @@ impl BufferPool {
             // Page not found in buffer pool, so no need to write to disk. This happens
             // when a page is deleted during the transaction.
             //
-            // E.g., when a transaction deletes some tuples, may cause a leaf page to be
+            // Q: What's the possiable scenario for this case?
+            // A: For example, when a transaction deletes some tuples, may cause a leaf page to be
             // empty and be discarded from the buffer pool. But the page is still recorded
             // in the relationship map.
+            //
+            // TODO: remove the page from the relationship map when the page is discarded.
             return;
         }
     }

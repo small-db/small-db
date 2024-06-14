@@ -178,7 +178,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    fn release_lock(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
+    pub(crate) fn release_lock(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
         if let Some(v) = self.s_lock_map.get_mut(page_id) {
             v.remove(tx);
             if v.len() == 0 {

@@ -67,6 +67,8 @@ fn test_anomaly_dirty_read() {
         let table = table_pod.wl();
         insert_row(&table, &write_tx, key);
 
+        // How to get access to the page which contains the key? Since the page
+        // is locked (X-latch) by the write transaction.
         assert!(search_key(&table, &read_tx, &Cell::Int64(key)) == 0);
     }
 
