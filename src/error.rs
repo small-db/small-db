@@ -1,9 +1,6 @@
 use std::{error::Error, fmt};
 
 use backtrace::Backtrace;
-use log::{debug, info};
-
-use crate::error;
 
 #[derive(Debug)]
 pub struct SmallError {

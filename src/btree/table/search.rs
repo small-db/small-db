@@ -1,9 +1,4 @@
-use std::sync::{Arc, RwLock};
-
-use crate::{
-    btree::page::BTreeLeafPage, error::SmallError, transaction::Transaction, BTreeTable, Op,
-    Predicate,
-};
+use crate::BTreeTable;
 
 impl BTreeTable {
     // pub(super) fn get_pages(

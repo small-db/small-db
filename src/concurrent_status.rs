@@ -6,8 +6,6 @@ use std::{
     time::Instant,
 };
 
-use log::error;
-
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
@@ -42,6 +40,7 @@ impl Permission {
 pub struct ConcurrentStatus {
     s_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
     x_lock_map: HashMap<BTreePageID, Transaction>,
+
     hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 
     dirty_pages: HashMap<Transaction, HashSet<BTreePageID>>,
@@ -67,18 +66,7 @@ impl ConcurrentStatus {
     }
 }
 
-impl ConcurrentStatus {
-    pub fn add_relation(&mut self, tx: &Transaction, page_id: &BTreePageID) {
-        if !self.dirty_pages.contains_key(tx) {
-            self.dirty_pages.insert(tx.clone(), HashSet::new());
-        }
-
-        self.dirty_pages
-            .get_mut(tx)
-            .unwrap()
-            .insert(page_id.clone());
-    }
-}
+impl ConcurrentStatus {}
 
 impl ConcurrentStatus {
     /// Set the timeout (in seconds) for acquiring a lock.
@@ -199,17 +187,19 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
+    pub(crate) fn set_dirty_page(&mut self, tx: &Transaction, page_id: &BTreePageID) {
+        if !self.dirty_pages.contains_key(tx) {
+            self.dirty_pages.insert(tx.clone(), HashSet::new());
+        }
+
+        self.dirty_pages
+            .get_mut(tx)
+            .unwrap()
+            .insert(page_id.clone());
+    }
+
     pub(crate) fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
-        // if cfg!(feature = "tree_latch") {
-        //     return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-        // } else if cfg!(feature = "page_latch") {
-        //     return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-        // }
-
-        return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).clone();
-
-        error!("unsupported latch strategy");
-        return HashSet::new();
+        return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
     }
 
     pub fn holds_lock(&self, tx: &Transaction, page_id: &BTreePageID) -> bool {
@@ -230,15 +220,11 @@ impl ConcurrentStatus {
 
     /// Remove the relation between the transaction and its related pages.
     pub fn remove_relation(&mut self, tx: &Transaction) {
-        if cfg!(feature = "tree_latch") {
-            self.dirty_pages.remove(tx);
-            self.release_lock_by_tx(tx).unwrap();
-        } else if cfg!(feature = "page_latch") {
-            self.release_lock_by_tx(tx).unwrap();
-        }
+        self.dirty_pages.remove(tx);
+        self.release_lock_by_tx(tx).unwrap();
     }
 
-    pub fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
+    pub(crate) fn get_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
         if cfg!(feature = "tree_latch") {
             // For the "tree_latch" strategy, we need to check the dirty_pages map, since
             // the "x_lock_map" only contains leaf pages.

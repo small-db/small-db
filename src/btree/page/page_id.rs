@@ -1,10 +1,7 @@
 use std::fmt;
 
 use super::PageCategory;
-use crate::{
-    btree::buffer_pool::BufferPool,
-    io::{Serializeable, SmallWriter},
-};
+use crate::io::{Serializeable, SmallWriter};
 
 pub const EMPTY_PAGE_ID: u32 = 0;
 
@@ -47,20 +44,24 @@ impl BTreePageID {
         }
     }
 
-    pub fn empty() -> Self {
-        Self {
-            category: PageCategory::RootPointer,
-            page_index: 0,
-            table_id: 0,
-        }
-    }
-
-    pub fn get_table_id(&self) -> u32 {
+    pub(crate) fn get_table_id(&self) -> u32 {
         self.table_id
     }
 
-    pub fn get_short_repr(&self) -> String {
+    pub(crate) fn get_short_repr(&self) -> String {
         format!("{:?}_{}", self.category, self.page_index)
+    }
+
+    pub(crate) fn need_page_latch(&self) -> bool {
+        if cfg!(feature = "tree_latch") {
+            // For the "tree_latch" mode, only leaf pages need a latch.
+            return self.category == PageCategory::Leaf;
+        } else if cfg!(feature = "page_latch") {
+            // For the "page_latch" mode, every page needs a latch.
+            return true;
+        } else {
+            panic!("no latch strategy specified");
+        }
     }
 }
 
@@ -83,9 +84,4 @@ impl Serializeable for BTreePageID {
             table_id,
         }
     }
-}
-
-pub fn empty_page_data() -> Vec<u8> {
-    let data: Vec<u8> = vec![0; BufferPool::get_page_size()];
-    data
 }

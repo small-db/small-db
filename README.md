@@ -290,3 +290,21 @@ pages that have been modified by the transaction. (In the current implementation
 (In InnoDB latch approach) What happens if a inner page is modified by another transaction, after the X-Latch
 is released by the current transaction?
 TODO
+
+We need "s_lock_map" and "x_lock_map" no matter which latch strategy is used.
+This is because the lock semantics expressed by s/x lock map is different from
+the "RwLock" of the page itself. And the scope of s/x lock is usually larger than
+the "RwLock" of the page.
+
+For example, in the following scenario:
+step 1: a tx acquire a X-Latch on a page (for insert)
+step 2: some other actions
+step 3: the tx access the page by `write().wrap()`
+Without the restriction of s/x lock map, the page may be modified by other txs
+between step 1 and step 3, which is not allowed.
+
+And "RwLock" lock is also necessary since it provides interior mutability for the
+page itself.
+
+Question: what is an internal(or root_ptr, header) page being modified by a transaction? should we record the
+"UPDATE" action in the log file when committing the transaction (or even earlier, when the page is modified)?

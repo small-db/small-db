@@ -177,6 +177,8 @@ test-verbose:
 # Used to run a single test in verbose mode.
 # 
 # e.g: make test_redistribute_internal_pages
+# 
+# options:
 test_%:
 	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
 	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $*

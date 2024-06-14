@@ -9,7 +9,7 @@ use small_db::{
     transaction::Transaction,
     types::Pod,
     utils::HandyRwLock,
-    BTreeTable, Database, Op, Predicate,
+    BTreeTable, Op, Predicate,
 };
 
 use crate::test_utils::{
@@ -41,9 +41,16 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
+    // let tx = Transaction::new();
+    // let table = table_rc.rl();
+    // table.delete_tuples(&tx, &predicate).unwrap();
+    // tx.commit().unwrap();
+
     let tx = Transaction::new();
     let table = table_rc.rl();
-    table.delete_tuples(&tx, &predicate).unwrap();
+    let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+    let tuple = iter.next().unwrap();
+    table.delete_tuple(&tx, &tuple).unwrap();
     tx.commit().unwrap();
 }
 
@@ -62,7 +69,6 @@ fn test_concurrent() {
     // Create a B+ tree with 2 pages in the first tier; the second and the third
     // tier are packed. (Which means the page spliting is imminent)
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
-    // let row_count = 0;
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
@@ -145,7 +151,7 @@ fn test_concurrent() {
         // assert_eq!(table.tuples_count(), row_count);
     }
 
-    return;
+    // return;
 
     // test 3:
     // insert and delete some tuples, make sure there is not too much pages created
@@ -202,7 +208,7 @@ fn test_concurrent() {
             assert!(it.next().is_some());
         }
         tx.commit().unwrap();
-        table_pod.rl().check_integrity(true);
+        table_pod.rl().check_integrity(true).unwrap();
     }
 }
 
@@ -222,7 +228,8 @@ fn test_concurrent_page_access() {
     let page = BufferPool::get_leaf_page(&write_tx, Permission::ReadWrite, &pid);
     assert!(page.is_ok());
 
-    // now using a read-only transaction to access the page, the result should be timeout
+    // now using a read-only transaction to access the page, the result should be
+    // timeout
     let read_tx = Transaction::new();
     let page = BufferPool::get_leaf_page(&read_tx, Permission::ReadOnly, &pid);
     assert!(page.is_err());

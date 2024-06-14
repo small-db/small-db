@@ -1,20 +1,11 @@
 use std::thread;
 
-use log::debug;
-use rand::Rng;
 use small_db::{
-    btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
-    storage::tuple::Tuple,
-    transaction::Transaction,
-    types::Pod,
-    utils::HandyRwLock,
+    btree::buffer_pool::BufferPool, transaction::Transaction, types::Pod, utils::HandyRwLock,
     BTreeTable, Op, Predicate,
 };
 
-use crate::test_utils::{
-    internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table, setup,
-    TreeLayout,
-};
+use crate::test_utils::{new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
 #[test]
 #[cfg(feature = "benchmark")]

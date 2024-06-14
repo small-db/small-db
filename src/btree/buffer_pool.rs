@@ -140,25 +140,13 @@ impl BufferPool {
         // possible, since most of its operations require
         // exclusive access.
 
-        // step 1: request lock from concurrent status
-        if cfg!(feature = "tree_latch") {
-            // For the "tree_latch" mode, the tree latch and RWLock on the leaf pages
-            // are enough, don't have to request lock from concurrent status.
-            //
-            // TODO: No, it's not enough, we need to request lock from concurrent status.
-            // Example: two transactions require a same leaf page here, it will cause
-            // data inconsistency without the management of the concurrent status.
-
-            // When requesting a "ReadWrite" permission, the page should be added to the
-            // dirty pages of the transaction.
-            // if perm == Permission::ReadWrite {
-            //     Database::mut_concurrent_status().add_relation(tx, key);
-            // }
-            if key.category == PageCategory::Leaf {
-                ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
-            }
-        } else if cfg!(feature = "page_latch") {
+        // step 1: request page latch
+        if key.need_page_latch() {
             ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
+        }
+
+        if perm == Permission::ReadWrite {
+            Database::mut_concurrent_status().set_dirty_page(tx, key);
         }
 
         // step 2: get page from buffer pool
@@ -370,23 +358,14 @@ impl BufferPool {
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
         if let Some(page_pod) = buffer.get(pid) {
-            if let Some(_) = Database::concurrent_status().get_page_tx(pid) {
-                table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
-                return;
-            } else {
-                // not a dirty page, so no need to write to log or disk, just
-                // return
-                //
-                // TODO: enable the following line
-                // error!("not a dirty page, pid: {:?}", pid);
-            }
+            table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
+            return;
         } else {
             // page not found in buffer pool, so no need to write to disk
             //
-            // why there are some pages not in buffer pool?
+            // why there are some pages not in the buffer pool?
             //
-            // TODO: enable the following line
-            // error!("page not found in buffer pool, pid: {:?}", pid);
+            error!("page not found in buffer pool, pid: {:?}", pid);
         }
     }
 
