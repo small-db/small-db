@@ -22,17 +22,17 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
-    let tx = Transaction::new();
-    let table = table_rc.rl();
-    table.delete_tuples(&tx, &predicate).unwrap();
-    tx.commit().unwrap();
-
     // let tx = Transaction::new();
     // let table = table_rc.rl();
-    // let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
-    // let tuple = iter.next().unwrap();
-    // table.delete_tuple(&tx, &tuple).unwrap();
+    // table.delete_tuples(&tx, &predicate).unwrap();
     // tx.commit().unwrap();
+
+    let tx = Transaction::new();
+    let table = table_rc.rl();
+    let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+    let tuple = iter.next().unwrap();
+    table.delete_tuple(&tx, &tuple).unwrap();
+    tx.commit().unwrap();
 }
 
 /// Doing lots of inserts and deletes simultaneously, this test aims to test the
@@ -51,7 +51,7 @@ fn test_concurrent() {
     // tier are packed. (Which means the page spliting is imminent)
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
-    let table_pod = new_random_btree_table(
+    let table_rc = new_random_btree_table(
         column_count,
         row_count,
         None,
@@ -59,7 +59,7 @@ fn test_concurrent() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
 
-    let table = table_pod.rl();
+    let table = table_rc.rl();
 
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
@@ -70,7 +70,7 @@ fn test_concurrent() {
         let mut insert_threads = vec![];
         for _ in 0..1000 {
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
             let local_sender = sender.clone();
 
             let handle = thread::spawn(move || {
@@ -96,7 +96,7 @@ fn test_concurrent() {
         let mut threads = vec![];
         for _ in 0..50 {
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
             let local_sender = sender.clone();
 
             let insert_worker = thread::spawn(move || {
@@ -105,7 +105,7 @@ fn test_concurrent() {
             threads.push(insert_worker);
 
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
 
             let delete_worker = thread::spawn(move || deleter(&local_table, &local_receiver));
@@ -134,7 +134,7 @@ fn test_concurrent() {
         let mut threads = vec![];
         for _ in 0..10 {
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
 
             let handle = thread::spawn(move || deleter(&local_table, &local_receiver));
@@ -145,13 +145,13 @@ fn test_concurrent() {
         for handle in threads {
             handle.join().unwrap();
         }
-        assert_eq!(table_pod.rl().tuples_count(), row_count + 1000 - 10);
+        assert_eq!(table_rc.rl().tuples_count(), row_count + 1000 - 10);
 
         // insert a bunch of random tuples again
         let mut threads = vec![];
         for _ in 0..10 {
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
             let local_sender = sender.clone();
 
             let handle = thread::spawn(move || {
@@ -165,8 +165,8 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        assert_eq!(table_pod.rl().tuples_count(), row_count + 1000);
-        assert!(table_pod.rl().pages_count() < page_count_marker + 20);
+        assert_eq!(table_rc.rl().tuples_count(), row_count + 1000);
+        assert!(table_rc.rl().pages_count() < page_count_marker + 20);
 
         drop(sender);
     }
@@ -177,7 +177,7 @@ fn test_concurrent() {
         let tx = Transaction::new();
         for tuple in receiver.iter() {
             let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
-            let mut it = BTreeTableSearchIterator::new(&tx, &table_pod.rl(), &predicate);
+            let mut it = BTreeTableSearchIterator::new(&tx, &table_rc.rl(), &predicate);
             assert!(it.next().is_some());
         }
         tx.commit().unwrap();
@@ -196,9 +196,9 @@ fn test_concurrent_page_access() {
     // Set a short timeout for the test
     ConcurrentStatus::set_timeout(1);
 
-    let table_pod = new_random_btree_table(2, 1, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_rc = new_random_btree_table(2, 1, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
-    let table = table_pod.rl();
+    let table = table_rc.rl();
 
     let write_tx = Transaction::new();
     let pid = table.get_root_pid(&write_tx);
@@ -219,16 +219,16 @@ fn test_concurrent_simplified() {
 
     setup();
 
-    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_rc = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
-    let table = table_pod.rl();
+    let table = table_rc.rl();
 
     // insert and delete tuples at the same time, make sure the tuple count is
     // correct, and the is no conflict between threads
     let mut threads = vec![];
     for _ in 0..1000 {
         // thread local copies
-        let local_table = table_pod.clone();
+        let local_table = table_rc.clone();
 
         let insert_worker = thread::spawn(move || inserter3(2, &local_table));
         threads.push(insert_worker);
@@ -254,3 +254,84 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     table.delete_tuples(&tx, &predicate).unwrap();
     tx.commit().unwrap();
 }
+
+// #[test]
+// fn test_concurrent_2() {
+//     // Use a small page size to speed up the test.
+//     BufferPool::set_page_size(1024);
+
+//     setup();
+
+//     let row_count = 10000;
+//     let column_count = 2;
+//     let table_rc = new_random_btree_table(
+//         column_count,
+//         row_count,
+//         None,
+//         0,
+//         TreeLayout::LastTwoEvenlyDistributed,
+//     );
+
+//     let table = table_rc.rl();
+
+//     // now insert some random tuples
+//     let (sender, receiver) = crossbeam::channel::unbounded();
+
+//     insert_random(table_rc, 1, column_count, Some(&local_sender));
+
+//     // test 1:
+//     // insert 1000 tuples, and make sure the tuple count is correct
+//     {
+//         let mut insert_threads = vec![];
+//         for _ in 0..1000 {
+//             // thread local copies
+//             let local_table = table_rc.clone();
+//             let local_sender = sender.clone();
+
+//             let handle = thread::spawn(move || {
+//                 insert_random(local_table, 1, column_count, Some(&local_sender))
+//             });
+//             insert_threads.push(handle);
+//         }
+//         // wait for all threads to finish
+//         for handle in insert_threads {
+//             handle.join().unwrap();
+//         }
+
+//         table.check_integrity();
+//         assert_eq!(table.tuples_count(), row_count + 1000);
+//     }
+
+//     debug!("test 1 finished, tuple count: {}", table.tuples_count());
+
+//     // test 2:
+//     // insert and delete tuples at the same time, make sure the tuple count is
+//     // correct, and the is no conflict between threads
+//     {
+//         let mut threads = vec![];
+//         for _ in 0..50 {
+//             // thread local copies
+//             let local_table = table_rc.clone();
+//             let local_sender = sender.clone();
+
+//             let insert_worker = thread::spawn(move || {
+//                 insert_random(local_table, 1, column_count, Some(&local_sender))
+//             });
+//             threads.push(insert_worker);
+
+//             // thread local copies
+//             let local_table = table_rc.clone();
+//             let local_receiver = receiver.clone();
+
+//             let delete_worker = thread::spawn(move || deleter(&local_table, &local_receiver));
+//             threads.push(delete_worker);
+//         }
+//         // wait for all threads to finish
+//         for handle in threads {
+//             handle.join().unwrap();
+//         }
+
+//         table.check_integrity();
+//         assert_eq!(table.tuples_count(), row_count + 1000);
+//     }
+// }

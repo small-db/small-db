@@ -210,10 +210,10 @@ impl LogManager {
                         // TODO: construct a new page from the before
                         // page
                         let mut catalog = Database::mut_catalog();
-                        let table_pod = catalog
+                        let table_rc = catalog
                             .get_table(&pid.table_id)
                             .unwrap_or_else(|| panic!("table {} not found", pid.table_id));
-                        let table = table_pod.rl();
+                        let table = table_rc.rl();
                         table.write_page_to_disk(&pid, &before_page);
 
                         // skip the after page
@@ -697,8 +697,8 @@ impl LogManager {
         let data: Vec<u8> = read_into(&mut self.file, &());
 
         let mut catalog = Database::mut_catalog();
-        let table_pod = catalog.get_table(&pid.table_id).unwrap();
-        let table = table_pod.rl();
+        let table_rc = catalog.get_table(&pid.table_id).unwrap();
+        let table = table_rc.rl();
 
         let schema = table.get_schema();
         let _key_field = table.key_field;

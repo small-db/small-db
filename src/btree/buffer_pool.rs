@@ -272,8 +272,8 @@ impl BufferPool {
         // "ConcurrentStatus", so we must get "dirty_pages" before the for loop.
         let mut catalog = Database::mut_catalog();
         for pid in dirty_pages {
-            let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
-            let table = table_pod.read().unwrap();
+            let table_rc = catalog.get_table(&pid.get_table_id()).unwrap();
+            let table = table_rc.read().unwrap();
 
             match pid.category {
                 PageCategory::RootPointer => {
@@ -295,10 +295,10 @@ impl BufferPool {
     /// Write the content of a specific page to disk.
     fn flush_page(&self, pid: &BTreePageID, log_manager: &mut LogManager) {
         // stage 1: get table
-        let table_pod = Database::mut_catalog()
+        let table_rc = Database::mut_catalog()
             .get_table(&pid.get_table_id())
             .unwrap();
-        let table = table_pod.rl();
+        let table = table_rc.rl();
 
         match pid.category {
             PageCategory::RootPointer => {
@@ -384,8 +384,8 @@ impl BufferPool {
     ) {
         // step 1: get table
         let mut catalog = Database::mut_catalog();
-        let table_pod = catalog.get_table(&pid.get_table_id()).unwrap();
-        let table = table_pod.read().unwrap();
+        let table_rc = catalog.get_table(&pid.get_table_id()).unwrap();
+        let table = table_rc.read().unwrap();
 
         let page_pod = Arc::new(RwLock::new(page));
 

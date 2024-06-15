@@ -21,8 +21,8 @@ fn test_insert_tuple() {
 
     // Create an empty B+ tree file keyed on the second field of a
     // 2-field tuple.
-    let table_pod = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
-    let table = table_pod.rl();
+    let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table = table_rc.rl();
 
     let mut insert_value = 0;
 

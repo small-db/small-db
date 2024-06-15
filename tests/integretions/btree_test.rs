@@ -18,7 +18,7 @@ fn test_speed() {
 
     // Create an empty B+ tree
     let column_count = 2;
-    let table_pod = new_random_btree_table(
+    let table_rc = new_random_btree_table(
         column_count,
         0,
         None,
@@ -26,7 +26,7 @@ fn test_speed() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
 
-    let table = table_pod.rl();
+    let table = table_rc.rl();
 
     let start = std::time::Instant::now();
     // run insert threads
@@ -34,7 +34,7 @@ fn test_speed() {
         let mut insert_threads = vec![];
         for _ in 0..thread_count {
             // thread local copies
-            let local_table = table_pod.clone();
+            let local_table = table_rc.clone();
 
             let handle = thread::spawn(move || {
                 insert_random(local_table, action_per_thread, column_count, None)

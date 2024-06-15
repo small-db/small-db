@@ -21,14 +21,14 @@ fn test_redistribute_leaf_pages() {
     setup();
 
     // Create a B+ tree with two full leaf pages.
-    let table_pod = new_random_btree_table(
+    let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 2,
         None,
         0,
         TreeLayout::EvenlyDistributed,
     );
-    let table = table_pod.rl();
+    let table = table_rc.rl();
 
     let left_pod = get_leaf_page(&table, 1, 0);
     let right_pod = get_leaf_page(&table, 1, 1);

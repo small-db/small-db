@@ -14,7 +14,7 @@ use crate::test_utils::{insert_row, new_random_btree_table, search_key, setup, T
 fn test_read_self() {
     setup();
 
-    let table_pod = new_random_btree_table(2, 0, None, 1000, TreeLayout::LastTwoEvenlyDistributed);
+    let table_rc = new_random_btree_table(2, 0, None, 1000, TreeLayout::LastTwoEvenlyDistributed);
 
     let tx = Transaction::new();
 
@@ -22,7 +22,7 @@ fn test_read_self() {
     {
         let key = 123;
 
-        let table = table_pod.wl();
+        let table = table_rc.wl();
         insert_row(&table, &tx, key);
 
         assert!(search_key(&table, &tx, &Cell::Int64(key)) == 1);
@@ -52,7 +52,7 @@ fn test_anomaly_dirty_write() {}
 fn test_anomaly_dirty_read() {
     setup();
 
-    let table_pod = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_rc = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     // start a write transaction
     let write_tx = Transaction::new();
@@ -64,7 +64,7 @@ fn test_anomaly_dirty_read() {
 
     // write something, the read transaction should not be able to see it
     {
-        let table = table_pod.wl();
+        let table = table_rc.wl();
         insert_row(&table, &write_tx, key);
 
         // How to get access to the page which contains the key? Since the page
@@ -76,7 +76,7 @@ fn test_anomaly_dirty_read() {
     {
         write_tx.commit().unwrap();
 
-        assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == 1);
+        assert!(search_key(&table_rc.rl(), &read_tx, &Cell::Int64(key)) == 1);
     }
 }
 
@@ -93,14 +93,14 @@ fn test_anomaly_dirty_read() {
 fn test_anomaly_phantom() {
     setup();
 
-    let table_pod = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table_rc = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let key = 123;
     let init_count = 20;
     {
         let init_tx = Transaction::new();
 
-        let table = table_pod.wl();
+        let table = table_rc.wl();
         for _ in 0..init_count {
             insert_row(&table, &init_tx, key);
         }
@@ -116,7 +116,7 @@ fn test_anomaly_phantom() {
 
     // search for the key, the result should be init_count
     {
-        assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
+        assert!(search_key(&table_rc.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
 
     // start a write transaction, insert some new rows, then commit the write
@@ -124,7 +124,7 @@ fn test_anomaly_phantom() {
     {
         let write_tx = Transaction::new();
 
-        let table = table_pod.wl();
+        let table = table_rc.wl();
         for _ in 0..5 {
             insert_row(&table, &write_tx, key);
         }
@@ -137,6 +137,6 @@ fn test_anomaly_phantom() {
 
     // re-search for the key, the result should stay the same
     {
-        assert!(search_key(&table_pod.rl(), &read_tx, &Cell::Int64(key)) == init_count);
+        assert!(search_key(&table_rc.rl(), &read_tx, &Cell::Int64(key)) == init_count);
     }
 }
