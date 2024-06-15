@@ -43,10 +43,6 @@ pub fn insert_random(
     let mut rng = rand::thread_rng();
     let table = table_rc.rl();
 
-    // debug!("Inserting {} tuples", tuples.len());
-
-    // debug!("tuple count: {}", table.tuples_count());
-
     let tx = Transaction::new();
 
     let tuples: Vec<Tuple> = (0..row_count)
@@ -60,8 +56,6 @@ pub fn insert_random(
         table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
-
-    debug!("tuple count: {}", table.tuples_count());
 
     if let Some(s) = s {
         for tuple in tuples {

@@ -11,7 +11,10 @@ use small_db::{
     BTreeTable, Op, Predicate,
 };
 
-use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
+use crate::test_utils::{
+    insert_random, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
+    setup, TreeLayout,
+};
 
 // Delete a tuple from the table.
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
@@ -46,8 +49,7 @@ fn test_concurrent() {
 
     // Create a B+ tree with 2 pages in the first tier; the second and the third
     // tier are packed. (Which means the page spliting is imminent)
-    // let row_count = 2 * internal_children_cap() * leaf_records_cap();
-    let row_count = 0;
+    let row_count = 2 * internal_children_cap() * leaf_records_cap();
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
@@ -62,17 +64,11 @@ fn test_concurrent() {
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
 
-    if let Err(e) = table.check_integrity(true) {
-        table.draw_tree(-1);
-        e.show_backtrace();
-        panic!();
-    }
-
     // test 1:
     // insert 1000 tuples, and make sure the tuple count is correct
     {
         let mut insert_threads = vec![];
-        for _ in 0..1 {
+        for _ in 0..1000 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -87,17 +83,10 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        debug!("test 1 finished, tuple count: {}", table.tuples_count());
-        return;
-
         assert_eq!(table.tuples_count(), row_count + 1000);
     }
 
-    if let Err(e) = table.check_integrity(true) {
-        table.draw_tree(-1);
-        e.show_backtrace();
-        panic!();
-    }
+    table.check_integrity();
 
     debug!("test 1 finished, tuple count: {}", table.tuples_count());
 
@@ -130,7 +119,7 @@ fn test_concurrent() {
 
         table.draw_tree(3);
         debug!("tuple count: {}", table.tuples_count());
-        table.check_integrity(true).unwrap();
+        table.check_integrity();
 
         assert_eq!(table.tuples_count(), row_count + 1000);
         // assert_eq!(table.tuples_count(), row_count);
@@ -197,7 +186,7 @@ fn test_concurrent() {
             assert!(it.next().is_some());
         }
         tx.commit().unwrap();
-        table_pod.rl().check_integrity(true).unwrap();
+        table.check_integrity();
     }
 }
 

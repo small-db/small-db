@@ -1,12 +1,16 @@
+use std::env;
+
+use log::info;
+
+use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout};
+
+use std::thread;
+
+use small_db::utils::HandyRwLock;
+
 #[test]
 #[cfg(feature = "benchmark")]
 fn test_speed() {
-    use std::env;
-
-    use log::info;
-
-    use crate::test_utils::insert_random;
-
     let action_per_thread = env::var("ACTION_PER_THREAD")
         .unwrap()
         .parse::<usize>()
@@ -56,5 +60,3 @@ fn test_speed() {
     );
     assert!(table.tuples_count() == total_rows);
 }
-
-// Insert one tuple into the table

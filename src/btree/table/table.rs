@@ -662,7 +662,15 @@ impl BTreeTable {
     ///
     /// TODO: remove argument `check_occupancy` and always check
     /// occupancy.
-    pub fn check_integrity(&self, check_occupancy: bool) -> SmallResult {
+    pub fn check_integrity(&self) {
+        if let Err(e) = self.check_integrity_inner(true) {
+            e.show_backtrace();
+            self.draw_tree(-1);
+            panic!();
+        }
+    }
+
+    fn check_integrity_inner(&self, check_occupancy: bool) -> SmallResult {
         Database::mut_concurrent_status().clear();
 
         let tx = Transaction::new();

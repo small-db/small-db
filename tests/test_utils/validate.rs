@@ -22,7 +22,7 @@ pub fn assert_true(predicate: bool, table: &BTreeTable) {
         error!("--- assertion failed, debug_info start ---");
         Database::mut_log_manager().show_log_contents();
         table.draw_tree(-1);
-        table.check_integrity(true).unwrap();
+        table.check_integrity();
         error!("--- assertion failed, debug_info end ---");
         panic!("assertion failed");
     }
