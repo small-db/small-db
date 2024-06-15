@@ -47,12 +47,12 @@ impl BTreeTable {
                 // Before handling the erratic page, request the X-latch on the tree
                 let xlatch = self.tree_latch.wl();
 
-                self.handle_erratic_leaf_page(tx, leaf_rc.clone())?;
+                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
 
                 // The handling of the erratic page is done, release the X-latch
                 drop(xlatch);
             } else if cfg!(feature = "page_latch") {
-                self.handle_erratic_leaf_page(tx, leaf_rc.clone())?;
+                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
             }
         }
 
@@ -77,9 +77,15 @@ impl BTreeTable {
                 for slot in &slots {
                     page_rc.wl().delete_tuple(slot.clone());
                 }
+
+                if !page_rc.rl().stable() {
+                    self.handle_unstable_leaf_page(tx, page_rc.clone())?;
+                }
             }
 
             let right = page_rc.rl().get_right_pid();
+
+            // Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
 
             if let Some(v) = right {
                 page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &v).unwrap();
@@ -93,18 +99,16 @@ impl BTreeTable {
         Ok(())
     }
 
-    /// Handle the case when a leaf page becomes less than half full
-    /// due to deletions.
+    /// Handle the case when a leaf page becomes less than half full due to deletions.
     ///
-    /// If one of its siblings has extra tuples, redistribute those
-    /// tuples. Otherwise merge with one of the siblings. Update
-    /// pointers as needed.
-    fn handle_erratic_leaf_page(
+    /// If one of its siblings has extra tuples, redistribute those tuples. Otherwise merge with one of the siblings. Update pointers as needed.
+    fn handle_unstable_leaf_page(
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SmallResult {
         if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
+            // if the page is the root page, then it is always stable
             return Ok(());
         }
 
@@ -119,9 +123,11 @@ impl BTreeTable {
                 BufferPool::get_leaf_page(tx, Permission::ReadWrite, &right_pid).unwrap();
             self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
         } else {
-            return Err(SmallError::new(
-                "BTreeTable::handle_erratic_leaf_page no left or right sibling",
-            ));
+            let err_msg = format!(
+                "page {} is unstable but has no left or right sibling",
+                page_rc.rl().get_pid()
+            );
+            return Err(SmallError::new(&err_msg));
         };
 
         return Ok(());

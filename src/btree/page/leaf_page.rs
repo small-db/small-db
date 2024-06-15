@@ -289,19 +289,12 @@ impl BTreeLeafPage {
         self.mark_slot_status(from, false);
     }
 
-    pub fn get_tuple(&self, slot_index: usize) -> Option<Tuple> {
-        if self.is_slot_used(slot_index) {
-            return Some(self.tuples[slot_index].clone());
-        }
-        None
-    }
-
     pub(crate) fn delete_tuple(&mut self, slot_index: usize) {
         self.mark_slot_status(slot_index, false);
     }
 
     /// Returns true if associated slot on this page is filled.
-    pub fn is_slot_used(&self, slot_index: usize) -> bool {
+    fn is_slot_used(&self, slot_index: usize) -> bool {
         self.header[slot_index]
     }
 

@@ -10,13 +10,13 @@ pub const EMPTY_PAGE_ID: u32 = 0;
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BTreePageID {
     /// category indicates the category of the page
-    pub category: PageCategory,
+    pub(crate) category: PageCategory,
 
     /// page_index represents the position of the page in
     /// the table, start from 0
-    pub page_index: u32,
+    pub(crate) page_index: u32,
 
-    pub table_id: u32,
+    pub(crate) table_id: u32,
 }
 
 impl fmt::Display for BTreePageID {

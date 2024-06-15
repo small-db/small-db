@@ -17,7 +17,7 @@ use crate::test_utils::{
     TreeLayout,
 };
 
-// Insert one tuple into the table
+// Insert a tuple into the table.
 fn inserter(
     column_count: usize,
     table_rc: &Pod<BTreeTable>,
@@ -35,23 +35,23 @@ fn inserter(
     s.send(tuple).unwrap();
 }
 
-// Delete a random tuple from the table
+// Delete a tuple from the table.
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
     let tuple = r.recv().unwrap();
 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
-    // let tx = Transaction::new();
-    // let table = table_rc.rl();
-    // table.delete_tuples(&tx, &predicate).unwrap();
-    // tx.commit().unwrap();
-
     let tx = Transaction::new();
     let table = table_rc.rl();
-    let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
-    let tuple = iter.next().unwrap();
-    table.delete_tuple(&tx, &tuple).unwrap();
+    table.delete_tuples(&tx, &predicate).unwrap();
     tx.commit().unwrap();
+
+    // let tx = Transaction::new();
+    // let table = table_rc.rl();
+    // let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
+    // let tuple = iter.next().unwrap();
+    // table.delete_tuple(&tx, &tuple).unwrap();
+    // tx.commit().unwrap();
 }
 
 /// Doing lots of inserts and deletes simultaneously, this test aims to test the
@@ -59,7 +59,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-// #[test]
+#[test]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -69,6 +69,7 @@ fn test_concurrent() {
     // Create a B+ tree with 2 pages in the first tier; the second and the third
     // tier are packed. (Which means the page spliting is imminent)
     let row_count = 2 * internal_children_cap() * leaf_records_cap();
+    // let row_count = 0;
     let column_count = 2;
     let table_pod = new_random_btree_table(
         column_count,
@@ -122,7 +123,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..20 {
+        for _ in 0..50 {
             // thread local copies
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
@@ -144,12 +145,14 @@ fn test_concurrent() {
         }
 
         table.draw_tree(3);
+        debug!("tuple count: {}", table.tuples_count());
         table.check_integrity(true).unwrap();
 
-        debug!("tuple count: {}", table.tuples_count());
         assert_eq!(table.tuples_count(), row_count + 1000);
         // assert_eq!(table.tuples_count(), row_count);
     }
+
+    debug!("test 2 finished, tuple count: {}", table.tuples_count());
 
     return;
 
