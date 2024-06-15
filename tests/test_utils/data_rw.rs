@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
 
-use log::debug;
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, storage::tuple::Tuple, transaction::Transaction,

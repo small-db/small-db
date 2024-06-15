@@ -1,12 +1,9 @@
-use std::env;
+use std::{env, thread};
 
 use log::info;
+use small_db::utils::HandyRwLock;
 
 use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout};
-
-use std::thread;
-
-use small_db::utils::HandyRwLock;
 
 #[test]
 #[cfg(feature = "benchmark")]
