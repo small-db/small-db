@@ -1,5 +1,6 @@
 use std::sync::{Arc, RwLock};
 
+use log::debug;
 use rand::Rng;
 use small_db::storage::tuple::Tuple;
 use small_db::{btree::table::BTreeTableIterator, transaction::Transaction, BTreeTable};
@@ -41,18 +42,25 @@ pub fn insert_random(
     let mut rng = rand::thread_rng();
     let table = table_rc.rl();
 
+    // debug!("Inserting {} tuples", tuples.len());
+
+    // debug!("tuple count: {}", table.tuples_count());
+
+    let tx = Transaction::new();
+
     let tuples: Vec<Tuple> = (0..row_count)
         .map(|_| {
             let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-            new_int_tuples(insert_value, column_count, &Transaction::new())
+            new_int_tuples(insert_value, column_count, &tx)
         })
         .collect();
 
-    let tx = Transaction::new();
     for tuple in &tuples {
         table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
+
+    debug!("tuple count: {}", table.tuples_count());
 
     if let Some(s) = s {
         for tuple in tuples {

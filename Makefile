@@ -180,9 +180,9 @@ test-verbose:
 # 
 # options:
 test_%:
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
 	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $*
-	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact integretions::concurrent_test::test_concurrent 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture --exact integretions::concurrent_test::test_concurrent 2>&1 | tee out
 
 gen_report:
 	source ~/code/python_env_xiaochen/bin/activate
