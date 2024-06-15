@@ -1,6 +1,8 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use log::debug;
+
 use crate::{types::SmallResult, Database};
 
 #[derive(Clone, PartialEq, Debug)]
@@ -46,12 +48,19 @@ impl Transaction {
         //
         // (this is a disk operation, hence should be put before the "COMMIT" record is
         // written)
+        let dirty_pages = Database::concurrent_status().get_dirty_pages(self);
+        debug!("dirty pages: {:?}", dirty_pages);
+        debug!("all_pages: {:?}", buffer_pool.all_keys());
         buffer_pool.flush_pages(self, &mut Database::mut_log_manager());
 
         // step 2: write "COMMIT" log record
         Database::mut_log_manager().log_commit(self)?;
 
         if cfg!(feature = "aries_no_force") {
+            let dirty_pages = Database::concurrent_status().get_dirty_pages(self);
+            debug!("dirty pages: {:?}", dirty_pages);
+            debug!("all_pages: {:?}", buffer_pool.all_keys());
+
             buffer_pool.write_pages(self);
         }
 

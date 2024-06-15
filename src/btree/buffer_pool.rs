@@ -196,7 +196,7 @@ impl BufferPool {
     ///
     /// Also used by B+ tree files to ensure that deleted pages
     /// are removed from the cache so they can be reused safely
-    pub fn discard_page(&mut self, pid: &BTreePageID) {
+    pub(crate) fn discard_page(&mut self, pid: &BTreePageID) {
         match pid.category {
             PageCategory::Internal => {
                 self.internal_buffer.remove(pid);
@@ -365,10 +365,11 @@ impl BufferPool {
         } else {
             // page not found in buffer pool, so no need to write to disk
             //
-            // why there are some pages not in the buffer pool?
-            //
-            error!("page not found in buffer pool, pid: {:?}", pid);
-            panic!("page not found in buffer pool");
+            // Q: What's the possiable scenario for this case?
+            // A: 1. After we implemented cache eviction feature, the page may
+            // be evicted    from the buffer pool.
+            //    2. The page becomes empty and is discarded from the buffer
+            //       pool.
         }
     }
 
@@ -382,30 +383,14 @@ impl BufferPool {
         // step 1: get table
         let mut catalog = Database::mut_catalog();
         let table_rc = catalog.get_table(&pid.get_table_id()).unwrap();
-        let table = table_rc.read().unwrap();
 
+        // step 2: insert the page to buffer pool
         let page_rc = Arc::new(RwLock::new(page));
+        buffer.insert(pid.clone(), page_rc.clone());
 
-        Self::insert_page_dispatch(pid, &page_rc, buffer);
-        Self::force_flush_dispatch(pid, &table, page_rc);
-    }
-
-    // write a page to disk without write to WAL log
-    fn force_flush_dispatch<PAGE: BTreePage>(
-        pid: &BTreePageID,
-        table: &BTreeTable,
-        page_rc: Arc<RwLock<PAGE>>,
-    ) {
+        // step 3: write the page to disk without write to WAL log
+        let table = table_rc.read().unwrap();
         table.write_page_to_disk(pid, &page_rc.rl().get_page_data(&table.schema));
-    }
-
-    fn insert_page_dispatch<PAGE: BTreePage + ?Sized>(
-        pid: &BTreePageID,
-        page: &Arc<RwLock<PAGE>>,
-        buffer: &mut HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
-    ) {
-        // let mut b = buffer.get_inner_wl();
-        buffer.insert(pid.clone(), page.clone());
     }
 
     pub(crate) fn all_keys(&self) -> Vec<Key> {
