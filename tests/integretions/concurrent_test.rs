@@ -83,10 +83,9 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
+        table.check_integrity();
         assert_eq!(table.tuples_count(), row_count + 1000);
     }
-
-    table.check_integrity();
 
     debug!("test 1 finished, tuple count: {}", table.tuples_count());
 
@@ -117,12 +116,8 @@ fn test_concurrent() {
             handle.join().unwrap();
         }
 
-        table.draw_tree(3);
-        debug!("tuple count: {}", table.tuples_count());
         table.check_integrity();
-
         assert_eq!(table.tuples_count(), row_count + 1000);
-        // assert_eq!(table.tuples_count(), row_count);
     }
 
     debug!("test 2 finished, tuple count: {}", table.tuples_count());
@@ -190,6 +185,10 @@ fn test_concurrent() {
     }
 }
 
+/// Assert two transactions cannot access the same page at the same time using exclusive
+/// permission.
+///
+/// This test should be passed no matter what the latch mechanism is.
 #[test]
 fn test_concurrent_page_access() {
     setup();
