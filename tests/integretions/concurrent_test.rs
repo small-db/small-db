@@ -13,27 +13,9 @@ use small_db::{
 };
 
 use crate::test_utils::{
-    internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table, setup,
-    TreeLayout,
+    insert_random, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
+    setup, TreeLayout,
 };
-
-// Insert a tuple into the table.
-fn inserter(
-    column_count: usize,
-    table_rc: &Pod<BTreeTable>,
-    s: &crossbeam::channel::Sender<Tuple>,
-) {
-    let mut rng = rand::thread_rng();
-    let insert_value = rng.gen_range(i64::MIN, i64::MAX);
-
-    let tx = Transaction::new();
-
-    let tuple = new_int_tuples(insert_value, column_count, &tx);
-    table_rc.rl().insert_tuple(&tx, &tuple).unwrap();
-    tx.commit().unwrap();
-
-    s.send(tuple).unwrap();
-}
 
 // Delete a tuple from the table.
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
@@ -99,7 +81,9 @@ fn test_concurrent() {
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
 
-            let handle = thread::spawn(move || inserter(column_count, &local_table, &local_sender));
+            let handle = thread::spawn(move || {
+                insert_random(local_table, 1, column_count, Some(&local_sender))
+            });
             insert_threads.push(handle);
         }
         // wait for all threads to finish
@@ -128,8 +112,9 @@ fn test_concurrent() {
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
 
-            let insert_worker =
-                thread::spawn(move || inserter(column_count, &local_table, &local_sender));
+            let insert_worker = thread::spawn(move || {
+                insert_random(local_table, 1, column_count, Some(&local_sender))
+            });
             threads.push(insert_worker);
 
             // thread local copies
@@ -186,7 +171,9 @@ fn test_concurrent() {
             let local_table = table_pod.clone();
             let local_sender = sender.clone();
 
-            let handle = thread::spawn(move || inserter(column_count, &local_table, &local_sender));
+            let handle = thread::spawn(move || {
+                insert_random(local_table, 1, column_count, Some(&local_sender))
+            });
             threads.push(handle);
         }
 
@@ -236,4 +223,47 @@ fn test_concurrent_page_access() {
     let read_tx = Transaction::new();
     let page = BufferPool::get_leaf_page(&read_tx, Permission::ReadOnly, &pid);
     assert!(page.is_err());
+}
+
+#[test]
+fn test_concurrent_simplified() {
+    // Use a small page size to speed up the test.
+    BufferPool::set_page_size(1024);
+
+    setup();
+
+    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+
+    let table = table_pod.rl();
+
+    // insert and delete tuples at the same time, make sure the tuple count is
+    // correct, and the is no conflict between threads
+    let mut threads = vec![];
+    for _ in 0..1000 {
+        // thread local copies
+        let local_table = table_pod.clone();
+
+        let insert_worker = thread::spawn(move || inserter3(2, &local_table));
+        threads.push(insert_worker);
+    }
+    // wait for all threads to finish
+    for handle in threads {
+        handle.join().unwrap();
+    }
+
+    assert_eq!(table.tuples_count(), 0);
+}
+
+// TODO: remove this function
+fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
+    let table = table_rc.rl();
+
+    let tx = Transaction::new();
+    let tuple = new_int_tuples(tx.get_id() as i64, column_count, &tx);
+    table.insert_tuple(&tx, &tuple).unwrap();
+    tx.commit().unwrap();
+
+    let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
+    table.delete_tuples(&tx, &predicate).unwrap();
+    tx.commit().unwrap();
 }

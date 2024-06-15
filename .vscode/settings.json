@@ -11,5 +11,6 @@
         "aries_steal",
         "aries_force",
         "read_committed",
+        "benchmark",
     ],
 }

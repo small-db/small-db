@@ -5,7 +5,7 @@ use small_db::{
     BTreeTable, Op, Predicate,
 };
 
-use crate::test_utils::{new_int_tuples, new_random_btree_table, setup, TreeLayout};
+use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
 #[test]
 #[cfg(feature = "benchmark")]
@@ -13,6 +13,8 @@ fn test_speed() {
     use std::env;
 
     use log::info;
+
+    use crate::test_utils::insert_random;
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
         .unwrap()
@@ -42,8 +44,9 @@ fn test_speed() {
             // thread local copies
             let local_table = table_pod.clone();
 
-            let handle =
-                thread::spawn(move || inserter2(action_per_thread, column_count, &local_table));
+            let handle = thread::spawn(move || {
+                insert_random(local_table, action_per_thread, column_count, None)
+            });
             insert_threads.push(handle);
         }
         // wait for all threads to finish
@@ -64,44 +67,3 @@ fn test_speed() {
 }
 
 // Insert one tuple into the table
-fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
-    let table = table_rc.rl();
-
-    let tx = Transaction::new();
-    let tuple = new_int_tuples(tx.get_id() as i64, column_count, &tx);
-    table.insert_tuple(&tx, &tuple).unwrap();
-    tx.commit().unwrap();
-
-    let predicate = Predicate::new(table.key_field, Op::Equals, &tuple.get_cell(0));
-    table.delete_tuples(&tx, &predicate).unwrap();
-    tx.commit().unwrap();
-}
-
-// #[test]
-fn test_concurrent_simplified() {
-    // Use a small page size to speed up the test.
-    BufferPool::set_page_size(1024);
-
-    setup();
-
-    let table_pod = new_random_btree_table(2, 0, None, 0, TreeLayout::LastTwoEvenlyDistributed);
-
-    let table = table_pod.rl();
-
-    // insert and delete tuples at the same time, make sure the tuple count is
-    // correct, and the is no conflict between threads
-    let mut threads = vec![];
-    for _ in 0..1000 {
-        // thread local copies
-        let local_table = table_pod.clone();
-
-        let insert_worker = thread::spawn(move || inserter3(2, &local_table));
-        threads.push(insert_worker);
-    }
-    // wait for all threads to finish
-    for handle in threads {
-        handle.join().unwrap();
-    }
-
-    assert_eq!(table.tuples_count(), 0);
-}
