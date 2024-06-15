@@ -368,6 +368,7 @@ impl BufferPool {
             // why there are some pages not in the buffer pool?
             //
             error!("page not found in buffer pool, pid: {:?}", pid);
+            panic!("page not found in buffer pool");
         }
     }
 
