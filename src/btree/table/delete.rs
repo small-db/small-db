@@ -99,9 +99,11 @@ impl BTreeTable {
         Ok(())
     }
 
-    /// Handle the case when a leaf page becomes less than half full due to deletions.
+    /// Handle the case when a leaf page becomes less than half full due to
+    /// deletions.
     ///
-    /// If one of its siblings has extra tuples, redistribute those tuples. Otherwise merge with one of the siblings. Update pointers as needed.
+    /// If one of its siblings has extra tuples, redistribute those tuples.
+    /// Otherwise merge with one of the siblings. Update pointers as needed.
     fn handle_unstable_leaf_page(
         &self,
         tx: &Transaction,

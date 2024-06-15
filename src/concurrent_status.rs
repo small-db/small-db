@@ -208,8 +208,8 @@ impl ConcurrentStatus {
         return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
     }
 
-    /// Get the corresponding transaction of the dirty page, return None if the page is not a
-    /// dirty page.
+    /// Get the corresponding transaction of the dirty page, return None if the
+    /// page is not a dirty page.
     pub(crate) fn dirty_page_tx(&self, page_id: &BTreePageID) -> Option<Transaction> {
         for (tx, pages) in self.dirty_pages.iter() {
             if pages.contains(page_id) {

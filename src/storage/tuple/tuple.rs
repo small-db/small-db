@@ -3,8 +3,6 @@ use std::{
     usize,
 };
 
-use log::debug;
-
 use crate::{
     btree::page::BTreePageID,
     io::{Serializeable, SmallWriter},
@@ -97,7 +95,9 @@ impl Tuple {
             //
             // Q: Why the transaction `xmin` cannot be an aborted transaction in the
             // previous database process?
-            // A: If the transaction has been aborted, the page will be recovered in the recovery process, and we will not see the tuples created by the aborted transaction.
+            // A: If the transaction has been aborted, the page will be recovered in the
+            // recovery process, and we will not see the tuples created by the aborted
+            // transaction.
             return true;
         }
     }

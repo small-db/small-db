@@ -348,9 +348,9 @@ impl BufferPool {
             // when a page is deleted during the transaction.
             //
             // Q: What's the possiable scenario for this case?
-            // A: For example, when a transaction deletes some tuples, may cause a leaf page to be
-            // empty and be discarded from the buffer pool. But the page is still recorded
-            // in the relationship map.
+            // A: For example, when a transaction deletes some tuples, may cause a leaf page
+            // to be empty and be discarded from the buffer pool. But the page
+            // is still recorded in the relationship map.
             //
             // TODO: remove the page from the relationship map when the page is discarded.
             return;

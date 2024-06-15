@@ -55,9 +55,10 @@ impl BTreeTable {
         // Insert the tuple into the leaf page.
         leaf_rc.wl().insert_tuple(&new_tuple)?;
 
-        // Q: Why we need to release the page latch here, not when the transaction is committed?
-        // A: We release the page latch here so that other transactions can access the page, even
-        // before the current transaction is committed.
+        // Q: Why we need to release the page latch here, not when the transaction is
+        // committed? A: We release the page latch here so that other
+        // transactions can access the page, even before the current transaction
+        // is committed.
         Database::mut_concurrent_status().release_lock(tx, &leaf_rc.rl().get_pid())?;
 
         return Ok(());

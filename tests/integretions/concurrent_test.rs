@@ -1,7 +1,6 @@
 use std::thread;
 
 use log::debug;
-use rand::Rng;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     concurrent_status::{ConcurrentStatus, Permission},
@@ -12,10 +11,7 @@ use small_db::{
     BTreeTable, Op, Predicate,
 };
 
-use crate::test_utils::{
-    insert_random, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
-    setup, TreeLayout,
-};
+use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
 // Delete a tuple from the table.
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {

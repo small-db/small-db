@@ -2,10 +2,10 @@ use std::sync::{Arc, RwLock};
 
 use log::debug;
 use rand::Rng;
-use small_db::storage::tuple::Tuple;
-use small_db::{btree::table::BTreeTableIterator, transaction::Transaction, BTreeTable};
-
-use small_db::utils::HandyRwLock;
+use small_db::{
+    btree::table::BTreeTableIterator, storage::tuple::Tuple, transaction::Transaction,
+    utils::HandyRwLock, BTreeTable,
+};
 
 use super::new_int_tuples;
 
@@ -32,7 +32,8 @@ pub fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
     table.insert_tuple(tx, &tuple).unwrap();
 }
 
-/// Insert random tuples into the table. The tuples will be sent to the sender if it is provided.
+/// Insert random tuples into the table. The tuples will be sent to the sender
+/// if it is provided.
 pub fn insert_random(
     table_rc: Arc<RwLock<BTreeTable>>,
     row_count: usize,
