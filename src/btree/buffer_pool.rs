@@ -227,8 +227,8 @@ impl BufferPool {
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
         table_schema: &TableSchema,
     ) {
-        let page_pod = buffer.get(pid).unwrap();
-        page_pod.wl().set_before_image(table_schema);
+        let page_rc = buffer.get(pid).unwrap();
+        page_rc.wl().set_before_image(table_schema);
     }
 
     /// Flush all dirty pages to database.
@@ -319,13 +319,13 @@ impl BufferPool {
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
         log_manager: &mut LogManager,
     ) {
-        if let Some(page_pod) = buffer.get(pid) {
+        if let Some(page_rc) = buffer.get(pid) {
             let v = Database::concurrent_status().dirty_page_tx(pid);
             if let Some(tx) = v {
-                log_manager.log_update(&tx, page_pod.clone()).unwrap();
+                log_manager.log_update(&tx, page_rc.clone()).unwrap();
 
                 if cfg!(feature = "aries_force") {
-                    table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
+                    table.write_page_to_disk(pid, &page_rc.rl().get_page_data(&table.schema));
                 }
 
                 // What's the purpose of "set_before_image" here?
@@ -359,8 +359,8 @@ impl BufferPool {
         pid: &BTreePageID,
         buffer: &HashMap<BTreePageID, Arc<RwLock<PAGE>>>,
     ) {
-        if let Some(page_pod) = buffer.get(pid) {
-            table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
+        if let Some(page_rc) = buffer.get(pid) {
+            table.write_page_to_disk(pid, &page_rc.rl().get_page_data(&table.schema));
             return;
         } else {
             // page not found in buffer pool, so no need to write to disk
@@ -383,19 +383,19 @@ impl BufferPool {
         let table_rc = catalog.get_table(&pid.get_table_id()).unwrap();
         let table = table_rc.read().unwrap();
 
-        let page_pod = Arc::new(RwLock::new(page));
+        let page_rc = Arc::new(RwLock::new(page));
 
-        Self::insert_page_dispatch(pid, &page_pod, buffer);
-        Self::force_flush_dispatch(pid, &table, page_pod);
+        Self::insert_page_dispatch(pid, &page_rc, buffer);
+        Self::force_flush_dispatch(pid, &table, page_rc);
     }
 
     // write a page to disk without write to WAL log
     fn force_flush_dispatch<PAGE: BTreePage>(
         pid: &BTreePageID,
         table: &BTreeTable,
-        page_pod: Arc<RwLock<PAGE>>,
+        page_rc: Arc<RwLock<PAGE>>,
     ) {
-        table.write_page_to_disk(pid, &page_pod.rl().get_page_data(&table.schema));
+        table.write_page_to_disk(pid, &page_rc.rl().get_page_data(&table.schema));
     }
 
     fn insert_page_dispatch<PAGE: BTreePage + ?Sized>(

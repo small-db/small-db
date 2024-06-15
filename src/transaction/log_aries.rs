@@ -425,7 +425,7 @@ impl LogManager {
     pub fn log_update<PAGE: BTreePage>(
         &mut self,
         tx: &Transaction,
-        page_pod: Arc<RwLock<PAGE>>,
+        page_rc: Arc<RwLock<PAGE>>,
     ) -> SmallResult {
         self.pre_append()?;
 
@@ -439,7 +439,7 @@ impl LogManager {
 
         self.file.write(&RecordType::UPDATE, &())?;
         self.file.write(&tx.get_id(), &())?;
-        self.write_page(page_pod)?;
+        self.write_page(page_rc)?;
         self.file.write(&self.current_offset, &())?;
 
         self.file.flush()?;
@@ -640,8 +640,8 @@ impl LogManager {
         return Ok(());
     }
 
-    fn write_page<PAGE: BTreePage>(&mut self, page_pod: Arc<RwLock<PAGE>>) -> SmallResult {
-        let page = page_pod.read().unwrap();
+    fn write_page<PAGE: BTreePage>(&mut self, page_rc: Arc<RwLock<PAGE>>) -> SmallResult {
+        let page = page_rc.read().unwrap();
         self.file.write(&page.get_pid(), &())?;
 
         let table_rc = Database::mut_catalog()
