@@ -185,8 +185,8 @@ fn test_concurrent() {
     }
 }
 
-/// Assert two transactions cannot access the same page at the same time using exclusive
-/// permission.
+/// Assert two transactions cannot access the same page at the same time using
+/// exclusive permission.
 ///
 /// This test should be passed no matter what the latch mechanism is.
 #[test]
@@ -255,83 +255,49 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     tx.commit().unwrap();
 }
 
-// #[test]
-// fn test_concurrent_2() {
-//     // Use a small page size to speed up the test.
-//     BufferPool::set_page_size(1024);
+#[test]
+fn test_concurrent_2() {
+    // Use a small page size to speed up the test.
+    BufferPool::set_page_size(1024);
 
-//     setup();
+    setup();
 
-//     let row_count = 10000;
-//     let column_count = 2;
-//     let table_rc = new_random_btree_table(
-//         column_count,
-//         row_count,
-//         None,
-//         0,
-//         TreeLayout::LastTwoEvenlyDistributed,
-//     );
+    let row_count = 10000;
+    let column_count = 2;
+    let table_rc = new_random_btree_table(
+        column_count,
+        row_count,
+        None,
+        0,
+        TreeLayout::LastTwoEvenlyDistributed,
+    );
 
-//     let table = table_rc.rl();
+    let table = table_rc.rl();
 
-//     // now insert some random tuples
-//     let (sender, receiver) = crossbeam::channel::unbounded();
+    // now insert some random tuples
+    let (sender, receiver) = crossbeam::channel::unbounded();
 
-//     insert_random(table_rc, 1, column_count, Some(&local_sender));
+    insert_random(table_rc.clone(), 1000, column_count, Some(&sender));
 
-//     // test 1:
-//     // insert 1000 tuples, and make sure the tuple count is correct
-//     {
-//         let mut insert_threads = vec![];
-//         for _ in 0..1000 {
-//             // thread local copies
-//             let local_table = table_rc.clone();
-//             let local_sender = sender.clone();
+    debug!("init, tuple count: {}", table.tuples_count());
 
-//             let handle = thread::spawn(move || {
-//                 insert_random(local_table, 1, column_count, Some(&local_sender))
-//             });
-//             insert_threads.push(handle);
-//         }
-//         // wait for all threads to finish
-//         for handle in insert_threads {
-//             handle.join().unwrap();
-//         }
+    {
+        let mut threads = vec![];
+        for _ in 0..1000 {
+            // thread local copies
+            let local_table = table_rc.clone();
+            let local_receiver = receiver.clone();
 
-//         table.check_integrity();
-//         assert_eq!(table.tuples_count(), row_count + 1000);
-//     }
+            let delete_worker = thread::spawn(move || deleter(&local_table, &local_receiver));
+            threads.push(delete_worker);
+        }
+        // wait for all threads to finish
+        for handle in threads {
+            handle.join().unwrap();
+        }
 
-//     debug!("test 1 finished, tuple count: {}", table.tuples_count());
-
-//     // test 2:
-//     // insert and delete tuples at the same time, make sure the tuple count is
-//     // correct, and the is no conflict between threads
-//     {
-//         let mut threads = vec![];
-//         for _ in 0..50 {
-//             // thread local copies
-//             let local_table = table_rc.clone();
-//             let local_sender = sender.clone();
-
-//             let insert_worker = thread::spawn(move || {
-//                 insert_random(local_table, 1, column_count, Some(&local_sender))
-//             });
-//             threads.push(insert_worker);
-
-//             // thread local copies
-//             let local_table = table_rc.clone();
-//             let local_receiver = receiver.clone();
-
-//             let delete_worker = thread::spawn(move || deleter(&local_table, &local_receiver));
-//             threads.push(delete_worker);
-//         }
-//         // wait for all threads to finish
-//         for handle in threads {
-//             handle.join().unwrap();
-//         }
-
-//         table.check_integrity();
-//         assert_eq!(table.tuples_count(), row_count + 1000);
-//     }
-// }
+        table.check_integrity();
+        debug!("tuple count: {}", table.tuples_count());
+        // assert_eq!(table.tuples_count(), row_count + 1000);
+    }
+}

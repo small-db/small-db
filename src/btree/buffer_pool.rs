@@ -125,20 +125,16 @@ impl BufferPool {
         // buffer pool. Here are the reasons:
         //
         // 1. (main reason) Logically, get a page from buffer pool is an access
-        // operation, which requires the permission of the page.
+        //    operation, which requires the permission of the page.
         //
-        // 2. If we request the lock on a page after get the access to
-        // buffer pool, the request may be blocked by other
-        // transactions. But we have already hold the access
-        // to the buffer pool, which leads to deadlock.
-        //    e.g:
-        //    T1: hold page1, request buffer pool (for other pages)
-        //    T2: hold buffer pool, request page1
-        //    => deadlock
+        // 2. If we request the lock on a page after getting the access to the buffer
+        //    pool, the request may be blocked by other transactions. But we have
+        //    already hold the access to the buffer pool, which leads to deadlock. e.g:
+        //    T1: hold page1, request buffer pool (for other pages) T2: hold buffer
+        //    pool, request page1 => deadlock
         //
-        // 3. The lock scope of buffer pool should be as small as
-        // possible, since most of its operations require
-        // exclusive access.
+        // 3. The lock scope of buffer pool should be as small as possible, since most
+        //    of its operations require exclusive access.
 
         // step 1: request page latch
         if key.need_page_latch() {
