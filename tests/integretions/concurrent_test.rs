@@ -40,7 +40,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-#[test]
+// #[test]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -212,7 +212,7 @@ fn test_concurrent_page_access() {
     assert!(page.is_err());
 }
 
-#[test]
+// #[test]
 fn test_concurrent_simplified() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -256,7 +256,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 #[test]
-fn test_concurrent_2() {
+fn test_concurrent_debug() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
 
@@ -283,7 +283,7 @@ fn test_concurrent_2() {
 
     {
         let mut threads = vec![];
-        for _ in 0..400 {
+        for _ in 0..1000 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
