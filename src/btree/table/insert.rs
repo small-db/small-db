@@ -48,8 +48,7 @@ impl BTreeTable {
         } else if cfg!(feature = "page_latch") {
             leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
         } else {
-            log::error!("No latch mechanism is enabled.");
-            panic!();
+            panic!("No latch mechanism is enabled.");
         }
 
         // Insert the tuple into the leaf page.

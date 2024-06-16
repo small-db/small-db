@@ -502,8 +502,6 @@ impl BTreeInternalPage {
             ));
             let iter = BTreeInternalPageIterator::new(self);
             debug!("page entries: {:?}", iter.collect::<Vec<Entry>>());
-            error!("{}", err);
-            // panic!("{}", e);
             return Err(err);
         }
 

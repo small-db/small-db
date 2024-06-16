@@ -243,7 +243,7 @@ impl BufferPool {
             // In NO-STEAL mode, the dirty pages are not allowed to be written
             // to database arbitrarily.
         } else {
-            error!("unknown aries mode");
+            panic!("unknown aries mode");
         }
     }
 
