@@ -1,7 +1,7 @@
 use std::{fmt, io::Cursor};
 
 use bit_vec::BitVec;
-use log::{debug, error};
+use log::debug;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
 use crate::{

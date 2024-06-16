@@ -249,6 +249,11 @@ impl BTreeTable {
     pub fn set_root_pid(&self, tx: &Transaction, root_pid: &BTreePageID) {
         let root_pointer_rc = self.get_root_ptr_page(tx);
         root_pointer_rc.wl().set_root_pid(root_pid);
+
+        // release the latch on the root pointer page
+        Database::mut_concurrent_status()
+            .release_lock(tx, &root_pointer_rc.rl().get_pid())
+            .unwrap();
     }
 
     pub(crate) fn set_parent(tx: &Transaction, child_pid: &BTreePageID, parent_pid: &BTreePageID) {

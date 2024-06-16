@@ -129,7 +129,9 @@ Explanation:
 
 ## Status
 
-- [ ] Test system crash immediately after the transaction commits
+- [ ] remove the latch on a page automatically when the page went out of scope (dropped)
+
+- [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
 - [ ] Add "redo" action
 - [ ] Enable error logs in the buffer pool and dig deep
 

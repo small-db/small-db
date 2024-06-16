@@ -8,8 +8,6 @@ use std::{
     },
 };
 
-use log::error;
-
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
     BTreeRootPointerPage, PageCategory,

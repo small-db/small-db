@@ -4,8 +4,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::info;
-
 use super::schema::Schema;
 use crate::{
     btree::table::BTreeTableSearchIterator,

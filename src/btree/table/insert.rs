@@ -55,9 +55,9 @@ impl BTreeTable {
         leaf_rc.wl().insert_tuple(&new_tuple)?;
 
         // Q: Why we need to release the page latch here, not when the transaction is
-        // committed? A: We release the page latch here so that other
-        // transactions can access the page, even before the current transaction
-        // is committed.
+        // committed?
+        // A: We release the page latch here so that other transactions can access the
+        // page, even before the current transaction is committed.
         Database::mut_concurrent_status().release_lock(tx, &leaf_rc.rl().get_pid())?;
 
         return Ok(());
@@ -168,6 +168,9 @@ impl BTreeTable {
                 let old_right_rc =
                     BufferPool::get_leaf_page(tx, Permission::ReadWrite, &old_right_pid).unwrap();
                 old_right_rc.wl().set_left_pid(Some(new_sibling.get_pid()));
+
+                // release the latch on "old_right_rc"
+                Database::mut_concurrent_status().release_lock(tx, &old_right_pid)?;
             }
 
             // set sibling id
@@ -184,13 +187,19 @@ impl BTreeTable {
         // borrow of new_sibling_rc end here
 
         if field > key {
-            // should release the page latch on "page_rc" if don't need it anymore
+            // release all page latches except the new sibling page
+            //  - the original filled page (page_rc)
+            //  - the parent page (parent_pid)
             Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
+            Database::mut_concurrent_status().release_lock(tx, &parent_pid)?;
 
             Ok(new_sibling_rc)
         } else {
-            // should release the page latch on "new_sibling_rc" if don't need it anymore
+            // release all page latches except the original filled page
+            //  - the new sibling page (new_sibling_rc)
+            //  - the parent page (parent_pid)
             Database::mut_concurrent_status().release_lock(tx, &new_sibling_rc.rl().get_pid())?;
+            Database::mut_concurrent_status().release_lock(tx, &parent_pid)?;
 
             Ok(page_rc)
         }
@@ -366,8 +375,28 @@ impl BTreeTable {
         // borrow of parent_rc end here
 
         if *field > key {
+            // release all page latches except the sibling page
+            //  - the original filled page (page_rc)
+            //  - the parent page (parent_pid)
+            Database::mut_concurrent_status()
+                .release_lock(tx, &page_rc.rl().get_pid())
+                .unwrap();
+            Database::mut_concurrent_status()
+                .release_lock(tx, &parent_pid)
+                .unwrap();
+
             sibling_rc
         } else {
+            // release all page latches except the original filled page
+            //  - the sibling page (sibling_rc)
+            //  - the parent page (parent_pid)
+            Database::mut_concurrent_status()
+                .release_lock(tx, &sibling_rc.rl().get_pid())
+                .unwrap();
+            Database::mut_concurrent_status()
+                .release_lock(tx, &parent_pid)
+                .unwrap();
+
             page_rc
         }
     }

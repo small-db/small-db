@@ -1,8 +1,6 @@
 use core::fmt;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use log::debug;
-
 use crate::{types::SmallResult, Database};
 
 #[derive(Clone, PartialEq, Debug)]
