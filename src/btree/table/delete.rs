@@ -373,31 +373,16 @@ impl BTreeTable {
     fn set_empty_page(&self, tx: &Transaction, pid: &BTreePageID) {
         Database::mut_buffer_pool().discard_page(pid);
 
-        let root_ptr_rc = self.get_root_ptr_page(tx);
-        let header_rc: Arc<RwLock<BTreeHeaderPage>>;
+        let header_rc = self.get_header_page(tx);
 
-        match root_ptr_rc.rl().get_header_pid() {
-            Some(header_pid) => {
-                header_rc =
-                    BufferPool::get_header_page(tx, Permission::ReadWrite, &header_pid).unwrap();
-            }
-            None => {
-                // if there are no header pages, create the first
-                // header page and update the header
-                // pointer in the BTreeRootPtrPage
-                header_rc = self.get_empty_header_page(tx);
-            }
-        }
+        let mut header = header_rc.wl();
+        let slot_index = pid.page_index as usize % header.get_slots_count();
+        header.mark_slot_status(slot_index, false);
 
-        root_ptr_rc.wl().set_header_pid(&header_rc.rl().get_pid());
-
-        // borrow of header_rc start here
-        {
-            let mut header = header_rc.wl();
-            let slot_index = pid.page_index as usize % header.get_slots_count();
-            header.mark_slot_status(slot_index, false);
-        }
-        // borrow of header_rc end here
+        // release the latch on the header page
+        Database::mut_concurrent_status()
+            .release_lock(tx, &header.get_pid())
+            .unwrap();
     }
 
     /// Balancing two internal pages according the situation:

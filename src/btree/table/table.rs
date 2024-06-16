@@ -426,13 +426,31 @@ impl BTreeTable {
         root_pid
     }
 
-    pub fn get_root_ptr_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeRootPointerPage>> {
+    pub(crate) fn get_root_ptr_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeRootPointerPage>> {
         let root_ptr_pid = BTreePageID {
             category: PageCategory::RootPointer,
             page_index: 0,
             table_id: self.table_id,
         };
         BufferPool::get_root_ptr_page(tx, Permission::ReadWrite, &root_ptr_pid).unwrap()
+    }
+
+    pub(crate) fn get_header_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeHeaderPage>> {
+        let root_ptr_rc = self.get_root_ptr_page(tx);
+        let mut header_pid = root_ptr_rc.rl().get_header_pid();
+
+        if header_pid.is_none() {
+            // if there are no header pages, create the first header page and update the header pointer in the BTreeRootPtrPage
+            let header_rc = self.get_empty_header_page(tx);
+
+            let mut root_ptr = root_ptr_rc.wl();
+            root_ptr.set_header_pid(&header_rc.rl().get_pid());
+
+            header_pid = Some(header_rc.rl().get_pid());
+        }
+
+        // We always get the page from the buffer pool even it's a new page. Since the buffer pool api provides status management and latch management.
+        BufferPool::get_header_page(tx, Permission::ReadWrite, &header_pid.unwrap()).unwrap()
     }
 
     /// The count of pages in this BTreeFile

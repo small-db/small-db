@@ -201,26 +201,19 @@ impl BTreeTable {
         }
     }
 
-    pub fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
-        let root_ptr_rc = self.get_root_ptr_page(tx);
-        // borrow of root_ptr_rc start here
-        {
-            let root_ptr = root_ptr_rc.rl();
-            let header_pid = root_ptr.get_header_pid();
-            if let Some(header_pid) = header_pid {
-                let header_rc =
-                    BufferPool::get_header_page(tx, Permission::ReadOnly, &header_pid).unwrap();
-                // borrow of header_rc start here
-                {
-                    let header = header_rc.rl();
-                    if let Some(i) = header.get_empty_slot() {
-                        return i;
-                    }
-                }
-            }
+    pub(crate) fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
+        let header_rc = self.get_header_page(tx);
+        let header = header_rc.rl();
+        if let Some(i) = header.get_empty_slot() {
+            return i;
         }
-        // borrow of root_ptr_rc end here
 
+        // No longer need the header page, release the latch.
+        Database::mut_concurrent_status()
+            .release_lock(tx, &header.get_pid())
+            .unwrap();
+
+        log::error!("No empty slot in the header page.");
         let index = self.page_index.fetch_add(1, Ordering::Relaxed) + 1;
         index
     }

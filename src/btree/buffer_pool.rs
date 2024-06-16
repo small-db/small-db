@@ -163,7 +163,7 @@ impl BufferPool {
         Self::get_page(tx, perm, key, |bp| &mut bp.root_pointer_buffer)
     }
 
-    pub fn get_header_page(
+    pub(crate) fn get_header_page(
         tx: &Transaction,
         perm: Permission,
         key: &Key,
