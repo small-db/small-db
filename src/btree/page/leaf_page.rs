@@ -121,8 +121,7 @@ impl BTreeLeafPage {
     fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
         let slot_count = Self::get_children_cap(&schema);
 
-        let parent_pid =
-            BTreePageID::new(PageCategory::Internal, pid.get_table_id(), EMPTY_PAGE_ID);
+        let parent_pid = BTreePageID::get_root_ptr_page_id(pid.get_table_id());
 
         let mut header = BitVec::new();
         header.grow(slot_count, false);

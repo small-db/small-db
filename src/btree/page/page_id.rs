@@ -3,7 +3,8 @@ use std::fmt;
 use super::PageCategory;
 use crate::io::{Serializeable, SmallWriter};
 
-pub const EMPTY_PAGE_ID: u32 = 0;
+pub const ROOT_PTR_PAGE_ID: u32 = 0;
+pub const EMPTY_PAGE_ID: u32 = 999;
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
@@ -46,6 +47,14 @@ impl BTreePageID {
 
     pub(crate) fn get_table_id(&self) -> u32 {
         self.table_id
+    }
+
+    pub(crate) fn get_root_ptr_page_id(table_id: u32) -> Self {
+        BTreePageID {
+            category: PageCategory::RootPointer,
+            page_index: ROOT_PTR_PAGE_ID,
+            table_id: table_id,
+        }
     }
 
     pub(crate) fn get_short_repr(&self) -> String {

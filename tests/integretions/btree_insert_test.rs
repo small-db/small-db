@@ -83,6 +83,9 @@ fn test_insert_duplicate_tuples() {
         }
     }
 
+    table.check_integrity();
+    table.draw_tree(-1);
+
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(table.key_field, Op::Equals, &Cell::Int64(1));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);

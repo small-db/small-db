@@ -71,15 +71,15 @@ impl BTreeHeaderPage {
     }
 
     // mark the slot as empty/filled.
-    pub fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
+    pub(crate) fn mark_slot_status(&mut self, slot_index: usize, used: bool) {
         self.header.set(slot_index, used);
     }
 
-    pub fn get_slots_count(&self) -> usize {
+    pub(crate) fn get_slots_count(&self) -> usize {
         self.slot_count
     }
 
-    pub fn get_empty_slot(&self) -> Option<u32> {
+    pub(crate) fn get_empty_slot(&self) -> Option<u32> {
         for i in 0..self.slot_count {
             if !self.header[i] {
                 return Some(i as u32);

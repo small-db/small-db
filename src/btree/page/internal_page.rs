@@ -3,7 +3,7 @@ use std::{fmt, io::Cursor};
 use bit_vec::BitVec;
 use log::debug;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     concurrent_status::Permission,
@@ -160,8 +160,7 @@ impl BTreeInternalPage {
 
         let mut reader = Cursor::new(bytes);
 
-        let parent_pid =
-            BTreePageID::new(PageCategory::Internal, pid.get_table_id(), EMPTY_PAGE_ID);
+        let parent_pid = BTreePageID::get_root_ptr_page_id(pid.get_table_id());
 
         let children_category = PageCategory::Leaf;
 
