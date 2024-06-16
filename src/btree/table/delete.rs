@@ -119,11 +119,11 @@ impl BTreeTable {
 
         if let Some(left_pid) = left_pid {
             let left_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &left_pid).unwrap();
-            self.balancing_two_leaf_pages(tx, left_rc, page_rc)?;
+            self.balancing_two_leaf_pages(tx, left_rc, page_rc.clone())?;
         } else if let Some(right_pid) = right_pid {
             let right_rc =
                 BufferPool::get_leaf_page(tx, Permission::ReadWrite, &right_pid).unwrap();
-            self.balancing_two_leaf_pages(tx, page_rc, right_rc)?;
+            self.balancing_two_leaf_pages(tx, page_rc.clone(), right_rc)?;
         } else {
             let err_msg = format!(
                 "page {} is unstable but has no left or right sibling",
@@ -131,6 +131,18 @@ impl BTreeTable {
             );
             return Err(SmallError::new(&err_msg));
         };
+
+        // release the latch on the pages:
+        // - original unstable page
+        // - left sibling page
+        // - right sibling page
+        Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
+        if let Some(left_pid) = left_pid {
+            Database::mut_concurrent_status().release_lock(tx, &left_pid)?;
+        }
+        if let Some(right_pid) = right_pid {
+            Database::mut_concurrent_status().release_lock(tx, &right_pid)?;
+        }
 
         return Ok(());
     }
@@ -145,7 +157,7 @@ impl BTreeTable {
     /// # Arguments
     ///
     /// - page_rc - the erratic internal page to be handled
-    fn handle_erratic_internal_page(
+    fn handle_unstable_internal_page(
         &self,
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeInternalPage>>,
@@ -159,13 +171,25 @@ impl BTreeTable {
         if let Some(left_pid) = left_pid {
             let left_rc =
                 BufferPool::get_internal_page(tx, Permission::ReadWrite, &left_pid).unwrap();
-            self.balancing_two_internal_pages(tx, left_rc, page_rc)?;
+            self.balancing_two_internal_pages(tx, left_rc, page_rc.clone())?;
         } else if let Some(right_pid) = right_pid {
             let right_rc =
                 BufferPool::get_internal_page(tx, Permission::ReadWrite, &right_pid).unwrap();
-            self.balancing_two_internal_pages(tx, page_rc, right_rc)?;
+            self.balancing_two_internal_pages(tx, page_rc.clone(), right_rc)?;
         } else {
             panic!("Cannot find the left/right sibling of the page");
+        }
+
+        // release the latch on the pages:
+        // - original unstable page
+        // - left sibling page
+        // - right sibling page
+        Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
+        if let Some(left_pid) = left_pid {
+            Database::mut_concurrent_status().release_lock(tx, &left_pid)?;
+        }
+        if let Some(right_pid) = right_pid {
+            Database::mut_concurrent_status().release_lock(tx, &right_pid)?;
         }
 
         Ok(())
@@ -351,7 +375,7 @@ impl BTreeTable {
         // release the parent and left page
 
         // case 3: parent is unstable (erratic), handle it
-        self.handle_erratic_internal_page(tx, parent_rc)?;
+        self.handle_unstable_internal_page(tx, parent_rc)?;
         Ok(())
     }
 
