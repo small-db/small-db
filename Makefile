@@ -57,100 +57,164 @@ test_all_modes:
 
 
 test_tree_latch_aries_steal_aries_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_force_read_committed:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_committed" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_force_repeatable_read:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_force_serializable:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, serializable" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_no_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_no_force_read_committed:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_no_force_repeatable_read:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_steal_aries_no_force_serializable:
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_force_read_committed:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_force_repeatable_read:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_force_serializable:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_no_force_read_committed:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_no_force_repeatable_read:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_tree_latch_aries_no_steal_aries_no_force_serializable:
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_force_read_committed:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_committed" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_force_repeatable_read:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_force_serializable:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, serializable" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_no_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_no_force_read_committed:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_committed" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_no_force_repeatable_read:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_steal_aries_no_force_serializable:
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, serializable" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_force_read_committed:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_committed" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_force_repeatable_read:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_force_serializable:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, serializable" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_no_force_read_uncommitted:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_uncommitted" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_no_force_read_committed:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_committed" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_no_force_repeatable_read:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1 --nocapture
 
 test_page_latch_aries_no_steal_aries_no_force_serializable:
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1
+	# "--test-threads=1" is used to run tests in serial
+	# "--no-capture" is used to print the output to stdout
+	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, serializable" -- --test-threads=1 --nocapture
 
 # ===[COMPILATION OPTIONS END]===
 
@@ -181,6 +245,7 @@ test-verbose:
 # options:
 test_%:
 	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	# --no-capture is used to print the log to stdout.
 	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $*
 
 debug:

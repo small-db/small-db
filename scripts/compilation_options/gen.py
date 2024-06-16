@@ -69,11 +69,13 @@ def gen_make_test(options: list[dict]):
 
         # Note: don't use fancy pipeline and redirection operators in the makefile, because
         # they don't work on github acitons.
-        # 
+        #
         # Github actions will use "sh" for the makefile, which doesn't support bash options.
 
         # run tests
-        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1\n'
+        content += f'\t# "--test-threads=1" is used to run tests in serial\n'
+        content += f'\t# "--no-capture" is used to print the output to stdout\n'
+        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 --nocapture\n'
 
         content += "\n"
 
