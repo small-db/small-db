@@ -6,6 +6,8 @@ use std::{
     time::Instant,
 };
 
+use log::error;
+
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
@@ -14,7 +16,7 @@ use crate::{
     Database,
 };
 
-static TIMEOUT: AtomicU32 = AtomicU32::new(10);
+static TIMEOUT: AtomicU32 = AtomicU32::new(3);
 
 #[derive(Debug)]
 pub enum Lock {
@@ -92,7 +94,17 @@ impl ConcurrentStatus {
             sleep(std::time::Duration::from_millis(10));
         }
 
-        return Err(SmallError::new("acquire lock timeout"));
+        error!(
+            "acquire lock timeout, args: {:?}, {:?}, {:?}, concurrent status: {:?}",
+            tx,
+            lock,
+            page_id,
+            Database::mut_concurrent_status(),
+        );
+        let err = SmallError::new("acquire lock timeout");
+        err.show_backtrace();
+
+        return Err(err);
     }
 
     // Add a lock to the given page. This api is idempotent.
@@ -232,7 +244,7 @@ impl fmt::Display for ConcurrentStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut depiction = "\n".to_string();
 
-        // s_lock_map.get_inner().rl()
+        // s_lock_map
         depiction.push_str("s_lock_map.get_inner().rl(): {");
         for (k, v) in self.s_lock_map.iter() {
             depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
@@ -243,7 +255,7 @@ impl fmt::Display for ConcurrentStatus {
         }
         depiction.push_str("\n}\n");
 
-        // x_lock_map.get_inner().rl()
+        // x_lock_map
         depiction.push_str("x_lock_map.get_inner().rl(): {");
         for (k, v) in self.x_lock_map.iter() {
             depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k.get_short_repr(), v));
@@ -259,6 +271,23 @@ impl fmt::Display for ConcurrentStatus {
             }
             depiction.push_str("\n\t]\n");
         }
+
+        // dirty_pages
+        depiction.push_str("dirty_pages: {");
+        for (k, v) in self.dirty_pages.iter() {
+            depiction.push_str(&format!("\n\t{:?} -> [", k));
+            for page_id in v {
+                depiction.push_str(&format!("\n\t\t{:?}, ", page_id.get_short_repr()));
+            }
+            depiction.push_str("\n\t]\n");
+        }
+
+        // transaction_status
+        depiction.push_str("transaction_status: {");
+        for (k, v) in self.transaction_status.iter() {
+            depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k, v));
+        }
+        depiction.push_str("\n}\n");
 
         return write!(f, "{}", depiction);
     }

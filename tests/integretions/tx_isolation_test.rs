@@ -94,19 +94,16 @@ fn test_anomaly_phantom() {
     setup();
 
     let table_rc = new_random_btree_table(2, 1000, None, 0, TreeLayout::LastTwoEvenlyDistributed);
+    let table = table_rc.rl();
 
     let key = 123;
     let init_count = 20;
     {
         let init_tx = Transaction::new();
 
-        let table = table_rc.wl();
         for _ in 0..init_count {
             insert_row(&table, &init_tx, key);
         }
-        // we have to drop the table here, since we need to access it in the commit
-        // phase
-        drop(table);
 
         init_tx.commit().unwrap();
     }
@@ -124,13 +121,9 @@ fn test_anomaly_phantom() {
     {
         let write_tx = Transaction::new();
 
-        let table = table_rc.wl();
         for _ in 0..5 {
             insert_row(&table, &write_tx, key);
         }
-        // we have to drop the table here, since we need to access it in the commit
-        // phase
-        drop(table);
 
         write_tx.commit().unwrap();
     }
