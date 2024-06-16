@@ -139,11 +139,12 @@ impl BufferPool {
             ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
         }
 
+        // step 2: mark the page as dirty if it is a read-write page
         if perm == Permission::ReadWrite {
             Database::mut_concurrent_status().set_dirty_page(tx, key);
         }
 
-        // step 2: get page from buffer pool
+        // step 3: get page from buffer pool
         let mut bp = Database::mut_buffer_pool();
         let pool = get_pool_fn(&mut bp);
         let v = pool.entry(key.clone()).or_insert_with(|| {

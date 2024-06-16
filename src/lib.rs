@@ -11,8 +11,10 @@ pub mod utils;
 mod error;
 mod io;
 mod operator;
+mod predicate;
 
 pub use btree::table::BTreeTable;
 pub use common::Database;
-pub use operator::{Op, Predicate};
+pub use operator::Op;
+pub use predicate::Predicate;
 pub use storage::table_schema::TableSchema;
