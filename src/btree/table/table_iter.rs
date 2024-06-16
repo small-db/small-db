@@ -4,13 +4,13 @@ use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
-        page::{BTreeLeafPage, BTreeLeafPageIteratorRc},
+        page::{BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage},
     },
     concurrent_status::Permission,
     storage::tuple::WrappedTuple,
     transaction::Transaction,
     utils::HandyRwLock,
-    BTreeTable, Op, Predicate,
+    BTreeTable, Database, Op, Predicate,
 };
 
 impl BTreeTable {
@@ -149,13 +149,9 @@ impl<'t> BTreeTableSearchIterator<'t> {
             is_key_search: predicate.field_index == table.key_field,
         }
     }
-}
-
-impl Iterator for BTreeTableSearchIterator<'_> {
-    type Item = WrappedTuple;
 
     // TODO: Short circuit on some conditions.
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_inner(&mut self) -> Option<WrappedTuple> {
         loop {
             let tuple = self.page_it.next();
 
@@ -201,22 +197,43 @@ impl Iterator for BTreeTableSearchIterator<'_> {
                     Op::NotEquals => todo!(),
                 },
                 None => {
+                    let right = self.current_page_rc.rl().get_right_pid();
+
+                    // don't need the previous page anymore, release the latch on it
+                    Database::mut_concurrent_status()
+                        .release_lock(self.tx, &self.current_page_rc.rl().get_pid())
+                        .unwrap();
+
                     // init iterator on next page and continue search
-                    let right = (*self.current_page_rc).rl().get_right_pid();
-                    match right {
-                        Some(pid) => {
-                            let rc = BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &pid)
+                    if let Some(right_pid) = right {
+                        let rc =
+                            BufferPool::get_leaf_page(self.tx, Permission::ReadOnly, &right_pid)
                                 .unwrap();
-                            self.current_page_rc = Arc::clone(&rc);
-                            self.page_it = BTreeLeafPageIteratorRc::new(self.tx, Arc::clone(&rc));
-                            continue;
-                        }
-                        None => {
-                            return None;
-                        }
+                        self.current_page_rc = Arc::clone(&rc);
+                        self.page_it = BTreeLeafPageIteratorRc::new(self.tx, Arc::clone(&rc));
+                        continue;
+                    } else {
+                        return None;
                     }
                 }
             }
+        }
+    }
+}
+
+impl Iterator for BTreeTableSearchIterator<'_> {
+    type Item = WrappedTuple;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(t) = self.next_inner() {
+            return Some(t);
+        } else {
+            // release the latch on the last page
+            Database::mut_concurrent_status()
+                .release_lock(self.tx, &self.current_page_rc.rl().get_pid())
+                .unwrap();
+
+            return None;
         }
     }
 }
