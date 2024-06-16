@@ -83,9 +83,6 @@ fn test_insert_duplicate_tuples() {
         }
     }
 
-    table.check_integrity();
-    table.draw_tree(-1);
-
     // now search for some ranges and make sure we find all the tuples
     let predicate = Predicate::new(table.key_field, Op::Equals, &Cell::Int64(1));
     let it = BTreeTableSearchIterator::new(&tx, &table, &predicate);
@@ -272,4 +269,28 @@ fn test_split_internal_page() {
     assert_eq!(count, row_count + rows_increment);
 
     tx.commit().unwrap();
+}
+
+#[test]
+fn test_debug() {
+    setup();
+
+    // create an empty B+ tree file keyed on the second field of a
+    // 2-field tuple
+    let table_rc = new_random_btree_table(2, 0, None, 1, TreeLayout::Naturally);
+    let table = table_rc.rl();
+
+    // add a bunch of identical tuples
+    let tx = Transaction::new();
+    let repetition_count = 100;
+
+    for i in 0..3 {
+        for _ in 0..repetition_count {
+            let tuple = new_int_tuples(i, 2, &tx);
+            table.insert_tuple(&tx, &tuple).unwrap();
+        }
+    }
+    tx.commit().unwrap();
+
+    table.check_integrity();
 }

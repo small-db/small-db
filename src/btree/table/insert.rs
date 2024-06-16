@@ -203,8 +203,9 @@ impl BTreeTable {
 
     pub(crate) fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
         let header_rc = self.get_header_page(tx);
-        let header = header_rc.rl();
+        let mut header = header_rc.wl();
         if let Some(i) = header.get_empty_slot() {
+            header.mark_slot_status(i as usize, true);
             return i;
         }
 

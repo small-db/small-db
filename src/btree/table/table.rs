@@ -217,10 +217,9 @@ impl BTreeTable {
         let mut page =
             BTreeHeaderPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
 
-        // mark itself as used
-        page.mark_slot_status(page_index as usize, true);
-        // mark the "root pointer" page as used
-        page.mark_slot_status(ROOT_PTR_PAGE_ID as usize, true);
+        for i in 0..page_index {
+            page.mark_slot_status(i as usize, true);
+        }
 
         // TODO: what if the process crashes before the writing finished?
         self.write_empty_page_to_disk(&page_id);
