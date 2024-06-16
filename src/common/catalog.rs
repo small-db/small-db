@@ -120,25 +120,14 @@ impl Catalog {
     /// used inside the table write/read api, and it will cause permanent
     /// blocking.
     pub fn load_schemas() -> SmallResult {
-        let schemas_rc = Database::mut_catalog().get_schemas();
-
-        let tx = Transaction::new();
-        let schemas = schemas_rc.rl();
-        let iter = schemas.iter(&tx);
-        for v in iter {
-            info!("schema: {:?}", v);
-        }
-
-        {
-            // Insert schema "pg_catalog" if it does not exist.
-            let mut catalog = Database::mut_catalog();
-            catalog.search_schema("pg_catalog").unwrap_or_else(|| {
-                let schema = Schema::new("pg_catalog");
-                let schema_rc = Arc::new(RwLock::new(schema));
-                catalog.schemas.insert(0, schema_rc.clone());
-                schema_rc
-            });
-        }
+        // Insert schema "pg_catalog" if it does not exist.
+        let mut catalog = Database::mut_catalog();
+        catalog.search_schema("pg_catalog").unwrap_or_else(|| {
+            let schema = Schema::new("pg_catalog");
+            let schema_rc = Arc::new(RwLock::new(schema));
+            catalog.schemas.insert(0, schema_rc.clone());
+            schema_rc
+        });
 
         Ok(())
     }

@@ -184,8 +184,14 @@ impl BTreeTable {
         // borrow of new_sibling_rc end here
 
         if field > key {
+            // should release the page latch on "page_rc" if don't need it anymore
+            Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
+
             Ok(new_sibling_rc)
         } else {
+            // should release the page latch on "new_sibling_rc" if don't need it anymore
+            Database::mut_concurrent_status().release_lock(tx, &new_sibling_rc.rl().get_pid())?;
+
             Ok(page_rc)
         }
     }
