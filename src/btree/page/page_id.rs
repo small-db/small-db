@@ -53,7 +53,7 @@ impl BTreePageID {
         BTreePageID {
             category: PageCategory::RootPointer,
             page_index: ROOT_PTR_PAGE_ID,
-            table_id: table_id,
+            table_id,
         }
     }
 
