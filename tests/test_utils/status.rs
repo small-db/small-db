@@ -72,6 +72,8 @@ pub fn new_empty_btree_table(table_name: &str, columns: usize) -> Arc<RwLock<BTr
 ///
 /// - int_tuples: This is a reference used to return all inserted data. Only
 ///   works when it's not None.
+/// 
+/// TODO: create the tree using "insert_tuple" api
 pub fn new_random_btree_table(
     columns: usize,
     rows: usize,

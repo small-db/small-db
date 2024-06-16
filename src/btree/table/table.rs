@@ -211,10 +211,12 @@ impl BTreeTable {
 
     pub(super) fn get_empty_header_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeHeaderPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index(tx);
+        let page_index = self.page_index.fetch_add(1, Ordering::Relaxed) + 1;
+
         let page_id = BTreePageID::new(PageCategory::Header, self.table_id, page_index);
         let page = BTreeHeaderPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
 
+        // TODO: what if the process crashes before the writing finished?
         self.write_empty_page_to_disk(&page_id);
 
         let page_rc = Arc::new(RwLock::new(page));
