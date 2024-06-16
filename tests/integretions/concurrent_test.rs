@@ -95,7 +95,7 @@ fn test_concurrent() {
     // correct, and the is no conflict between threads
     {
         let mut threads = vec![];
-        for _ in 0..50 {
+        for _ in 0..200 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_sender = sender.clone();
@@ -258,8 +258,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 #[test]
-#[cfg(feature = "debug")]
-fn test_concurrent_debug() {
+fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
 
@@ -286,7 +285,7 @@ fn test_concurrent_debug() {
 
     {
         let mut threads = vec![];
-        for _ in 0..1000 {
+        for _ in 0..500 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();

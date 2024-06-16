@@ -16,7 +16,7 @@ use crate::{
     Database,
 };
 
-static TIMEOUT: AtomicU32 = AtomicU32::new(3);
+static TIMEOUT: AtomicU32 = AtomicU32::new(10);
 
 #[derive(Debug)]
 pub enum Lock {
