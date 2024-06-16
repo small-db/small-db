@@ -127,39 +127,6 @@ Explanation:
 
 <!-- [COMPILATION OPTIONS END] -->
 
-## Status
-
-- [ ] remove the latch on a page automatically when the page went out of scope (dropped)
-
-- [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
-- [ ] Add "redo" action
-- [ ] Enable error logs in the buffer pool and dig deep
-
-- [ ] Variable length field
-- [x] PostgreSQL protocol
-- [ ] Index (B+ tree)
-  - [x] clustered index (InnoDB flavor, index organized tables) (<https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html>)
-  - [ ] all-secondary indexes (PostgreSQL flavor, heap organized tables) (<https://rcoh.me/posts/postgres-indexes-under-the-hood/>) (<https://www.postgresql.org/docs/current/btree-implementation.html>)
-  - [ ] support table with no primary key
-- [x] Buffer pool
-- [ ] WAL (Write ahead log)
-  - [x] ARIES
-  - [ ] Innodb
-  - [ ] PostgreSQL
-- [ ] Gap Lock
-- [ ] TPCC benchmark
-- [ ] MVCC (Multi-version concurrency control)
-- [ ] Optimistic concurrency control
-- [ ] Pessimistic concurrency control
-- [ ] Snapshot isolation
-- [ ] Distributed transaction
-- [ ] Distributed lock
-- [ ] Distributed index
-
-### Non-functional targets
-
-- [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)
-
 ## Development
 
 ### Run all tests
@@ -201,7 +168,15 @@ Run a specific test and store the output to file "out". Log level is "debug".
   CARGO_PROFILE_BENCH_DEBUG=true sudo cargo flamegraph --test small_tests -- integretions::btree_test::test_concurrent
   ```
 
-## Notes
+## Q&A
+
+- Do we have to release the latch on a page manually?
+
+  It depends on the page category.
+
+  - For the leaf page, we have to release the latch manually, so that other transactions can access the page (before the current transaction commits).
+  - For the internal page, we shouldn't release the latch manually. In "tree-latch" mode, there is no latch on the internal page. In "page-latch" mode, the latch on the internal page is also used to prevent deadlocks.
+  - For the root pointer page and header page, we can release the latch manually to shrink the scope of the latch. But we have to be careful about the operation on these pages to avoid deadlocks. (Specifically, we have to make the scope of the latch as small as possible.)
 
 - Why the "tree latch" strategy is faster than the "page latch" strategy?
 
@@ -310,3 +285,36 @@ page itself.
 
 Question: what is an internal(or root_ptr, header) page being modified by a transaction? should we record the
 "UPDATE" action in the log file when committing the transaction (or even earlier, when the page is modified)?
+
+## Status
+
+- [ ] remove the latch on a page automatically when the page went out of scope (dropped)
+
+- [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
+- [ ] Add "redo" action
+- [ ] Enable error logs in the buffer pool and dig deep
+
+- [ ] Variable length field
+- [x] PostgreSQL protocol
+- [ ] Index (B+ tree)
+  - [x] clustered index (InnoDB flavor, index organized tables) (<https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html>)
+  - [ ] all-secondary indexes (PostgreSQL flavor, heap organized tables) (<https://rcoh.me/posts/postgres-indexes-under-the-hood/>) (<https://www.postgresql.org/docs/current/btree-implementation.html>)
+  - [ ] support table with no primary key
+- [x] Buffer pool
+- [ ] WAL (Write ahead log)
+  - [x] ARIES
+  - [ ] Innodb
+  - [ ] PostgreSQL
+- [ ] Gap Lock
+- [ ] TPCC benchmark
+- [ ] MVCC (Multi-version concurrency control)
+- [ ] Optimistic concurrency control
+- [ ] Pessimistic concurrency control
+- [ ] Snapshot isolation
+- [ ] Distributed transaction
+- [ ] Distributed lock
+- [ ] Distributed index
+
+### Non-functional targets
+
+- [ ] Code coverage (<https://blog.rng0.io/how-to-do-code-coverage-in-rust>)

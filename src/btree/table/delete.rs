@@ -180,18 +180,6 @@ impl BTreeTable {
             panic!("Cannot find the left/right sibling of the page");
         }
 
-        // release the latch on the pages:
-        // - original unstable page
-        // - left sibling page
-        // - right sibling page
-        Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
-        if let Some(left_pid) = left_pid {
-            Database::mut_concurrent_status().release_lock(tx, &left_pid)?;
-        }
-        if let Some(right_pid) = right_pid {
-            Database::mut_concurrent_status().release_lock(tx, &right_pid)?;
-        }
-
         Ok(())
     }
 
