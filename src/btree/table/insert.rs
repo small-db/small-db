@@ -58,7 +58,7 @@ impl BTreeTable {
         // committed?
         // A: We release the page latch here so that other transactions can access the
         // page, even before the current transaction is committed.
-        Database::mut_concurrent_status().release_lock(tx, &leaf_rc.rl().get_pid())?;
+        Database::mut_concurrent_status().release_latch(tx, &leaf_rc.rl().get_pid())?;
 
         return Ok(());
     }
@@ -170,7 +170,7 @@ impl BTreeTable {
                 old_right_rc.wl().set_left_pid(Some(new_sibling.get_pid()));
 
                 // release the latch on "old_right_rc"
-                Database::mut_concurrent_status().release_lock(tx, &old_right_pid)?;
+                Database::mut_concurrent_status().release_latch(tx, &old_right_pid)?;
             }
 
             // set sibling id
@@ -189,13 +189,13 @@ impl BTreeTable {
         if field > key {
             // release all page latches except the new sibling page
             //  - the original filled page (page_rc)
-            Database::mut_concurrent_status().release_lock(tx, &page_rc.rl().get_pid())?;
+            Database::mut_concurrent_status().release_latch(tx, &page_rc.rl().get_pid())?;
 
             Ok(new_sibling_rc)
         } else {
             // release all page latches except the original filled page
             //  - the new sibling page (new_sibling_rc)
-            Database::mut_concurrent_status().release_lock(tx, &new_sibling_rc.rl().get_pid())?;
+            Database::mut_concurrent_status().release_latch(tx, &new_sibling_rc.rl().get_pid())?;
 
             Ok(page_rc)
         }

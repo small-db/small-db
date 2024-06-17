@@ -201,7 +201,7 @@ impl<'t> BTreeTableSearchIterator<'t> {
 
                     // don't need the previous page anymore, release the latch on it
                     Database::mut_concurrent_status()
-                        .release_lock(self.tx, &self.current_page_rc.rl().get_pid())
+                        .release_latch(self.tx, &self.current_page_rc.rl().get_pid())
                         .unwrap();
 
                     // init iterator on next page and continue search
@@ -230,7 +230,7 @@ impl Iterator for BTreeTableSearchIterator<'_> {
         } else {
             // release the latch on the last page
             Database::mut_concurrent_status()
-                .release_lock(self.tx, &self.current_page_rc.rl().get_pid())
+                .release_latch(self.tx, &self.current_page_rc.rl().get_pid())
                 .unwrap();
 
             return None;

@@ -96,10 +96,6 @@ impl BTreeHeaderPage {
         self.header.set(slot_index, used);
     }
 
-    pub(crate) fn get_slots_count(&self) -> usize {
-        self.slot_count
-    }
-
     pub(crate) fn get_empty_slot(&self) -> Option<u32> {
         for i in 0..self.slot_count {
             if !self.header[i] {
@@ -256,14 +252,30 @@ impl HeaderPages {
     }
 
     pub(crate) fn get_empty_page_index(&self) -> PageIndex {
-        todo!()
+        let slots_per_page = BTreeHeaderPage::calc_slots_count();
+
+        for (i, page) in self.header_pages.iter().enumerate() {
+            let empty_slot = page.rl().get_empty_slot();
+            if let Some(empty_slot) = empty_slot {
+                return empty_slot + (i * slots_per_page) as u32;
+            }
+        }
+
+        panic!("no empty slot in the header pages");
     }
 
     pub(crate) fn mark_page(&self, pid: &BTreePageID, used: bool) {
-        todo!()
+        let header_index = pid.page_index / BTreeHeaderPage::calc_slots_count() as u32;
+        self.header_pages[header_index as usize]
+            .wl()
+            .mark_slot_status(pid.page_index as usize, used);
     }
 
     pub(crate) fn release_latches(&self) {
-        todo!()
+        for page in self.header_pages.iter() {
+            Database::mut_concurrent_status()
+                .release_latch(&self.tx, &page.rl().get_pid())
+                .unwrap();
+        }
     }
 }

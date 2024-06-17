@@ -235,7 +235,7 @@ impl BTreeTable {
 
         // release the latch on the root pointer page
         Database::mut_concurrent_status()
-            .release_lock(tx, &root_pointer_rc.rl().get_pid())
+            .release_latch(tx, &root_pointer_rc.rl().get_pid())
             .unwrap();
     }
 

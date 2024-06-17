@@ -182,7 +182,7 @@ impl ConcurrentStatus {
 
         let hold_pages = self.hold_pages.get(tx).unwrap().clone();
         for page_id in hold_pages {
-            self.release_lock(tx, &page_id)?;
+            self.release_latch(tx, &page_id)?;
         }
 
         self.hold_pages.remove(tx);
@@ -190,7 +190,7 @@ impl ConcurrentStatus {
         return Ok(());
     }
 
-    pub(crate) fn release_lock(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
+    pub(crate) fn release_latch(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
         if let Some(v) = self.s_lock_map.get_mut(page_id) {
             v.remove(tx);
             if v.len() == 0 {
