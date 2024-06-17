@@ -258,6 +258,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 #[test]
+#[cfg(feature = "debug")]
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);

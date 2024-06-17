@@ -94,14 +94,14 @@ impl ConcurrentStatus {
             sleep(std::time::Duration::from_millis(10));
         }
 
-        error!(
+        let err_msg = format!(
             "acquire lock timeout, args: {:?}, {:?}, {:?}, concurrent status: {:?}",
             tx,
             lock,
             page_id,
             Database::mut_concurrent_status(),
         );
-        let err = SmallError::new("acquire lock timeout");
+        let err = SmallError::new(&err_msg);
         err.show_backtrace();
 
         return Err(err);
