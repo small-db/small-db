@@ -59,7 +59,7 @@ impl BTreeLeafPage {
         if BTreeBasePage::is_empty_page(&bytes) {
             instance = Self::new_empty_page(pid, schema);
         } else {
-            let slot_count = Self::get_children_cap(&schema);
+            let slot_count = Self::calc_children_cap(&schema);
 
             let mut reader = Cursor::new(bytes);
 
@@ -119,7 +119,7 @@ impl BTreeLeafPage {
     }
 
     fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
-        let slot_count = Self::get_children_cap(&schema);
+        let slot_count = Self::calc_children_cap(&schema);
 
         let parent_pid = BTreePageID::get_root_ptr_page_id(pid.get_table_id());
 
@@ -383,7 +383,7 @@ impl BTreeLeafPage {
 /// Methods for accessing const attributes.
 impl BTreeLeafPage {
     /// Get the capacity of children (tuples) in this page.
-    pub fn get_children_cap(schema: &TableSchema) -> usize {
+    pub fn calc_children_cap(schema: &TableSchema) -> usize {
         let bits_per_tuple_including_header = schema.get_tuple_size() * 8 + 1;
 
         // extraBits:

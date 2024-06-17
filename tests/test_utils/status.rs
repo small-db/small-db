@@ -145,7 +145,7 @@ fn sequential_insert_into_table(
 
     let leaf_buckets = get_buckets(
         tuples.len(),
-        BTreeLeafPage::get_children_cap(&schema),
+        BTreeLeafPage::calc_children_cap(&schema),
         tree_layout,
     );
 

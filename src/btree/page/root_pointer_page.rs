@@ -23,10 +23,10 @@ pub struct BTreeRootPointerPage {
     /// This decision also simplified the code.
     root_pid: BTreePageID,
 
-    /// TODO: mandatory the presence of a header page?
+    /// The page index of the first header page.
     header_page_index: u32,
 
-    /// Migrated from java version.
+    /// Migrated from old version.
     ///
     /// TODO: Figure out what this is used for, and if it's needed.
     old_data: Vec<u8>,
@@ -92,7 +92,7 @@ impl BTreeRootPointerPage {
         self.root_pid = *pid;
     }
 
-    /// Get the id of the first header page
+    /// Get the page id of the first header page.
     pub(crate) fn get_header_pid(&self) -> Option<BTreePageID> {
         if self.header_page_index == EMPTY_PAGE_ID {
             None

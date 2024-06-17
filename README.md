@@ -288,7 +288,7 @@ Question: what is an internal(or root_ptr, header) page being modified by a tran
 
 ## Status
 
-- [ ] remove the latch on a page automatically when the page went out of scope (dropped)
+- [ ] expand header pages when needed (e.g: when creating new pages)
 
 - [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
 - [ ] Add "redo" action

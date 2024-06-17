@@ -13,7 +13,7 @@ use small_db::{
 
 pub fn leaf_records_cap() -> usize {
     let schema = TableSchema::small_int_schema(2);
-    BTreeLeafPage::get_children_cap(&schema)
+    BTreeLeafPage::calc_children_cap(&schema)
 }
 
 pub fn internal_children_cap() -> usize {

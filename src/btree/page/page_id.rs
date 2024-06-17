@@ -3,8 +3,11 @@ use std::fmt;
 use super::PageCategory;
 use crate::io::{Serializeable, SmallWriter};
 
+pub type PageIndex = u32;
+pub type TableIndex = u32;
+
 pub const ROOT_PTR_PAGE_ID: u32 = 0;
-pub const EMPTY_PAGE_ID: u32 = 9990;
+pub const EMPTY_PAGE_ID: u32 = u32::MAX;
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
@@ -15,9 +18,9 @@ pub struct BTreePageID {
 
     /// page_index represents the position of the page in
     /// the table, start from 0
-    pub(crate) page_index: u32,
+    pub(crate) page_index: PageIndex,
 
-    pub(crate) table_id: u32,
+    pub(crate) table_id: TableIndex,
 }
 
 impl fmt::Display for BTreePageID {

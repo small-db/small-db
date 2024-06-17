@@ -19,9 +19,9 @@ use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeBasePage, BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator,
-            BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
-            BTreeRootPointerPage, Entry, PageCategory, ROOT_PTR_PAGE_ID,
+            BTreeBasePage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
+            BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
+            BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex,
         },
     },
     concurrent_status::Permission,
@@ -147,7 +147,7 @@ impl BTreeTable {
 
 // normal read-only functions
 impl BTreeTable {
-    pub fn get_id(&self) -> u32 {
+    pub fn get_id(&self) -> TableIndex {
         self.table_id
     }
 
@@ -205,30 +205,6 @@ impl BTreeTable {
         // time
         Database::mut_buffer_pool()
             .internal_buffer
-            .insert(page_id, page_rc.clone());
-        page_rc
-    }
-
-    pub(super) fn get_empty_header_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeHeaderPage>> {
-        // create the new page
-        let page_index = self.page_index.fetch_add(1, Ordering::Relaxed) + 1;
-
-        let page_id = BTreePageID::new(PageCategory::Header, self.table_id, page_index);
-        let mut page =
-            BTreeHeaderPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
-
-        for i in 0..page_index {
-            page.mark_slot_status(i as usize, true);
-        }
-
-        // TODO: what if the process crashes before the writing finished?
-        self.write_empty_page_to_disk(&page_id);
-
-        let page_rc = Arc::new(RwLock::new(page));
-        // insert to buffer pool because it's a dirty page at this
-        // time
-        Database::mut_buffer_pool()
-            .header_buffer
             .insert(page_id, page_rc.clone());
         page_rc
     }
@@ -438,24 +414,8 @@ impl BTreeTable {
         BufferPool::get_root_ptr_page(tx, Permission::ReadWrite, &root_ptr_pid).unwrap()
     }
 
-    pub(crate) fn get_header_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeHeaderPage>> {
-        let root_ptr_rc = self.get_root_ptr_page(tx);
-        let mut header_pid = root_ptr_rc.rl().get_header_pid();
-
-        if header_pid.is_none() {
-            // if there are no header pages, create the first header page and update the
-            // header pointer in the BTreeRootPtrPage
-            let header_rc = self.get_empty_header_page(tx);
-
-            let mut root_ptr = root_ptr_rc.wl();
-            root_ptr.set_header_pid(&header_rc.rl().get_pid());
-
-            header_pid = Some(header_rc.rl().get_pid());
-        }
-
-        // We always get the page from the buffer pool even it's a new page. Since the
-        // buffer pool api provides status management and latch management.
-        BufferPool::get_header_page(tx, Permission::ReadWrite, &header_pid.unwrap()).unwrap()
+    pub(crate) fn get_header_pages(&self, tx: &Transaction) -> HeaderPages {
+        HeaderPages::new(self, tx)
     }
 
     /// The count of pages in this BTreeFile

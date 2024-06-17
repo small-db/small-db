@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::Ordering, Arc, RwLock},
+    sync::{Arc, RwLock},
     usize,
 };
 
@@ -202,21 +202,10 @@ impl BTreeTable {
     }
 
     pub(crate) fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
-        let header_rc = self.get_header_page(tx);
-        let mut header = header_rc.wl();
-        if let Some(i) = header.get_empty_slot() {
-            header.mark_slot_status(i as usize, true);
-            return i;
-        }
-
-        // No longer need the header page, release the latch.
-        Database::mut_concurrent_status()
-            .release_lock(tx, &header.get_pid())
-            .unwrap();
-
-        log::error!("No empty slot in the header page.");
-        let index = self.page_index.fetch_add(1, Ordering::Relaxed) + 1;
-        index
+        let header_pages = self.get_header_pages(tx);
+        let empty_page_index = header_pages.get_empty_page_index();
+        header_pages.release_latches();
+        empty_page_index as u32
     }
 
     /// Method to encapsulate the process of getting a parent page

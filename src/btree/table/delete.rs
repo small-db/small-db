@@ -373,16 +373,9 @@ impl BTreeTable {
     fn set_empty_page(&self, tx: &Transaction, pid: &BTreePageID) {
         Database::mut_buffer_pool().discard_page(pid);
 
-        let header_rc = self.get_header_page(tx);
-
-        let mut header = header_rc.wl();
-        let slot_index = pid.page_index as usize % header.get_slots_count();
-        header.mark_slot_status(slot_index, false);
-
-        // release the latch on the header page
-        Database::mut_concurrent_status()
-            .release_lock(tx, &header.get_pid())
-            .unwrap();
+        let header_pages = self.get_header_pages(tx);
+        header_pages.mark_page(pid, false);
+        header_pages.release_latches();
     }
 
     /// Balancing two internal pages according the situation:
