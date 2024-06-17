@@ -246,7 +246,7 @@ impl HeaderPages {
         }
 
         Self {
-            header_pages: Vec::new(),
+            header_pages,
             tx: tx.clone(),
         }
     }
@@ -266,9 +266,10 @@ impl HeaderPages {
 
     pub(crate) fn mark_page(&self, pid: &BTreePageID, used: bool) {
         let header_index = pid.page_index / BTreeHeaderPage::calc_slots_count() as u32;
+        let slot_index = pid.page_index as usize % BTreeHeaderPage::calc_slots_count();
         self.header_pages[header_index as usize]
             .wl()
-            .mark_slot_status(pid.page_index as usize, used);
+            .mark_slot_status(slot_index, used);
     }
 
     pub(crate) fn release_latches(&self) {
