@@ -262,9 +262,11 @@ impl HeaderPages {
     pub(crate) fn get_empty_page_index(&self) -> PageIndex {
         let slots_per_page = BTreeHeaderPage::calc_slots_count();
 
-        for (i, page) in self.header_pages.iter().enumerate() {
-            let empty_slot = page.rl().get_empty_slot();
+        for (i, page_rc) in self.header_pages.iter().enumerate() {
+            let mut page = page_rc.wl();
+            let empty_slot = page.get_empty_slot();
             if let Some(empty_slot) = empty_slot {
+                page.mark_slot_status(empty_slot as usize, true);
                 return empty_slot + (i * slots_per_page) as u32;
             }
         }
