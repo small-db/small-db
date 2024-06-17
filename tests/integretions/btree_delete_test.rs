@@ -233,10 +233,6 @@ fn test_delete_internal_pages() {
         new_random_btree_table(2, row_count, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let table = table_rc.rl();
-    table.check_integrity();
-
-    debug!("pages count: {}", table.pages_count());
-    return;
 
     let root_pod = get_internal_page(&table, 0, 0);
     let second_child_pod = get_internal_page(&table, 1, 1);
