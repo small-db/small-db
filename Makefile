@@ -244,9 +244,9 @@ test-verbose:
 # 
 # options:
 test_%:
-	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
 	# --no-capture is used to print the log to stdout.
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $*
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $* 2>&1 | tee out
+	# RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture $*
 
 debug:
 	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" -- --test-threads=1 --exact integretions::tx_isolation_test::test_anomaly_dirty_read 2>&1 | tee out

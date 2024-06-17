@@ -4,7 +4,7 @@ use super::PageCategory;
 use crate::io::{Serializeable, SmallWriter};
 
 pub const ROOT_PTR_PAGE_ID: u32 = 0;
-pub const EMPTY_PAGE_ID: u32 = 999;
+pub const EMPTY_PAGE_ID: u32 = 9990;
 
 // PageID identifies a unique page, and contains the
 // necessary metadata

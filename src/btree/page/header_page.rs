@@ -57,6 +57,8 @@ impl BTreeHeaderPage {
     }
 
     pub fn new_empty_page(pid: &BTreePageID) -> BTreeHeaderPage {
+        // TODO: get slot_count dynamically
+        // TODO: make header pages a linked list
         let slot_count = 1000;
 
         let mut header = BitVec::new();
