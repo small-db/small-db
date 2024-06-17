@@ -92,7 +92,6 @@ fn test_delete_root_page() {
         TreeLayout::LastTwoEvenlyDistributed,
     );
     let table = table_rc.rl();
-    table.draw_tree(-1);
     table.check_integrity();
     // there should be one internal page and 2 leaf pages
     assert_eq!(3, table.pages_count());
@@ -101,7 +100,6 @@ fn test_delete_root_page() {
     delete_tuples(&table, leaf_records_cap());
 
     table.check_integrity();
-    table.draw_tree(-1);
     let root_pod = get_leaf_page(&table, 0, 0);
     assert_eq!(root_pod.rl().empty_slots_count(), 0);
 }
@@ -128,8 +126,11 @@ fn test_reuse_deleted_pages() {
     // delete enough tuples to ensure one page gets deleted
     delete_tuples(&table, leaf_records_cap() + 2);
 
-    // now there should be 2 leaf pages, 1 internal page, 1 unused
-    // leaf page, 1 header page
+    // now there should be 5 pages:
+    // - 2 leaf pages
+    // - 1 internal page
+    // - 1 unused leaf page
+    // - 1 header page
     table.draw_tree(-1);
     table.check_integrity();
     assert_eq!(5, table.pages_count());

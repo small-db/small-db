@@ -166,7 +166,9 @@ impl HeaderPages {
         let header_pid = root_ptr_rc.rl().get_header_pid();
 
         if header_pid.is_none() {
-            return Self::init_header_pages(table, tx);
+            let result = Self::init_header_pages(table, tx);
+            root_ptr_rc.wl().set_header_pid(&result.get_head_pid());
+            return result;
         }
 
         let mut header_pages = Vec::new();
@@ -186,6 +188,11 @@ impl HeaderPages {
             header_pages,
             tx: tx.clone(),
         }
+    }
+
+    /// Get the page id of the first header page.
+    pub(crate) fn get_head_pid(&self) -> BTreePageID {
+        self.header_pages[0].rl().get_pid()
     }
 
     pub(crate) fn init_header_pages(table: &BTreeTable, tx: &Transaction) -> Self {
@@ -251,6 +258,7 @@ impl HeaderPages {
         }
     }
 
+    /// Get the page index of the first empty slot in the header pages.
     pub(crate) fn get_empty_page_index(&self) -> PageIndex {
         let slots_per_page = BTreeHeaderPage::calc_slots_count();
 

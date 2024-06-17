@@ -366,7 +366,7 @@ impl BufferPool {
             //
             // Q: What's the possiable scenario for this case?
             // A: 1. After we implemented cache eviction feature, the page may
-            // be evicted    from the buffer pool.
+            // be evicted from the buffer pool.
             //    2. The page becomes empty and is discarded from the buffer
             //       pool.
         }
