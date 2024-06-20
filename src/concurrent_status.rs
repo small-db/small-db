@@ -99,7 +99,7 @@ impl ConcurrentStatus {
             tx,
             lock,
             page_id,
-            Database::mut_concurrent_status(),
+            Database::concurrent_status(),
         );
         let err = SmallError::new(&err_msg);
         err.show_backtrace();
