@@ -286,7 +286,7 @@ fn test_concurrent_delete() {
 
     {
         let mut threads = vec![];
-        for _ in 0..100 {
+        for _ in 0..1000 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
