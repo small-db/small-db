@@ -6,8 +6,8 @@ use std::{
 
 use super::Catalog;
 use crate::{
-    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus, transaction::LogManager,
-    types::Pod, utils::HandyRwLock,
+    btree::buffer_pool::BufferPool, concurrent_status::ConcurrentStatus, error::get_caller,
+    transaction::LogManager, types::Pod, utils::HandyRwLock,
 };
 
 /// We collect all global variables here.
