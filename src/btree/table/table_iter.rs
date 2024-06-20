@@ -200,8 +200,9 @@ impl<'t> BTreeTableSearchIterator<'t> {
                     let right = self.current_page_rc.rl().get_right_pid();
 
                     // don't need the previous page anymore, release the latch on it
+                    let pid = self.current_page_rc.rl().get_pid();
                     Database::mut_concurrent_status()
-                        .release_latch(self.tx, &self.current_page_rc.rl().get_pid())
+                        .release_latch(self.tx, &pid)
                         .unwrap();
 
                     // init iterator on next page and continue search
@@ -229,8 +230,9 @@ impl Iterator for BTreeTableSearchIterator<'_> {
             return Some(t);
         } else {
             // release the latch on the last page
+            let pid = self.current_page_rc.rl().get_pid();
             Database::mut_concurrent_status()
-                .release_latch(self.tx, &self.current_page_rc.rl().get_pid())
+                .release_latch(self.tx, &pid)
                 .unwrap();
 
             return None;

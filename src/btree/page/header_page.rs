@@ -284,8 +284,9 @@ impl HeaderPages {
 
     pub(crate) fn release_latches(&self) {
         for page in self.header_pages.iter() {
+            let pid = page.rl().get_pid();
             Database::mut_concurrent_status()
-                .release_latch(&self.tx, &page.rl().get_pid())
+                .release_latch(&self.tx, &pid)
                 .unwrap();
         }
     }

@@ -137,13 +137,14 @@ impl BTreeTable {
         // - original unstable page
         // - left sibling page
         // - right sibling page
-        // Database::mut_concurrent_status().release_latch(tx, &page_rc.rl().get_pid())?;
-        // if let Some(left_pid) = left_pid {
-        //     Database::mut_concurrent_status().release_latch(tx, &left_pid)?;
-        // }
-        // if let Some(right_pid) = right_pid {
-        //     Database::mut_concurrent_status().release_latch(tx, &right_pid)?;
-        // }
+        let pid = page_rc.rl().get_pid();
+        Database::mut_concurrent_status().release_latch(tx, &pid)?;
+        if let Some(left_pid) = left_pid {
+            Database::mut_concurrent_status().release_latch(tx, &left_pid)?;
+        }
+        if let Some(right_pid) = right_pid {
+            Database::mut_concurrent_status().release_latch(tx, &right_pid)?;
+        }
 
         return Ok(());
     }
