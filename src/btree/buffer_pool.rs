@@ -135,7 +135,7 @@ impl BufferPool {
 
         // step 1: request page latch
         if key.need_page_latch() {
-            ConcurrentStatus::request_lock(tx, &perm.to_lock(), key)?;
+            ConcurrentStatus::request_latch(tx, &perm.to_lock(), key)?;
         }
 
         // step 2: mark the page as dirty if it is a read-write page

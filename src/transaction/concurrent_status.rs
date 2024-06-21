@@ -14,9 +14,11 @@ use crate::{
     Database,
 };
 
+use super::wait_for_graph::WaitForGraph;
+
 static TIMEOUT: AtomicU32 = AtomicU32::new(40);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Lock {
     XLock,
     SLock,
@@ -38,8 +40,8 @@ impl Permission {
 }
 
 pub struct ConcurrentStatus {
-    s_lock_map: HashMap<BTreePageID, HashSet<Transaction>>,
-    x_lock_map: HashMap<BTreePageID, Transaction>,
+    s_latch_map: HashMap<BTreePageID, HashSet<Transaction>>,
+    x_latch_map: HashMap<BTreePageID, Transaction>,
 
     hold_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 
@@ -49,19 +51,23 @@ pub struct ConcurrentStatus {
     //
     // PostgreSQL maintains a data structure for transaction status, such that given a transaction
     // ID, it gives the transaction state (running, aborted, committed).
-    pub transaction_status: HashMap<TransactionID, TransactionStatus>,
+    pub(crate) transaction_status: HashMap<TransactionID, TransactionStatus>,
+
+    wait_for_graph: WaitForGraph,
 }
 
 impl ConcurrentStatus {
     pub fn new() -> Self {
         Self {
-            s_lock_map: HashMap::new(),
-            x_lock_map: HashMap::new(),
+            s_latch_map: HashMap::new(),
+            x_latch_map: HashMap::new(),
             hold_pages: HashMap::new(),
 
             dirty_pages: HashMap::new(),
 
             transaction_status: HashMap::new(),
+
+            wait_for_graph: WaitForGraph::new(),
         }
     }
 }
@@ -75,18 +81,56 @@ impl ConcurrentStatus {
     }
 
     /// Request a lock on the given page. This api is blocking.
-    pub(crate) fn request_lock(
+    pub(crate) fn request_latch(
         tx: &Transaction,
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
+        {
+            let mut concurrent_status = Database::mut_concurrent_status();
+            if let Some(x_lock_tx) = concurrent_status.x_latch_map.get(page_id).cloned() {
+                concurrent_status
+                    .wait_for_graph
+                    .add_edge(tx.get_id(), x_lock_tx.get_id());
+            }
+            if lock == &Lock::XLock {
+                if let Some(s_lock_txs) = concurrent_status.s_latch_map.get(page_id).cloned() {
+                    for s_lock_tx in s_lock_txs {
+                        concurrent_status
+                            .wait_for_graph
+                            .add_edge(tx.get_id(), s_lock_tx.get_id());
+                    }
+                }
+            }
+
+            if concurrent_status.wait_for_graph.exists_cycle() {
+                let err_msg = format!(
+                    "deadlock detected, args: {:?}, {:?}, {:?}, concurrent status: {:?}",
+                    tx,
+                    lock,
+                    page_id,
+                    Database::concurrent_status(),
+                );
+                let err = SmallError::new(&err_msg);
+                err.show_backtrace();
+
+                return Err(err);
+            }
+        }
+
         let start_time = Instant::now();
 
         let timeout_secs = TIMEOUT.load(std::sync::atomic::Ordering::Relaxed);
 
         while Instant::now().duration_since(start_time).as_secs() < timeout_secs as u64 {
-            if Database::mut_concurrent_status().add_lock(tx, lock, page_id)? {
-                return Ok(());
+            {
+                let mut concurrent_status = Database::mut_concurrent_status();
+                if concurrent_status.add_latch(tx, lock, page_id)? {
+                    concurrent_status
+                        .wait_for_graph
+                        .remove_transaction(tx.get_id());
+                    return Ok(());
+                }
             }
 
             sleep(std::time::Duration::from_millis(10));
@@ -122,7 +166,7 @@ impl ConcurrentStatus {
     //
     // Return a bool value to indicate whether the lock is added
     // successfully.
-    fn add_lock(
+    fn add_latch(
         &mut self,
         tx: &Transaction,
         lock: &Lock,
@@ -130,7 +174,7 @@ impl ConcurrentStatus {
     ) -> Result<bool, SmallError> {
         // If the page hold by another transaction with X-Latch, return false (failed to
         // add lock)
-        if let Some(v) = self.x_lock_map.get(page_id) {
+        if let Some(v) = self.x_latch_map.get(page_id) {
             if v != tx {
                 return Ok(false);
             }
@@ -138,16 +182,16 @@ impl ConcurrentStatus {
 
         match lock {
             Lock::SLock => {
-                if !self.s_lock_map.contains_key(page_id) {
-                    self.s_lock_map.insert(page_id.clone(), HashSet::new());
+                if !self.s_latch_map.contains_key(page_id) {
+                    self.s_latch_map.insert(page_id.clone(), HashSet::new());
                 }
 
-                self.s_lock_map.get_mut(page_id).unwrap().insert(tx.clone());
+                self.s_latch_map.get_mut(page_id).unwrap().insert(tx.clone());
             }
             Lock::XLock => {
                 // If the page hold by another transaction with S-Latch, return false (failed to
                 // add lock)
-                if let Some(v) = self.s_lock_map.get(page_id) {
+                if let Some(v) = self.s_latch_map.get(page_id) {
                     for tx in v {
                         if tx != tx {
                             return Ok(false);
@@ -155,7 +199,7 @@ impl ConcurrentStatus {
                     }
                 }
 
-                self.x_lock_map.insert(page_id.clone(), tx.clone());
+                self.x_latch_map.insert(page_id.clone(), tx.clone());
             }
         }
 
@@ -170,10 +214,10 @@ impl ConcurrentStatus {
     /// Remove the relation between the transaction and its related pages.
     pub(crate) fn remove_relation(&mut self, tx: &Transaction) {
         self.dirty_pages.remove(tx);
-        self.release_locks(tx).unwrap();
+        self.release_latches(tx).unwrap();
     }
 
-    fn release_locks(&mut self, tx: &Transaction) -> SmallResult {
+    fn release_latches(&mut self, tx: &Transaction) -> SmallResult {
         if !self.hold_pages.contains_key(tx) {
             return Ok(());
         }
@@ -189,15 +233,15 @@ impl ConcurrentStatus {
     }
 
     pub(crate) fn release_latch(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
-        if let Some(v) = self.s_lock_map.get_mut(page_id) {
+        if let Some(v) = self.s_latch_map.get_mut(page_id) {
             v.remove(tx);
             if v.len() == 0 {
-                self.s_lock_map.remove(page_id);
+                self.s_latch_map.remove(page_id);
             }
         }
 
-        if let Some(_) = self.x_lock_map.get_mut(page_id) {
-            self.x_lock_map.remove(page_id);
+        if let Some(_) = self.x_latch_map.get_mut(page_id) {
+            self.x_latch_map.remove(page_id);
         }
 
         return Ok(());
@@ -231,8 +275,8 @@ impl ConcurrentStatus {
     }
 
     pub fn clear(&mut self) {
-        self.s_lock_map.clear();
-        self.x_lock_map.clear();
+        self.s_latch_map.clear();
+        self.x_latch_map.clear();
         self.hold_pages.clear();
         self.dirty_pages.clear();
     }
@@ -244,7 +288,7 @@ impl fmt::Display for ConcurrentStatus {
 
         // s_lock_map
         depiction.push_str("s_lock_map.get_inner().rl(): {");
-        for (k, v) in self.s_lock_map.iter() {
+        for (k, v) in self.s_latch_map.iter() {
             depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
             for tx in v {
                 depiction.push_str(&format!("\n\t\t{:?}, ", tx));
@@ -255,7 +299,7 @@ impl fmt::Display for ConcurrentStatus {
 
         // x_lock_map
         depiction.push_str("x_lock_map.get_inner().rl(): {");
-        for (k, v) in self.x_lock_map.iter() {
+        for (k, v) in self.x_latch_map.iter() {
             depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k.get_short_repr(), v));
         }
         depiction.push_str("\n}\n");

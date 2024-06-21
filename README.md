@@ -170,6 +170,8 @@ Run a specific test and store the output to file "out". Log level is "debug".
 
 ## Q&A
 
+### Latch & Lock
+
 - Do we have to release the latch on a page manually?
 
   It depends on the page category.
@@ -178,9 +180,9 @@ Run a specific test and store the output to file "out". Log level is "debug".
   - For the internal page, we shouldn't release the latch manually. In "tree-latch" mode, there is no latch on the internal page. In "page-latch" mode, the latch on the internal page is also used to prevent deadlocks.
   - For the root pointer page and header page, we can release the latch manually to shrink the scope of the latch. But we have to be careful about the operation on these pages to avoid deadlocks. (Specifically, we have to make the scope of the latch as small as possible.)
 
-- Why the "tree latch" strategy is faster than the "page latch" strategy?
+- Why the "tree-latch" strategy is faster than the "page-latch" strategy?
 
-  TODO
+  Because the "tree-latch" strategy has fewer latches request and release actions.
 
 ### the simplified version of the B+ tree latch strategy
 
