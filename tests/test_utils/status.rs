@@ -15,9 +15,8 @@ use small_db::{
         },
     },
     common::Catalog,
-    transaction::Permission,
     storage::tuple::{Cell, Tuple},
-    transaction::Transaction,
+    transaction::{Permission, Transaction},
     utils::{self, HandyRwLock},
     BTreeTable, Database, TableSchema,
 };

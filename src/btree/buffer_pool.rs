@@ -13,9 +13,8 @@ use super::page::{
     BTreeRootPointerPage, PageCategory,
 };
 use crate::{
-    transaction::{ConcurrentStatus, Permission},
     error::SmallError,
-    transaction::{LogManager, Transaction},
+    transaction::{ConcurrentStatus, LogManager, Permission, Transaction},
     types::ResultPod,
     utils::HandyRwLock,
     BTreeTable, Database, TableSchema,

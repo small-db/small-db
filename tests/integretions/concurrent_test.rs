@@ -4,8 +4,7 @@ use log::debug;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
-    transaction::Transaction,
-    transaction::{ConcurrentStatus, Permission},
+    transaction::{ConcurrentStatus, Permission, Transaction},
     types::Pod,
     utils::HandyRwLock,
     BTreeTable, Op, Predicate,

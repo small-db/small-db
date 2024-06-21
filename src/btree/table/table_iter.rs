@@ -6,9 +6,8 @@ use crate::{
         buffer_pool::BufferPool,
         page::{BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage},
     },
-    transaction::Permission,
     storage::tuple::WrappedTuple,
-    transaction::Transaction,
+    transaction::{Permission, Transaction},
     utils::HandyRwLock,
     BTreeTable, Database, Op, Predicate,
 };

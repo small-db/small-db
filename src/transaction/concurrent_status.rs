@@ -6,8 +6,6 @@ use std::{
     time::Instant,
 };
 
-use log::error;
-
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,

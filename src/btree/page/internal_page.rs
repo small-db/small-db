@@ -6,11 +6,10 @@ use log::debug;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
-    transaction::Permission,
     error::SmallError,
     io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
-    transaction::Transaction,
+    transaction::{Permission, Transaction},
     types::{Pod, SmallResult},
     utils::{floor_div, HandyRwLock},
 };
