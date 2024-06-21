@@ -172,6 +172,18 @@ Run a specific test and store the output to file "out". Log level is "debug".
 
 ### Latch & Lock
 
+- How many types of latches/locks are there in the current implementation?
+
+  1. Page latch (protects a page's content)
+  2. Tree latch (protects the tree structure)
+  3. "RWLock" on every page (protects a page's content)
+  (Need a more precise definition.)
+
+- What's the difference between a latch and a lock?
+
+  Latches are used to guarantee physical consistency of data, while locks are used to assure logical consistency of data.
+  (Need a more precise definition.)
+
 - Do we have to release the latch on a page manually?
 
   It depends on the page category.
@@ -179,10 +191,27 @@ Run a specific test and store the output to file "out". Log level is "debug".
   - For the leaf page, we have to release the latch manually, so that other transactions can access the page (before the current transaction commits).
   - For the internal page, we shouldn't release the latch manually. In "tree-latch" mode, there is no latch on the internal page. In "page-latch" mode, the latch on the internal page is also used to prevent deadlocks.
   - For the root pointer page and header page, we can release the latch manually to shrink the scope of the latch. But we have to be careful about the operation on these pages to avoid deadlocks. (Specifically, we have to make the scope of the latch as small as possible.)
+  (Need a more precise definition.)
 
 - Why the "tree-latch" strategy is faster than the "page-latch" strategy?
 
   Because the "tree-latch" strategy has fewer latches request and release actions.
+
+### Broad Questions
+
+- Why do we choose Rust as the implementation language?
+
+  - Golang has a simpler syntax, but will cause more concurrency bugs (more specifically, "data race" bugs).
+  - C++ is harder to debug and maintain. (Especially when you don't have thoes great C++ tools in Google.)
+  - Learning Rust. (If you want to do system programming but don't like C++, Rust and Golang are the best choices.)
+
+- What's my strategy on database learning?
+
+  - Use the "small-db" project as a playground to understand fundamental database concepts.
+  - Browse the source code of other databases casually to gain insipiration and knowledge. Currently, I'm browsing the source code of "MySQL", "PostgreSQL", "CockroachDB" and "SQLite".
+  - Try to contribute to other databases to interact with the community. Currently, I'm trying to contribute to "CockroachDB".
+
+## Notes
 
 ### the simplified version of the B+ tree latch strategy
 
