@@ -3,7 +3,7 @@ use small_db::{
         buffer_pool::BufferPool,
         page::{BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage},
     },
-    concurrent_status::Permission,
+    transaction::Permission,
     storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     types::Pod,

@@ -15,7 +15,7 @@ use small_db::{
         },
     },
     common::Catalog,
-    concurrent_status::Permission,
+    transaction::Permission,
     storage::tuple::{Cell, Tuple},
     transaction::Transaction,
     utils::{self, HandyRwLock},

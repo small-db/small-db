@@ -6,7 +6,7 @@ use log::debug;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
-    concurrent_status::Permission,
+    transaction::Permission,
     error::SmallError,
     io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},

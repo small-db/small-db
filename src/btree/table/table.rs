@@ -24,7 +24,7 @@ use crate::{
             BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex,
         },
     },
-    concurrent_status::Permission,
+    transaction::Permission,
     error::{get_caller, SmallError},
     storage::{
         table_schema::TableSchema,

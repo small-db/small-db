@@ -6,7 +6,7 @@ use crate::{
         buffer_pool::BufferPool,
         page::{BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage},
     },
-    concurrent_status::Permission,
+    transaction::Permission,
     storage::tuple::WrappedTuple,
     transaction::Transaction,
     utils::HandyRwLock,

@@ -12,7 +12,7 @@ use crate::{
             BTreePage, BTreePageID, Entry, PageCategory,
         },
     },
-    concurrent_status::Permission,
+    transaction::Permission,
     error::SmallError,
     storage::tuple::{Cell, Tuple},
     transaction::Transaction,

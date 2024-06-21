@@ -9,7 +9,7 @@ use bit_vec::BitVec;
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, PageIndex};
 use crate::{
     btree::buffer_pool::BufferPool,
-    concurrent_status::Permission,
+    transaction::Permission,
     io::{Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
     transaction::Transaction,
