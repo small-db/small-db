@@ -258,14 +258,14 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 #[test]
+/// Make sure we can handle lots of (1000+) concurrent delete operations.
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
 
     setup();
 
-    // let row_count = 10000;
-    let row_count = 0;
+    let row_count = 10000;
     let column_count = 2;
     let table_rc = new_random_btree_table(
         column_count,
@@ -286,7 +286,7 @@ fn test_concurrent_delete() {
 
     {
         let mut threads = vec![];
-        for _ in 0..500 {
+        for _ in 0..1000 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
@@ -301,6 +301,6 @@ fn test_concurrent_delete() {
 
         table.check_integrity();
         debug!("tuple count: {}", table.tuples_count());
-        // assert_eq!(table.tuples_count(), row_count + 1000);
+        assert_eq!(table.tuples_count(), row_count);
     }
 }

@@ -40,19 +40,17 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
-        let buffer_pool = &mut Database::mut_buffer_pool();
-
         // step 1: flush all related pages to disk (with "UPDATE" log record)
         //
         // (this is a disk operation, hence should be put before the "COMMIT" record is
         // written)
-        buffer_pool.flush_pages(self, &mut Database::mut_log_manager());
+        Database::mut_buffer_pool().flush_pages(self, &mut Database::mut_log_manager());
 
         // step 2: write "COMMIT" log record
         Database::mut_log_manager().log_commit(self)?;
 
         if cfg!(feature = "aries_no_force") {
-            buffer_pool.write_pages(self);
+            Database::mut_buffer_pool().write_pages(self);
         }
 
         // step 3: release latch on dirty pages
