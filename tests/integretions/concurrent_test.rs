@@ -40,7 +40,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
 /// 
-/// TODO: this test doesn't work.
+/// TODO: this test doesn't work. (deadlock)
 #[test]
 // #[cfg(feature = "debug")]
 fn test_concurrent() {
