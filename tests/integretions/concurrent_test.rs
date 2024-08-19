@@ -39,6 +39,8 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
+/// 
+/// TODO: this test doesn't work.
 #[test]
 // #[cfg(feature = "debug")]
 fn test_concurrent() {
@@ -258,7 +260,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 
 /// Make sure we can handle lots of (1000+) concurrent delete operations.
 /// 
-/// TODO: this test will deadlock.
+/// TODO: this test doesn't work.
 #[test]
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
