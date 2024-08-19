@@ -4,11 +4,6 @@
     //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.runnables.extraEnv": {
         "RUST_LOG": "debug",
-
-        // Fix the error from vscode: "Path to shell executable "cargo" does not exist."
-        // 
-        // TODO: remove this setting after the issue is fixed.
-        // "PATH": "/home/xiaochen/.cargo/bin",
     },
     // Enabled features for cargo. This setting affects:
     //  - vscode semantic checking
