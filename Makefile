@@ -20,7 +20,7 @@ test:
 # Used when you need more detail.
 # 
 # The ouput (stdout & stderr) of the test will be redirected to the file "./out" as well.
-test-verbose:
+test_verbose:
 	# Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 	# 
 	# The `tee out` will make test always exit with 0.
@@ -50,9 +50,7 @@ debug:
 	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 integretions::concurrent_test::test_concurrent --exact 2>&1 | tee out
 
 gen_report:
-	source ~/code/python_env_xiaochen/bin/activate
-	# 
-	python ./scripts/benchmark/draw.py
+	./scripts/benchmark/gen_report.sh
 
 clean:
 	rm *.db; \
