@@ -256,8 +256,10 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     tx.commit().unwrap();
 }
 
-#[test]
 /// Make sure we can handle lots of (1000+) concurrent delete operations.
+/// 
+/// TODO: this test will deadlock.
+#[test]
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
