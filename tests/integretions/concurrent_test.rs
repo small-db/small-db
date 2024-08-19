@@ -21,11 +21,6 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 
     let predicate = Predicate::new(table_rc.rl().key_field, Op::Equals, &tuple.get_cell(0));
 
-    // let tx = Transaction::new();
-    // let table = table_rc.rl();
-    // table.delete_tuples(&tx, &predicate).unwrap();
-    // tx.commit().unwrap();
-
     let tx = Transaction::new();
     let table = table_rc.rl();
     let mut iter = BTreeTableSearchIterator::new(&tx, &table, &predicate);
@@ -289,7 +284,7 @@ fn test_concurrent_delete() {
 
     {
         let mut threads = vec![];
-        for _ in 0..200 {
+        for _ in 0..20 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();

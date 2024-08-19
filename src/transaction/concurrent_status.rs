@@ -109,7 +109,7 @@ impl ConcurrentStatus {
                     tx,
                     lock,
                     page_id,
-                    Database::concurrent_status(),
+                    concurrent_status,
                 );
                 let err = SmallError::new(&err_msg);
                 err.show_backtrace();

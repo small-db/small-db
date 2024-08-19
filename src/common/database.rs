@@ -93,11 +93,11 @@ impl Database {
         Self::global().buffer_pool.wl()
     }
 
-    pub fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
+    pub(crate) fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
         Self::global().concurrent_status.rl()
     }
 
-    pub fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus> {
+    pub(crate) fn mut_concurrent_status() -> RwLockWriteGuard<'static, ConcurrentStatus> {
         Self::global().concurrent_status.wl()
     }
 
