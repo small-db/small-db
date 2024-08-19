@@ -77,7 +77,20 @@ def run_test_speed(
 
     # cargo test --features "benchmark, {latch_strategy}" -- --test-threads=1 --nocapture test_speed
     features = f"benchmark, {latch_strategy}"
-    output = subprocess.check_output(
+    # output = subprocess.check_output(
+    #     [
+    #         "cargo",
+    #         "test",
+    #         "--features",
+    #         features,
+    #         "--",
+    #         "--test-threads=1",
+    #         "--nocapture",
+    #         "test_speed",
+    #     ]
+    # )
+
+    process = subprocess.Popen(
         [
             "cargo",
             "test",
@@ -87,11 +100,28 @@ def run_test_speed(
             "--test-threads=1",
             "--nocapture",
             "test_speed",
-        ]
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
     )
 
-    txt = output.decode("utf-8")
-    x = re.search(r"ms:(\d+)", txt)
+    # Print the output in real-time
+    output = ""
+    for stdout_line in iter(process.stdout.readline, ""):
+        # print(stdout_line, end="")
+        output += stdout_line
+
+    # Capture the rest of the output after the process completes
+    remained_stdout, remained_stderr = process.communicate()
+    print(f"remained_stdout: {remained_stdout}, remained_stderr: {remained_stderr}")
+
+    if process.returncode != 0:
+        print(f"Error: {remained_stderr}")
+
+
+    # txt = output.decode("utf-8")
+    x = re.search(r"ms:(\d+)", output)
     duration_ms = int(x.group(1))
     duration_s = duration_ms / 1000
 

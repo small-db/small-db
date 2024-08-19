@@ -1,11 +1,14 @@
 {
-    // The environment variables for test and debug. (the built-in test and debug, which
-    // is the buttons above the test function)
+    // The environment variables for:
+    //  - test (the "Run Test" button just above the test function)
+    //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.runnables.extraEnv": {
         "RUST_LOG": "debug",
     },
-    // The features for the cargo, including check, test and debug. (the built-in test and
-    // debug, which is the buttons above the test function)
+    // Enabled features for cargo. This setting affects:
+    //  - vscode semantic checking
+    //  - test (the "Run Test" button just above the test function)
+    //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.cargo.features": [
         "tree_latch",
         "aries_steal",
