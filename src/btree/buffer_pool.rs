@@ -235,7 +235,7 @@ impl BufferPool {
             for pid in self.all_keys() {
                 self.flush_page(&pid, log_manager);
             }
-        } else if cfg!(feature = "aries_no-steal") {
+        } else if cfg!(feature = "aries_no_steal") {
             // do nothing
             //
             // In NO-STEAL mode, the dirty pages are not allowed to be written
