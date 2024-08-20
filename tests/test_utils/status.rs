@@ -39,6 +39,12 @@ pub fn setup() {
     let _ = fs::remove_dir_all("./data");
 
     Database::reset();
+
+    // Use a longer timeout for "benchmark" tests.
+    use small_db::transaction::ConcurrentStatus;
+    if cfg!(feature = "benchmark") {
+        ConcurrentStatus::set_timeout(1000);
+    }
 }
 
 /// Simulate crash.

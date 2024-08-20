@@ -80,6 +80,7 @@ def run_test_speed(
     for k, v in variables.items():
         os.environ[k] = str(v)
 
+    # don't add quotes, python will add quotes automatically
     features = f"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"
 
     commands = [
@@ -98,7 +99,6 @@ def run_test_speed(
         command += f"{k}={v} "
     command += " ".join(commands)
     print(f"start subprocess, command:\n{command}")
-    # exit(0)
 
     process = subprocess.Popen(
         [
@@ -130,11 +130,17 @@ def run_test_speed(
     remained_stdout, remained_stderr = process.communicate()
     # print(f"remained_stdout: {remained_stdout}, remained_stderr: {remained_stderr}")
 
+    print(f"returncode: {process.returncode}")
+    print(f"output(from stderr): {output}")
+    print(f"remained_stdout: {remained_stdout}")
+    print(f"remained_stderr: {remained_stderr}")
+
     if process.returncode != 0:
-        print(f"Error: {remained_stderr}")
+        print(f"error occurred")
         exit(1)
 
-    # txt = output.decode("utf-8")
+    exit(0)
+
     x = re.search(r"ms:(\d+)", output)
     duration_ms = int(x.group(1))
     duration_s = duration_ms / 1000
