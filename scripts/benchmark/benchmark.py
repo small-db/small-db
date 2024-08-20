@@ -80,26 +80,14 @@ def run_test_speed(
     for k, v in variables.items():
         os.environ[k] = str(v)
 
-    # cargo test --features "benchmark, {latch_strategy}" -- --test-threads=1 --nocapture test_speed
-    features = f"benchmark, {latch_strategy}"
-    # output = subprocess.check_output(
-    #     [
-    #         "cargo",
-    #         "test",
-    #         "--features",
-    #         features,
-    #         "--",
-    #         "--test-threads=1",
-    #         "--nocapture",
-    #         "test_speed",
-    #     ]
-    # )
+    features = f"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"
 
     commands = [
         "cargo",
         "test",
         "--features",
         features,
+        "--no-default-features",
         "--",
         "--test-threads=1",
         "--nocapture",
@@ -129,7 +117,7 @@ def run_test_speed(
     )
 
     # Collect the output of the test.
-    # 
+    #
     # For cargo, the stdout is the output of cargo itself, and the stderr is the output of the test.
     output = ""
     for line in iter(process.stderr.readline, ""):
