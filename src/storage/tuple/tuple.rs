@@ -60,33 +60,63 @@ impl Tuple {
         self.cells.clone()
     }
 
+    /// Determines whether the tuple is visible to the transaction with the specified ID.
+    /// This function is only relevant for isolation levels at or more strict than "Read
+    /// Committed."
     pub(crate) fn visible_to(&self, tid: TransactionID) -> bool {
-        // out of the range [xmin, xmax), not visible
-        if tid < self.xmin || self.xmax <= tid {
+        let transaction_status = Database::concurrent_status().transaction_status.clone();
+
+        // Invisible case 1:
+        // The tuple is created by a transaction starts later than transaction "tid", so
+        // it's not visible to "tid".
+        if tid < self.xmin {
             return false;
         }
 
-        if tid == self.xmin {
-            // the tuple is visible to the transaction that created it
-            return true;
+        // Invisible case 2:
+        // The transaction that created the tuple started earlier than "tid", but it has
+        // not committed yet, so the tuple is not visible to the "tid".
+        if self.xmin < tid {
+            if let Some(status) = transaction_status.get(&self.xmin) {
+                if *status != TransactionStatus::Committed {
+                    return false;
+                }
+            }
+
+            // If unable to find the status of the transaction, the transaction was committed in
+            // a previous database instance.
+            //
+            // Q: When we cannot find teh status of the transaction "xmain", why the "xmin" must
+            // represent a committed transaction rather than an aborted one from a previous
+            // database instance?
+            // A: If the transaction hadn't been committed, the page would have been recovered
+            // during the recovery process, and we wouldn't see the tuples created by the aborted
+            // transaction.
         }
 
-        // tid in the range (xmin, xmax), the tuple is visible if the transaction that
-        // created it has committed
-        let v = Database::concurrent_status().transaction_status.clone();
-        if let Some(status) = v.get(&self.xmin) {
-            return *status == TransactionStatus::Committed;
-        } else {
-            // Cannot find the status of the transaction, which means the transaction
-            // has been committed before the current database process starts.
-            //
-            // Q: Why the transaction `xmin` cannot be an aborted transaction in the
-            // previous database process?
-            // A: If the transaction has been aborted, the page will be recovered in the
-            // recovery process, and we will not see the tuples created by the aborted
-            // transaction.
-            return true;
+        // Invisible case 3:
+        // The tuple was deleted by "tid" itself, so it is not visible to "tid".
+        if tid == self.xmax {
+            return false;
         }
+
+        // Invisible case 4:
+        // The tuple was deleted by a transaction that started earlier than "tid", and the
+        // deleter has committed, so the tuple is not visible to "tid".
+        if self.xmax < tid {
+            let v = Database::concurrent_status().transaction_status.clone();
+            if let Some(status) = v.get(&self.xmin) {
+                if *status == TransactionStatus::Committed {
+                    return false;
+                }
+            } else {
+                // Cannot find the status of the transaction, means the deleter has been committed.
+                return false;
+            }
+        }
+
+        // In all other cases, the tuple is visible to "tid".
+        return true;
     }
 }
 
