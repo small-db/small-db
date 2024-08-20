@@ -6,7 +6,7 @@ use small_db::{
 
 use crate::test_utils::{new_random_btree_table, setup, TreeLayout};
 
-fn test_scan(rows: usize, columns: usize) {
+fn run(rows: usize, columns: usize) {
     setup();
 
     let tx = Transaction::new();
@@ -37,7 +37,7 @@ fn validate_scan(it: &mut BTreeTableIterator, int_tuples: &Vec<Vec<Cell>>) {
 }
 
 #[test]
-fn test_small() {
+fn test_scan() {
     setup();
 
     let column_count_list: Vec<usize> = vec![1, 2, 3, 4, 5];
@@ -45,7 +45,7 @@ fn test_small() {
 
     for rows in row_count_list.iter() {
         for columns in column_count_list.iter() {
-            test_scan(*rows, *columns);
+            run(*rows, *columns);
         }
     }
 }

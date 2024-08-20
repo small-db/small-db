@@ -3,7 +3,18 @@
 [![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
-A small database.
+A small database for learning purposes. We aim to cover all major database concepts in this project.
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Test](#test)
+- [Development](#development)
+- [Q&A](#qa)
+- [Notes](#notes)
+- [Status](#status)
+
 
 **Thanks for your attention. For any issues/bugs/thoughts, please feel free to open an [issue](https://github.com/small-db/small-db/issues) or send an email to [Xiaochen Cui](mailto:jcnlcxc.new@gmail.com)**
 
