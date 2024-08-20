@@ -72,8 +72,13 @@ def run_test_speed(
     print(f"thread_count: {thread_count}, action_per_thread: {action_per_thread}")
 
     # set environment variable
-    os.environ["THREAD_COUNT"] = str(threads_count)
-    os.environ["ACTION_PER_THREAD"] = str(action_per_thread)
+    variables = {
+        "THREAD_COUNT": threads_count,
+        "ACTION_PER_THREAD": action_per_thread,
+        "RUST_LOG": "info",
+    }
+    for k, v in variables.items():
+        os.environ[k] = str(v)
 
     # cargo test --features "benchmark, {latch_strategy}" -- --test-threads=1 --nocapture test_speed
     features = f"benchmark, {latch_strategy}"
@@ -89,6 +94,23 @@ def run_test_speed(
     #         "test_speed",
     #     ]
     # )
+
+    commands = [
+        "cargo",
+        "test",
+        "--features",
+        features,
+        "--",
+        "--test-threads=1",
+        "--nocapture",
+        "test_speed",
+    ]
+    command = ""
+    for k, v in variables.items():
+        command += f"{k}={v} "
+    command += " ".join(commands)
+    print(f"start subprocess, command:\n{command}")
+    # exit(0)
 
     process = subprocess.Popen(
         [
@@ -106,19 +128,23 @@ def run_test_speed(
         universal_newlines=True,
     )
 
-    # Print the output in real-time
+    # Collect the output of the test.
+    # 
+    # For cargo, the stdout is the output of cargo itself, and the stderr is the output of the test.
     output = ""
-    for stdout_line in iter(process.stdout.readline, ""):
-        # print(stdout_line, end="")
-        output += stdout_line
+    for line in iter(process.stderr.readline, ""):
+        # print(">>> " + line, end="")
+        output += line
+
+    # print(f"finished subprocess, returncode: {process.returncode}")
 
     # Capture the rest of the output after the process completes
     remained_stdout, remained_stderr = process.communicate()
-    print(f"remained_stdout: {remained_stdout}, remained_stderr: {remained_stderr}")
+    # print(f"remained_stdout: {remained_stdout}, remained_stderr: {remained_stderr}")
 
     if process.returncode != 0:
         print(f"Error: {remained_stderr}")
-
+        exit(1)
 
     # txt = output.decode("utf-8")
     x = re.search(r"ms:(\d+)", output)
