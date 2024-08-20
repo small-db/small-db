@@ -288,11 +288,11 @@ impl BTreeLeafPage {
         self.mark_slot_status(from, false);
     }
 
-    pub(crate) fn delete_tuple(&mut self, tx: &TransactionID, slot_index: usize) {
-        // The original implementation:
-        // self.mark_slot_status(slot_index, false);
+    pub(crate) fn delete_tuple(&mut self, slot_index: usize) {
+        self.mark_slot_status(slot_index, false);
+    }
 
-        // The MVCC implementation:
+    pub(crate) fn mvcc_delete_tuple(&mut self, tx: &TransactionID, slot_index: usize) {
         self.tuples[slot_index].set_xmax(tx);
     }
 

@@ -37,7 +37,6 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// TODO: this test doesn't work. (deadlock)
 #[test]
-// #[cfg(feature = "debug")]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
@@ -84,8 +83,6 @@ fn test_concurrent() {
         assert_eq!(table.tuples_count(), row_count + 1000);
     }
 
-    debug!("test 1 finished, tuple count: {}", table.tuples_count());
-
     // test 2:
     // insert and delete tuples at the same time, make sure the tuple count is
     // correct, and the is no conflict between threads
@@ -116,10 +113,6 @@ fn test_concurrent() {
         table.check_integrity();
         assert_eq!(table.tuples_count(), row_count + 1000);
     }
-
-    debug!("test 2 finished, tuple count: {}", table.tuples_count());
-
-    return;
 
     // test 3:
     // insert and delete some tuples, make sure there is not too much pages created
@@ -251,8 +244,6 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 /// Make sure we can handle lots of (1000+) concurrent delete operations.
-///
-/// TODO: this test doesn't work.
 #[test]
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
@@ -274,14 +265,12 @@ fn test_concurrent_delete() {
 
     // now insert some random tuples
     let (sender, receiver) = crossbeam::channel::unbounded();
-
-    insert_random(table_rc.clone(), 500, column_count, Some(&sender));
-
-    debug!("init, tuple count: {}", table.tuples_count());
+    let concurrency = 1000;
+    insert_random(table_rc.clone(), concurrency, column_count, Some(&sender));
 
     {
         let mut threads = vec![];
-        for _ in 0..100 {
+        for _ in 0..concurrency {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();
@@ -295,7 +284,6 @@ fn test_concurrent_delete() {
         }
 
         table.check_integrity();
-        debug!("tuple count: {}", table.tuples_count());
-        // assert_eq!(table.tuples_count(), row_count);
+        assert_eq!(table.tuples_count(), row_count);
     }
 }

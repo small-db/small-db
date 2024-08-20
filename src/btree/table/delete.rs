@@ -37,7 +37,7 @@ impl BTreeTable {
         // hold the leaf page
         {
             let mut leaf = leaf_rc.wl();
-            leaf.delete_tuple(&tx.get_id(), tuple.get_slot_number());
+            leaf.mvcc_delete_tuple(&tx.get_id(), tuple.get_slot_number());
         }
         // release the leaf page
 
@@ -75,7 +75,7 @@ impl BTreeTable {
 
             if slots.len() > 0 {
                 for slot in &slots {
-                    page_rc.wl().delete_tuple(&tx.get_id(), slot.clone());
+                    page_rc.wl().mvcc_delete_tuple(&tx.get_id(), slot.clone());
                 }
 
                 if !page_rc.rl().stable() {
@@ -277,7 +277,7 @@ impl BTreeTable {
                 deleted.push(t.get_slot_number());
             }
             for slot in deleted {
-                right.delete_tuple(&tx.get_id(), slot);
+                right.delete_tuple(slot);
             }
 
             // stage 2: update sibling pointers
@@ -599,7 +599,7 @@ impl BTreeTable {
                     key = tuple.get_cell(self.key_field);
                 }
                 for i in deleted_indexes {
-                    right.delete_tuple(&tx.get_id(), i);
+                    right.delete_tuple(i);
                 }
             } else {
                 let iter = BTreeLeafPageIterator::new(&left);
@@ -610,7 +610,7 @@ impl BTreeTable {
                     key = tuple.get_cell(self.key_field);
                 }
                 for i in deleted_indexes {
-                    left.delete_tuple(&tx.get_id(), i);
+                    left.delete_tuple(i);
                 }
             }
         }

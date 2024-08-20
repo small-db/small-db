@@ -14,7 +14,7 @@ use crate::{
     Database,
 };
 
-static TIMEOUT: u64 = 3;
+static TIMEOUT: u64 = 10;
 
 #[derive(Debug, PartialEq)]
 pub enum Lock {
