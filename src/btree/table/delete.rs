@@ -41,6 +41,9 @@ impl BTreeTable {
         }
         // release the leaf page
 
+        // TODO: only runs following code when the current tx is the earliest active tx
+        // (i.e., the tx with the smallest id)
+
         if !leaf_rc.rl().stable() {
             if cfg!(feature = "tree_latch") {
                 // Before handling the erratic page, request the X-latch on the tree

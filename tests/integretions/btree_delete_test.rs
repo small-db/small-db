@@ -243,6 +243,7 @@ fn test_delete_internal_pages() {
     // Delete tuples causing leaf pages to merge until the first
     // internal page gets to minimum occupancy.
     let count = ceil_div(internal_children_cap(), 2) * leaf_records_cap();
+    debug!("row_count: {}, delete count: {}", row_count, count);
     delete_tuples(&table, count);
     assert_eq!(second_child_pod.rl().empty_slots_count(), 0);
 

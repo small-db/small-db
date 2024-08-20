@@ -49,24 +49,23 @@ impl Iterator for BTreeTableIterator {
     type Item = WrappedTuple;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let v = self.page_it.next();
-        if !v.is_none() {
-            return v;
-        }
+        loop {
+            let v = self.page_it.next();
+            if !v.is_none() {
+                return v;
+            }
 
-        // init iterator on next page and continue search
-        let right = self.page_rc.rl().get_right_pid();
-        match right {
-            Some(right) => {
+            // The current page is exhausted, move to the its right sibling.
+            let right = self.page_rc.rl().get_right_pid();
+            if let Some(right) = right {
                 let sibling_rc =
                     BufferPool::get_leaf_page(&self.tx, Permission::ReadOnly, &right).unwrap();
                 let page_it = BTreeLeafPageIteratorRc::new(&self.tx, Arc::clone(&sibling_rc));
 
                 self.page_rc = Arc::clone(&sibling_rc);
                 self.page_it = page_it;
-                return self.page_it.next();
-            }
-            None => {
+                continue;
+            } else {
                 return None;
             }
         }

@@ -324,6 +324,7 @@ Question: what is an internal(or root_ptr, header) page being modified by a tran
 ## Status
 
 - [ ] expand header pages when needed (e.g: when creating new pages)
+- [ ] make "non-mvcc" as a mode
 
 - [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
 - [ ] Add "redo" action
