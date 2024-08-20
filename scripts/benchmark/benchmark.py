@@ -121,25 +121,18 @@ def run_test_speed(
     # For cargo, the stdout is the output of cargo itself, and the stderr is the output of the test.
     output = ""
     for line in iter(process.stderr.readline, ""):
-        # print(">>> " + line, end="")
         output += line
-
-    # print(f"finished subprocess, returncode: {process.returncode}")
 
     # Capture the rest of the output after the process completes
     remained_stdout, remained_stderr = process.communicate()
-    # print(f"remained_stdout: {remained_stdout}, remained_stderr: {remained_stderr}")
-
-    print(f"returncode: {process.returncode}")
-    print(f"output(from stderr): {output}")
-    print(f"remained_stdout: {remained_stdout}")
-    print(f"remained_stderr: {remained_stderr}")
 
     if process.returncode != 0:
         print(f"error occurred")
+        print(f"returncode: {process.returncode}")
+        print(f"output(from stderr): {output}")
+        print(f"remained_stdout: {remained_stdout}")
+        print(f"remained_stderr: {remained_stderr}")
         exit(1)
-
-    exit(0)
 
     x = re.search(r"ms:(\d+)", output)
     duration_ms = int(x.group(1))
