@@ -1,6 +1,5 @@
 use std::thread;
 
-use log::debug;
 use small_db::{
     btree::{buffer_pool::BufferPool, table::BTreeTableSearchIterator},
     storage::tuple::Tuple,
