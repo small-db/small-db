@@ -229,7 +229,7 @@ impl BTreeTable {
 
 impl BTreeTable {
     pub fn set_root_pid(&self, tx: &Transaction, root_pid: &BTreePageID) {
-        let root_pointer_rc = self.get_root_ptr_page(tx);
+        let root_pointer_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
         root_pointer_rc.wl().set_root_pid(root_pid);
 
         // release the latch on the root pointer page
@@ -403,15 +403,19 @@ impl BTreeTable {
 
     /// Get the root page pid.
     pub fn get_root_pid(&self, tx: &Transaction) -> BTreePageID {
-        let root_ptr_rc = self.get_root_ptr_page(tx);
+        let root_ptr_rc = self.get_root_ptr_page(tx, Permission::ReadOnly);
         let mut root_pid = root_ptr_rc.rl().get_root_pid();
         root_pid.table_id = self.get_id();
         root_pid
     }
 
-    pub(crate) fn get_root_ptr_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeRootPointerPage>> {
+    pub(crate) fn get_root_ptr_page(
+        &self,
+        tx: &Transaction,
+        perm: Permission,
+    ) -> Arc<RwLock<BTreeRootPointerPage>> {
         let root_ptr_pid = BTreePageID::get_root_ptr_page_id(self.table_id);
-        BufferPool::get_root_ptr_page(tx, Permission::ReadWrite, &root_ptr_pid).unwrap()
+        BufferPool::get_root_ptr_page(tx, perm, &root_ptr_pid).unwrap()
     }
 
     pub(crate) fn get_header_pages(&self, tx: &Transaction) -> HeaderPages {
@@ -585,7 +589,7 @@ impl BTreeTable {
         let mut depiction = "".to_string();
 
         let prefix = "│   ".repeat(level);
-        let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid).unwrap();
+        let page_rc = BufferPool::get_internal_page(tx, Permission::ReadOnly, &pid).unwrap();
         let lock_state = lock_state(page_rc.clone());
 
         // borrow of page_rc start here
@@ -663,7 +667,7 @@ impl BTreeTable {
 
         let tx = Transaction::new();
 
-        let root_ptr_page = self.get_root_ptr_page(&tx);
+        let root_ptr_page = self.get_root_ptr_page(&tx, Permission::ReadOnly);
         let root_pid = root_ptr_page.rl().get_root_pid();
         let root_summary = self.check_sub_tree(
             &tx,
@@ -726,7 +730,7 @@ impl BTreeTable {
 
             PageCategory::Internal => {
                 let page_rc =
-                    BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid).unwrap();
+                    BufferPool::get_internal_page(tx, Permission::ReadOnly, &pid).unwrap();
                 let page = page_rc.rl();
                 page.check_integrity(
                     parent_pid,

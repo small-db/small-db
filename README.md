@@ -325,6 +325,7 @@ Question: what is an internal(or root_ptr, header) page being modified by a tran
 
 - [ ] expand header pages when needed (e.g: when creating new pages)
 - [ ] make "non-mvcc" as a mode
+- [ ] make "transaction lifttime" and "tree-latch lifetime" a closure, and apply them to tree.draw and other functions
 
 - [ ] Test system crash immediately after the transaction commits (for the "no-force" tx mode)
 - [ ] Add "redo" action

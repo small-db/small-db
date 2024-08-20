@@ -343,7 +343,7 @@ impl BTreeTable {
             // following cases case 1: parent is empty,
             // then the left child is now the new root
             if parent.entries_count() == 0 {
-                let root_ptr_page_rc = self.get_root_ptr_page(tx);
+                let root_ptr_page_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
 
                 // hold the root pointer page
                 {

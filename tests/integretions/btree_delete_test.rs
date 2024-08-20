@@ -53,8 +53,7 @@ fn test_redistribute_leaf_pages() {
 fn test_merge_leaf_pages() {
     setup();
 
-    // This should create a B+ tree with one full page and two
-    // half-full leaf pages
+    // This should create a B+ tree with one full page and two half-full leaf pages.
     let table_rc = new_random_btree_table(
         2,
         leaf_records_cap() * 2 + 1,
@@ -75,6 +74,7 @@ fn test_merge_leaf_pages() {
     tx.commit().unwrap();
 
     // confirm that the last two pages have merged successfully
+    table.delete_invisible_tuples().unwrap();
     let root_pod = get_internal_page(&table, 0, 0);
     assert_true(root_pod.rl().children_count() == 2, &table);
 }

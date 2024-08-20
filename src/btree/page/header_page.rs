@@ -161,7 +161,7 @@ pub(crate) struct HeaderPages {
 
 impl HeaderPages {
     pub(crate) fn new(table: &BTreeTable, tx: &Transaction) -> Self {
-        let root_ptr_rc = table.get_root_ptr_page(tx);
+        let root_ptr_rc = table.get_root_ptr_page(tx, Permission::ReadWrite);
         let header_pid = root_ptr_rc.rl().get_header_pid();
 
         if header_pid.is_none() {
