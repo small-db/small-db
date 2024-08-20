@@ -198,8 +198,8 @@ fn test_concurrent_page_access() {
     assert!(page.is_err());
 }
 
+// TODO: this test doesn't work.
 #[test]
-#[cfg(feature = "debug")]
 fn test_concurrent_simplified() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);

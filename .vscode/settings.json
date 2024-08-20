@@ -11,6 +11,7 @@
     //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.cargo.features": [
         "tree_latch",
+        // "aries_no_steal",
         "aries_steal",
         "aries_force",
         "read_committed",
