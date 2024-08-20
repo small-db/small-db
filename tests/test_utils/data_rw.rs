@@ -15,6 +15,8 @@ pub fn delete_tuples(table: &BTreeTable, count: usize) {
         table.delete_tuple(&tx, &it.next().unwrap()).unwrap();
     }
     tx.commit().unwrap();
+
+    table.delete_invisible_tuples().unwrap();
 }
 
 pub fn insert_tuples(table: &BTreeTable, count: usize) {

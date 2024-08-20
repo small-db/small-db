@@ -296,6 +296,20 @@ impl BTreeLeafPage {
         self.tuples[slot_index].set_xmax(tx);
     }
 
+    // Delete all "deleted" tuples that are not visible to the given transaction.
+    pub(crate) fn delete_invisible_tuples(&mut self, min_action: &TransactionID) {
+        for i in 0..self.slot_count {
+            if !self.is_slot_used(i) {
+                continue;
+            }
+
+            let xmax = &self.tuples[i].get_xmax();
+            if *xmax != TransactionID::MAX && xmax < min_action {
+                self.delete_tuple(i);
+            }
+        }
+    }
+
     /// Returns true if associated slot on this page is filled.
     fn is_slot_used(&self, slot_index: usize) -> bool {
         self.header[slot_index]

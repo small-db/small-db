@@ -64,8 +64,6 @@ impl Tuple {
     /// specified ID. This function is only relevant for isolation levels at
     /// or more strict than "Read Committed."
     pub(crate) fn visible_to(&self, tid: TransactionID) -> bool {
-        let transaction_status = Database::concurrent_status().transaction_status.clone();
-
         // Invisible case 1:
         // The tuple is created by a transaction starts later than transaction "tid", so
         // it's not visible to "tid".
@@ -77,8 +75,8 @@ impl Tuple {
         // The transaction that created the tuple started earlier than "tid", but it has
         // not committed yet, so the tuple is not visible to the "tid".
         if self.xmin < tid {
-            if let Some(status) = transaction_status.get(&self.xmin) {
-                if *status != TransactionStatus::Committed {
+            if let Some(status) = Database::concurrent_status().get_transaction_status(&self.xmin) {
+                if status != TransactionStatus::Committed {
                     return false;
                 }
             }
@@ -104,9 +102,8 @@ impl Tuple {
         // The tuple was deleted by a transaction that started earlier than "tid", and
         // the deleter has committed, so the tuple is not visible to "tid".
         if self.xmax < tid {
-            let v = Database::concurrent_status().transaction_status.clone();
-            if let Some(status) = v.get(&self.xmin) {
-                if *status == TransactionStatus::Committed {
+            if let Some(status) = Database::concurrent_status().get_transaction_status(&self.xmax) {
+                if status == TransactionStatus::Committed {
                     return false;
                 }
             } else {
@@ -125,6 +122,10 @@ impl Tuple {
 impl Tuple {
     pub(crate) fn set_xmax(&mut self, xmax: &TransactionID) {
         self.xmax = *xmax;
+    }
+
+    pub(crate) fn get_xmax(&self) -> TransactionID {
+        self.xmax
     }
 }
 

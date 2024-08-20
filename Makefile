@@ -62,8 +62,8 @@ fmt:
 	# "--allow-dirty" and "--allow-staged" makes "cargo fix" doesn't care about the
 	# status of the git repository.
 	#
-	# "--all-features" makes "cargo fix" treat all features as enabled, so those
-	# "benchmark" codes will not be broken.
+	# "--all-features" makes "cargo fix" treat all features as enabled, so that all
+	# the code will be formatted.
 	cargo fix --allow-dirty --allow-staged --all-features
 
 	# unstable features are only available in nightly channel

@@ -45,11 +45,11 @@ pub struct ConcurrentStatus {
 
     dirty_pages: HashMap<Transaction, HashSet<BTreePageID>>,
 
-    // Transaction status, used for transaction isolation, the idea is from PostgreSQL.
+    // Transaction status, used for transaction isolation, the idea comes from PostgreSQL.
     //
     // PostgreSQL maintains a data structure for transaction status, such that given a transaction
     // ID, it gives the transaction state (running, aborted, committed).
-    pub(crate) transaction_status: HashMap<TransactionID, TransactionStatus>,
+    transaction_status: HashMap<TransactionID, TransactionStatus>,
 
     wait_for_graph: WaitForGraph,
 }
@@ -69,8 +69,6 @@ impl ConcurrentStatus {
         }
     }
 }
-
-impl ConcurrentStatus {}
 
 impl ConcurrentStatus {
     fn update_wait_for_graph(&mut self, tx: &Transaction, lock: &Lock, page_id: &BTreePageID) {
@@ -277,6 +275,39 @@ impl ConcurrentStatus {
         self.x_latch_map.clear();
         self.hold_pages.clear();
         self.dirty_pages.clear();
+    }
+}
+
+impl ConcurrentStatus {
+    pub(crate) fn set_transaction_status(
+        &mut self,
+        tx_id: &TransactionID,
+        status: &TransactionStatus,
+    ) {
+        self.transaction_status
+            .insert(tx_id.clone(), status.clone());
+    }
+
+    pub(crate) fn get_transaction_status(
+        &self,
+        tx_id: &TransactionID,
+    ) -> Option<TransactionStatus> {
+        return self.transaction_status.get(tx_id).cloned();
+    }
+
+    pub(crate) fn min_active_tx(&self) -> Option<TransactionID> {
+        let mut min_tx_id = TransactionID::MAX;
+        for (tx_id, status) in self.transaction_status.iter() {
+            if status == &TransactionStatus::Active && tx_id < &min_tx_id {
+                min_tx_id = tx_id.clone();
+            }
+        }
+
+        if min_tx_id == TransactionID::MAX {
+            return None;
+        }
+
+        return Some(min_tx_id);
     }
 }
 

@@ -28,9 +28,7 @@ impl Transaction {
         let instance = Self { id };
         instance.start().unwrap();
 
-        Database::mut_concurrent_status()
-            .transaction_status
-            .insert(id, TransactionStatus::Active);
+        Database::mut_concurrent_status().set_transaction_status(&id, &TransactionStatus::Active);
 
         instance
     }
@@ -60,8 +58,7 @@ impl Transaction {
         Database::mut_concurrent_status().remove_relation(self);
 
         Database::mut_concurrent_status()
-            .transaction_status
-            .insert(self.id, TransactionStatus::Committed);
+            .set_transaction_status(&self.id, &TransactionStatus::Committed);
 
         Ok(())
     }
@@ -92,8 +89,7 @@ impl Transaction {
         Database::mut_concurrent_status().remove_relation(self);
 
         Database::mut_concurrent_status()
-            .transaction_status
-            .insert(self.id, TransactionStatus::Aborted);
+            .set_transaction_status(&self.id, &TransactionStatus::Aborted);
 
         Ok(())
     }

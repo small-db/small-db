@@ -5,7 +5,7 @@ use std::{
     usize,
 };
 
-use super::SearchFor;
+use super::{table, SearchFor};
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -16,7 +16,7 @@ use crate::{
     },
     error::SmallError,
     storage::tuple::{Cell, WrappedTuple},
-    transaction::{Permission, Transaction},
+    transaction::{Permission, Transaction, TransactionID},
     types::SmallResult,
     utils::HandyRwLock,
     BTreeTable, Database, Predicate,
@@ -41,8 +41,8 @@ impl BTreeTable {
         }
         // release the leaf page
 
-        // TODO: only runs following code when the current tx is the earliest active tx
-        // (i.e., the tx with the smallest id)
+        // TODO: after implementation mvcc, only tuples which are invisible to all (active)
+        // transactions should be deleted from the page.
 
         if !leaf_rc.rl().stable() {
             if cfg!(feature = "tree_latch") {
@@ -112,8 +112,7 @@ impl BTreeTable {
         tx: &Transaction,
         page_rc: Arc<RwLock<BTreeLeafPage>>,
     ) -> SmallResult {
-        if page_rc.rl().get_parent_pid().category == PageCategory::RootPointer {
-            // if the page is the root page, then it is always stable
+        if page_rc.rl().stable() {
             return Ok(());
         }
 
@@ -484,7 +483,7 @@ impl BTreeTable {
         Ok(())
     }
 
-    /// # Arguments:
+    /// # Arguments
     ///
     /// * `middle_key`: The key between the left and right pages. This key is
     ///   always larger than children in the left page and smaller than children
@@ -504,7 +503,8 @@ impl BTreeTable {
     /// * `fn_get_moved_child`: A function to get the moved child page, the
     ///   argument is the current entry of the source page (iterator).
     ///
-    /// Return:
+    /// # Return
+    ///
     /// * The index of the moved entries in the source page.
     fn move_entries(
         &self,
@@ -621,6 +621,37 @@ impl BTreeTable {
 
         entry.set_key(key);
         parent_rc.wl().update_entry(&entry);
+
+        Ok(())
+    }
+
+    /// Delete all invisible tuples from the table.
+    pub fn delete_invisible_tuples(&self) -> SmallResult {
+        let tx = Transaction::new();
+
+        let xlatch = self.tree_latch.wl();
+
+        // There is at least one active transaction since we just started one.
+        let min_action = Database::concurrent_status().min_active_tx().unwrap();
+
+        let mut page_rc: Arc<RwLock<BTreeLeafPage>> =
+            self.get_first_page(&tx, Permission::ReadWrite);
+        loop {
+            page_rc.wl().delete_invisible_tuples(&min_action);
+
+            self.handle_unstable_leaf_page(&tx, page_rc.clone())?;
+
+            let right = page_rc.rl().get_right_pid();
+            if let Some(right) = right {
+                page_rc = BufferPool::get_leaf_page(&tx, Permission::ReadWrite, &right)?;
+            } else {
+                break;
+            }
+        }
+
+        drop(xlatch);
+
+        tx.commit().unwrap();
 
         Ok(())
     }

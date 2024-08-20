@@ -15,6 +15,5 @@
         "aries_force",
         "read_committed",
         "benchmark",
-        "debug",
     ],
 }
