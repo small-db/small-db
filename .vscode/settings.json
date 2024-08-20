@@ -11,11 +11,14 @@
     //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.cargo.features": [
         "tree_latch",
-        "aries_no_steal",
-        // "aries_steal",
+        // "page_latch",
+        // "aries_no_steal",
+        "aries_steal",
         "aries_force",
         "read_committed",
         "benchmark",
     ],
-    "rust-analyzer.cargo.noDefaultFeatures": true,
+    // Disable default features. This must be set to make setting
+    // "rust-analyzer.cargo.features" works.
+    // "rust-analyzer.cargo.noDefaultFeatures": true,
 }

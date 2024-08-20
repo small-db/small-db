@@ -64,6 +64,9 @@ impl BTreeTable {
         Ok(())
     }
 
+    /// Delete all tuples that meet the predicate from this BTreeFile.
+    /// 
+    /// TODO: this api is too slow.
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
         let xlatch = self.tree_latch.wl();
 

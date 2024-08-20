@@ -33,8 +33,6 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-///
-/// TODO: this test doesn't work. (deadlock)
 #[test]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
@@ -198,9 +196,12 @@ fn test_concurrent_page_access() {
     assert!(page.is_err());
 }
 
-// TODO: this test doesn't work.
+/// Make sure we can handle lots of (1000+) concurrent insert operations.
+/// 
+/// TODO: this test is marked "benchmark" since it's too slow.
 #[test]
-fn test_concurrent_simplified() {
+#[cfg(feature = "benchmark")]
+fn test_concurrent_insert() {
     // Use a small page size to speed up the test.
     BufferPool::set_page_size(1024);
 
@@ -228,7 +229,7 @@ fn test_concurrent_simplified() {
     assert_eq!(table.tuples_count(), 0);
 }
 
-// TODO: remove this function
+// TODO: remove this function after we merged api "delete_tuple" and "delete_tuples"
 fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     let table = table_rc.rl();
 
