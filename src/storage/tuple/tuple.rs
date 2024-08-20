@@ -46,19 +46,6 @@ impl Tuple {
         }
     }
 
-    // pub(crate) fn read_from<R: std::io::Read>(reader: &mut R, schema:
-    // &TableSchema) -> Self {     let xmin =
-    // TransactionID::decode_from(reader);     let xmax =
-    // TransactionID::decode_from(reader);
-
-    //     let mut cells: Vec<Cell> = Vec::new();
-    //     for field in schema.get_fields() {
-    //         let cell = Cell::read_from(reader, &field.get_type());
-    //         cells.push(cell);
-    //     }
-    //     Self::new_x(xmin, xmax, &cells)
-    // }
-
     pub(crate) fn clone(&self) -> Self {
         Self::new_x(self.xmin, self.xmax, &self.cells.clone())
     }

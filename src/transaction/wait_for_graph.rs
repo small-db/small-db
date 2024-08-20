@@ -21,59 +21,52 @@ impl WaitForGraph {
             .insert(to);
     }
 
-    pub(crate) fn remove_edge(&mut self, from: TransactionID, to: TransactionID) {
-        if let Some(transactions) = self.graph.get_mut(&from) {
-            transactions.remove(&to);
-        }
-    }
-
-    pub(crate) fn get_waiting_transactions(
-        &self,
-        tid: TransactionID,
-    ) -> Option<&HashSet<TransactionID>> {
-        self.graph.get(&tid)
-    }
-
-    pub(crate) fn remove_transaction(&mut self, tid: TransactionID) {
+    pub(crate) fn remove_waiter(&mut self, tid: TransactionID) {
         self.graph.remove(&tid);
     }
 
     /// Check if there is a cycle in the wait-for graph.
-    pub(crate) fn exists_cycle(&self) -> bool {
+    pub(crate) fn find_cycle(&self) -> Option<Vec<TransactionID>> {
         let mut visited = HashSet::new();
-        let mut rec_stack = HashSet::new();
+        let mut stack = Vec::new();
 
         for &tid in self.graph.keys() {
-            if self.is_cyclic(tid, &mut visited, &mut rec_stack) {
-                return true;
+            if let Some(cycle) = self.dfs(&tid, &mut visited, &mut stack) {
+                return Some(cycle);
             }
         }
 
-        false
+        return None;
     }
 
-    fn is_cyclic(
+    fn dfs(
         &self,
-        tid: TransactionID,
+        tid: &TransactionID,
         visited: &mut HashSet<TransactionID>,
-        rec_stack: &mut HashSet<TransactionID>,
-    ) -> bool {
-        if !visited.contains(&tid) {
-            visited.insert(tid);
-            rec_stack.insert(tid);
+        stack: &mut Vec<TransactionID>,
+    ) -> Option<Vec<TransactionID>> {
+        if stack.contains(tid) {
+            stack.push(*tid);
+            return Some(stack.clone());
+        }
 
-            if let Some(transactions) = self.graph.get(&tid) {
-                for &t in transactions {
-                    if !visited.contains(&t) && self.is_cyclic(t, visited, rec_stack) {
-                        return true;
-                    } else if rec_stack.contains(&t) {
-                        return true;
-                    }
+        if !visited.contains(tid) {
+            return None;
+        }
+
+        visited.insert(*tid);
+
+        stack.push(*tid);
+
+        if let Some(transactions) = self.graph.get(&tid) {
+            for &t in transactions {
+                if let Some(cycle) = self.dfs(&t, visited, stack) {
+                    return Some(cycle);
                 }
             }
         }
 
-        rec_stack.remove(&tid);
-        false
+        stack.pop();
+        return None;
     }
 }

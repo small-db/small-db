@@ -16,7 +16,7 @@ use crate::{
 
 use super::wait_for_graph::WaitForGraph;
 
-static TIMEOUT: AtomicU32 = AtomicU32::new(40);
+static TIMEOUT: u64 = 3;
 
 #[derive(Debug, PartialEq)]
 pub enum Lock {
@@ -75,9 +75,22 @@ impl ConcurrentStatus {
 impl ConcurrentStatus {}
 
 impl ConcurrentStatus {
-    /// Set the timeout (in seconds) for acquiring a lock.
-    pub fn set_timeout(timeout: u32) {
-        TIMEOUT.store(timeout, std::sync::atomic::Ordering::Relaxed);
+    fn update_wait_for_graph(&mut self, tx: &Transaction, lock: &Lock, page_id: &BTreePageID) {
+        // All transactions have to wait for the transaction that holds the X-Latch.
+        if let Some(x_lock_tx) = self.x_latch_map.get(page_id).cloned() {
+            self.wait_for_graph
+                .add_edge(tx.get_id(), x_lock_tx.get_id());
+        }
+
+        if lock == &Lock::XLock {
+            // Only "XLock" request has to wait for the transactions that holds the S-Latch.
+            if let Some(s_lock_txs) = self.s_latch_map.get(page_id).cloned() {
+                for s_lock_tx in s_lock_txs {
+                    self.wait_for_graph
+                        .add_edge(tx.get_id(), s_lock_tx.get_id());
+                }
+            }
+        }
     }
 
     /// Request a lock on the given page. This api is blocking.
@@ -86,30 +99,15 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
+        // acquire RwLock on "concurrent_status"
         {
             let mut concurrent_status = Database::mut_concurrent_status();
-            if let Some(x_lock_tx) = concurrent_status.x_latch_map.get(page_id).cloned() {
-                concurrent_status
-                    .wait_for_graph
-                    .add_edge(tx.get_id(), x_lock_tx.get_id());
-            }
-            if lock == &Lock::XLock {
-                if let Some(s_lock_txs) = concurrent_status.s_latch_map.get(page_id).cloned() {
-                    for s_lock_tx in s_lock_txs {
-                        concurrent_status
-                            .wait_for_graph
-                            .add_edge(tx.get_id(), s_lock_tx.get_id());
-                    }
-                }
-            }
+            concurrent_status.update_wait_for_graph(tx, lock, page_id);
 
-            if concurrent_status.wait_for_graph.exists_cycle() {
+            if let Some(cycle) = concurrent_status.wait_for_graph.find_cycle() {
                 let err_msg = format!(
-                    "deadlock detected, args: {:?}, {:?}, {:?}, concurrent status: {:?}",
-                    tx,
-                    lock,
-                    page_id,
-                    concurrent_status,
+                    "\ndeadlock detected\nargs: {:?}, {:?}, {:?}\nconcurrent status: {:?}\ncycle: {:?}",
+                    tx, lock, page_id, concurrent_status, cycle
                 );
                 let err = SmallError::new(&err_msg);
                 err.show_backtrace();
@@ -117,21 +115,21 @@ impl ConcurrentStatus {
                 return Err(err);
             }
         }
+        // release RwLock on "concurrent_status"
 
         let start_time = Instant::now();
-
-        let timeout_secs = TIMEOUT.load(std::sync::atomic::Ordering::Relaxed);
-
-        while Instant::now().duration_since(start_time).as_secs() < timeout_secs as u64 {
+        while Instant::now().duration_since(start_time).as_secs() < TIMEOUT {
+            // acquire RwLock on "concurrent_status"
             {
                 let mut concurrent_status = Database::mut_concurrent_status();
                 if concurrent_status.add_latch(tx, lock, page_id)? {
-                    concurrent_status
-                        .wait_for_graph
-                        .remove_transaction(tx.get_id());
+                    // at this point, "tx" doesn't wait on any other transactions since
+                    // "Transaction" can only be used by single thread.
+                    concurrent_status.wait_for_graph.remove_waiter(tx.get_id());
                     return Ok(());
                 }
             }
+            // release RwLock on "concurrent_status"
 
             sleep(std::time::Duration::from_millis(10));
         }
@@ -145,7 +143,6 @@ impl ConcurrentStatus {
         );
         let err = SmallError::new(&err_msg);
         err.show_backtrace();
-
         return Err(err);
     }
 
@@ -186,7 +183,10 @@ impl ConcurrentStatus {
                     self.s_latch_map.insert(page_id.clone(), HashSet::new());
                 }
 
-                self.s_latch_map.get_mut(page_id).unwrap().insert(tx.clone());
+                self.s_latch_map
+                    .get_mut(page_id)
+                    .unwrap()
+                    .insert(tx.clone());
             }
             Lock::XLock => {
                 // If the page hold by another transaction with S-Latch, return false (failed to

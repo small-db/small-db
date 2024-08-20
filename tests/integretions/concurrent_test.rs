@@ -34,7 +34,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-/// 
+///
 /// TODO: this test doesn't work. (deadlock)
 #[test]
 // #[cfg(feature = "debug")]
@@ -190,9 +190,6 @@ fn test_concurrent() {
 fn test_concurrent_page_access() {
     setup();
 
-    // Set a short timeout for the test
-    ConcurrentStatus::set_timeout(1);
-
     let table_rc = new_random_btree_table(2, 1, None, 0, TreeLayout::LastTwoEvenlyDistributed);
 
     let table = table_rc.rl();
@@ -254,7 +251,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 }
 
 /// Make sure we can handle lots of (1000+) concurrent delete operations.
-/// 
+///
 /// TODO: this test doesn't work.
 #[test]
 fn test_concurrent_delete() {
@@ -284,7 +281,7 @@ fn test_concurrent_delete() {
 
     {
         let mut threads = vec![];
-        for _ in 0..20 {
+        for _ in 0..100 {
             // thread local copies
             let local_table = table_rc.clone();
             let local_receiver = receiver.clone();

@@ -11,8 +11,10 @@ A small database.
 
 ### Start a Server
 
+Following command will start a small-db server on port 5433, the server is compatible with
+postger's wire protocol.
+
 ```bash
-# this will start a server on port 5433, which is compatible with PostgreSQL
 make run
 ```
 
@@ -46,6 +48,8 @@ Explanation:
 - "NO-FORCE" means it can.
 
 ### Three Concurrency Control Algorithms
+
+TODO: update this section (the classification is not accurate)
 
 - **pessimistic concurrency control**
 - **optimistic concurrency control**
