@@ -121,6 +121,13 @@ impl Tuple {
     }
 }
 
+/// Modifier
+impl Tuple {
+    pub(crate) fn set_xmax(&mut self, xmax: &TransactionID) {
+        self.xmax = *xmax;
+    }
+}
+
 impl Serializeable for Tuple {
     type Reference = TableSchema;
 

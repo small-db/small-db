@@ -131,7 +131,7 @@ impl BTreeTable {
             }
 
             for i in delete_indexes {
-                page.delete_tuple(i);
+                page.delete_tuple(&tx.get_id(), i);
             }
 
             let mut it = BTreeLeafPageIterator::new(&page);
