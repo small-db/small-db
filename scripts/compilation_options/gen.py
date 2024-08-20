@@ -73,9 +73,10 @@ def gen_make_test(options: list[dict]):
         # Github actions will use "sh" for the makefile, which doesn't support bash options.
 
         # run tests
+        content += f'\t# "--no-default-features" is used to disable default features\n'
         content += f'\t# "--test-threads=1" is used to run tests in serial\n'
         content += f'\t# "--no-capture" is used to print the output to stdout\n'
-        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 --nocapture\n'
+        content += f'\tRUST_LOG=info cargo test --features "{test_target.featuers_args}" --no-default-features -- --test-threads=1 --nocapture\n'
 
         content += "\n"
 
@@ -99,13 +100,9 @@ def gen_actions(options: list[dict]):
         new_content = new_content.replace(
             "name: test", f"name: {test_target.human_name}"
         )
+
         new_content = new_content.replace(
-            "make test",
-            f"""
-        # "--test-threads=1" is used to run tests in serial
-        # "--no-capture" is used to print the output to stdout\n'
-        RUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 --nocapture
-        """,
+            "make test", f"make {test_target.target_name}"
         )
 
         # write the new content to the workflow file
@@ -154,7 +151,7 @@ if __name__ == "__main__":
 
     gen_cargo_features(options)
 
-    # gen_make_test(options)
+    gen_make_test(options)
 
     gen_actions(options)
 
