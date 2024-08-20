@@ -389,19 +389,19 @@ fn test_open_crash() {
 
     commit_insert(&table_1, 1, 2);
 
-    // step 1: T1 inserts but does not commit
-    // step 2: crash
-    // result: no data should not be there
-
-    let mut tx_1 = Transaction::new();
-    insert_row(&table_1, &mut tx_1, 8);
+    // step 1: write_tx inserts some data but does not commit
+    let mut write_tx = Transaction::new();
+    insert_row(&table_1, &mut write_tx, 8);
     Database::mut_buffer_pool().flush_all_pages(&mut Database::mut_log_manager());
-    insert_row(&table_1, &mut tx_1, 9);
+    insert_row(&table_1, &mut write_tx, 9);
 
+    Database::mut_log_manager().show_log_contents();
+
+    // step 2: crash
     crash();
 
+    // result: the data it inserted should not be there
     let tx = Transaction::new();
-
     assert_true(search_key(&table_1, &tx, &Cell::Int64(1)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(2)) == 1, &table_1);
     assert_true(search_key(&table_1, &tx, &Cell::Int64(8)) == 0, &table_1);

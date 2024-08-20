@@ -8,6 +8,8 @@ use std::{
     },
 };
 
+use log::info;
+
 use super::page::{
     BTreeHeaderPage, BTreeInternalPage, BTreeLeafPage, BTreePage, BTreePageID,
     BTreeRootPointerPage, PageCategory,
@@ -231,6 +233,15 @@ impl BufferPool {
 
     /// Flush all dirty pages to database.
     pub fn flush_all_pages(&self, log_manager: &mut LogManager) {
+        if cfg!(feature = "aries_steal") {
+            info!("feature aries_steal is enabled");
+        }
+        if cfg!(feature = "aries_no_steal") {
+            info!("feature aries_no_steal is enabled");
+        }
+
+        // panic!("not implemented");
+
         if cfg!(feature = "aries_steal") {
             for pid in self.all_keys() {
                 self.flush_page(&pid, log_manager);

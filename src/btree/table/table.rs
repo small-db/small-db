@@ -212,18 +212,13 @@ impl BTreeTable {
         self.write_page_to_disk(page_id, &BTreeBasePage::empty_page_data())
     }
 
-    pub fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
+    pub(crate) fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
         let start_pos: usize = page_id.page_index as usize * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
         self.get_file().write(&data).expect("io error");
         self.get_file().flush().expect("io error");
-    }
-
-    pub fn clear(&self) {
-        self.get_file().set_len(0).expect("io error");
-        self.file_init();
     }
 }
 

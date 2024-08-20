@@ -100,7 +100,12 @@ def gen_actions(options: list[dict]):
             "name: test", f"name: {test_target.human_name}"
         )
         new_content = new_content.replace(
-            "make test", f"make {test_target.target_name}"
+            "make test",
+            f"""
+        # "--test-threads=1" is used to run tests in serial
+        # "--no-capture" is used to print the output to stdout\n'
+        RUST_LOG=info cargo test --features "{test_target.featuers_args}" -- --test-threads=1 --nocapture
+        """,
         )
 
         # write the new content to the workflow file
@@ -149,7 +154,7 @@ if __name__ == "__main__":
 
     gen_cargo_features(options)
 
-    gen_make_test(options)
+    # gen_make_test(options)
 
     gen_actions(options)
 

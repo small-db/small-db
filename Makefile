@@ -8,6 +8,7 @@ run:
 	RUST_LOG=info cargo run --features "tree_latch"
 
 gen:
+	# pip install pyyaml
 	python scripts/compilation_options/gen.py
 
 test:
