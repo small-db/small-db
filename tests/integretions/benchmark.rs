@@ -10,6 +10,12 @@ use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, s
 #[test]
 #[cfg(feature = "benchmark")]
 fn test_speed() {
+    // Use a longer timeout for "benchmark" tests.
+    use small_db::transaction::ConcurrentStatus;
+    if cfg!(feature = "benchmark") {
+        ConcurrentStatus::set_timeout(1000);
+    }
+
     let action_per_thread = env::var("ACTION_PER_THREAD")
         .unwrap()
         .parse::<usize>()

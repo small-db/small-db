@@ -1,6 +1,7 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
+    sync::atomic::{self, AtomicU64},
     thread::sleep,
     time::Instant,
 };
@@ -14,7 +15,7 @@ use crate::{
     Database,
 };
 
-static TIMEOUT: u64 = 10;
+static TIMEOUT: AtomicU64 = AtomicU64::new(10);
 
 #[derive(Debug, PartialEq)]
 pub enum Lock {
@@ -68,6 +69,10 @@ impl ConcurrentStatus {
             wait_for_graph: WaitForGraph::new(),
         }
     }
+
+    pub fn set_timeout(timeout: u64) {
+        TIMEOUT.store(timeout, atomic::Ordering::Relaxed);
+    }
 }
 
 impl ConcurrentStatus {
@@ -114,7 +119,8 @@ impl ConcurrentStatus {
         // release RwLock on "concurrent_status"
 
         let start_time = Instant::now();
-        while Instant::now().duration_since(start_time).as_secs() < TIMEOUT {
+        let timeout = TIMEOUT.load(atomic::Ordering::Relaxed);
+        while Instant::now().duration_since(start_time).as_secs() < timeout {
             // acquire RwLock on "concurrent_status"
             {
                 let mut concurrent_status = Database::mut_concurrent_status();
