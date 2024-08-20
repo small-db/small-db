@@ -80,15 +80,13 @@ fn test_flush_page() {
     //
     // There should be 4 records in the log:
     // - tx start - "START"
-    // - flush action - "UPDATE" (root pointer page)
     // - flush action - "UPDATE" (leaf page)
-    // - tx commit - "UPDATE" (root pointer page)
     // - tx commit - "UPDATE" (leaf page)
     // - tx commit - "COMMIT"
     //
     // We don't use `assert_true` here because it requires a write
     // lock on the log manager.
-    assert_eq!(Database::log_manager().records_count(), 6);
+    assert_eq!(Database::log_manager().records_count(), 4);
 
     // check that BufferPool.transactionComplete(commit=true) called
     // Page.setBeforeImage().
