@@ -69,11 +69,11 @@ fmt:
 	# unstable features are only available in nightly channel
 	# 
 	# install nightly-aarch64-apple-darwin:
-	# > rustup toolchain install nightly-aarch64-apple-darwin
+	# > rustup toolchain install nightly-x86_64-unknown-linux-gnu
 	# 
 	# check the version of rustfmt:
 	# > rustup run nightly rustfmt --version
-	# rustfmt 1.5.1-nightly (81f39193 2022-10-09)
+	# rustfmt 1.7.1-nightly (636d7ff 2024-08-19)
 	# 
 	rustup run nightly cargo fmt
 

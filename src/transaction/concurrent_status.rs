@@ -1,11 +1,11 @@
 use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
-    sync::atomic::AtomicU32,
     thread::sleep,
     time::Instant,
 };
 
+use super::wait_for_graph::WaitForGraph;
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
@@ -13,8 +13,6 @@ use crate::{
     types::SmallResult,
     Database,
 };
-
-use super::wait_for_graph::WaitForGraph;
 
 static TIMEOUT: u64 = 3;
 
