@@ -163,13 +163,13 @@ def update_content(file_path: str, start_line: str, end_line: str, new_content: 
         for line in lines:
             if line.strip() == start_line:
                 in_range = True
-                f.write(start_line + "\n")
+                f.write(line)
                 f.write(new_content)
                 continue
 
             if line.strip() == end_line:
                 in_range = False
-                f.write(end_line + "\n")
+                f.write(line)
                 continue
 
             if not in_range:
