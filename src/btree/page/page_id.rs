@@ -27,8 +27,8 @@ impl fmt::Display for BTreePageID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{:?}_{}(table_{})",
-            self.category, self.page_index, self.table_id
+            "{:?}_{}",
+            self.category, self.page_index
         )
     }
 }
@@ -58,10 +58,6 @@ impl BTreePageID {
             page_index: ROOT_PTR_PAGE_ID,
             table_id,
         }
-    }
-
-    pub(crate) fn get_short_repr(&self) -> String {
-        format!("{:?}_{}", self.category, self.page_index)
     }
 
     pub(crate) fn need_page_latch(&self) -> bool {

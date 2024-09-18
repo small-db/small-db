@@ -36,6 +36,8 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 #[cfg(not(feature = "page_latch"))]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
+
+    use crate::test_utils::{internal_children_cap, leaf_records_cap};
     BufferPool::set_page_size(1024);
 
     setup();

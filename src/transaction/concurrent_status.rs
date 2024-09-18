@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{self, HashMap, HashSet},
     sync::atomic::{self, AtomicU64},
     thread::sleep,
     time::Instant,
@@ -21,6 +21,12 @@ static TIMEOUT: AtomicU64 = AtomicU64::new(10);
 pub enum Lock {
     XLock,
     SLock,
+}
+
+impl fmt::Display for Lock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        return write!(f, "{:?}", self);
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -125,8 +131,14 @@ impl ConcurrentStatus {
             {
                 let mut concurrent_status = Database::mut_concurrent_status();
                 if concurrent_status.add_latch(tx, lock, page_id)? {
+                    let mut tags = collections::HashMap::new();
+                    tags.insert("tx_id", tx.get_id().to_string());
+                    tags.insert("page_id", page_id.to_string());
+                    tags.insert("lock", lock.to_string());
+                    tx.add_span(tags);
+
                     // at this point, "tx" doesn't wait on any other transactions since
-                    // "Transaction" can only be used by single thread.
+                    // a "Transaction" can only be used by a single thread.
                     concurrent_status.wait_for_graph.remove_waiter(tx.get_id());
                     return Ok(());
                 }
@@ -324,7 +336,7 @@ impl fmt::Display for ConcurrentStatus {
         // s_lock_map
         depiction.push_str("s_lock_map.get_inner().rl(): {");
         for (k, v) in self.s_latch_map.iter() {
-            depiction.push_str(&format!("\n\t{:?} -> [", k.get_short_repr()));
+            depiction.push_str(&format!("\n\t{:?} -> [", k));
             for tx in v {
                 depiction.push_str(&format!("\n\t\t{:?}, ", tx));
             }
@@ -335,7 +347,7 @@ impl fmt::Display for ConcurrentStatus {
         // x_lock_map
         depiction.push_str("x_lock_map.get_inner().rl(): {");
         for (k, v) in self.x_latch_map.iter() {
-            depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k.get_short_repr(), v));
+            depiction.push_str(&format!("\n\t{:?} -> {:?}, ", k, v));
         }
         depiction.push_str("\n}\n");
 
@@ -344,7 +356,7 @@ impl fmt::Display for ConcurrentStatus {
         for (k, v) in self.hold_pages.iter() {
             depiction.push_str(&format!("\n\t{:?} -> [", k));
             for page_id in v {
-                depiction.push_str(&format!("\n\t\t{:?}, ", page_id.get_short_repr()));
+                depiction.push_str(&format!("\n\t\t{:?}, ", page_id));
             }
             depiction.push_str("\n\t]\n");
         }
@@ -354,7 +366,7 @@ impl fmt::Display for ConcurrentStatus {
         for (k, v) in self.dirty_pages.iter() {
             depiction.push_str(&format!("\n\t{:?} -> [", k));
             for page_id in v {
-                depiction.push_str(&format!("\n\t\t{:?}, ", page_id.get_short_repr()));
+                depiction.push_str(&format!("\n\t\t{:?}, ", page_id));
             }
             depiction.push_str("\n\t]\n");
         }

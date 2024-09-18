@@ -1,7 +1,10 @@
 use core::fmt;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::{
+    collections,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
-use crate::{types::SmallResult, Database};
+use crate::{observation::Span, types::SmallResult, Database};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TransactionStatus {
@@ -16,16 +19,28 @@ pub(crate) const TRANSACTION_ID_BYTES: usize = 4;
 
 static TRANSACTION_ID: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Eq, PartialEq, Clone)]
 pub struct Transaction {
     // increase monotonically by 1
     id: TransactionID,
+
+    // for the observation of lock acquisition & release actions
+    spans: Vec<Span>,
+}
+
+// impl eq for Transaction
+impl PartialEq for Transaction {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 impl Transaction {
     pub fn new() -> Self {
         let id = TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-        let instance = Self { id };
+        let instance = Self {
+            id,
+            spans: Vec::new(),
+        };
         instance.start().unwrap();
 
         Database::mut_concurrent_status().set_transaction_status(&id, &TransactionStatus::Active);
@@ -35,6 +50,11 @@ impl Transaction {
 
     fn start(&self) -> SmallResult {
         Database::mut_log_manager().log_start(self)
+    }
+
+    pub(crate) fn add_span(&mut self, tags: collections::HashMap<String, String>) {
+        let span = Span::new(tags);
+        self.spans.push(span);
     }
 
     pub fn commit(&self) -> SmallResult {
