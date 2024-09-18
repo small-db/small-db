@@ -10,6 +10,7 @@ use super::wait_for_graph::WaitForGraph;
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
+    observation::{Event, Span},
     transaction::{Transaction, TransactionID, TransactionStatus},
     types::SmallResult,
     Database,
@@ -131,11 +132,14 @@ impl ConcurrentStatus {
             {
                 let mut concurrent_status = Database::mut_concurrent_status();
                 if concurrent_status.add_latch(tx, lock, page_id)? {
-                    let mut tags = collections::HashMap::new();
-                    tags.insert("tx_id", tx.get_id().to_string());
-                    tags.insert("page_id", page_id.to_string());
-                    tags.insert("lock", lock.to_string());
-                    tx.add_span(tags);
+                    let mut span_tags = collections::HashMap::new();
+                    span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
+                    span_tags.insert("page_id".to_string(), page_id.to_string());
+                    span_tags.insert("lock".to_string(), lock.to_string());
+                    let mut local_tags = collections::HashMap::new();
+                    local_tags.insert("action".to_string(), "acquired".to_string());
+                    let span = Event::new(span_tags, local_tags);
+                    Database::mut_observer().add_event(span);
 
                     // at this point, "tx" doesn't wait on any other transactions since
                     // a "Transaction" can only be used by a single thread.
@@ -160,23 +164,21 @@ impl ConcurrentStatus {
         return Err(err);
     }
 
-    // Add a lock to the given page. This api is idempotent.
-    //
-    // Given the conditions that:
-    // 1. This method could only have at most one runner at a time,
-    // because it need modification actions on several maps.
-    // 2. This method should not ask for exclusive permission (&mut
-    // self) on the ConcurrentStatus, because we granteed that
-    // multiple threads could ask for lock simultaneously (via
-    // request_lock/acquire_lock).
-    //
-    // So, we use a unique lock to prevent this method from being
-    // called by multiple threads at the same time.
-    //
-    // # Return
-    //
-    // Return a bool value to indicate whether the lock is added
-    // successfully.
+    /// Add a lock to the given page. This api is idempotent.
+    ///
+    /// Given the conditions that:
+    /// 1. This method could only have at most one runner at a time,
+    /// because it need modification actions on several maps.
+    /// 2. This method should not ask for exclusive permission (&mut
+    /// self) on the ConcurrentStatus, because we granteed that
+    /// multiple threads could ask for lock simultaneously (via
+    /// request_lock/acquire_lock).
+    ///
+    /// So, we use a unique lock to prevent this method from being
+    /// called by multiple threads at the same time.
+    ///
+    /// Return a bool value to indicate whether the lock is added
+    /// successfully.
     fn add_latch(
         &mut self,
         tx: &Transaction,
@@ -252,10 +254,28 @@ impl ConcurrentStatus {
             if v.len() == 0 {
                 self.s_latch_map.remove(page_id);
             }
+
+            let mut span_tags = collections::HashMap::new();
+            span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
+            span_tags.insert("page_id".to_string(), page_id.to_string());
+            span_tags.insert("lock".to_string(), Lock::SLock.to_string());
+            let mut local_tags = collections::HashMap::new();
+            local_tags.insert("action".to_string(), "released".to_string());
+            let span = Event::new(span_tags, local_tags);
+            Database::mut_observer().add_event(span);
         }
 
         if let Some(_) = self.x_latch_map.get_mut(page_id) {
             self.x_latch_map.remove(page_id);
+
+            let mut span_tags = collections::HashMap::new();
+            span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
+            span_tags.insert("page_id".to_string(), page_id.to_string());
+            span_tags.insert("lock".to_string(), Lock::XLock.to_string());
+            let mut local_tags = collections::HashMap::new();
+            local_tags.insert("action".to_string(), "released".to_string());
+            let span = Event::new(span_tags, local_tags);
+            Database::mut_observer().add_event(span);
         }
 
         return Ok(());

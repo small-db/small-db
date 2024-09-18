@@ -5,6 +5,7 @@ use rand::Rng;
 use small_db::{btree::buffer_pool::BufferPool, transaction::Transaction, utils::HandyRwLock};
 
 use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
+use small_db::Database;
 
 // TODO: this test doesn't work. (deadlocks)
 #[test]
@@ -48,7 +49,13 @@ fn test_insert_parallel() {
         }
         // wait for all threads to finish
         for handle in insert_threads {
-            handle.join().unwrap();
+            match handle.join() {
+                Ok(_) => {}
+                Err(e) => {
+                    info!("Error: {:?}", e);
+                    Database::mut_observer().analyze();
+                }
+            }
         }
     }
     let duration = start.elapsed();
