@@ -144,11 +144,11 @@ def gen_debug(options: list[dict]):
 
     code = ""
     for feature in features:
-        code += f'if cfg!(feature = "{feature}") {{\n'
-        code += f'    log::debug!("{feature} enabled");\n'
-        code += f"}} else {{\n"
-        code += f'    log::debug!("--- {feature} disabled ---");\n'
-        code += f"}}\n\n"
+        code += f'    if cfg!(feature = "{feature}") {{\n'
+        code += f'        log::debug!("{feature} enabled");\n'
+        code += f"    }} else {{\n"
+        code += f'        log::debug!("--- {feature} disabled ---");\n'
+        code += f"    }}\n\n"
 
     update_content("tests/test_utils/debug.rs", START_LINE, END_LINE, code)
 
