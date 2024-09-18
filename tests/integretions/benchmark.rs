@@ -13,11 +13,11 @@ fn test_insert_parallel() {
     setup();
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
-        .unwrap_or("100".to_string())
+        .unwrap_or("10000".to_string())
         .parse::<usize>()
         .unwrap();
     let thread_count = env::var("THREAD_COUNT")
-        .unwrap_or("100".to_string())
+        .unwrap_or("10".to_string())
         .parse::<usize>()
         .unwrap();
 

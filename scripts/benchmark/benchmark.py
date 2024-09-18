@@ -120,9 +120,15 @@ def run_test_speed(
     if process.returncode != 0:
         print(f"error occurred")
         print(f"returncode: {process.returncode}")
-        print(f"output(from stderr): {output}")
-        print(f"remained_stdout: {remained_stdout}")
-        print(f"remained_stderr: {remained_stderr}")
+        print(f"====== output stderr start ======")
+        print(output)
+        print(f"====== output stderr end ======")
+        print(f"====== remained_stdout start ======")
+        print(remained_stdout)
+        print(f"====== remained_stdout end ======")
+        print(f"====== remained_stderr start ======")
+        print(remained_stderr)
+        print(f"====== remained_stderr end ======")
         exit(1)
 
     x = re.search(r"ms:(\d+)", output)

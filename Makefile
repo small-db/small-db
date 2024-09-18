@@ -5,7 +5,7 @@ run:
 	# `psql -h localhost -p 5433 -d default_db -U xiaochen`
 	# 
 	# We use "info" log level since there are lots debug logs from the dependencies.
-	RUST_LOG=info cargo run --features "tree_latch"
+	RUST_LOG=info cargo run
 
 gen:
 	# pip install pyyaml
@@ -36,7 +36,7 @@ test_verbose:
 	# `2>&1` is used since the log is printed to stderr.
 	# 
 	# `tee out` is used to redirect the output to stdout and a file.
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test  -- --test-threads=1 --nocapture 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture 2>&1 | tee out
 
 # Used to run a single test in verbose mode.
 # 
@@ -45,7 +45,7 @@ test_verbose:
 # options:
 test_%:
 	# --no-capture is used to print the log to stdout.
-	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 --nocapture test_$* 2>&1 | tee out
+	RUST_LOG=debug RUST_BACKTRACE=1 cargo test --features "benchmark" -- --test-threads=1 --nocapture test_$* 2>&1 | tee out
 
 debug:
 	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 integretions::concurrent_test::test_concurrent --exact 2>&1 | tee out

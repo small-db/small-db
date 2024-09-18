@@ -9,3 +9,5 @@ pub use data_rw::*;
 
 mod status;
 pub use status::*;
+
+mod debug;

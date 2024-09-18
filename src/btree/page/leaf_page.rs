@@ -1,11 +1,12 @@
 use std::{
+    fmt,
     io::Cursor,
     sync::{Arc, RwLock},
 };
 
 use bit_vec::BitVec;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
+use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, PageDebug, EMPTY_PAGE_ID};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
@@ -614,3 +615,16 @@ impl<'page> DoubleEndedIterator for BTreeLeafPageIterator<'_> {
         }
     }
 }
+
+impl fmt::Debug for BTreeLeafPage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "<leaf page, pid: {:?}, tuple count: {:?}>",
+            self.get_pid(),
+            self.tuples_count(),
+        )
+    }
+}
+
+impl PageDebug for BTreeLeafPage {}

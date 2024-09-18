@@ -11,6 +11,7 @@ mod error;
 mod io;
 mod operator;
 mod predicate;
+mod observation;
 
 pub use btree::table::BTreeTable;
 pub use common::Database;

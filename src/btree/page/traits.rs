@@ -30,3 +30,8 @@ pub trait BTreePage {
     /// were made to it. Used by recovery.
     fn get_before_image(&self, table_schema: &TableSchema) -> Vec<u8>;
 }
+
+/// A trait that involves all the debug methods for a page. All page
+/// types must implement this trait. All methods in this trait must
+/// be read-only.
+pub(crate) trait PageDebug: std::fmt::Debug {}

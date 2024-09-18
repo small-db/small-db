@@ -1,7 +1,7 @@
 use std::{fmt, io::Cursor};
 
 use bit_vec::BitVec;
-use log::debug;
+use log::{debug, error};
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
 use crate::{
@@ -280,6 +280,12 @@ impl BTreeInternalPage {
 
     /// Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
+        if slot_index >= self.slot_count {
+            error!(
+                "slot index out of range, slot index: {}, slot count: {}",
+                slot_index, self.slot_count
+            );
+        }
         self.header[slot_index]
     }
 
@@ -719,7 +725,12 @@ impl<'page> BTreeInternalPageIterator<'page> {
     pub fn new(page: &'page BTreeInternalPage) -> Self {
         let mut right_child_position = page.slot_count;
         loop {
+            if right_child_position == 0 {
+                break;
+            }
+
             right_child_position -= 1;
+
             if page.is_slot_used(right_child_position) {
                 break;
             }

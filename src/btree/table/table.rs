@@ -291,7 +291,11 @@ impl BTreeTable {
         match pid.category {
             PageCategory::Leaf => {
                 // return directly
-                return BufferPool::get_leaf_page(tx, perm, &pid).unwrap();
+                let v = BufferPool::get_leaf_page(tx, perm, &pid);
+                if v.is_err() {
+                    log::error!("error: {:?}", v);
+                }
+                return v.unwrap();
             }
             PageCategory::Internal => {
                 let page_rc =
