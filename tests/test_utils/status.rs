@@ -41,7 +41,6 @@ pub fn setup() {
     Database::reset();
 
     // Use a longer timeout for "benchmark" tests.
-    use small_db::transaction::ConcurrentStatus;
 
     // benchmark = []
 

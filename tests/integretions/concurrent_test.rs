@@ -9,10 +9,7 @@ use small_db::{
     BTreeTable, Op, Predicate,
 };
 
-use crate::test_utils::{
-    insert_random, internal_children_cap, leaf_records_cap, new_int_tuples, new_random_btree_table,
-    setup, TreeLayout,
-};
+use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
 // Delete a tuple from the table.
 fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) {
@@ -232,7 +229,8 @@ fn test_concurrent_insert() {
     assert_eq!(table.tuples_count(), 0);
 }
 
-// TODO: remove this function after we merged api "delete_tuple" and "delete_tuples"
+// TODO: remove this function after we merged api "delete_tuple" and
+// "delete_tuples"
 fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
     let table = table_rc.rl();
 

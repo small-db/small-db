@@ -1,10 +1,10 @@
 use std::{collections, time};
 
-/// A `Span` represents a single unit of work that is timed and can be tagged with
-/// metadata.
+/// A `Span` represents a single unit of work that is timed and can be tagged
+/// with metadata.
 ///
-/// This struct is designed to help identify the root cause of "lock acquisition timeout"
-/// errors.
+/// This struct is designed to help identify the root cause of "lock acquisition
+/// timeout" errors.
 
 pub(crate) struct Span {
     tags: collections::HashMap<String, String>,

@@ -9,9 +9,9 @@ pub mod utils;
 
 mod error;
 mod io;
+mod observation;
 mod operator;
 mod predicate;
-mod observation;
 
 pub use btree::table::BTreeTable;
 pub use common::Database;

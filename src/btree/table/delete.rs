@@ -5,7 +5,7 @@ use std::{
     usize,
 };
 
-use super::{table, SearchFor};
+use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -16,7 +16,7 @@ use crate::{
     },
     error::SmallError,
     storage::tuple::{Cell, WrappedTuple},
-    transaction::{Permission, Transaction, TransactionID},
+    transaction::{Permission, Transaction},
     types::SmallResult,
     utils::HandyRwLock,
     BTreeTable, Database, Predicate,
@@ -41,8 +41,8 @@ impl BTreeTable {
         }
         // release the leaf page
 
-        // TODO: after implementation mvcc, only tuples which are invisible to all (active)
-        // transactions should be deleted from the page.
+        // TODO: after implementation mvcc, only tuples which are invisible to all
+        // (active) transactions should be deleted from the page.
 
         if !leaf_rc.rl().stable() {
             if cfg!(feature = "tree_latch") {
@@ -65,7 +65,7 @@ impl BTreeTable {
     }
 
     /// Delete all tuples that meet the predicate from this BTreeFile.
-    /// 
+    ///
     /// TODO: this api is too slow.
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
         let xlatch = self.tree_latch.wl();
