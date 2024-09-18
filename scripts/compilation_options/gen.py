@@ -138,15 +138,19 @@ def gen_debug(options: list[dict]):
 
     features = []
     for option in options:
-        pass
+        for value_list in option.values():
+            for value in value_list:
+                features.append(value)
 
-    # test_targets = get_test_targets(options)
-    # budgets = ""
-    # for test_target in test_targets:
-    #     budget = f"[![{test_target.human_name}](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/{test_target.target_name}.yml)\n\n"
-    #     budgets += budget
+    code = ""
+    for feature in features:
+        code += f'if cfg!(feature = "{feature}") {{\n'
+        code += f'    log::debug!("{feature} enabled");\n'
+        code += f"}} else {{\n"
+        code += f'    log::debug!("--- {feature} disabled ---");\n'
+        code += f"}}\n\n"
 
-    # update_content("README.md", START_LINE, END_LINE, budgets)
+    update_content("tests/test_utils/debug.rs", START_LINE, END_LINE, code)
 
 
 def update_content(file_path: str, start_line: str, end_line: str, new_content: str):
