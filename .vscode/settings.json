@@ -20,5 +20,5 @@
     ],
     // Disable default features. This must be set to make setting
     // "rust-analyzer.cargo.features" works.
-    // "rust-analyzer.cargo.noDefaultFeatures": true,
+    "rust-analyzer.cargo.noDefaultFeatures": true,
 }
