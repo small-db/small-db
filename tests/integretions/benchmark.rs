@@ -9,14 +9,17 @@ use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, s
 // TODO: this test doesn't work. (deadlocks)
 #[test]
 #[cfg(feature = "benchmark")]
-fn test_speed() {
+fn test_insert_parallel() {
     setup();
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
-        .unwrap()
+        .unwrap_or("100".to_string())
         .parse::<usize>()
         .unwrap();
-    let thread_count = env::var("THREAD_COUNT").unwrap().parse::<usize>().unwrap();
+    let thread_count = env::var("THREAD_COUNT")
+        .unwrap_or("100".to_string())
+        .parse::<usize>()
+        .unwrap();
 
     // Create an empty B+ tree
     let column_count = 2;

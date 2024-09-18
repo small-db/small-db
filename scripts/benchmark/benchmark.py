@@ -35,9 +35,6 @@ def benchmark():
     for i in range(1, 11):
         thread_count_list.append(i * 10)
 
-    # total_actions = 1000
-    # thread_count_list = [1, 2, 5]
-
     records = []
 
     # latch_strategy: "page_latch"
@@ -92,25 +89,19 @@ def run_test_speed(
         "--",
         "--test-threads=1",
         "--nocapture",
-        "test_speed",
+        "test_insert_parallel",
     ]
-    command = ""
+
+    # "debug_command" is the command that contains environment variables and thus can be
+    # used for debugging.
+    debug_command = ""
     for k, v in variables.items():
-        command += f"{k}={v} "
-    command += " ".join(commands)
-    print(f"start subprocess, command:\n{command}")
+        debug_command += f"{k}={v} "
+    debug_command += " ".join(commands)
+    print(f"start subprocess, command:\n{debug_command}")
 
     process = subprocess.Popen(
-        [
-            "cargo",
-            "test",
-            "--features",
-            features,
-            "--",
-            "--test-threads=1",
-            "--nocapture",
-            "test_speed",
-        ],
+        commands,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         universal_newlines=True,
