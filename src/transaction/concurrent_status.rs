@@ -140,7 +140,7 @@ impl ConcurrentStatus {
             }
             // release RwLock on "concurrent_status"
 
-            sleep(std::time::Duration::from_millis(10));
+            sleep(std::time::Duration::from_millis(100));
         }
 
         let err_msg = format!(

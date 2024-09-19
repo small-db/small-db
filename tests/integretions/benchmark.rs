@@ -50,7 +50,7 @@ fn test_insert_parallel() {
         // wait for all threads to finish
         for handle in insert_threads {
             // ignore the error for debugging
-            handle.join();
+            handle.join().unwrap();
 
             //     Ok(_) => {}
             //     Err(e) => {
