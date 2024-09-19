@@ -16,7 +16,7 @@ use small_db::{
     },
     common::Catalog,
     storage::tuple::{Cell, Tuple},
-    transaction::{Permission, Transaction},
+    transaction::{ConcurrentStatus, Permission, Transaction},
     utils::{self, HandyRwLock},
     BTreeTable, Database, TableSchema,
 };
@@ -39,6 +39,11 @@ pub fn setup() {
     let _ = fs::remove_dir_all("./data");
 
     Database::reset();
+
+    // increase lock acquisition timeout for benchmark
+    if cfg!(feature = "benchmark") {
+        ConcurrentStatus::set_timeout(1000);
+    }
 
     print_features();
 }

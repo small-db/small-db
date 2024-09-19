@@ -132,15 +132,6 @@ impl ConcurrentStatus {
             {
                 let mut concurrent_status = Database::mut_concurrent_status();
                 if concurrent_status.add_latch(tx, lock, page_id)? {
-                    let mut span_tags = collections::HashMap::new();
-                    span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
-                    span_tags.insert("page_id".to_string(), page_id.to_string());
-                    span_tags.insert("lock".to_string(), lock.to_string());
-                    let mut local_tags = collections::HashMap::new();
-                    local_tags.insert("action".to_string(), "acquired".to_string());
-                    let span = Event::new(span_tags, local_tags);
-                    Database::mut_observer().add_event(span);
-
                     // at this point, "tx" doesn't wait on any other transactions since
                     // a "Transaction" can only be used by a single thread.
                     concurrent_status.wait_for_graph.remove_waiter(tx.get_id());
@@ -254,28 +245,10 @@ impl ConcurrentStatus {
             if v.len() == 0 {
                 self.s_latch_map.remove(page_id);
             }
-
-            let mut span_tags = collections::HashMap::new();
-            span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
-            span_tags.insert("page_id".to_string(), page_id.to_string());
-            span_tags.insert("lock".to_string(), Lock::SLock.to_string());
-            let mut local_tags = collections::HashMap::new();
-            local_tags.insert("action".to_string(), "released".to_string());
-            let span = Event::new(span_tags, local_tags);
-            Database::mut_observer().add_event(span);
         }
 
         if let Some(_) = self.x_latch_map.get_mut(page_id) {
             self.x_latch_map.remove(page_id);
-
-            let mut span_tags = collections::HashMap::new();
-            span_tags.insert("tx_id".to_string(), tx.get_id().to_string());
-            span_tags.insert("page_id".to_string(), page_id.to_string());
-            span_tags.insert("lock".to_string(), Lock::XLock.to_string());
-            let mut local_tags = collections::HashMap::new();
-            local_tags.insert("action".to_string(), "released".to_string());
-            let span = Event::new(span_tags, local_tags);
-            Database::mut_observer().add_event(span);
         }
 
         return Ok(());
