@@ -337,6 +337,16 @@ Question: what is an internal(or root_ptr, header) page being modified by a tran
 
 ## Status
 
+### Current Issue
+
+The test "test_insert_parallel" deadlocks. Our target is to make parallel insertion work as the old version.
+
+Like the following code, the parallel insertion of 100k records should be finished in 30 second.
+
+https://github.com/small-db/small-db/blob/f864abb8ca4d62a907b0c565da1b209012c9268d/docs/record/benchmark_20240527_220536.json#L170-L183
+
+### Others
+
 - [ ] expand header pages when needed (e.g: when creating new pages)
 - [ ] make "non-mvcc" as a mode
 - [ ] make "transaction lifttime" and "tree-latch lifetime" a closure, and apply them to tree.draw and other functions
