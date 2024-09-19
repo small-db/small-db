@@ -49,14 +49,17 @@ fn test_insert_parallel() {
         }
         // wait for all threads to finish
         for handle in insert_threads {
-            match handle.join() {
-                Ok(_) => {}
-                Err(e) => {
-                    info!("Error: {:?}", e);
-                    Database::mut_observer().analyze();
-                }
-            }
+            // ignore the error for debugging
+            handle.join();
+
+            //     Ok(_) => {}
+            //     Err(e) => {
+            //         info!("Error: {:?}", e);
+            //     }
+            // }
         }
+
+        Database::mut_observer().analyze();
     }
     let duration = start.elapsed();
     let total_rows = thread_count * action_per_thread;

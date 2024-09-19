@@ -16,7 +16,7 @@ impl Ob {
     }
 
     pub fn analyze(&self) {
-        log::info!("=== ayalyze start ===");
+        log::info!("=== analyze start ===");
 
         let event_count = self.events.len();
         log::info!("event_count = {}", event_count);
@@ -28,12 +28,20 @@ impl Ob {
                 .push(event.clone());
         }
 
-        let mut released_locks = Vec::new();
+        // normal events that are single
+        let mut single_events = Vec::new();
+        // normal events that consist of a pair of acquired and released
+        let mut span_lock_released = Vec::new();
+
+        // a pair of events that are not acquired and released
+        let mut weird_pair_events = Vec::new();
+        // multiple (> 2) events
+        let mut weird_multiple_events = Vec::new();
 
         for (span, events) in &v {
             match events.len() {
                 1 => {
-                    // ignore
+                    single_events.push(events[0].clone());
                 }
                 2 => {
                     let event1 = &events[0];
@@ -41,23 +49,41 @@ impl Ob {
                     if event1.local_tags.get("action") == Some(&"acquired".to_string())
                         && event2.local_tags.get("action") == Some(&"released".to_string())
                     {
-                        released_locks.push((event1, event2));
+                        span_lock_released.push((event1, event2));
                     } else {
-                        log::info!("weird span = {}, events: {:?}", span, events);
+                        weird_pair_events.push((event1, event2));
                     }
                 }
                 _ => {
-                    // log::info!("weird span = {}, event_count = {}", span, events.len());
+                    weird_multiple_events.push(events.clone());
                 }
             }
         }
 
+        log::info!("single_events = {}", single_events.len());
+        for (i, event) in single_events.iter().take(10).enumerate() {
+            log::info!("single_events[{}] = {:?}", i, event);
+        }
+
+        log::info!("weird_pair_events = {}", weird_pair_events.len());
+        for (i, (event1, event2)) in weird_pair_events.iter().take(10).enumerate() {
+            log::info!("weird_pair_events[{}] = {:?}, {:?}", i, event1, event2,);
+        }
+
+        log::info!("weird_multiple_events = {}", weird_multiple_events.len());
+        for (i, events) in weird_multiple_events.iter().take(10).enumerate() {
+            log::info!("weird_multiple_events[{}] = {:?}", i, events);
+        }
+
         // log the 10 longest lock holdings
-        released_locks.sort_by_key(|(event1, event2)| event2.timestamp - event1.timestamp);
-        for (event1, event2) in released_locks.iter().take(10) {
+        span_lock_released.sort_by_key(|(event1, event2)| event2.timestamp - event1.timestamp);
+        log::info!("span_lock_released = {}", span_lock_released.len());
+        for (event1, event2) in span_lock_released.iter().rev().take(10) {
             log::info!(
-                "lock held for {:?}, span = {}",
+                "lock held for {:?}, event1 = {:?}, event2 = {:?}, span_tags = {}",
                 event2.timestamp.duration_since(event1.timestamp),
+                event1,
+                event2,
                 event1.serialize_span_tags(),
             );
         }
