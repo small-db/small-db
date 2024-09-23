@@ -210,7 +210,7 @@ impl BTreeLeafPage {
     }
 
     /// Returns the number of empty slots on this page.
-    /// 
+    ///
     /// TODO: use a counter to keep track of empty slots
     pub fn empty_slots_count(&self) -> usize {
         let mut count = 0;
@@ -243,7 +243,7 @@ impl BTreeLeafPage {
         //
         // -1 indicate there is no such key less than tuple.key, so
         // the tuple should be inserted in slot 0 (-1 + 1).
-        // 
+        //
         // TODO: use binary search insead and do the benchmark (the tricky
         // part is that not all slots are used)
         let mut last_less_slot: i64 = -1;

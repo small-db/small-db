@@ -1,6 +1,6 @@
 use std::collections;
 
-use super::{Event, Span};
+use super::Event;
 
 pub struct Ob {
     pub(crate) events: Vec<Event>,
