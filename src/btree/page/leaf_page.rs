@@ -209,6 +209,9 @@ impl BTreeLeafPage {
         return self.tuples_count() >= stable_threshold;
     }
 
+    /// Returns the number of empty slots on this page.
+    /// 
+    /// TODO: use a counter to keep track of empty slots
     pub fn empty_slots_count(&self) -> usize {
         let mut count = 0;
         for i in 0..self.slot_count {
@@ -224,9 +227,7 @@ impl BTreeLeafPage {
         self.slot_count - self.empty_slots_count()
     }
 
-    /// Adds a tuple to the page such that all tuples remain in sorted order;
-    /// the tuple should be updated to reflect that it is now stored on this
-    /// page.
+    /// Adds a tuple to the page such that all tuples remain in sorted order.
     pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError> {
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
@@ -237,11 +238,14 @@ impl BTreeLeafPage {
             }
         }
 
-        // Find the last key less than or equal to the key being
-        // inserted.
+        // Find the last key less than or equal to the key that we are
+        // inserting. Then we can insert the new tuple after that key.
         //
         // -1 indicate there is no such key less than tuple.key, so
         // the tuple should be inserted in slot 0 (-1 + 1).
+        // 
+        // TODO: use binary search insead and do the benchmark (the tricky
+        // part is that not all slots are used)
         let mut last_less_slot: i64 = -1;
         for i in 0..self.slot_count {
             if self.is_slot_used(i) {

@@ -42,7 +42,7 @@ pub fn setup() {
 
     // increase lock acquisition timeout for benchmark
     if cfg!(feature = "benchmark") {
-        ConcurrentStatus::set_timeout(1000);
+        ConcurrentStatus::set_timeout(30);
     }
 
     print_features();

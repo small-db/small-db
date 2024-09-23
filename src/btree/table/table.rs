@@ -263,24 +263,25 @@ impl BTreeTable {
         }
     }
 
-    /// Recursive function which finds and locks the leaf page in
-    /// the B+ tree corresponding to the left-most page possibly
-    /// containing the key field f. It locks all internal pages
-    /// along the path to the leaf page with READ_ONLY permission,
-    /// and locks the leaf page with permission perm.
+    /// Finds and locks the leaf page in the B+ tree based on the search
+    /// condition.
+    ///
+    /// All internal pages along the path to the target page are locked
+    /// with read-only permission. In "tree latch" mode, the lock will
+    /// be released before the method returns. In "page latch" mode, the
+    /// lock will be held until the transaction is committed.
     ///
     /// # Arguments
     ///
-    /// - tx        - the transaction
-    /// - perm      - the permissions with which to lock the leaf page
-    /// - pid       - the start point of the search
-    /// - search    - the key field to search for
+    /// * `tx` - The transaction to be used.
+    /// * `perm` - The permission with which to lock the leaf page.
+    /// * `pid` - The starting page ID for the search.
+    /// * `search` - The key field to search for.
     ///
-    /// # Return
+    /// # Returns
     ///
-    /// The left-most leaf page which match the search condition. When the
-    /// search condition is a specific value, the scope of this page covers
-    /// this value.
+    /// The left-most leaf page that matches the search condition. If the search
+    /// is for a specific value, the scope of this page will cover that value.
     pub(crate) fn find_leaf_page(
         &self,
         tx: &Transaction,
@@ -346,6 +347,12 @@ impl BTreeTable {
                     }
                 }
                 // borrow of page_rc end here
+
+                if cfg!(feature = "tree_latch") {
+                    Database::mut_concurrent_status()
+                        .release_latch(tx, &pid)
+                        .unwrap();
+                }
 
                 // search child page recursively
                 match child_pid {
