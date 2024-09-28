@@ -45,7 +45,7 @@ pub fn setup() {
         ConcurrentStatus::set_timeout(30);
     }
 
-    print_features();
+    // print_features();
 }
 
 /// Simulate crash.
