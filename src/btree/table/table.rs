@@ -247,6 +247,10 @@ impl BTreeTable {
                     left.set_parent_pid(&parent_pid);
                 }
                 // borrow of left_rc end here
+
+                Database::mut_concurrent_status()
+                    .release_latch(tx, &child_pid)
+                    .unwrap();
             }
             PageCategory::Leaf => {
                 let child_rc =
@@ -258,6 +262,10 @@ impl BTreeTable {
                     child.set_parent_pid(&parent_pid);
                 }
                 // borrow of left_rc end here
+
+                Database::mut_concurrent_status()
+                    .release_latch(tx, &child_pid)
+                    .unwrap();
             }
             PageCategory::Header => todo!(),
         }

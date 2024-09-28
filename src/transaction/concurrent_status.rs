@@ -100,7 +100,7 @@ impl ConcurrentStatus {
         }
     }
 
-    /// Request a lock on the given page. This api is blocking.
+    /// Request a lock on the given page. This api is a blocking api.
     pub(crate) fn request_latch(
         tx: &Transaction,
         lock: &Lock,
@@ -239,6 +239,11 @@ impl ConcurrentStatus {
     }
 
     pub(crate) fn release_latch(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
+        if !page_id.need_page_latch() {
+            // No need to release the latch for the page.
+            return Ok(());
+        }
+
         if let Some(v) = self.s_latch_map.get_mut(page_id) {
             v.remove(tx);
             if v.len() == 0 {

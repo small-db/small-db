@@ -105,6 +105,8 @@ impl BTreeTable {
         page_rc: Arc<RwLock<BTreeLeafPage>>,
         field: Cell,
     ) -> ResultPod<BTreeLeafPage> {
+        log::info!("tx {} going to split leaf page", tx.get_id());
+
         let new_sibling_rc = self.get_empty_leaf_page(tx);
         let parent_pid: BTreePageID;
         let key: Cell;
@@ -215,7 +217,7 @@ impl BTreeTable {
     /// parent page.
     ///
     /// # Arguments
-    /// 
+    ///
     /// `field`: the key field of the tuple to be inserted after the
     /// split is complete. Necessary to know which of the two
     /// pages to return. `parentId`: the id of the parent. May be
@@ -286,6 +288,8 @@ impl BTreeTable {
         page_rc: Arc<RwLock<BTreeInternalPage>>,
         field: &Cell,
     ) -> Arc<RwLock<BTreeInternalPage>> {
+        log::info!("tx {} going to split internal page", tx.get_id());
+
         let sibling_rc = self.get_empty_interanl_page(tx);
         let key: Cell;
         let mut parent_pid: BTreePageID;
