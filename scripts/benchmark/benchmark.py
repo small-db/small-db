@@ -79,7 +79,9 @@ def run_test_speed(
         os.environ[k] = str(v)
 
     # don't add quotes, python will add quotes automatically
-    features = f"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"
+    features = (
+        f'"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"'
+    )
 
     commands = [
         "cargo",
@@ -102,7 +104,7 @@ def run_test_speed(
 
     output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True)
 
-    x = re.search(r"ms:(\d+)", output)
+    x = re.search(r"ms:(\d+)", output.decode("utf-8"))
     duration_ms = int(x.group(1))
     duration_s = duration_ms / 1000
 
