@@ -45,17 +45,13 @@ impl BTreeTable {
         // (active) transactions should be deleted from the page.
 
         if !leaf_rc.rl().stable() {
-            if cfg!(feature = "tree_latch") {
-                // Before handling the erratic page, request the X-latch on the tree
-                let xlatch = self.tree_latch.wl();
+            // Before handling the erratic page, request the X-latch on the tree
+            let xlatch = self.tree_latch.wl();
 
-                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
+            self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
 
-                // The handling of the erratic page is done, release the X-latch
-                drop(xlatch);
-            } else if cfg!(feature = "page_latch") {
-                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
-            }
+            // The handling of the erratic page is done, release the X-latch
+            drop(xlatch);
         }
 
         let leaf_pid = leaf_rc.rl().get_pid();

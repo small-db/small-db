@@ -30,10 +30,7 @@ fn deleter(table_rc: &Pod<BTreeTable>, r: &crossbeam::channel::Receiver<Tuple>) 
 ///
 /// Furthermore, this test also requires a fine-grained locking meachanism to be
 /// implemented, the test will fail with timeout-error otherwise.
-///
-/// TODO: pass this test using "page_latch" mode.
 #[test]
-#[cfg(not(feature = "page_latch"))]
 fn test_concurrent() {
     // Use a small page size to speed up the test.
 
