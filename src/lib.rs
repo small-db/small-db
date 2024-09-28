@@ -9,7 +9,6 @@ pub mod utils;
 
 mod error;
 mod io;
-mod observation;
 mod operator;
 mod predicate;
 

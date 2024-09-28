@@ -52,8 +52,6 @@ fn test_insert_parallel() {
         for handle in insert_threads {
             handle.join().unwrap();
         }
-
-        Database::mut_observer().analyze();
     }
     let duration = start.elapsed();
     let total_rows = thread_count * action_per_thread;
