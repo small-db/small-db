@@ -102,7 +102,7 @@ def run_test_speed(
         debug_command += f"{k}={v} "
     debug_command += " ".join(commands)
 
-    output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True)
+    output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True, log_path="out")
 
     x = re.search(r"ms:(\d+)", output.decode("utf-8"))
     duration_ms = int(x.group(1))

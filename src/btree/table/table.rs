@@ -238,12 +238,14 @@ impl BTreeTable {
         match child_pid.category {
             PageCategory::RootPointer => todo!(),
             PageCategory::Internal => {
-                let left_rc =
+                log::info!("{} set parent: {:?} -> {:?}", tx, child_pid, parent_pid,);
+
+                let child_rc =
                     BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid).unwrap();
 
                 // borrow of left_rc start here
                 {
-                    let mut left = left_rc.wl();
+                    let mut left = child_rc.wl();
                     left.set_parent_pid(&parent_pid);
                 }
                 // borrow of left_rc end here
