@@ -40,14 +40,8 @@ def benchmark():
 
     records = []
 
-    # latch_strategy: "page_latch"
     for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="page_latch")
-        records.append(r)
-
-    # latch_strategy: "tree_latch"
-    for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="tree_latch")
+        r = run_test_speed(total_actions, thread_count)
         records.append(r)
 
     # dump records to a file in json format
@@ -65,7 +59,6 @@ def benchmark():
 def run_test_speed(
     total_actions: int,
     thread_count: int,
-    latch_strategy: str,
 ) -> BenchmarkRecord:
     threads_count = thread_count
     action_per_thread = total_actions // thread_count
@@ -80,17 +73,11 @@ def run_test_speed(
     for k, v in variables.items():
         os.environ[k] = str(v)
 
-    # don't add quotes, python will add quotes automatically
-    features = (
-        f'"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"'
-    )
-
     commands = [
         "cargo",
         "test",
         "--features",
-        features,
-        "--no-default-features",
+        '"benchmark"',  # enable benchmark
         "--",
         "--test-threads=1",
         "--nocapture",
@@ -104,7 +91,9 @@ def run_test_speed(
         debug_command += f"{k}={v} "
     debug_command += " ".join(commands)
 
-    output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True, log_path="out")
+    output, _ = xiaochen_py.run_command(
+        debug_command, raise_on_failure=True, log_path="out"
+    )
 
     x = re.search(r"ms:(\d+)", output.decode("utf-8"))
     duration_ms = int(x.group(1))
@@ -124,7 +113,6 @@ def run_test_speed(
         "total_actions": total_actions,
         "thread_count": thread_count,
         "action_per_thread": action_per_thread,
-        "latch_strategy": latch_strategy,
     }
     r.test_result = {
         "duration_ms": duration_ms,

@@ -36,23 +36,17 @@ def draw():
 
     points_list = []
 
-    for latch_strategy in ["tree_latch", "page_latch"]:
-        records = list(
-            filter(
-                lambda x: x.target_attributes["latch_strategy"] == latch_strategy,
-                all_records,
-            )
-        )
+    records = list(all_records)
 
-        # sort by thread_count
-        records.sort(key=lambda x: x.target_attributes["thread_count"])
+    # sort by thread_count
+    records.sort(key=lambda x: x.target_attributes["thread_count"])
 
-        thread_count_list = [r.target_attributes["thread_count"] for r in records]
-        insert_per_second = [r.test_result["insert_per_second"] for r in records]
+    thread_count_list = [r.target_attributes["thread_count"] for r in records]
+    insert_per_second = [r.test_result["insert_per_second"] for r in records]
 
-        plt.plot(thread_count_list, insert_per_second)
-        points = plt.scatter(thread_count_list, insert_per_second, label=latch_strategy)
-        points_list.append(points)
+    plt.plot(thread_count_list, insert_per_second)
+    points = plt.scatter(thread_count_list, insert_per_second)
+    points_list.append(points)
 
     plt.xlabel("Concurrent Transactions")
     plt.ylabel("Insertions per Second")
