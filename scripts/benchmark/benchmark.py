@@ -6,6 +6,7 @@ import subprocess
 
 import matplotlib.pyplot as plt
 import numpy as np
+import xiaochen_py
 
 
 class BenchmarkRecord:
@@ -98,38 +99,8 @@ def run_test_speed(
     for k, v in variables.items():
         debug_command += f"{k}={v} "
     debug_command += " ".join(commands)
-    print(f"start subprocess, command:\n{debug_command}")
 
-    process = subprocess.Popen(
-        commands,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-    )
-
-    # Collect the output of the test.
-    #
-    # For cargo, the stdout is the output of cargo itself, and the stderr is the output of the test.
-    output = ""
-    for line in iter(process.stderr.readline, ""):
-        output += line
-
-    # Capture the rest of the output after the process completes
-    remained_stdout, remained_stderr = process.communicate()
-
-    if process.returncode != 0:
-        print(f"error occurred")
-        print(f"returncode: {process.returncode}")
-        print(f"====== output stderr start ======")
-        print(output)
-        print(f"====== output stderr end ======")
-        print(f"====== remained_stdout start ======")
-        print(remained_stdout)
-        print(f"====== remained_stdout end ======")
-        print(f"====== remained_stderr start ======")
-        print(remained_stderr)
-        print(f"====== remained_stderr end ======")
-        exit(1)
+    output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True)
 
     x = re.search(r"ms:(\d+)", output)
     duration_ms = int(x.group(1))

@@ -8,7 +8,6 @@ use small_db::{
 
 use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
 
-// TODO: this test doesn't work. (deadlocks)
 #[test]
 #[cfg(feature = "benchmark")]
 fn test_insert_parallel() {
