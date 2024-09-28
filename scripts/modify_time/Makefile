@@ -1,2 +1,0 @@
-run:
-	./scripts/run.sh
