@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{
-    collections::{self, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     sync::atomic::{self, AtomicU64},
     thread::sleep,
     time::Instant,
@@ -10,7 +10,6 @@ use super::wait_for_graph::WaitForGraph;
 use crate::{
     btree::page::BTreePageID,
     error::SmallError,
-    observation::{Event, Span},
     transaction::{Transaction, TransactionID, TransactionStatus},
     types::SmallResult,
     Database,

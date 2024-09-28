@@ -2,10 +2,11 @@ use std::{env, thread};
 
 use log::info;
 use rand::Rng;
-use small_db::{btree::buffer_pool::BufferPool, transaction::Transaction, utils::HandyRwLock};
+use small_db::{
+    btree::buffer_pool::BufferPool, transaction::Transaction, utils::HandyRwLock, Database,
+};
 
 use crate::test_utils::{insert_random, new_int_tuples, new_random_btree_table, setup, TreeLayout};
-use small_db::Database;
 
 // TODO: this test doesn't work. (deadlocks)
 #[test]
@@ -49,14 +50,7 @@ fn test_insert_parallel() {
         }
         // wait for all threads to finish
         for handle in insert_threads {
-            // ignore the error for debugging
             handle.join().unwrap();
-
-            //     Ok(_) => {}
-            //     Err(e) => {
-            //         info!("Error: {:?}", e);
-            //     }
-            // }
         }
 
         Database::mut_observer().analyze();

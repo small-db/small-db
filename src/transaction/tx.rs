@@ -1,10 +1,7 @@
 use core::fmt;
-use std::{
-    collections,
-    sync::atomic::{AtomicU32, Ordering},
-};
+use std::sync::atomic::{AtomicU32, Ordering};
 
-use crate::{observation::Span, types::SmallResult, Database};
+use crate::{types::SmallResult, Database};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TransactionStatus {
