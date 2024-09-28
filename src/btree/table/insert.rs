@@ -53,10 +53,6 @@ impl BTreeTable {
         // Insert the tuple into the leaf page.
         leaf_rc.wl().insert_tuple(&new_tuple)?;
 
-        // Q: Why we need to release the page latch here, not when the transaction is
-        // committed?
-        // A: We release the page latch here so that other transactions can access the
-        // page, even before the current transaction is committed.
         let leaf_pid = leaf_rc.rl().get_pid();
         Database::mut_concurrent_status().release_latch(tx, &leaf_pid)?;
 
@@ -219,6 +215,7 @@ impl BTreeTable {
     /// parent page.
     ///
     /// # Arguments
+    /// 
     /// `field`: the key field of the tuple to be inserted after the
     /// split is complete. Necessary to know which of the two
     /// pages to return. `parentId`: the id of the parent. May be

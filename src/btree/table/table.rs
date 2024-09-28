@@ -412,6 +412,13 @@ impl BTreeTable {
         let root_ptr_rc = self.get_root_ptr_page(tx, Permission::ReadOnly);
         let mut root_pid = root_ptr_rc.rl().get_root_pid();
         root_pid.table_id = self.get_id();
+
+        // release the latch on the root pointer page
+        let root_pointer_pid = root_ptr_rc.rl().get_pid();
+        Database::mut_concurrent_status()
+            .release_latch(tx, &root_pointer_pid)
+            .unwrap();
+
         root_pid
     }
 

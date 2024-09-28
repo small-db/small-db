@@ -167,8 +167,15 @@ impl HeaderPages {
         if header_pid.is_none() {
             let result = Self::init_header_pages(table, tx);
             root_ptr_rc.wl().set_header_pid(&result.get_head_pid());
+            Database::mut_concurrent_status()
+                .release_latch(tx, &root_ptr_rc.rl().get_pid())
+                .unwrap();
             return result;
         }
+
+        Database::mut_concurrent_status()
+            .release_latch(tx, &root_ptr_rc.rl().get_pid())
+            .unwrap();
 
         let mut header_pages = Vec::new();
         let mut pid = header_pid.unwrap();

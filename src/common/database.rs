@@ -102,7 +102,7 @@ impl Database {
         Self::global().buffer_pool.wl()
     }
 
-    pub(crate) fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
+    pub fn concurrent_status() -> RwLockReadGuard<'static, ConcurrentStatus> {
         Self::global().concurrent_status.rl()
     }
 

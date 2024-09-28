@@ -356,6 +356,12 @@ impl BTreeTable {
                 }
                 // release the root pointer page
 
+                // release the latch on the root pointer page
+                let root_pointer_pid = root_ptr_page_rc.rl().get_pid();
+                Database::mut_concurrent_status()
+                    .release_latch(tx, &root_pointer_pid)
+                    .unwrap();
+
                 // release the page for reuse
                 self.set_empty_page(tx, &parent.get_pid());
                 return Ok(());

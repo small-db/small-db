@@ -250,6 +250,8 @@ impl ConcurrentStatus {
             self.x_latch_map.remove(page_id);
         }
 
+        self.hold_pages.get_mut(tx).unwrap().remove(page_id);
+
         return Ok(());
     }
 
@@ -266,6 +268,10 @@ impl ConcurrentStatus {
 
     pub(crate) fn get_dirty_pages(&self, tx: &Transaction) -> HashSet<BTreePageID> {
         return self.dirty_pages.get(tx).unwrap_or(&HashSet::new()).clone();
+    }
+
+    pub fn hold_page_count(&self, tx: &Transaction) -> usize {
+        return self.hold_pages.get(tx).unwrap_or(&HashSet::new()).len();
     }
 
     /// Get the corresponding transaction of the dirty page, return None if the
