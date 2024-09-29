@@ -1,5 +1,3 @@
-# this file is outdated
-
 import datetime
 import json
 import os
@@ -11,7 +9,7 @@ import numpy as np
 from benchmark import BenchmarkRecord, json_loader
 
 
-def get_report_path():
+def get_latest_report() -> str:
     report_dir = os.path.join("docs", "record")
     report_files = os.listdir(report_dir)
 
@@ -28,7 +26,7 @@ def get_report_path():
 
 
 def draw():
-    report_path = get_report_path()
+    report_path = get_latest_report()
 
     # parse the json to list(BenchmarkRecord)
     f = open(report_path, "r")
