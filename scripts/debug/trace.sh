@@ -46,7 +46,7 @@ function trace_linux() {
     # run target, generate flamegraph (and perf report)
     # ===============================================================
 
-    echo "uunning target ..."
+    echo "running target ..."
 
     # sudo perf record -F 1000 --call-graph dwarf -- \
     # sudo perf record -F 99 -g -- \
@@ -65,6 +65,8 @@ function trace_linux() {
     ../FlameGraph/flamegraph.pl out.perf-folded >perf.svg
 
     echo "done, flamegraph: http://10.10.29.13:8000/perf.svg"
+
+    python3 -m http.server 8000
 }
 
 function trace_mac() {
