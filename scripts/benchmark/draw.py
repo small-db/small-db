@@ -7,6 +7,7 @@ import subprocess
 import matplotlib.pyplot as plt
 import numpy as np
 from benchmark import BenchmarkRecord, json_loader
+import xiaochen_py
 
 
 def get_latest_report() -> str:
@@ -54,7 +55,7 @@ def draw():
 
     plt.legend(handles=points_list, loc="upper right")
 
-    plt.savefig("./docs/img/insertions_per_second.png")
+    plt.savefig(f"./docs/img/insertions_per_second_{xiaochen_py.timestamp()}.png")
     return
 
 

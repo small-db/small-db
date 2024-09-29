@@ -47,7 +47,7 @@ def benchmark():
     record_path = os.path.join(
         "docs",
         "record",
-        f"benchmark_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        f"benchmark_{xiaochen_py.timestamp()}.json",
     )
 
     with open(record_path, "w") as f:

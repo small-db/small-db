@@ -1,0 +1,178 @@
+[
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:06:03.815384",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 1,
+            "action_per_thread": 100000
+        },
+        "test_result": {
+            "duration_ms": 7617,
+            "insert_per_second": 13128.52829197847
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:06:24.697188",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 10,
+            "action_per_thread": 10000
+        },
+        "test_result": {
+            "duration_ms": 19570,
+            "insert_per_second": 5109.8620337250895
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:06:52.321930",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 20,
+            "action_per_thread": 5000
+        },
+        "test_result": {
+            "duration_ms": 26207,
+            "insert_per_second": 3815.7744114167967
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:07:25.389265",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 30,
+            "action_per_thread": 3333
+        },
+        "test_result": {
+            "duration_ms": 31776,
+            "insert_per_second": 3147.029204431017
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:08:03.649055",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 40,
+            "action_per_thread": 2500
+        },
+        "test_result": {
+            "duration_ms": 36845,
+            "insert_per_second": 2714.072465734835
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:08:46.046852",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 50,
+            "action_per_thread": 2000
+        },
+        "test_result": {
+            "duration_ms": 41047,
+            "insert_per_second": 2436.231636904037
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:09:33.210420",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 60,
+            "action_per_thread": 1666
+        },
+        "test_result": {
+            "duration_ms": 45766,
+            "insert_per_second": 2185.0281868636107
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:10:22.802294",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 70,
+            "action_per_thread": 1428
+        },
+        "test_result": {
+            "duration_ms": 48197,
+            "insert_per_second": 2074.8179347262276
+        }
+    },
+    {
+        "smalldb_commitid": "c0032e60a80e991351184cf6ff44ef29724a5c29",
+        "start_time": "2024-09-28T17:11:16.106380",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 80,
+            "action_per_thread": 1250
+        },
+        "test_result": {
+            "duration_ms": 51833,
+            "insert_per_second": 1929.2728570601741
+        }
+    },
+    {
+        "smalldb_commitid": "7f815f826e19e3068926cacbd03348fe9c4714cf",
+        "start_time": "2024-09-28T17:12:13.315407",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 90,
+            "action_per_thread": 1111
+        },
+        "test_result": {
+            "duration_ms": 55567,
+            "insert_per_second": 1799.629276369068
+        }
+    },
+    {
+        "smalldb_commitid": "7f815f826e19e3068926cacbd03348fe9c4714cf",
+        "start_time": "2024-09-28T17:13:12.399095",
+        "target_attributes": {
+            "os": "macos",
+            "cpu": "M3",
+            "disk_type": "SSD",
+            "total_actions": 100000,
+            "thread_count": 100,
+            "action_per_thread": 1000
+        },
+        "test_result": {
+            "duration_ms": 57600,
+            "insert_per_second": 1736.111111111111
+        }
+    }
+]
