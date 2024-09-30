@@ -96,7 +96,8 @@ impl BTreeTable {
     /// key field "field" should be inserted.
     ///
     /// # Arguments
-    /// `field`: the key field of the tuple to be inserted after the
+    ///
+    /// - `field`: the key field of the tuple to be inserted after the
     /// split is complete. Necessary to know which of the two
     /// pages to return.
     pub fn split_leaf_page(
@@ -182,6 +183,10 @@ impl BTreeTable {
         // borrow of page_rc end here
         // borrow of new_sibling_rc end here
 
+        Database::mut_concurrent_status()
+            .release_latch(tx, &parent_pid)
+            .unwrap();
+
         if field > key {
             // release all page latches except the new sibling page
             //  - the original filled page (page_rc)
@@ -206,20 +211,20 @@ impl BTreeTable {
         empty_page_index as u32
     }
 
-    /// Method to encapsulate the process of getting a parent page
-    /// ready to accept new entries.
+    /// Get a parent page ready to accept new entries.
     ///
-    /// This may mean creating a page to become the new root of
-    /// the tree, splitting the existing parent page if there are
-    /// no empty slots, or simply locking and returning the existing
-    /// parent page.
+    /// This may mean creating a page to become the new root of the tree,
+    /// splitting the existing parent page if there are no empty slots,
+    /// or simply locking and returning the existing parent page.
     ///
     /// # Arguments
     ///
-    /// `field`: the key field of the tuple to be inserted after the
-    /// split is complete. Necessary to know which of the two
-    /// pages to return. `parentId`: the id of the parent. May be
-    /// an internal page or the RootPtr page
+    /// - `parentId`: the id of the parent. May be an internal page or the
+    /// root-pointer page
+    ///
+    /// - `field`: the key field of the tuple to be inserted after the
+    /// split is complete. Necessary to know which of the two pages to
+    /// return.
     fn get_parent_with_empty_slots(
         &self,
         tx: &Transaction,
@@ -230,9 +235,10 @@ impl BTreeTable {
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {
+                // the parent page is not an internal page, create a new internal page as the parent
                 let new_parent_rc = self.get_empty_interanl_page(tx);
 
-                // update the root pointer
+                // set the new parent as the root of the tree
                 self.set_root_pid(tx, &new_parent_rc.wl().get_pid());
 
                 new_parent_rc
@@ -240,15 +246,8 @@ impl BTreeTable {
             PageCategory::Internal => {
                 let parent_rc =
                     BufferPool::get_internal_page(tx, Permission::ReadWrite, &parent_id).unwrap();
-                let empty_slots_count: usize;
 
-                // borrow of parent_rc start here
-                {
-                    empty_slots_count = parent_rc.rl().empty_slots_count();
-                }
-                // borrow of parent_rc end here
-
-                if empty_slots_count > 0 {
+                if parent_rc.rl().empty_slots_count() > 0 {
                     return parent_rc;
                 } else {
                     // split upper parent
@@ -277,7 +276,8 @@ impl BTreeTable {
     /// "field" should be inserted
     ///
     /// # Arguments
-    /// `field`: the key field of the tuple to be inserted after the
+    ///
+    /// - `field`: the key field of the tuple to be inserted after the
     /// split is complete. Necessary to know which of the two
     /// pages to return.
     fn split_internal_page(
@@ -352,9 +352,19 @@ impl BTreeTable {
         }
         // borrow of parent_rc end here
 
+        Database::mut_concurrent_status()
+            .release_latch(tx, &parent_pid)
+            .unwrap();
+
         if *field > key {
+            Database::mut_concurrent_status()
+                .release_latch(tx, &page_rc.rl().get_pid())
+                .unwrap();
             sibling_rc
         } else {
+            Database::mut_concurrent_status()
+                .release_latch(tx, &sibling_rc.rl().get_pid())
+                .unwrap();
             page_rc
         }
     }

@@ -358,11 +358,11 @@ impl BTreeTable {
                 }
                 // borrow of page_rc end here
 
-                if cfg!(feature = "tree_latch") {
-                    Database::mut_concurrent_status()
-                        .release_latch(tx, &pid)
-                        .unwrap();
-                }
+                // if cfg!(feature = "tree_latch") {
+                // }
+                Database::mut_concurrent_status()
+                    .release_latch(tx, &pid)
+                    .unwrap();
 
                 // search child page recursively
                 match child_pid {

@@ -333,14 +333,8 @@ impl BTreeInternalPage {
     pub fn get_left_sibling_pid(&self, tx: &Transaction) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
 
-        let parent_rc: Pod<BTreeInternalPage>;
-
-        // hold buffer pool
-        {
-            parent_rc =
-                BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
-        }
-        // release buffer pool
+        let parent_rc =
+            BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
 
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
@@ -355,14 +349,8 @@ impl BTreeInternalPage {
     pub fn get_right_sibling_pid(&self, tx: &Transaction) -> Option<BTreePageID> {
         let parent_pid = self.get_parent_pid();
 
-        let parent_rc: Pod<BTreeInternalPage>;
-
-        // hold buffer pool
-        {
-            parent_rc =
-                BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
-        }
-        // release buffer pool
+        let parent_rc =
+            BufferPool::get_internal_page(tx, Permission::ReadOnly, &parent_pid).unwrap();
 
         let parent = parent_rc.rl();
         let it = BTreeInternalPageIterator::new(&parent);
