@@ -10,7 +10,7 @@ use crate::{
     io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::{Permission, Transaction},
-    types::{Pod, SmallResult},
+    types::SmallResult,
     utils::{floor_div, HandyRwLock},
 };
 

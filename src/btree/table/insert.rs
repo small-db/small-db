@@ -22,9 +22,8 @@ use crate::{
 
 // insert-related functions
 impl BTreeTable {
-    /// Insert a tuple into this BTreeFile, keeping the tuples in
-    /// sorted order. May cause pages to split if the page where
-    /// tuple belongs is full.
+    /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
+    /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         let new_tuple = tuple.clone();
 
@@ -215,7 +214,8 @@ impl BTreeTable {
         // this will be the new root of the tree
         match parent_id.category {
             PageCategory::RootPointer => {
-                // the parent page is not an internal page, create a new internal page as the parent
+                // the parent page is not an internal page, create a new internal page as the
+                // parent
                 let new_parent_rc = self.get_empty_interanl_page(tx);
 
                 // set the new parent as the root of the tree
