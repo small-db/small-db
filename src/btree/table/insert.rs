@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockWriteGuard},
     usize,
 };
 
@@ -25,24 +25,19 @@ impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        let new_tuple = tuple.clone();
-
-        let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
-
-        // Insert the tuple into the leaf page.
-        leaf_rc.wl().insert_tuple(&new_tuple)?;
-
-        let leaf_pid = leaf_rc.rl().get_pid();
-        Database::mut_concurrent_status().release_latch(tx, &leaf_pid)?;
+        let mut leaf = self.get_available_leaf(tx, &tuple)?;
+        leaf.insert_tuple(&tuple)?;
 
         return Ok(());
     }
 
-    pub fn get_available_leaf(
+    /// Get a leaf page that can accommodate the given tuple, in both space and
+    /// key range perspective.
+    fn get_available_leaf(
         &self,
         tx: &Transaction,
         tuple: &Tuple,
-    ) -> Result<Arc<RwLock<BTreeLeafPage>>, SmallError> {
+    ) -> Result<RwLockWriteGuard<'_, BTreeLeafPage>, SmallError> {
         let root_pid = self.get_root_pid(tx);
 
         // Find and lock the left-most leaf page corresponding to the key field.
@@ -59,7 +54,12 @@ impl BTreeTable {
             leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
         }
 
-        Ok(leaf_rc)
+        // At this point, we can release all latches on ancestor pages.
+        //
+        // Ancestor closer to root will enter the latch queue earlier and should be
+        // released earlier. So we should release latches in the FIFO order to improve
+        // the performance.
+        todo!()
     }
 
     /// Split a leaf page to make room for new tuples and
