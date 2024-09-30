@@ -45,17 +45,7 @@ impl BTreeTable {
         // (active) transactions should be deleted from the page.
 
         if !leaf_rc.rl().stable() {
-            if cfg!(feature = "tree_latch") {
-                // Before handling the erratic page, request the X-latch on the tree
-                let xlatch = self.tree_latch.wl();
-
-                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
-
-                // The handling of the erratic page is done, release the X-latch
-                drop(xlatch);
-            } else if cfg!(feature = "page_latch") {
-                self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
-            }
+            self.handle_unstable_leaf_page(tx, leaf_rc.clone())?;
         }
 
         let leaf_pid = leaf_rc.rl().get_pid();
@@ -68,8 +58,6 @@ impl BTreeTable {
     ///
     /// TODO: this api is too slow.
     pub fn delete_tuples(&self, tx: &Transaction, predicate: &Predicate) -> SmallResult {
-        let xlatch = self.tree_latch.wl();
-
         let root_pid = self.get_root_pid(tx);
         let mut page_rc =
             self.find_leaf_page(&tx, Permission::ReadWrite, root_pid, &SearchFor::LeftMost);
@@ -99,8 +87,6 @@ impl BTreeTable {
                 break;
             }
         }
-
-        drop(xlatch);
 
         Ok(())
     }
@@ -638,8 +624,6 @@ impl BTreeTable {
     pub fn delete_invisible_tuples(&self) -> SmallResult {
         let tx = Transaction::new();
 
-        let xlatch = self.tree_latch.wl();
-
         // There is at least one active transaction since we just started one.
         let min_action = Database::concurrent_status().min_active_tx().unwrap();
 
@@ -657,8 +641,6 @@ impl BTreeTable {
                 break;
             }
         }
-
-        drop(xlatch);
 
         tx.commit().unwrap();
 

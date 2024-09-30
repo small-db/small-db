@@ -57,15 +57,7 @@ impl BTreePageID {
     }
 
     pub(crate) fn need_page_latch(&self) -> bool {
-        if cfg!(feature = "tree_latch") {
-            // For the "tree_latch" mode, only leaf pages need a latch.
-            return self.category == PageCategory::Leaf;
-        } else if cfg!(feature = "page_latch") {
-            // For the "page_latch" mode, every page needs a latch.
-            return true;
-        } else {
-            panic!("no latch strategy specified");
-        }
+        return true;
     }
 }
 

@@ -28,27 +28,7 @@ impl BTreeTable {
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         let new_tuple = tuple.clone();
 
-        let leaf_rc: Arc<RwLock<BTreeLeafPage>>;
-        if cfg!(feature = "tree_latch") {
-            // Request an X-latch on the tree.
-            //
-            // We need the X-latch on the tree even if we don't modify the structure of the
-            // tree. (e.g. the leaf page has enough space to insert the tuple). This
-            // is because when we need to modify the structure of the tree (e.g.
-            // split a leaf page), we need the X-latch on the tree, and their is no
-            // way to upgrade the latch from S to X without gap.
-            let x_latch = self.tree_latch.wl();
-
-            leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
-
-            // Until now, we don't have to modify the structure of the tree, just release
-            // the X-latch.
-            drop(x_latch);
-        } else if cfg!(feature = "page_latch") {
-            leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
-        } else {
-            panic!("No latch mechanism is enabled.");
-        }
+        let leaf_rc = self.get_available_leaf(tx, &new_tuple)?;
 
         // Insert the tuple into the leaf page.
         leaf_rc.wl().insert_tuple(&new_tuple)?;
