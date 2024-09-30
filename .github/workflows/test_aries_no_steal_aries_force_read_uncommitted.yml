@@ -1,4 +1,4 @@
-name: test (tree_latch, aries_no_steal, aries_force, repeatable_read)
+name: test (aries_no_steal, aries_force, read_uncommitted)
 
 on:
   push:
@@ -23,4 +23,4 @@ jobs:
         shell: bash
         run: |
           cargo version
-          make test_tree_latch_aries_no_steal_aries_force_repeatable_read
+          make test_aries_no_steal_aries_force_read_uncommitted

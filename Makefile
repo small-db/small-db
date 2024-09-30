@@ -91,231 +91,119 @@ clear:
 # The ouput (stdout & stderr) of the test will be redirected to the file "*.log".
 # ===[COMPILATION OPTIONS START]===
 test_all_modes:
-	test_tree_latch_aries_steal_aries_force_read_uncommitted
-	test_tree_latch_aries_steal_aries_force_read_committed
-	test_tree_latch_aries_steal_aries_force_repeatable_read
-	test_tree_latch_aries_steal_aries_force_serializable
-	test_tree_latch_aries_steal_aries_no_force_read_uncommitted
-	test_tree_latch_aries_steal_aries_no_force_read_committed
-	test_tree_latch_aries_steal_aries_no_force_repeatable_read
-	test_tree_latch_aries_steal_aries_no_force_serializable
-	test_tree_latch_aries_no_steal_aries_force_read_uncommitted
-	test_tree_latch_aries_no_steal_aries_force_read_committed
-	test_tree_latch_aries_no_steal_aries_force_repeatable_read
-	test_tree_latch_aries_no_steal_aries_force_serializable
-	test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted
-	test_tree_latch_aries_no_steal_aries_no_force_read_committed
-	test_tree_latch_aries_no_steal_aries_no_force_repeatable_read
-	test_tree_latch_aries_no_steal_aries_no_force_serializable
-	test_page_latch_aries_steal_aries_force_read_uncommitted
-	test_page_latch_aries_steal_aries_force_read_committed
-	test_page_latch_aries_steal_aries_force_repeatable_read
-	test_page_latch_aries_steal_aries_force_serializable
-	test_page_latch_aries_steal_aries_no_force_read_uncommitted
-	test_page_latch_aries_steal_aries_no_force_read_committed
-	test_page_latch_aries_steal_aries_no_force_repeatable_read
-	test_page_latch_aries_steal_aries_no_force_serializable
-	test_page_latch_aries_no_steal_aries_force_read_uncommitted
-	test_page_latch_aries_no_steal_aries_force_read_committed
-	test_page_latch_aries_no_steal_aries_force_repeatable_read
-	test_page_latch_aries_no_steal_aries_force_serializable
-	test_page_latch_aries_no_steal_aries_no_force_read_uncommitted
-	test_page_latch_aries_no_steal_aries_no_force_read_committed
-	test_page_latch_aries_no_steal_aries_no_force_repeatable_read
-	test_page_latch_aries_no_steal_aries_no_force_serializable
+	test_aries_steal_aries_force_read_uncommitted
+	test_aries_steal_aries_force_read_committed
+	test_aries_steal_aries_force_repeatable_read
+	test_aries_steal_aries_force_serializable
+	test_aries_steal_aries_no_force_read_uncommitted
+	test_aries_steal_aries_no_force_read_committed
+	test_aries_steal_aries_no_force_repeatable_read
+	test_aries_steal_aries_no_force_serializable
+	test_aries_no_steal_aries_force_read_uncommitted
+	test_aries_no_steal_aries_force_read_committed
+	test_aries_no_steal_aries_force_repeatable_read
+	test_aries_no_steal_aries_force_serializable
+	test_aries_no_steal_aries_no_force_read_uncommitted
+	test_aries_no_steal_aries_no_force_read_committed
+	test_aries_no_steal_aries_no_force_repeatable_read
+	test_aries_no_steal_aries_no_force_serializable
 
 
-test_tree_latch_aries_steal_aries_force_read_uncommitted:
+test_aries_steal_aries_force_read_uncommitted:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_force_read_committed:
+test_aries_steal_aries_force_read_committed:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_force_repeatable_read:
+test_aries_steal_aries_force_repeatable_read:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_force_serializable:
+test_aries_steal_aries_force_serializable:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_no_force_read_uncommitted:
+test_aries_steal_aries_no_force_read_uncommitted:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_no_force_read_committed:
+test_aries_steal_aries_no_force_read_committed:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_no_force_repeatable_read:
+test_aries_steal_aries_no_force_repeatable_read:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_steal_aries_no_force_serializable:
+test_aries_steal_aries_no_force_serializable:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_force_read_uncommitted:
+test_aries_no_steal_aries_force_read_uncommitted:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_force_read_committed:
+test_aries_no_steal_aries_force_read_committed:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_force_repeatable_read:
+test_aries_no_steal_aries_force_repeatable_read:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_force_serializable:
+test_aries_no_steal_aries_force_serializable:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_no_force_read_uncommitted:
+test_aries_no_steal_aries_no_force_read_uncommitted:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_no_force_read_committed:
+test_aries_no_steal_aries_no_force_read_committed:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_no_force_repeatable_read:
+test_aries_no_steal_aries_no_force_repeatable_read:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
 
-test_tree_latch_aries_no_steal_aries_no_force_serializable:
+test_aries_no_steal_aries_no_force_serializable:
 	# "--no-default-features" is used to disable default features
 	# "--test-threads=1" is used to run tests in serial
 	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "tree_latch, aries_no_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_force_read_uncommitted:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_force_read_committed:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_force_repeatable_read:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_force_serializable:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_no_force_read_uncommitted:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_no_force_read_committed:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_no_force_repeatable_read:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_steal_aries_no_force_serializable:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_force_read_uncommitted:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_force_read_committed:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_force_repeatable_read:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_force_serializable:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_force, serializable" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_no_force_read_uncommitted:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_uncommitted" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_no_force_read_committed:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, read_committed" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_no_force_repeatable_read:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, repeatable_read" --no-default-features -- --test-threads=1 --nocapture
-
-test_page_latch_aries_no_steal_aries_no_force_serializable:
-	# "--no-default-features" is used to disable default features
-	# "--test-threads=1" is used to run tests in serial
-	# "--no-capture" is used to print the output to stdout
-	RUST_LOG=info cargo test --features "page_latch, aries_no_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
+	RUST_LOG=info cargo test --features "aries_no_steal, aries_no_force, serializable" --no-default-features -- --test-threads=1 --nocapture
 
 # ===[COMPILATION OPTIONS END]===
 
