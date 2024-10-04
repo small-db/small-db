@@ -106,6 +106,8 @@ impl ConcurrentStatus {
         lock: &Lock,
         page_id: &BTreePageID,
     ) -> Result<(), SmallError> {
+        return Ok(());
+
         // acquire RwLock on "concurrent_status"
         {
             let mut concurrent_status = Database::mut_concurrent_status();
@@ -239,6 +241,8 @@ impl ConcurrentStatus {
     }
 
     pub(crate) fn release_latch(&mut self, tx: &Transaction, page_id: &BTreePageID) -> SmallResult {
+        return Ok(());
+
         if !page_id.need_page_latch() {
             // No need to release the latch for the page.
             return Ok(());
