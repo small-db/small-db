@@ -22,7 +22,7 @@ use small_db::{
 };
 
 use super::internal_children_cap;
-use crate::test_utils::{debug::print_features, new_int_tuples};
+use crate::test_utils::new_int_tuples;
 
 pub const TEST_DB: &str = "test";
 

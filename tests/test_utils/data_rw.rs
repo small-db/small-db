@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 use rand::Rng;
 use small_db::{
     btree::table::BTreeTableIterator, storage::tuple::Tuple, transaction::Transaction,
-    utils::HandyRwLock, BTreeTable, Database,
+    utils::HandyRwLock, BTreeTable,
 };
 
 use super::new_int_tuples;
