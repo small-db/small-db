@@ -90,8 +90,6 @@ def case_concurrent_insert():
 
     print("All threads have finished.")
 
-    pass
-
 
 if __name__ == "__main__":
     setup()
