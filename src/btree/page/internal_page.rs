@@ -150,51 +150,6 @@ impl BTreeInternalPage {
         return instance;
     }
 
-    fn new_empty_page(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
-        let slot_count = Self::get_children_cap(schema);
-
-        let mut reader = Cursor::new(bytes);
-
-        let parent_pid = BTreePageID::get_root_ptr_pid(pid.get_table_id());
-
-        let children_category = PageCategory::Leaf;
-
-        let mut header = BitVec::new();
-        header.grow(slot_count, false);
-
-        // read keys
-        let mut keys: Vec<Cell> = Vec::new();
-        keys.push(Cell::Int64(0));
-        for _ in 1..slot_count {
-            let key = i64::decode(&mut reader, &());
-            keys.push(Cell::Int64(key));
-        }
-
-        // read children
-        let mut children: Vec<BTreePageID> = Vec::new();
-        for _ in 0..slot_count {
-            let child = BTreePageID::new(
-                children_category,
-                pid.get_table_id(),
-                u32::decode(&mut reader, &()),
-            );
-            children.push(child);
-        }
-
-        let mut base = BTreeBasePage::new(pid);
-        base.set_parent_pid(&parent_pid);
-
-        Self {
-            base,
-            keys,
-            children,
-            slot_count,
-            header,
-            children_category,
-            old_data: Vec::new(),
-        }
-    }
-
     pub fn get_coresponding_entry(
         &self,
         left_pid: Option<&BTreePageID>,
@@ -583,8 +538,34 @@ impl BTreeInternalPage {
 }
 
 impl BTreePageInit for BTreeInternalPage {
-    fn new_empty_page(pid: &BTreePageID, table_schema: &TableSchema) -> Self {
-        panic!("BTreeBasePage::new_empty_page should not be called");
+    fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
+        let slot_count = Self::get_children_cap(schema);
+
+        // init empty header
+        let mut header = BitVec::new();
+        header.grow(slot_count, false);
+
+        // init empty keys
+        let mut keys = Vec::new();
+        for _ in 0..slot_count {
+            keys.push(Cell::Int64(0));
+        }
+
+        // init empty children
+        let mut children = Vec::new();
+        for _ in 0..slot_count {
+            children.push(BTreePageID::new(PageCategory::Leaf, pid.get_table_id(), 0));
+        }
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            keys,
+            children,
+            slot_count,
+            header,
+            children_category: PageCategory::Leaf,
+            old_data: Vec::new(),
+        }
     }
 }
 

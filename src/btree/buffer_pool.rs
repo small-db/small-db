@@ -318,6 +318,9 @@ impl BufferPool {
         log_manager: &mut LogManager,
     ) {
         if let Some(page_rc) = buffer.get(pid) {
+            table.write_page_to_disk(pid, &page_rc.rl().get_page_data(&table.schema));
+            return;
+
             let v = Database::concurrent_status().dirty_page_tx(pid);
             if let Some(tx) = v {
                 log_manager.log_update(&tx, page_rc.clone()).unwrap();

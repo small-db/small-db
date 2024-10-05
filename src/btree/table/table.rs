@@ -210,10 +210,6 @@ impl BTreeTable {
     }
 
     pub(crate) fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
-        if page_id.page_index == 0 {
-            log::info!("write to root pointer page");
-        }
-
         let start_pos: usize = page_id.page_index as usize * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
