@@ -208,16 +208,10 @@ def concurrent_insert_smalldb_raw(
 if __name__ == "__main__":
     setup()
 
-    # total_actions = 1000 * 1000
-    # thread_count_list = [1]
-    # for i in range(1, 12):
-    #     thread_count_list.append(i * 10)
-
-    # total_actions = 1000
-    # thread_count_list = [1, 10]
-
     total_actions = 1000 * 1000
-    thread_count_list = [100]
+    thread_count_list = [1]
+    for i in range(1, 12):
+        thread_count_list.append(i * 10)
 
     records = []
 
