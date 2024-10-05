@@ -4,12 +4,9 @@ import datetime
 import json
 import os
 import re
-import subprocess
 
 import matplotlib.pyplot as plt
-import numpy as np
 import xiaochen_py
-from xiaochen_py import BenchmarkRecord, json_loader
 
 
 def get_report_path():
@@ -29,14 +26,14 @@ def get_report_path():
 
 
 def draw():
-    def get_server(records: list[BenchmarkRecord]) -> str:
+    def get_server(records: list[xiaochen_py.BenchmarkRecord]) -> str:
         return records[0].target_attributes["server"]
 
     report_path = get_report_path()
 
     # parse the json to list(BenchmarkRecord)
     f = open(report_path, "r")
-    records = json.load(f, object_hook=lambda x: json_loader(**x))
+    records = json.load(f, object_hook=lambda x: xiaochen_py.json_loader(**x))
 
     # sort by threads_count
     records.sort(key=lambda x: x.target_attributes["threads_count"])

@@ -22,8 +22,10 @@ def setup():
 
     xiaochen_py.run_command("docker rm -f postgres")
     xiaochen_py.run_command(
-        f"docker run --detach --rm --name postgres -e POSTGRES_DB={DB_NAME} -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 -v {DATA_DIR}:/var/lib/postgresql/data postgres:17",
+        f"docker run --detach --rm --name postgres -e POSTGRES_DB={DB_NAME} -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 -v {DATA_DIR}:/var/lib/postgresql/data postgres:17 -c max_connections=1000"
     )
+
+    sleep(3)
 
 
 def teardown():
@@ -59,31 +61,30 @@ def case_concurrent_insert(
 
     conn = psycopg2.connect(**db_config)
 
-    cur = conn.cursor()
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
 
-    cur.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
-    conn.commit()
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(
+                f"CREATE TABLE {TABLE_NAME} (column1 bigint primary key, column2 bigint)"
+            )
 
-    cur.execute(
-        f"CREATE TABLE {TABLE_NAME} (column1 bigint primary key, column2 bigint)"
-    )
-    conn.commit()
-    cur.close()
+    conn.close()
 
     def insert_random_tuples(thread_id):
         try:
-            # conn = psycopg2.connect(**db_config)
-            cur = conn.cursor()
-
-            for _ in range(action_per_thread):
-                data = generate_random_tuple()
-                cur.execute(
-                    f"INSERT INTO {TABLE_NAME} (column1, column2) VALUES (%s, %s)",
-                    data,
-                )
-
+            conn = psycopg2.connect(**db_config)
+            with conn.cursor() as curs:
+                for _ in range(action_per_thread):
+                    data = generate_random_tuple()
+                    curs.execute(
+                        f"INSERT INTO {TABLE_NAME} (column1, column2) VALUES (%s, %s)",
+                        data,
+                    )
             conn.commit()
-            cur.close()
+            conn.close()
         except Exception as e:
             print(f"Error in thread {thread_id}: {e}")
 
@@ -97,11 +98,18 @@ def case_concurrent_insert(
 
     for thread in threads:
         thread.join()
-    conn.close()
 
     duration = datetime.datetime.now() - start_time
     insert_per_second = total_actions / duration.total_seconds()
     print(f"duration: {duration}")
+
+    # check the number of rows
+    conn = psycopg2.connect(**db_config)
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(f"SELECT COUNT(*) FROM {TABLE_NAME}")
+            row = curs.fetchone()
+            assert row[0] == total_actions
 
     r = xiaochen_py.BenchmarkRecord()
     r.target_attributes = {
@@ -120,7 +128,7 @@ def case_concurrent_insert(
 
 
 if __name__ == "__main__":
-    # setup()
+    setup()
 
     total_actions = 1000 * 1000
 
