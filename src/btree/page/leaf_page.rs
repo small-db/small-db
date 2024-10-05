@@ -6,7 +6,9 @@ use std::{
 
 use bit_vec::BitVec;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, PageDebug, EMPTY_PAGE_ID};
+use super::{
+    BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, PageDebug, EMPTY_PID,
+};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
@@ -57,63 +59,58 @@ impl BTreeLeafPage {
     fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self {
         let mut instance: Self;
 
-        if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(pid, schema);
-        } else {
-            let slot_count = Self::calc_children_cap(&schema);
+        let slot_count = Self::calc_children_cap(&schema);
 
-            let mut reader = Cursor::new(bytes);
+        let mut reader = Cursor::new(bytes);
 
-            // read page category
-            let category = PageCategory::decode(&mut reader, &());
-            if category != PageCategory::Leaf {
-                panic!(
-                    "BTreeLeafPage::new: page category is not leaf, category: {:?}",
-                    category,
-                );
-            }
-
-            // read parent page index
-            let parent_id = read_into(&mut reader, &());
-            let parent_pid =
-                BTreePageID::new(PageCategory::Internal, pid.get_table_id(), parent_id);
-
-            // read left sibling page index
-            let left_sibling_id = read_into(&mut reader, &());
-
-            // read right sibling page index
-            let right_sibling_id = read_into(&mut reader, &());
-
-            // read header
-            let header = BitVec::decode(&mut reader, &());
-
-            // read tuples
-            let mut tuples = Vec::new();
-            for i in 0..slot_count {
-                let tuple: Tuple;
-                if !header[i] {
-                    // skip empty tuple
-                    tuple = Tuple::new(&Vec::new(), 0);
-                } else {
-                    tuple = Tuple::decode(&mut reader, schema);
-                }
-                tuples.push(tuple);
-            }
-
-            let mut base = BTreeBasePage::new(pid);
-            base.set_parent_pid(&parent_pid);
-
-            instance = Self {
-                base,
-                slot_count,
-                header,
-                tuples,
-                right_sibling_id,
-                left_sibling_id,
-                key_field: schema.get_key_pos(),
-                old_data: Vec::new(),
-            };
+        // read page category
+        let category = PageCategory::decode(&mut reader, &());
+        if category != PageCategory::Leaf {
+            panic!(
+                "BTreeLeafPage::new: page category is not leaf, category: {:?}",
+                category,
+            );
         }
+
+        // read parent page index
+        let parent_id = read_into(&mut reader, &());
+        let parent_pid = BTreePageID::new(PageCategory::Internal, pid.get_table_id(), parent_id);
+
+        // read left sibling page index
+        let left_sibling_id = read_into(&mut reader, &());
+
+        // read right sibling page index
+        let right_sibling_id = read_into(&mut reader, &());
+
+        // read header
+        let header = BitVec::decode(&mut reader, &());
+
+        // read tuples
+        let mut tuples = Vec::new();
+        for i in 0..slot_count {
+            let tuple: Tuple;
+            if !header[i] {
+                // skip empty tuple
+                tuple = Tuple::new(&Vec::new(), 0);
+            } else {
+                tuple = Tuple::decode(&mut reader, schema);
+            }
+            tuples.push(tuple);
+        }
+
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
+        instance = Self {
+            base,
+            slot_count,
+            header,
+            tuples,
+            right_sibling_id,
+            left_sibling_id,
+            key_field: schema.get_key_pos(),
+            old_data: Vec::new(),
+        };
 
         instance.set_before_image(schema);
         return instance;
@@ -122,7 +119,7 @@ impl BTreeLeafPage {
     fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
         let slot_count = Self::calc_children_cap(&schema);
 
-        let parent_pid = BTreePageID::get_root_ptr_page_id(pid.get_table_id());
+        let parent_pid = BTreePageID::get_root_ptr_pid(pid.get_table_id());
 
         let mut header = BitVec::new();
         header.grow(slot_count, false);
@@ -142,8 +139,8 @@ impl BTreeLeafPage {
             slot_count,
             header,
             tuples,
-            right_sibling_id: EMPTY_PAGE_ID,
-            left_sibling_id: EMPTY_PAGE_ID,
+            right_sibling_id: EMPTY_PID,
+            left_sibling_id: EMPTY_PID,
             key_field: schema.get_key_pos(),
             old_data: Vec::new(),
         }
@@ -155,13 +152,13 @@ impl BTreeLeafPage {
                 self.right_sibling_id = pid.page_index;
             }
             None => {
-                self.right_sibling_id = EMPTY_PAGE_ID;
+                self.right_sibling_id = EMPTY_PID;
             }
         }
     }
 
     pub fn get_right_pid(&self) -> Option<BTreePageID> {
-        if self.right_sibling_id == EMPTY_PAGE_ID {
+        if self.right_sibling_id == EMPTY_PID {
             return None;
         } else {
             return Some(BTreePageID::new(
@@ -178,13 +175,13 @@ impl BTreeLeafPage {
                 self.left_sibling_id = pid.page_index;
             }
             None => {
-                self.left_sibling_id = EMPTY_PAGE_ID;
+                self.left_sibling_id = EMPTY_PID;
             }
         }
     }
 
     pub fn get_left_pid(&self) -> Option<BTreePageID> {
-        if self.left_sibling_id == EMPTY_PAGE_ID {
+        if self.left_sibling_id == EMPTY_PID {
             return None;
         } else {
             return Some(BTreePageID::new(
@@ -418,6 +415,38 @@ impl BTreeLeafPage {
         let extra_bits = (4 + 3 * INDEX_SIZE + 2) * 8;
 
         (BufferPool::get_page_size() * 8 - extra_bits) / bits_per_tuple_including_header
+    }
+}
+
+impl BTreePageInit for BTreeLeafPage {
+    fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
+        let slot_count = Self::calc_children_cap(&schema);
+
+        let parent_pid = BTreePageID::get_root_ptr_pid(pid.get_table_id());
+
+        let mut header = BitVec::new();
+        header.grow(slot_count, false);
+
+        // use empty tuples
+        let mut tuples = Vec::new();
+        for _ in 0..slot_count {
+            // use 0 as the tx id for placeholder tuples
+            tuples.push(Tuple::new(&Vec::new(), 0));
+        }
+
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
+        Self {
+            base,
+            slot_count,
+            header,
+            tuples,
+            right_sibling_id: EMPTY_PID,
+            left_sibling_id: EMPTY_PID,
+            key_field: schema.get_key_pos(),
+            old_data: Vec::new(),
+        }
     }
 }
 

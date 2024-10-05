@@ -12,6 +12,7 @@ use std::{
     usize,
 };
 
+use log;
 use log::debug;
 
 use super::BTreeTableIterator;
@@ -19,9 +20,10 @@ use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeBasePage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
-            BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
-            BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex,
+            BTreeBasePage, BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator,
+            BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
+            BTreePageInit, BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex,
+            FIRST_LEAF_PID,
         },
     },
     error::{get_caller, SmallError},
@@ -168,18 +170,21 @@ impl BTreeTable {
 impl BTreeTable {
     pub(crate) fn get_empty_leaf_page(&self, tx: &Transaction) -> Arc<RwLock<BTreeLeafPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index(tx);
-        let page_id = BTreePageID::new(PageCategory::Leaf, self.table_id, page_index);
-        let page = BTreeLeafPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
+        let pid = BTreePageID::new(
+            PageCategory::Leaf,
+            self.table_id,
+            self.get_empty_page_index(tx),
+        );
+        let page = BTreeLeafPage::new_empty_page(&pid, &self.schema);
 
-        self.write_empty_page_to_disk(&page_id);
+        self.write_page_to_disk(&pid, &page.get_page_data(&self.schema));
 
         let page_rc = Arc::new(RwLock::new(page));
         // insert to buffer pool because it's a dirty page at this
         // time
         Database::mut_buffer_pool()
             .leaf_buffer
-            .insert(page_id, page_rc.clone());
+            .insert(pid, page_rc.clone());
         page_rc
     }
 
@@ -188,12 +193,14 @@ impl BTreeTable {
         tx: &Transaction,
     ) -> Arc<RwLock<BTreeInternalPage>> {
         // create the new page
-        let page_index = self.get_empty_page_index(tx);
-        let page_id = BTreePageID::new(PageCategory::Internal, self.table_id, page_index);
-        let page =
-            BTreeInternalPage::new(&page_id, &BTreeBasePage::empty_page_data(), &self.schema);
+        let page_id = BTreePageID::new(
+            PageCategory::Internal,
+            self.table_id,
+            self.get_empty_page_index(tx),
+        );
+        let page = BTreeInternalPage::new_empty_page(&page_id, &self.schema);
 
-        self.write_empty_page_to_disk(&page_id);
+        self.write_page_to_disk(&page_id, &page.get_page_data(&self.schema));
 
         let page_rc = Arc::new(RwLock::new(page));
         // insert to buffer pool because it's a dirty page at this
@@ -204,11 +211,11 @@ impl BTreeTable {
         page_rc
     }
 
-    pub fn write_empty_page_to_disk(&self, page_id: &BTreePageID) {
-        self.write_page_to_disk(page_id, &BTreeBasePage::empty_page_data())
-    }
-
     pub(crate) fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
+        if page_id.page_index == 0 {
+            log::info!("write to root pointer page");
+        }
+
         let start_pos: usize = page_id.page_index as usize * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
@@ -354,8 +361,6 @@ impl BTreeTable {
                 }
                 // borrow of page_rc end here
 
-                // if cfg!(feature = "tree_latch") {
-                // }
                 Database::mut_concurrent_status()
                     .release_latch(tx, &pid)
                     .unwrap();
@@ -384,20 +389,35 @@ impl BTreeTable {
         let mut file = self.get_file();
         let table_index = self.get_id();
 
-        // if db file is empty, create root pointer page at first
+        // if db file is empty, write essential pages:
+        //  - root pointer page
+        //  - the first header page
+        //  - the first leaf page
         if file.metadata().unwrap().len() == 0 {
             // write root pointer page
             {
-                let pid = BTreePageID::new(PageCategory::RootPointer, table_index, 0);
+                let pid = BTreePageID::get_root_ptr_pid(table_index);
+                let page = BTreeRootPointerPage::new_empty_page(&pid, &self.schema);
+                let data = page.get_page_data(&self.schema);
+                file.write(&data).unwrap();
+            }
 
-                let page = BTreeRootPointerPage::new_empty_page(&pid);
+            // write the first header page
+            {
+                let pid = BTreePageID::get_header_pid(table_index);
+                let mut page = BTreeHeaderPage::new_empty_page(&pid, &self.schema);
+                for i in 0..3 {
+                    page.mark_slot_status(i as usize, true);
+                }
                 let data = page.get_page_data(&self.schema);
                 file.write(&data).unwrap();
             }
 
             // write the first leaf page
             {
-                let data = BTreeBasePage::empty_page_data();
+                let pid = BTreePageID::new(PageCategory::Leaf, table_index, FIRST_LEAF_PID);
+                let page = BTreeLeafPage::new_empty_page(&pid, &self.schema);
+                let data = page.get_page_data(&self.schema);
                 file.write(&data).unwrap();
             }
         }
@@ -433,7 +453,7 @@ impl BTreeTable {
         tx: &Transaction,
         perm: Permission,
     ) -> Arc<RwLock<BTreeRootPointerPage>> {
-        let root_ptr_pid = BTreePageID::get_root_ptr_page_id(self.table_id);
+        let root_ptr_pid = BTreePageID::get_root_ptr_pid(self.table_id);
         BufferPool::get_root_ptr_page(tx, perm, &root_ptr_pid).unwrap()
     }
 

@@ -38,6 +38,8 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
+        Database::mut_concurrent_status()
+            .set_transaction_status(&self.id, &TransactionStatus::Committed);
         return Ok(());
 
         // step 1: flush all related pages to disk (with "UPDATE" log record)
@@ -58,9 +60,6 @@ impl Transaction {
         // (this is a memory operation, hence can be put after the "COMMIT" record is
         // written)
         Database::mut_concurrent_status().remove_relation(self);
-
-        Database::mut_concurrent_status()
-            .set_transaction_status(&self.id, &TransactionStatus::Committed);
 
         Ok(())
     }

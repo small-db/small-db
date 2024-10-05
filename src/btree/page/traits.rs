@@ -1,7 +1,14 @@
 use super::BTreePageID;
 use crate::storage::table_schema::TableSchema;
 
-pub trait BTreePage {
+pub(crate) trait BTreePageInit {
+    // Return a valid empty page.
+    fn new_empty_page(pid: &BTreePageID, table_schema: &TableSchema) -> Self
+    where
+        Self: Sized;
+}
+
+pub trait BTreePage: BTreePageInit {
     fn new(pid: &BTreePageID, bytes: &[u8], schema: &TableSchema) -> Self
     where
         Self: Sized;

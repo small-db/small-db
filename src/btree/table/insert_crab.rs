@@ -142,6 +142,11 @@ impl BTreeTable {
             page.delete_tuple(i);
         }
 
+        // set sibling id
+        new_sibling.set_right_pid(page.get_right_pid());
+        new_sibling.set_left_pid(Some(page.get_pid()));
+        page.set_right_pid(Some(new_sibling.get_pid()));
+
         let mut it = BTreeLeafPageIterator::new(&page);
         let split_point = it.next_back().unwrap().get_cell(self.key_field);
 
@@ -166,43 +171,121 @@ impl BTreeTable {
     ) -> SmallResult {
         if page.empty_slots_count() > 0 {
             parent_action(&Action::Release);
+            return self.crab_insert_to_internal_safe(tx, page, tuple);
+        } else {
+            let sibling_rc = self.get_empty_interanl_page(tx);
+            let mut sibling = sibling_rc.wl();
+
+            let enties_count = page.entries_count();
+            let move_entries_count = enties_count / 2;
+
+            let mut delete_indexes: Vec<usize> = Vec::new();
+            let mut it = BTreeInternalPageIterator::new(&page);
+            for e in it.by_ref().rev().take(move_entries_count) {
+                delete_indexes.push(e.get_record_id());
+                sibling.insert_entry(&e).unwrap();
+
+                // set parent id for the right child
+                let right_pid = e.get_right_child();
+                Self::set_parent(tx, &right_pid, &sibling.get_pid());
+            }
+
+            let middle_entry = it.next_back().unwrap();
+
+            // also delete the middle entry
+            delete_indexes.push(middle_entry.get_record_id());
+            for i in delete_indexes {
+                page.delete_key_and_right_child(i);
+            }
+
+            // set parent id for right child to the middle entry
+            Self::set_parent(tx, &middle_entry.get_right_child(), &sibling.get_pid());
+
+            let split_point = middle_entry.get_key();
+            let new_entry = Entry::new(&split_point, &page.get_pid(), &sibling.get_pid());
+
+            let parent_pid = page.get_parent_pid();
+            page.set_parent_pid(&parent_pid);
+            sibling.set_parent_pid(&parent_pid);
+
+            parent_action(&Action::InsertEntry(new_entry));
 
             let key = tuple.get_cell(self.key_field);
+            if key > split_point {
+                return self.crab_insert_to_internal_safe(tx, sibling, tuple);
+            } else {
+                return self.crab_insert_to_internal_safe(tx, page, tuple);
+            }
+        }
+    }
 
-            let mut child_pid_opt: Option<BTreePageID> = None;
+    fn crab_insert_to_internal_safe(
+        &self,
+        tx: &Transaction,
+        mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
+        tuple: &Tuple,
+    ) -> SmallResult {
+        if page.empty_slots_count() == 0 {
+            return Err(SmallError::new(
+                "no empty slots, this api should be called only when there is empty slots",
+            ));
+        }
 
-            let it = BTreeInternalPageIterator::new(&page);
-            let mut entry: Option<Entry> = None;
-            let mut found = false;
-            for e in it {
-                if e.get_key() >= key {
-                    child_pid_opt = Some(e.get_left_child());
-                    found = true;
-                    break;
-                }
+        let key = tuple.get_cell(self.key_field);
 
-                entry = Some(e);
+        let mut child_pid_opt: Option<BTreePageID> = None;
+
+        let it = BTreeInternalPageIterator::new(&page);
+        let mut entry: Option<Entry> = None;
+        let mut found = false;
+        for e in it {
+            if e.get_key() >= key {
+                child_pid_opt = Some(e.get_left_child());
+                found = true;
+                break;
             }
 
-            if !found {
-                // if not found, search in right of the last
-                // entry
-                match entry {
-                    Some(e) => {
-                        child_pid_opt = Some(e.get_right_child());
-                    }
-                    None => todo!(),
+            entry = Some(e);
+        }
+
+        if !found {
+            // if not found, search in right of the last
+            // entry
+            match entry {
+                Some(e) => {
+                    child_pid_opt = Some(e.get_right_child());
                 }
+                None => todo!(),
             }
+        }
 
-            match child_pid_opt {
-                Some(child_pid) => match child_pid.category {
-                    PageCategory::Internal => {
-                        let child_rc =
-                            BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid)?;
-                        let child = child_rc.write().unwrap();
+        match child_pid_opt {
+            Some(child_pid) => match child_pid.category {
+                PageCategory::Internal => {
+                    let child_rc =
+                        BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid)?;
+                    let child = child_rc.write().unwrap();
 
-                        let action_closure = |action: &Action| match action {
+                    let action_closure = |action: &Action| match action {
+                        Action::Release => {
+                            // already release the latch of ancestors before, no need to do
+                            // that here.
+                            drop(page);
+                        }
+                        Action::InsertEntry(entry) => {
+                            page.insert_entry(&entry).unwrap();
+                        }
+                    };
+                    self.crab_insert_to_internal(tx, child, action_closure, tuple)?;
+                    return Ok(());
+                }
+                PageCategory::Leaf => {
+                    let child_rc =
+                        BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
+                    let child = child_rc.write().unwrap();
+
+                    let action_closure = |action: &Action| {
+                        match action {
                             Action::Release => {
                                 // already release the latch of ancestors before, no need to do
                                 // that here.
@@ -211,82 +294,18 @@ impl BTreeTable {
                             Action::InsertEntry(entry) => {
                                 page.insert_entry(&entry).unwrap();
                             }
-                        };
-                        self.crab_insert_to_internal(tx, child, action_closure, tuple)?;
-                        return Ok(());
-                    }
-                    PageCategory::Leaf => {
-                        let child_rc =
-                            BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
-                        let child = child_rc.write().unwrap();
-
-                        let action_closure = |action: &Action| {
-                            match action {
-                                Action::Release => {
-                                    // already release the latch of ancestors before, no need to do
-                                    // that here.
-                                    drop(page);
-                                }
-                                Action::InsertEntry(entry) => {
-                                    page.insert_entry(&entry).unwrap();
-                                }
-                            }
-                        };
-                        self.crab_insert_to_leaf(tx, child, action_closure, tuple)?;
-                        return Ok(());
-                    }
-                    _ => {
-                        return Err(SmallError::new("Invalid page category"));
-                    }
-                },
-                None => {
-                    todo!()
+                        }
+                    };
+                    self.crab_insert_to_leaf(tx, child, action_closure, tuple)?;
+                    return Ok(());
                 }
+                _ => {
+                    return Err(SmallError::new("Invalid page category"));
+                }
+            },
+            None => {
+                todo!()
             }
-        }
-
-        let sibling_rc = self.get_empty_interanl_page(tx);
-        let mut sibling = sibling_rc.wl();
-
-        let enties_count = page.entries_count();
-        let move_entries_count = enties_count / 2;
-
-        let mut delete_indexes: Vec<usize> = Vec::new();
-        let mut it = BTreeInternalPageIterator::new(&page);
-        for e in it.by_ref().rev().take(move_entries_count) {
-            delete_indexes.push(e.get_record_id());
-            sibling.insert_entry(&e).unwrap();
-
-            // set parent id for the right child
-            let right_pid = e.get_right_child();
-            Self::set_parent(tx, &right_pid, &sibling.get_pid());
-        }
-
-        let middle_entry = it.next_back().unwrap();
-
-        // also delete the middle entry
-        delete_indexes.push(middle_entry.get_record_id());
-        for i in delete_indexes {
-            page.delete_key_and_right_child(i);
-        }
-
-        // set parent id for right child to the middle entry
-        Self::set_parent(tx, &middle_entry.get_right_child(), &sibling.get_pid());
-
-        let split_point = middle_entry.get_key();
-        let new_entry = Entry::new(&split_point, &page.get_pid(), &sibling.get_pid());
-
-        let parent_pid = page.get_parent_pid();
-        page.set_parent_pid(&parent_pid);
-        sibling.set_parent_pid(&parent_pid);
-
-        parent_action(&Action::InsertEntry(new_entry));
-
-        let key = tuple.get_cell(self.key_field);
-        if key > split_point {
-            return self.crab_insert_to_internal(tx, sibling, |_| {}, tuple);
-        } else {
-            return self.crab_insert_to_internal(tx, sibling, |_| {}, tuple);
         }
     }
 }

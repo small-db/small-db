@@ -3,7 +3,7 @@ use std::{fmt, io::Cursor};
 use bit_vec::BitVec;
 use log::{debug, error};
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory};
+use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
@@ -86,69 +86,65 @@ impl BTreeInternalPage {
     fn new(pid: &BTreePageID, bytes: &[u8], table_schema: &TableSchema) -> Self {
         let mut instance: Self;
 
-        if BTreeBasePage::is_empty_page(&bytes) {
-            instance = Self::new_empty_page(pid, bytes, table_schema);
-        } else {
-            let slot_count = Self::get_children_cap(table_schema);
+        let slot_count = Self::get_children_cap(table_schema);
 
-            let mut reader = Cursor::new(bytes);
+        let mut reader = Cursor::new(bytes);
 
-            // read page category
-            let category = PageCategory::decode(&mut reader, &());
-            if category != PageCategory::Internal {
-                panic!(
-                    "The page category of the internal page is not
+        // read page category
+        let category = PageCategory::decode(&mut reader, &());
+        if category != PageCategory::Internal {
+            panic!(
+                "The page category of the internal page is not
                 correct, expect: {:?}, actual: {:?}",
-                    PageCategory::Internal,
-                    category,
-                );
-            }
-
-            // read parent page index
-            let parent_pid = BTreePageID::new(
                 PageCategory::Internal,
+                category,
+            );
+        }
+
+        // read parent page index
+        let parent_pid = BTreePageID::new(
+            PageCategory::Internal,
+            pid.get_table_id(),
+            u32::decode(&mut reader, &()),
+        );
+
+        // read children category
+        let children_category = PageCategory::decode(&mut reader, &());
+
+        // read header
+        let header = BitVec::decode(&mut reader, &());
+
+        // read keys
+        let mut keys: Vec<Cell> = Vec::new();
+        keys.push(Cell::Int64(0));
+        for _ in 1..slot_count {
+            let key = i64::decode(&mut reader, &());
+            keys.push(Cell::Int64(key));
+        }
+
+        // read children
+        let mut children: Vec<BTreePageID> = Vec::new();
+        for _ in 0..slot_count {
+            let child = BTreePageID::new(
+                children_category,
                 pid.get_table_id(),
                 u32::decode(&mut reader, &()),
             );
-
-            // read children category
-            let children_category = PageCategory::decode(&mut reader, &());
-
-            // read header
-            let header = BitVec::decode(&mut reader, &());
-
-            // read keys
-            let mut keys: Vec<Cell> = Vec::new();
-            keys.push(Cell::Int64(0));
-            for _ in 1..slot_count {
-                let key = i64::decode(&mut reader, &());
-                keys.push(Cell::Int64(key));
-            }
-
-            // read children
-            let mut children: Vec<BTreePageID> = Vec::new();
-            for _ in 0..slot_count {
-                let child = BTreePageID::new(
-                    children_category,
-                    pid.get_table_id(),
-                    u32::decode(&mut reader, &()),
-                );
-                children.push(child);
-            }
-
-            let mut base = BTreeBasePage::new(pid);
-            base.set_parent_pid(&parent_pid);
-
-            instance = Self {
-                base,
-                keys,
-                children,
-                slot_count,
-                header,
-                children_category,
-                old_data: Vec::new(),
-            };
+            children.push(child);
         }
+
+        let mut base = BTreeBasePage::new(pid);
+        base.set_parent_pid(&parent_pid);
+
+        instance = Self {
+            base,
+            keys,
+            children,
+            slot_count,
+            header,
+            children_category,
+            old_data: Vec::new(),
+        };
 
         instance.set_before_image(table_schema);
         return instance;
@@ -159,7 +155,7 @@ impl BTreeInternalPage {
 
         let mut reader = Cursor::new(bytes);
 
-        let parent_pid = BTreePageID::get_root_ptr_page_id(pid.get_table_id());
+        let parent_pid = BTreePageID::get_root_ptr_pid(pid.get_table_id());
 
         let children_category = PageCategory::Leaf;
 
@@ -583,6 +579,12 @@ impl BTreeInternalPage {
         let entries_per_page =
             (BufferPool::get_page_size() * 8 - extra_bits) / bits_per_entry_including_header; // round down
         return entries_per_page + 1;
+    }
+}
+
+impl BTreePageInit for BTreeInternalPage {
+    fn new_empty_page(pid: &BTreePageID, table_schema: &TableSchema) -> Self {
+        panic!("BTreeBasePage::new_empty_page should not be called");
     }
 }
 

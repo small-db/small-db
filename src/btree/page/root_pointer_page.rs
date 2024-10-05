@@ -1,6 +1,8 @@
 use std::io::Cursor;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, PageCategory, EMPTY_PAGE_ID};
+use super::{
+    BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, EMPTY_PID, FIRST_LEAF_PID,
+};
 use crate::{
     btree::buffer_pool::BufferPool,
     io::{Serializeable, SmallWriter},
@@ -22,9 +24,6 @@ pub struct BTreeRootPointerPage {
     ///
     /// This decision also simplified the code.
     root_pid: BTreePageID,
-
-    /// The page index of the first header page.
-    header_page_index: u32,
 
     /// Migrated from old version.
     ///
@@ -60,28 +59,11 @@ impl BTreeRootPointerPage {
         let mut instance = Self {
             base: BTreeBasePage::new(pid),
             root_pid,
-            header_page_index,
             old_data: Vec::new(),
         };
 
         instance.set_before_image(table_schema);
         return instance;
-    }
-
-    pub fn new_empty_page(pid: &BTreePageID) -> Self {
-        // set the root pid to 1
-        let root_pid = BTreePageID {
-            category: PageCategory::Leaf,
-            page_index: 1,
-            table_id: pid.get_table_id(),
-        };
-
-        Self {
-            base: BTreeBasePage::new(pid),
-            root_pid,
-            header_page_index: EMPTY_PAGE_ID,
-            old_data: Vec::new(),
-        }
     }
 
     pub fn get_root_pid(&self) -> BTreePageID {
@@ -91,23 +73,21 @@ impl BTreeRootPointerPage {
     pub fn set_root_pid(&mut self, pid: &BTreePageID) {
         self.root_pid = *pid;
     }
+}
 
-    /// Get the page id of the first header page.
-    pub(crate) fn get_header_pid(&self) -> Option<BTreePageID> {
-        if self.header_page_index == EMPTY_PAGE_ID {
-            None
-        } else {
-            Some(BTreePageID::new(
-                PageCategory::Header,
-                self.get_pid().table_id,
-                self.header_page_index,
-            ))
+impl BTreePageInit for BTreeRootPointerPage {
+    fn new_empty_page(pid: &BTreePageID, table_schema: &TableSchema) -> Self {
+        let root_pid = BTreePageID {
+            category: PageCategory::Leaf,
+            page_index: FIRST_LEAF_PID,
+            table_id: pid.get_table_id(),
+        };
+
+        Self {
+            base: BTreeBasePage::new(pid),
+            root_pid,
+            old_data: Vec::new(),
         }
-    }
-
-    /// Set the page id of the first header page
-    pub fn set_header_pid(&mut self, pid: &BTreePageID) {
-        self.header_page_index = pid.page_index;
     }
 }
 
@@ -139,9 +119,6 @@ impl BTreePage for BTreeRootPointerPage {
 
         // write root page category
         self.root_pid.category.encode(&mut writer, &());
-
-        // write header page index
-        self.header_page_index.encode(&mut writer, &());
 
         return writer.to_padded_bytes(BufferPool::get_page_size());
     }

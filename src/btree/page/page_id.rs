@@ -6,8 +6,10 @@ use crate::io::{Serializeable, SmallWriter};
 pub type PageIndex = u32;
 pub type TableIndex = u32;
 
-pub const ROOT_PTR_PAGE_ID: u32 = 0;
-pub const EMPTY_PAGE_ID: u32 = u32::MAX;
+pub(crate) const ROOT_PTR_PAGE_ID: u32 = 0;
+pub(crate) const FIRST_HEADER_PID: u32 = 1;
+pub(crate) const FIRST_LEAF_PID: u32 = 2;
+pub(crate) const EMPTY_PID: u32 = u32::MAX;
 
 // PageID identifies a unique page, and contains the
 // necessary metadata
@@ -48,10 +50,19 @@ impl BTreePageID {
         self.table_id
     }
 
-    pub(crate) fn get_root_ptr_page_id(table_id: u32) -> Self {
+    pub(crate) fn get_root_ptr_pid(table_id: u32) -> Self {
         BTreePageID {
             category: PageCategory::RootPointer,
             page_index: ROOT_PTR_PAGE_ID,
+            table_id,
+        }
+    }
+
+    /// Return the pid of the first header page of the table.
+    pub(crate) fn get_header_pid(table_id: u32) -> Self {
+        BTreePageID {
+            category: PageCategory::Header,
+            page_index: FIRST_HEADER_PID,
             table_id,
         }
     }

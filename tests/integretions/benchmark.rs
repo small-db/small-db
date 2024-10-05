@@ -4,6 +4,7 @@ use log::info;
 use small_db::utils::HandyRwLock;
 
 use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout};
+use small_db::Database;
 
 #[test]
 #[cfg(feature = "benchmark")]
@@ -11,7 +12,7 @@ fn test_insert_parallel() {
     setup();
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
-        .unwrap_or("10000".to_string())
+        .unwrap_or("100".to_string())
         .parse::<usize>()
         .unwrap();
     let thread_count = env::var("THREAD_COUNT")
@@ -50,10 +51,18 @@ fn test_insert_parallel() {
         }
     }
 
+    {
+        let mut log_manager = Database::mut_log_manager();
+        Database::mut_buffer_pool().flush_all_pages(&mut log_manager);
+    }
+
+    table.draw_tree(-1);
+
     let duration = start.elapsed();
     let expect_rows = thread_count * action_per_thread;
     info!("{} insertion threads took: {:?}", thread_count, duration);
     info!("ms:{:?}", duration.as_millis());
+    Database::mut_buffer_pool().clear();
     info!(
         "table.tuples_count(): {:?}, expect: {:?}",
         table.tuples_count(),

@@ -1,7 +1,5 @@
-use super::{BTreePage, BTreePageID, PageCategory};
+use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory};
 use crate::{btree::buffer_pool::BufferPool, storage::table_schema::TableSchema};
-
-const EMPTY_PAGE_TOKEN: [u8; 4] = [55, 55, 55, 55];
 
 pub struct BTreeBasePage {
     pid: BTreePageID,
@@ -15,28 +13,11 @@ impl BTreeBasePage {
             parent_page_index: 0,
         }
     }
+}
 
-    /// Static method to generate a byte array corresponding to an
-    /// empty BTreePage.
-    ///
-    /// Used to add new, empty pages to the file.
-    ///
-    /// Passing the results of this method to the following
-    /// constructors will create a BTreePage with no valid entries
-    /// in it.
-    /// - `BTreeInternalPage`
-    /// - `BTreeLeafPage`
-    pub fn empty_page_data() -> Vec<u8> {
-        let mut data: Vec<u8> = vec![0; BufferPool::get_page_size()];
-
-        // write the empty page token to the first 4 bytes of the page
-        data[0..4].copy_from_slice(&EMPTY_PAGE_TOKEN);
-
-        data
-    }
-
-    pub fn is_empty_page(bytes: &[u8]) -> bool {
-        bytes[0..4] == EMPTY_PAGE_TOKEN
+impl BTreePageInit for BTreeBasePage {
+    fn new_empty_page(pid: &BTreePageID, table_schema: &TableSchema) -> Self {
+        panic!("BTreeBasePage::new_empty_page should not be called");
     }
 }
 
