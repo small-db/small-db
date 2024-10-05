@@ -150,7 +150,7 @@ def concurrent_insert_smalldb_raw(
 
     # set environment variable
     variables = {
-        "THREAD_COUNT": threads_count,
+        "THREADS_COUNT": threads_count,
         "ACTION_PER_THREAD": action_per_thread,
         "RUST_LOG": "info",
     }

@@ -71,7 +71,7 @@ def run_test_speed(
 
     # set environment variable
     variables = {
-        "THREAD_COUNT": threads_count,
+        "THREADS_COUNT": threads_count,
         "ACTION_PER_THREAD": action_per_thread,
         "RUST_LOG": "info",
     }
