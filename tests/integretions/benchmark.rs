@@ -1,8 +1,7 @@
-use small_db::btree::buffer_pool::BufferPool;
 use std::{env, thread};
 
 use log::info;
-use small_db::{utils::HandyRwLock, Database};
+use small_db::{btree::buffer_pool::BufferPool, utils::HandyRwLock, Database};
 
 use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout};
 

@@ -17,7 +17,7 @@ impl<T: ?Sized> HandyRwLock<T> for RwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T> {
         // try to get the lock using exponential backoff
 
-        let mut sleep = 10;
+        let sleep = 10;
         loop {
             match self.try_write() {
                 Ok(guard) => return guard,
