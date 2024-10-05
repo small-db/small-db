@@ -19,37 +19,6 @@ use crate::{
     BTreeTable,
 };
 
-struct Latches {
-    pages: Vec<Arc<RwLock<BTreeInternalPage>>>,
-}
-
-impl Latches {
-    fn new() -> Self {
-        Self { pages: vec![] }
-    }
-
-    fn push(&mut self, page: Arc<RwLock<BTreeInternalPage>>) {
-        self.pages.push(page);
-    }
-
-    // fn last(&'a self) -> RwLockWriteGuard<'a, dyn BTreePage> {
-    //     // todo!()
-    //     // let v = self.pages.last().unwrap();
-    //     // v.write().unwrap()
-
-    //     return self.pages.last().unwrap().write().unwrap();
-    // }
-
-    fn last_internal(&self) -> RwLockWriteGuard<'_, BTreeInternalPage> {
-        let v = self.pages.last().unwrap();
-        v.write().unwrap()
-    }
-
-    fn last_category(&self) -> PageCategory {
-        todo!()
-    }
-}
-
 enum Action {
     /// Current page doesn't need to split/merge to perform the given action,
     /// release all latches of its ancestors.
