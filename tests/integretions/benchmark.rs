@@ -10,7 +10,7 @@ use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout
 fn test_insert_parallel() {
     setup();
 
-    BufferPool::set_page_size(16 * 4096);
+    // BufferPool::set_page_size(16 * 4096);
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
         .unwrap_or("1000".to_string())
