@@ -67,41 +67,31 @@ impl BTreeTable {
         let mut root_pointer = root_pointer_rc.wl();
 
         let root_pid = root_pointer.get_root_pid();
+
+        let root_ptr_callback = |action: &Action| match action {
+            Action::Release => {
+                drop(root_pointer);
+            }
+            Action::InsertEntry(entry) => {
+                let new_root_rc = self.get_empty_interanl_page(tx);
+                let mut new_root = new_root_rc.wl();
+
+                new_root.insert_entry(&entry).unwrap();
+                root_pointer.set_root_pid(&new_root.get_pid());
+            }
+        };
+
         match root_pid.category {
             PageCategory::Internal => {
                 let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &root_pid)?;
                 let page = page_rc.write().unwrap();
-                let action_closure = |action: &Action| match action {
-                    Action::Release => {
-                        drop(root_pointer);
-                    }
-                    Action::InsertEntry(entry) => {
-                        let new_root_rc = self.get_empty_interanl_page(tx);
-                        let mut new_root = new_root_rc.wl();
-
-                        new_root.insert_entry(&entry).unwrap();
-                        root_pointer.set_root_pid(&new_root.get_pid());
-                    }
-                };
-                self.crab_insert_to_internal(tx, page, action_closure, tuple)?;
+                self.crab_insert_to_internal(tx, page, root_ptr_callback, tuple)?;
                 return Ok(());
             }
             PageCategory::Leaf => {
                 let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &root_pid)?;
                 let page = page_rc.write().unwrap();
-                let action_closure = |action: &Action| match action {
-                    Action::Release => {
-                        drop(root_pointer);
-                    }
-                    Action::InsertEntry(entry) => {
-                        let new_root_rc = self.get_empty_interanl_page(tx);
-                        let mut new_root = new_root_rc.wl();
-
-                        new_root.insert_entry(&entry).unwrap();
-                        root_pointer.set_root_pid(&new_root.get_pid());
-                    }
-                };
-                self.crab_insert_to_leaf(tx, page, action_closure, tuple)?;
+                self.crab_insert_to_leaf(tx, page, root_ptr_callback, tuple)?;
                 return Ok(());
             }
             _ => {
@@ -115,11 +105,11 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeLeafPage>,
-        parent_action: impl FnOnce(&Action),
+        parent_callback: impl FnOnce(&Action),
         tuple: &Tuple,
     ) -> SmallResult {
         if page.empty_slots_count() > 0 {
-            parent_action(&Action::Release);
+            parent_callback(&Action::Release);
             return page.insert_tuple(tuple);
         }
 
@@ -151,7 +141,7 @@ impl BTreeTable {
         let split_point = it.next_back().unwrap().get_cell(self.key_field);
 
         let entry = Entry::new(&key, &page.get_pid(), &new_sibling.get_pid());
-        parent_action(&Action::InsertEntry(entry));
+        parent_callback(&Action::InsertEntry(entry));
 
         if key > split_point {
             return new_sibling.insert_tuple(tuple);
@@ -166,11 +156,11 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
-        parent_action: impl FnOnce(&Action),
+        parent_callback: impl FnOnce(&Action),
         tuple: &Tuple,
     ) -> SmallResult {
         if page.empty_slots_count() > 0 {
-            parent_action(&Action::Release);
+            parent_callback(&Action::Release);
             return self.crab_insert_to_internal_safe(tx, page, tuple);
         } else {
             let sibling_rc = self.get_empty_interanl_page(tx);
@@ -208,7 +198,7 @@ impl BTreeTable {
             page.set_parent_pid(&parent_pid);
             sibling.set_parent_pid(&parent_pid);
 
-            parent_action(&Action::InsertEntry(new_entry));
+            parent_callback(&Action::InsertEntry(new_entry));
 
             let key = tuple.get_cell(self.key_field);
             if key > split_point {
