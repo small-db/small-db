@@ -1,0 +1,17 @@
+[
+    {
+        "record_time": "2024-10-05T08:13:48.787290",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "threads_count": 1,
+            "action_per_thread": 1000
+        },
+        "test_result": {
+            "duration_ms": 85.29599999999999,
+            "insert_per_second": 11723.879197148754
+        }
+    }
+]

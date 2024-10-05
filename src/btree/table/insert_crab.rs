@@ -53,33 +53,54 @@ impl Latches {
     }
 }
 
+enum ParentAction {
+    /// Current page doesn't need to split/merge to perform the given action, release all
+    /// latches of its ancestors.
+    Release,
+
+    /// Current page needs to split to perform the insert action, insert the split entry
+    /// to its parent page.
+    InsertEntry(Entry),
+}
+
 impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     pub fn crab_insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        let root_ptr_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
-        let root_pid = root_ptr_rc.rl().get_root_pid();
-        return self.crab_insert_to_subtree(tx, &root_pid, None, tuple);
-    }
+        let root_pointer_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
+        let mut root_pointer = root_pointer_rc.wl();
 
-    /// Insert a tuple into the subtree whose root is the "pid", may cause the root to split.
-    pub fn crab_insert_to_subtree(
-        &self,
-        tx: &Transaction,
-        pid: &BTreePageID,
-        parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
-        tuple: &Tuple,
-    ) -> SmallResult {
-        match pid.category {
+        let root_pid = root_pointer.get_root_pid();
+        match root_pid.category {
             PageCategory::Internal => {
-                let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &pid)?;
-                let mut page = page_rc.write().unwrap();
-                self.crab_insert_to_internal(tx, page, parent, tuple)?;
+                let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &root_pid)?;
+                let page = page_rc.write().unwrap();
+                let action_closure = |parentAction: &ParentAction| {
+                    let _ = root_pointer.get_pid();
+                    todo!();
+                };
+                self.crab_insert_to_internal(tx, page, action_closure, tuple)?;
                 return Ok(());
             }
             PageCategory::Leaf => {
-                let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &pid)?;
-                let mut page = page_rc.write().unwrap();
-                self.crab_insert_to_leaf(tx, page, parent, tuple)?;
+                let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &root_pid)?;
+                let page = page_rc.write().unwrap();
+                let action_closure = |action: &ParentAction| {
+                    let _ = root_pointer.get_pid();
+
+                    match action {
+                        ParentAction::Release => {
+                            drop(root_pointer);
+                        }
+                        ParentAction::InsertEntry(entry) => {
+                            let new_root_rc = self.get_empty_interanl_page(tx);
+                            let mut new_root = new_root_rc.wl();
+
+                            new_root.insert_entry(&entry).unwrap();
+                            root_pointer.set_root_pid(&new_root.get_pid());
+                        }
+                    }
+                };
+                self.crab_insert_to_leaf(tx, page, action_closure, tuple)?;
                 return Ok(());
             }
             _ => {
@@ -93,10 +114,11 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeLeafPage>,
-        mut parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
+        parent_action: impl FnOnce(&ParentAction),
         tuple: &Tuple,
     ) -> SmallResult {
         if page.empty_slots_count() > 0 {
+            parent_action(&ParentAction::Release);
             return page.insert_tuple(tuple);
         }
 
@@ -122,16 +144,8 @@ impl BTreeTable {
         let mut it = BTreeLeafPageIterator::new(&page);
         let split_point = it.next_back().unwrap().get_cell(self.key_field);
 
-        if parent.is_none() {
-            let parent_rc = self.get_empty_interanl_page(tx);
-
-            // set the new parent as the root of the tree
-            self.set_root_pid(tx, &parent_rc.wl().get_pid());
-
-            let mut parent = parent_rc.wl();
-            let mut entry = Entry::new(&key, &page.get_pid(), &new_sibling.get_pid());
-            parent.insert_entry(&mut entry)?;
-        }
+        let entry = Entry::new(&key, &page.get_pid(), &new_sibling.get_pid());
+        parent_action(&ParentAction::InsertEntry(entry));
 
         if key > split_point {
             return new_sibling.insert_tuple(tuple);
@@ -145,9 +159,15 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
-        mut parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
+        parent_action: impl FnOnce(&ParentAction),
         tuple: &Tuple,
     ) -> SmallResult {
+        if page.empty_slots_count() > 0 {
+            parent_action(&ParentAction::Release);
+        }
+
+        // TODO: implement split logic
+
         let key = tuple.get_cell(self.key_field);
 
         let mut child_pid_opt: Option<BTreePageID> = None;
@@ -182,14 +202,22 @@ impl BTreeTable {
                     let child_rc =
                         BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid)?;
                     let mut child = child_rc.write().unwrap();
-                    self.crab_insert_to_internal(tx, child, Some(page), tuple)?;
+
+                    let action_closure = |parentAction: &ParentAction| {
+                        todo!();
+                    };
+                    self.crab_insert_to_internal(tx, child, action_closure, tuple)?;
                     return Ok(());
                 }
                 PageCategory::Leaf => {
                     let child_rc =
                         BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
                     let child = child_rc.write().unwrap();
-                    self.crab_insert_to_leaf(tx, child, Some(page), tuple)?;
+
+                    let action_closure = |parentAction: &ParentAction| {
+                        todo!();
+                    };
+                    self.crab_insert_to_leaf(tx, child, action_closure, tuple)?;
                     return Ok(());
                 }
                 _ => {

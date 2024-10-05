@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# disable xtrace to make the output shorter
-# set -o xtrace
 set -o errexit
 set -o nounset
 set -o pipefail

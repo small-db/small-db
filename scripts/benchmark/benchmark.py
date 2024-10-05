@@ -1,141 +1,140 @@
-import datetime
-import json
-import os
-import re
-import subprocess
+#!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
-import numpy as np
+# env:
+# sudo apt-get install libpq-dev
+# pip install psycopg2
+
+import datetime
+import psycopg2
+import threading
+import random
+import string
+from time import sleep
+
 import xiaochen_py
 
-
-class BenchmarkRecord:
-    smalldb_commitid: str
-    start_time: str
-    target_attributes: dict[str, object]
-    test_result: dict[str, object]
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def __repr__(self):
-        return f"{self.smalldb_commitid}, {self.start_time}, {self.target_attributes}, {self.test_result}"
+DB_NAME = "db"
+DB_USER = "postgres"
 
 
-def json_loader(**kwargs):
-    if "smalldb_commitid" in kwargs:
-        return BenchmarkRecord(**kwargs)
+def setup():
+    DATA_DIR = "/media/xiaochen/large/cs_data/postgres"
 
-    return kwargs
+    xiaochen_py.run_command("docker rm -f postgres")
+    xiaochen_py.run_command(
+        f"docker run --detach --rm --name postgres -e POSTGRES_DB={DB_NAME} -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 -v {DATA_DIR}:/var/lib/postgresql/data postgres:17",
+    )
 
 
-def benchmark():
-    total_actions = 100 * 1000
+def teardown():
+    xiaochen_py.run_command("docker rm -f postgres")
+
+
+def case_concurrent_insert(
+    total_actions: int,
+    threads_count: int,
+):
+    action_per_thread = total_actions // threads_count
+    total_actions = action_per_thread * threads_count
+
+    db_config = {
+        "dbname": DB_NAME,
+        "user": DB_USER,
+        "password": "",
+        "host": "localhost",
+        "port": 5432,
+    }
+
+    TABLE_NAME = "foo"
+
+    # Function to generate random tuples
+    def generate_random_tuple():
+        # Signed int64 range
+        min_int64 = -9223372036854775808
+        max_int64 = 9223372036854775807
+
+        # Generate random int64
+        v1 = random.randint(min_int64, max_int64)
+        return (v1, v1)
+
+    conn = psycopg2.connect(**db_config)
+
+    cur = conn.cursor()
+
+    cur.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
+    conn.commit()
+
+    cur.execute(
+        f"CREATE TABLE {TABLE_NAME} (column1 bigint primary key, column2 bigint)"
+    )
+    conn.commit()
+    cur.close()
+
+    def insert_random_tuples(thread_id):
+        try:
+            # conn = psycopg2.connect(**db_config)
+            cur = conn.cursor()
+
+            for _ in range(action_per_thread):
+                data = generate_random_tuple()
+                cur.execute(
+                    f"INSERT INTO {TABLE_NAME} (column1, column2) VALUES (%s, %s)",
+                    data,
+                )
+
+            conn.commit()
+            cur.close()
+        except Exception as e:
+            print(f"Error in thread {thread_id}: {e}")
+
+    threads = []
+
+    start_time = datetime.datetime.now()
+    for i in range(threads_count):
+        thread = threading.Thread(target=insert_random_tuples, args=(i,))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+    conn.close()
+
+    duration = datetime.datetime.now() - start_time
+    insert_per_second = total_actions / duration.total_seconds()
+    print(f"duration: {duration}")
+
+    r = xiaochen_py.BenchmarkRecord()
+    r.target_attributes = {
+        "os": "linux",
+        "disk": "hdd",
+        "server": "postgres",
+        "total_actions": total_actions,
+        "threads_count": threads_count,
+        "action_per_thread": action_per_thread,
+    }
+    r.test_result = {
+        "duration_ms": duration.total_seconds() * 1000,
+        "insert_per_second": insert_per_second,
+    }
+    return r
+
+
+if __name__ == "__main__":
+    # setup()
+
+    total_actions = 1000 * 1000
 
     thread_count_list = [1]
-    for i in range(1, 11):
+    for i in range(1, 12):
         thread_count_list.append(i * 10)
 
     records = []
 
-    # latch_strategy: "page_latch"
-    for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="page_latch")
+    for threads_count in thread_count_list:
+        r = case_concurrent_insert(
+            total_actions=total_actions, threads_count=threads_count
+        )
         records.append(r)
+    xiaochen_py.dump_records(records, "docs/record")
 
-    # latch_strategy: "tree_latch"
-    for thread_count in thread_count_list:
-        r = run_test_speed(total_actions, thread_count, latch_strategy="tree_latch")
-        records.append(r)
-
-    # dump records to a file in json format
-    records_json = json.dumps(records, default=lambda x: x.__dict__, indent=4)
-    record_path = os.path.join(
-        "docs",
-        "record",
-        f"benchmark_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-    )
-
-    with open(record_path, "w") as f:
-        f.write(records_json)
-
-
-def run_test_speed(
-    total_actions: int,
-    thread_count: int,
-    latch_strategy: str,
-) -> BenchmarkRecord:
-    threads_count = thread_count
-    action_per_thread = total_actions // thread_count
-    print(f"thread_count: {thread_count}, action_per_thread: {action_per_thread}")
-
-    # set environment variable
-    variables = {
-        "THREAD_COUNT": threads_count,
-        "ACTION_PER_THREAD": action_per_thread,
-        "RUST_LOG": "info",
-    }
-    for k, v in variables.items():
-        os.environ[k] = str(v)
-
-    # don't add quotes, python will add quotes automatically
-    features = (
-        f'"benchmark, {latch_strategy}, aries_steal, aries_force, read_committed"'
-    )
-
-    commands = [
-        "cargo",
-        "test",
-        "--features",
-        features,
-        "--no-default-features",
-        "--",
-        "--test-threads=1",
-        "--nocapture",
-        "test_insert_parallel",
-    ]
-
-    # "debug_command" is the command that contains environment variables and thus can be
-    # used for debugging.
-    debug_command = ""
-    for k, v in variables.items():
-        debug_command += f"{k}={v} "
-    debug_command += " ".join(commands)
-
-    output, _ = xiaochen_py.run_command(debug_command, raise_on_failure=True, log_path="out")
-
-    x = re.search(r"ms:(\d+)", output.decode("utf-8"))
-    duration_ms = int(x.group(1))
-    duration_s = duration_ms / 1000
-
-    insert_per_second = total_actions / duration_s
-
-    r = BenchmarkRecord()
-    r.smalldb_commitid = get_git_commitid()
-    r.start_time = datetime.datetime.now().isoformat()
-    r.target_attributes = {
-        # hardware
-        "os": "macos",
-        "cpu": "M3",
-        "disk_type": "SSD",
-        # software configuration
-        "total_actions": total_actions,
-        "thread_count": thread_count,
-        "action_per_thread": action_per_thread,
-        "latch_strategy": latch_strategy,
-    }
-    r.test_result = {
-        "duration_ms": duration_ms,
-        "insert_per_second": insert_per_second,
-    }
-
-    return r
-
-
-def get_git_commitid():
-    output = subprocess.check_output(["git", "rev-parse", "HEAD"])
-    return output.decode("utf-8").strip()
-
-
-if __name__ == "__main__":
-    benchmark()
+    # teardown()
