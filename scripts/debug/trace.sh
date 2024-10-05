@@ -5,10 +5,10 @@
 #   - Generate flamegraph
 #
 # Usage:
-#   ./scripts/trace.sh <test_name>
+#   ./scripts/debug/trace.sh <test_name>
 #
 # e.g:
-#   ./scripts/trace.sh test_big_table
+#   ./scripts/debug/trace.sh test_insert_parallel
 
 set -o errexit
 set -o nounset
@@ -21,7 +21,7 @@ function trace_linux() {
     # get binary path
     # ===============================================================
 
-    BINARY=$(python3 ./scripts/get_test_binary.py)
+    BINARY=$(python3 ./scripts/debug/get_test_binary.py)
     TEST_NAME=$1
     echo "BINARY: $BINARY"
 
@@ -46,7 +46,7 @@ function trace_linux() {
     # run target, generate flamegraph (and perf report)
     # ===============================================================
 
-    echo "Running target, generating flamegraph..."
+    echo "running target ..."
 
     # sudo perf record -F 1000 --call-graph dwarf -- \
     # sudo perf record -F 99 -g -- \
@@ -58,11 +58,15 @@ function trace_linux() {
         >>out &&
         sudo rm -rf data
 
+    echo "generating flamegraph ..."
+
     sudo perf script | ../FlameGraph/stackcollapse-perf.pl >out.perf-folded
 
     ../FlameGraph/flamegraph.pl out.perf-folded >perf.svg
 
-    echo "Done, flamegraph: http://10.10.29.13:8000/perf.svg"
+    echo "done, flamegraph: http://10.0.0.90:8000/perf.svg"
+
+    python3 -m http.server 8000
 }
 
 function trace_mac() {
@@ -78,5 +82,5 @@ function cargo_approach() {
     echo "Done, flamegraph: http://10.10.29.13:8000/flamegraph.svg"
 }
 
-# trace_linux "$@"
-trace_mac "$@"
+trace_linux "$@"
+# trace_mac "$@"
