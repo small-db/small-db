@@ -25,6 +25,8 @@ impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
     /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
+        return self.crab_insert_tuple(tx, tuple);
+
         let mut leaf = self.get_available_leaf(tx, &tuple)?;
         leaf.insert_tuple(&tuple)?;
 

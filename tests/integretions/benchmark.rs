@@ -49,14 +49,15 @@ fn test_insert_parallel() {
             handle.join().unwrap();
         }
     }
+
     let duration = start.elapsed();
-    let total_rows = thread_count * action_per_thread;
+    let expect_rows = thread_count * action_per_thread;
     info!("{} insertion threads took: {:?}", thread_count, duration);
     info!("ms:{:?}", duration.as_millis());
     info!(
-        "table.tuples_count(): {:?}, total_rows: {:?}",
+        "table.tuples_count(): {:?}, expect: {:?}",
         table.tuples_count(),
-        total_rows,
+        expect_rows,
     );
-    assert!(table.tuples_count() == total_rows);
+    assert!(table.tuples_count() == expect_rows);
 }

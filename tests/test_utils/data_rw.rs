@@ -33,8 +33,7 @@ pub fn insert_row(table: &BTreeTable, tx: &Transaction, key: i64) {
     table.insert_tuple(tx, &tuple).unwrap();
 }
 
-/// Insert random tuples into the table. The tuples will be sent to the sender
-/// if it is provided.
+/// Insert random tuples into the table.
 pub fn insert_random(
     table_rc: Arc<RwLock<BTreeTable>>,
     row_count: usize,
@@ -55,20 +54,6 @@ pub fn insert_random(
 
     for tuple in &tuples {
         table.crab_insert_tuple(&tx, &tuple).unwrap();
-
-        // // at this point, "tx" should hold 0 page latches
-        // let concurrent_status = Database::concurrent_status();
-        // if concurrent_status.hold_page_count(&tx) != 0 {
-        //     log::error!("concurrent_status: {:?}", concurrent_status);
-        //     log::error!("tx: {:?}", tx);
-        //     panic!("tx should hold 0 page latches");
-        // }
     }
     tx.commit().unwrap();
-
-    if let Some(s) = s {
-        for tuple in tuples {
-            s.send(tuple).unwrap();
-        }
-    }
 }

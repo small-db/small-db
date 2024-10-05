@@ -55,7 +55,6 @@ impl Latches {
 
 impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
-    /// May cause pages to split if the page where tuple belongs is full.
     pub fn crab_insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
         let root_ptr_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
         let root_pid = root_ptr_rc.rl().get_root_pid();
@@ -89,11 +88,12 @@ impl BTreeTable {
         }
     }
 
+    /// Insert a tuple into the leaf page, may cause the page to split.
     fn crab_insert_to_leaf(
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeLeafPage>,
-        parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
+        mut parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
         tuple: &Tuple,
     ) -> SmallResult {
         if page.empty_slots_count() > 0 {
@@ -134,10 +134,8 @@ impl BTreeTable {
         }
 
         if key > split_point {
-            drop(page);
             return new_sibling.insert_tuple(tuple);
         } else {
-            drop(new_sibling);
             return page.insert_tuple(tuple);
         }
     }
@@ -147,7 +145,7 @@ impl BTreeTable {
         &self,
         tx: &Transaction,
         mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
-        parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
+        mut parent: Option<RwLockWriteGuard<'_, BTreeInternalPage>>,
         tuple: &Tuple,
     ) -> SmallResult {
         let key = tuple.get_cell(self.key_field);
@@ -190,7 +188,7 @@ impl BTreeTable {
                 PageCategory::Leaf => {
                     let child_rc =
                         BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
-                    let mut child = child_rc.write().unwrap();
+                    let child = child_rc.write().unwrap();
                     self.crab_insert_to_leaf(tx, child, Some(page), tuple)?;
                     return Ok(());
                 }

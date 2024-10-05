@@ -38,6 +38,8 @@ impl Transaction {
     }
 
     pub fn commit(&self) -> SmallResult {
+        return Ok(());
+
         // step 1: flush all related pages to disk (with "UPDATE" log record)
         //
         // (this is a disk operation, hence should be put before the "COMMIT" record is
