@@ -13,6 +13,8 @@
 set -o errexit
 set -o nounset
 
+DATA_DIR="/media/xiaochen/large/cs_data/smalldb"
+
 function trace_linux() {
     # request sudo access
     sudo echo "sudo access granted"
@@ -65,6 +67,10 @@ function trace_linux() {
     ../FlameGraph/flamegraph.pl out.perf-folded >perf.svg
 
     echo "done, flamegraph: http://10.0.0.90:8000/perf.svg"
+
+    if [ -d "$DATA_DIR" ]; then
+        sudo chmod -R 777 $DATA_DIR
+    fi
 
     python3 -m http.server 8000
 }
