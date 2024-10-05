@@ -218,44 +218,31 @@ impl BTreeTable {
             }
         }
 
+        let internal_callback = |action: &Action| match action {
+            Action::Release => {
+                // already release the latch of ancestors before, no need to do
+                // that here.
+                drop(page);
+            }
+            Action::InsertEntry(entry) => {
+                page.insert_entry(&entry).unwrap();
+            }
+        };
+
         match child_pid_opt {
             Some(child_pid) => match child_pid.category {
                 PageCategory::Internal => {
                     let child_rc =
                         BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid)?;
                     let child = child_rc.write().unwrap();
-
-                    let action_closure = |action: &Action| match action {
-                        Action::Release => {
-                            // already release the latch of ancestors before, no need to do
-                            // that here.
-                            drop(page);
-                        }
-                        Action::InsertEntry(entry) => {
-                            page.insert_entry(&entry).unwrap();
-                        }
-                    };
-                    self.crab_insert_to_internal(tx, child, action_closure, tuple)?;
+                    self.crab_insert_to_internal(tx, child, internal_callback, tuple)?;
                     return Ok(());
                 }
                 PageCategory::Leaf => {
                     let child_rc =
                         BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
                     let child = child_rc.write().unwrap();
-
-                    let action_closure = |action: &Action| {
-                        match action {
-                            Action::Release => {
-                                // already release the latch of ancestors before, no need to do
-                                // that here.
-                                drop(page);
-                            }
-                            Action::InsertEntry(entry) => {
-                                page.insert_entry(&entry).unwrap();
-                            }
-                        }
-                    };
-                    self.crab_insert_to_leaf(tx, child, action_closure, tuple)?;
+                    self.crab_insert_to_leaf(tx, child, internal_callback, tuple)?;
                     return Ok(());
                 }
                 _ => {
