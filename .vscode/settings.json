@@ -10,12 +10,10 @@
     //  - test (the "Run Test" button just above the test function)
     //  - debug (the "Debug" button just above the test function)
     "rust-analyzer.cargo.features": [
-        "aries_steal",
-        "aries_force",
-        "read_committed",
         "benchmark",
     ],
-    // Disable default features. This must be set to make setting
-    // "rust-analyzer.cargo.features" works.
-    "rust-analyzer.cargo.noDefaultFeatures": true,
+    // Disable default features. This must be set when the features in
+    // "rust-analyzer.cargo.features" are conflicting with the default
+    // features.
+    "rust-analyzer.cargo.noDefaultFeatures": false,
 }

@@ -12,11 +12,11 @@ fn test_insert_parallel() {
 
     let action_per_thread = env::var("ACTION_PER_THREAD")
         // .unwrap_or("100".to_string())
-        .unwrap_or("100000".to_string())
+        .unwrap_or("10000".to_string())
         .parse::<usize>()
         .unwrap();
-    let thread_count = env::var("THREADS_COUNT")
-        .unwrap_or("1".to_string())
+    let threads_count = env::var("THREADS_COUNT")
+        .unwrap_or("100".to_string())
         // .unwrap_or("10".to_string())
         .parse::<usize>()
         .unwrap();
@@ -37,7 +37,7 @@ fn test_insert_parallel() {
     // run insert threads
     {
         let mut insert_threads = vec![];
-        for _ in 0..thread_count {
+        for _ in 0..threads_count {
             // thread local copies
             let local_table = table_rc.clone();
 
@@ -60,8 +60,8 @@ fn test_insert_parallel() {
     // table.draw_tree(-1);
 
     let duration = start.elapsed();
-    let expect_rows = thread_count * action_per_thread;
-    info!("{} insertion threads took: {:?}", thread_count, duration);
+    let expect_rows = threads_count * action_per_thread;
+    info!("{} insertion threads took: {:?}", threads_count, duration);
     info!("ms:{:?}", duration.as_millis());
     Database::mut_buffer_pool().clear();
     info!(
