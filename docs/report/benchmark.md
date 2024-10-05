@@ -13,9 +13,9 @@
 
 ## Scenrio 1 - Concurrent Insert
 
-- Insert 10,000,000 random records concurrently.
+- Insert 1,000,000 random records concurrently.
 - Using 1 - 120 transactions, each transaction runs in a separate thread.
-- Tuple schema: "id (int64), value (int64)".
+- Tuple schema: "(id bigint primary key, value bigint)".
 
 ### PostgreSQL
 

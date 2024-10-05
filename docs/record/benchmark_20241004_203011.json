@@ -1,0 +1,182 @@
+[
+    {
+        "record_time": "2024-10-04T20:29:55.205379",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 1,
+            "action_per_thread": 1000
+        },
+        "test_result": {
+            "duration_ms": 130.43699999999998,
+            "insert_per_second": 7666.536335548963
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:55.494655",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 10,
+            "action_per_thread": 100
+        },
+        "test_result": {
+            "duration_ms": 259.261,
+            "insert_per_second": 3857.1169593575582
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:55.922678",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 20,
+            "action_per_thread": 50
+        },
+        "test_result": {
+            "duration_ms": 397.92499999999995,
+            "insert_per_second": 2513.036376201546
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:56.504387",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 990,
+            "thread_count": 30,
+            "action_per_thread": 33
+        },
+        "test_result": {
+            "duration_ms": 551.5949999999999,
+            "insert_per_second": 1794.7950942267425
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:57.403459",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 40,
+            "action_per_thread": 25
+        },
+        "test_result": {
+            "duration_ms": 859.972,
+            "insert_per_second": 1162.8285572088394
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:58.476807",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 50,
+            "action_per_thread": 20
+        },
+        "test_result": {
+            "duration_ms": 1034.568,
+            "insert_per_second": 966.5870198962273
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:29:59.758252",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 960,
+            "thread_count": 60,
+            "action_per_thread": 16
+        },
+        "test_result": {
+            "duration_ms": 1241.483,
+            "insert_per_second": 773.2687439135293
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:30:01.633632",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 980,
+            "thread_count": 70,
+            "action_per_thread": 14
+        },
+        "test_result": {
+            "duration_ms": 1835.449,
+            "insert_per_second": 533.9293001331009
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:30:03.324770",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 960,
+            "thread_count": 80,
+            "action_per_thread": 12
+        },
+        "test_result": {
+            "duration_ms": 1651.31,
+            "insert_per_second": 581.3566198957192
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:30:05.623006",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 990,
+            "thread_count": 90,
+            "action_per_thread": 11
+        },
+        "test_result": {
+            "duration_ms": 2258.052,
+            "insert_per_second": 438.4310015889802
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:30:08.610444",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 100,
+            "action_per_thread": 10
+        },
+        "test_result": {
+            "duration_ms": 2938.556,
+            "insert_per_second": 340.3031965359857
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:30:11.472106",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 990,
+            "thread_count": 110,
+            "action_per_thread": 9
+        },
+        "test_result": {
+            "duration_ms": 2813.765,
+            "insert_per_second": 351.8417493998255
+        }
+    }
+]

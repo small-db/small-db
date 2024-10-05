@@ -1,0 +1,30 @@
+[
+    {
+        "start_time": "2024-10-04T20:19:23.190582",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "ssd",
+            "total_actions": 1000,
+            "thread_count": 1,
+            "action_per_thread": 1000
+        },
+        "test_result": {
+            "duration_ms": 22863.310999999998,
+            "insert_per_second": 43.73819697418279
+        }
+    },
+    {
+        "start_time": "2024-10-04T20:19:45.334407",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "ssd",
+            "total_actions": 1000,
+            "thread_count": 5,
+            "action_per_thread": 200
+        },
+        "test_result": {
+            "duration_ms": 22048.285,
+            "insert_per_second": 45.355001534132924
+        }
+    }
+]

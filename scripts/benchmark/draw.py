@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import datetime
 import json
 import os
@@ -6,7 +8,8 @@ import subprocess
 
 import matplotlib.pyplot as plt
 import numpy as np
-from benchmark import BenchmarkRecord, json_loader
+import xiaochen_py
+from xiaochen_py import BenchmarkRecord, json_loader
 
 
 def get_report_path():
@@ -26,41 +29,37 @@ def get_report_path():
 
 
 def draw():
+    def get_server(records: list[BenchmarkRecord]) -> str:
+        return records[0].target_attributes["server"]
+
     report_path = get_report_path()
 
     # parse the json to list(BenchmarkRecord)
     f = open(report_path, "r")
-    all_records = json.load(f, object_hook=lambda x: json_loader(**x))
+    records = json.load(f, object_hook=lambda x: json_loader(**x))
 
+    # sort by threads_count
+    records.sort(key=lambda x: x.target_attributes["threads_count"])
+
+    threads_count_list = [r.target_attributes["threads_count"] for r in records]
+    insert_per_second = [r.test_result["insert_per_second"] for r in records]
+
+    plt.plot(threads_count_list, insert_per_second)
+    server = get_server(records)
     points_list = []
-
-    for latch_strategy in ["tree_latch", "page_latch"]:
-        records = list(
-            filter(
-                lambda x: x.target_attributes["latch_strategy"] == latch_strategy,
-                all_records,
-            )
-        )
-
-        # sort by thread_count
-        records.sort(key=lambda x: x.target_attributes["thread_count"])
-
-        thread_count_list = [r.target_attributes["thread_count"] for r in records]
-        insert_per_second = [r.test_result["insert_per_second"] for r in records]
-
-        plt.plot(thread_count_list, insert_per_second)
-        points = plt.scatter(thread_count_list, insert_per_second, label=latch_strategy)
-        points_list.append(points)
+    points = plt.scatter(threads_count_list, insert_per_second, label=f"{server}")
+    points_list.append(points)
 
     plt.xlabel("Concurrent Transactions")
     plt.ylabel("Insertions per Second")
 
-    top = max([r.test_result["insert_per_second"] for r in all_records]) * 1.3
+    top = max([r.test_result["insert_per_second"] for r in records]) * 1.3
     plt.ylim(bottom=0, top=top)
 
     plt.legend(handles=points_list, loc="upper right")
 
-    plt.savefig("./docs/img/insertions_per_second.png")
+    tm = xiaochen_py.timestamp()
+    plt.savefig(f"./docs/img/concurrent_insert_{tm}.png")
     return
 
 

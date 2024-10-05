@@ -50,8 +50,12 @@ test_%:
 debug:
 	RUST_LOG=debug RUST_BACKTRACE=1 cargo test -- --test-threads=1 integretions::concurrent_test::test_concurrent --exact 2>&1 | tee out
 
-gen_report:
-	./scripts/benchmark/gen_report.sh
+benchmark:
+	source ~/code/python_env_xiaochen/bin/activate
+
+	# pip install matplotlib
+	python ./scripts/benchmark/run.py
+	python ./scripts/benchmark/draw.py
 
 clean:
 	rm *.db; \

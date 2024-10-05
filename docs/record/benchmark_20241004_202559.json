@@ -1,0 +1,32 @@
+[
+    {
+        "record_time": "2024-10-04T20:25:59.322745",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 1,
+            "action_per_thread": 1000
+        },
+        "test_result": {
+            "duration_ms": 943.6229999999999,
+            "insert_per_second": 1059.7452584347775
+        }
+    },
+    {
+        "record_time": "2024-10-04T20:25:59.727846",
+        "target_attributes": {
+            "os": "linux",
+            "disk": "hdd",
+            "server": "postgres",
+            "total_actions": 1000,
+            "thread_count": 5,
+            "action_per_thread": 200
+        },
+        "test_result": {
+            "duration_ms": 365.21799999999996,
+            "insert_per_second": 2738.0906746107808
+        }
+    }
+]
