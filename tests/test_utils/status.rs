@@ -6,7 +6,7 @@ use std::{
 use rand::prelude::*;
 use small_db::{
     btree::page::BTreePage,
-    common::Catalog,
+    common::{Catalog, DATA_DIR},
     storage::tuple::Cell,
     transaction::{ConcurrentStatus, Transaction},
     utils::{self, HandyRwLock},
@@ -27,7 +27,7 @@ pub fn setup() {
     utils::init_log();
 
     // Remote the data directory, ignore the error
-    let _ = fs::remove_dir_all("./data");
+    let _ = fs::remove_dir_all(DATA_DIR);
 
     Database::reset();
 

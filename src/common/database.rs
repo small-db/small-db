@@ -12,6 +12,8 @@ use crate::{
     utils::HandyRwLock,
 };
 
+pub const DATA_DIR: &str = "/media/xiaochen/large/cs_data/smalldb";
+
 /// We collect all global variables here.
 ///
 /// These variable cannot be initialized as static variables, because
@@ -40,7 +42,7 @@ static mut SINGLETON: *mut Database = 0 as *mut Database;
 impl Database {
     fn new() -> Self {
         let db_name = "default_db";
-        let db_path = PathBuf::from("data").join(db_name);
+        let db_path = PathBuf::from(DATA_DIR).join(db_name);
         if !db_path.exists() {
             std::fs::create_dir_all(&db_path).unwrap();
         }

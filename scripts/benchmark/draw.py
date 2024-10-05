@@ -26,26 +26,31 @@ def get_report_path():
 
 
 def draw():
-    def get_server(records: list[xiaochen_py.BenchmarkRecord]) -> str:
-        return records[0].target_attributes["server"]
+    def get_target(records: list[xiaochen_py.BenchmarkRecord]) -> str:
+        return records[0].target_attributes["target"]
 
     report_path = get_report_path()
 
     # parse the json to list(BenchmarkRecord)
     f = open(report_path, "r")
-    records = json.load(f, object_hook=lambda x: xiaochen_py.json_loader(**x))
+    all_records = json.load(f, object_hook=lambda x: xiaochen_py.json_loader(**x))
 
-    # sort by threads_count
-    records.sort(key=lambda x: x.target_attributes["threads_count"])
-
-    threads_count_list = [r.target_attributes["threads_count"] for r in records]
-    insert_per_second = [r.test_result["insert_per_second"] for r in records]
-
-    plt.plot(threads_count_list, insert_per_second)
-    server = get_server(records)
+    targets = set([r.target_attributes["target"] for r in all_records])
     points_list = []
-    points = plt.scatter(threads_count_list, insert_per_second, label=f"{server}")
-    points_list.append(points)
+    for target in targets:
+        # filter and sort
+        records = [r for r in all_records if r.target_attributes["target"] == target]
+        records.sort(key=lambda x: x.target_attributes["threads_count"])
+
+        threads_count_list = [r.target_attributes["threads_count"] for r in records]
+        insert_per_second = [r.test_result["insert_per_second"] for r in records]
+
+        # draw points
+        points = plt.scatter(threads_count_list, insert_per_second, label=f"{target}")
+
+        # draw lines
+        plt.plot(threads_count_list, insert_per_second)
+        points_list.append(points)
 
     plt.xlabel("Concurrent Transactions")
     plt.ylabel("Insertions per Second")
