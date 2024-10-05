@@ -1,5 +1,5 @@
 use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory};
-use crate::{btree::buffer_pool::BufferPool, storage::table_schema::TableSchema};
+use crate::storage::table_schema::TableSchema;
 
 pub struct BTreeBasePage {
     pid: BTreePageID,

@@ -3,25 +3,16 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use log::debug;
 use rand::prelude::*;
 use small_db::{
-    btree::{
-        self,
-        buffer_pool::BufferPool,
-        page::{
-            BTreeInternalPage, BTreeLeafPage, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
-            Entry,
-        },
-    },
+    btree::page::BTreePage,
     common::Catalog,
-    storage::tuple::{Cell, Tuple},
-    transaction::{ConcurrentStatus, Permission, Transaction},
+    storage::tuple::Cell,
+    transaction::{ConcurrentStatus, Transaction},
     utils::{self, HandyRwLock},
     BTreeTable, Database, TableSchema,
 };
 
-use super::internal_children_cap;
 use crate::test_utils::new_int_tuples;
 
 pub const TEST_DB: &str = "test";

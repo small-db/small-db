@@ -12,18 +12,16 @@ use std::{
     usize,
 };
 
-use log;
-use log::debug;
+use log::{self, debug};
 
 use super::BTreeTableIterator;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
         page::{
-            BTreeBasePage, BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator,
-            BTreeLeafPage, BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID,
-            BTreePageInit, BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex,
-            FIRST_LEAF_PID,
+            BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
+            BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID, BTreePageInit,
+            BTreeRootPointerPage, Entry, HeaderPages, PageCategory, TableIndex, FIRST_LEAF_PID,
         },
     },
     error::{get_caller, SmallError},
