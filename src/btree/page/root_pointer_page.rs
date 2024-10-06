@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, FIRST_LEAF_PID};
 use crate::{
-    btree::buffer_pool::BufferPool,
+    btree::buffer_pool::{BufferPool, PAGE_SIZE},
     io::{Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
 };
@@ -107,7 +107,7 @@ impl BTreePage for BTreeRootPointerPage {
     }
 
     fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {
-        let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
+        let mut writer = SmallWriter::new_reserved(PAGE_SIZE);
 
         // write page category
         self.get_pid().category.encode(&mut writer, &());
@@ -118,7 +118,7 @@ impl BTreePage for BTreeRootPointerPage {
         // write root page category
         self.root_pid.category.encode(&mut writer, &());
 
-        return writer.to_padded_bytes(BufferPool::get_page_size());
+        return writer.to_padded_bytes(PAGE_SIZE);
     }
 
     fn set_before_image(&mut self, table_schema: &TableSchema) {

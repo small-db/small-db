@@ -5,7 +5,7 @@ use log::{debug, error};
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory};
 use crate::{
-    btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
+    btree::{buffer_pool::{BufferPool, PAGE_SIZE}, consts::INDEX_SIZE},
     error::SmallError,
     io::{Serializeable, SmallWriter},
     storage::{table_schema::TableSchema, tuple::Cell},
@@ -532,7 +532,7 @@ impl BTreeInternalPage {
         let extra_bits = (4 * INDEX_SIZE + 2) * 8 + 1;
 
         let entries_per_page =
-            (BufferPool::get_page_size() * 8 - extra_bits) / bits_per_entry_including_header; // round down
+            (PAGE_SIZE * 8 - extra_bits) / bits_per_entry_including_header; // round down
         return entries_per_page + 1;
     }
 }
@@ -587,7 +587,7 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_page_data(&self, table_schema: &TableSchema) -> Vec<u8> {
-        let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
+        let mut writer = SmallWriter::new_reserved(PAGE_SIZE);
 
         // write page category
         self.get_pid().category.encode(&mut writer, &());
@@ -612,7 +612,7 @@ impl BTreePage for BTreeInternalPage {
             self.children[i].page_index.encode(&mut writer, &());
         }
 
-        return writer.to_padded_bytes(BufferPool::get_page_size());
+        return writer.to_padded_bytes(PAGE_SIZE);
     }
 
     fn set_before_image(&mut self, table_schema: &TableSchema) {

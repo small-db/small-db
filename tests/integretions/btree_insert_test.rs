@@ -196,7 +196,7 @@ fn test_split_root_page() {
 #[test]
 fn test_split_internal_page() {
     // Use a small page size to speed up the test.
-    BufferPool::set_page_size(1024);
+    // BufferPool::set_page_size(1024);
 
     setup();
 

@@ -20,8 +20,7 @@ use crate::{
     BTreeTable, Database, TableSchema,
 };
 
-pub const DEFAULT_PAGE_SIZE: usize = 4096;
-static PAGE_SIZE: AtomicUsize = AtomicUsize::new(DEFAULT_PAGE_SIZE);
+pub(crate) const PAGE_SIZE: usize = 4096;
 
 pub struct BufferPool {
     pub root_pointer_buffer: HashMap<BTreePageID, Arc<RwLock<BTreeRootPointerPage>>>,
@@ -36,8 +35,6 @@ type Key = BTreePageID;
 
 impl BufferPool {
     pub fn new() -> Self {
-        BufferPool::set_page_size(DEFAULT_PAGE_SIZE);
-
         Self {
             root_pointer_buffer: HashMap::new(),
             header_buffer: HashMap::new(),
@@ -88,12 +85,11 @@ impl BufferPool {
     }
 
     fn read_page(file: &mut File, key: &Key) -> io::Result<Vec<u8>> {
-        let page_size = Self::get_page_size();
-        let start_pos = key.page_index as usize * page_size;
+        let start_pos = key.page_index as usize * PAGE_SIZE;
         file.seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
 
-        let mut buf: Vec<u8> = vec![0; page_size];
+        let mut buf: Vec<u8> = vec![0; PAGE_SIZE];
         file.read_exact(&mut buf).expect("io error");
         Ok(buf)
     }
@@ -209,14 +205,6 @@ impl BufferPool {
                 self.header_buffer.remove(pid);
             }
         }
-    }
-
-    pub fn set_page_size(page_size: usize) {
-        PAGE_SIZE.store(page_size, Ordering::Relaxed);
-    }
-
-    pub fn get_page_size() -> usize {
-        PAGE_SIZE.load(Ordering::Relaxed)
     }
 
     fn set_before_image<PAGE: BTreePage>(
