@@ -17,7 +17,7 @@ use log::{self, debug};
 use super::BTreeTableIterator;
 use crate::{
     btree::{
-        buffer_pool::{BufferPool, PAGE_SIZE},
+        buffer_pool::BufferPool,
         page::{
             BTreeHeaderPage, BTreeInternalPage, BTreeInternalPageIterator, BTreeLeafPage,
             BTreeLeafPageIterator, BTreeLeafPageIteratorRc, BTreePage, BTreePageID, BTreePageInit,
@@ -210,7 +210,7 @@ impl BTreeTable {
     }
 
     pub(crate) fn write_page_to_disk(&self, page_id: &BTreePageID, data: &Vec<u8>) {
-        let start_pos: usize = page_id.page_index as usize * PAGE_SIZE;
+        let start_pos: usize = page_id.page_index as usize * BufferPool::get_page_size();
         self.get_file()
             .seek(SeekFrom::Start(start_pos as u64))
             .expect("io error");
@@ -460,7 +460,7 @@ impl BTreeTable {
     /// (the ROOT_POINTER page is not included)
     pub fn pages_count(&self) -> usize {
         let file_size = self.get_file().metadata().unwrap().len() as usize;
-        file_size / PAGE_SIZE - 1
+        file_size / BufferPool::get_page_size() - 1
     }
 
     // get the first tuple under the internal/leaf page

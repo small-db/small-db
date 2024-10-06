@@ -217,7 +217,7 @@ fn test_redistribute_internal_pages() {
 #[test]
 fn test_delete_internal_pages() {
     // Use a small page size to speed up the test.
-    // BufferPool::set_page_size(1024);
+    BufferPool::set_page_size(1024);
 
     setup();
 

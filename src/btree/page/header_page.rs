@@ -8,7 +8,7 @@ use bit_vec::BitVec;
 
 use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, PageIndex};
 use crate::{
-    btree::buffer_pool::{BufferPool, PAGE_SIZE},
+    btree::buffer_pool::BufferPool,
     io::{Serializeable, SmallWriter},
     storage::table_schema::TableSchema,
     transaction::{Permission, Transaction},
@@ -90,7 +90,7 @@ impl BTreeHeaderPage {
         // - 4 bytes: page category
         // - 4 bytes: page id of the next header page
         let extra_bytes = 4 + 4;
-        (PAGE_SIZE - extra_bytes) * 8
+        (BufferPool::get_page_size() - extra_bytes) * 8
     }
 }
 
@@ -129,7 +129,7 @@ impl BTreePage for BTreeHeaderPage {
     }
 
     fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {
-        let mut writer = SmallWriter::new_reserved(PAGE_SIZE);
+        let mut writer = SmallWriter::new_reserved(BufferPool::get_page_size());
 
         // write page category
         self.get_pid().category.encode(&mut writer, &());
@@ -137,7 +137,7 @@ impl BTreePage for BTreeHeaderPage {
         // write header
         self.header.encode(&mut writer, &());
 
-        return writer.to_padded_bytes(PAGE_SIZE);
+        return writer.to_padded_bytes(BufferPool::get_page_size());
     }
 
     fn set_before_image(&mut self, table_schema: &TableSchema) {

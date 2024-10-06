@@ -38,7 +38,7 @@ fn test_concurrent() {
     // Use a small page size to speed up the test.
 
     use crate::test_utils::{internal_children_cap, leaf_records_cap};
-    // BufferPool::set_page_size(1024);
+    BufferPool::set_page_size(1024);
 
     setup();
 
@@ -205,7 +205,7 @@ fn test_concurrent_page_access() {
 #[cfg(feature = "benchmark")]
 fn test_concurrent_insert() {
     // Use a small page size to speed up the test.
-    // BufferPool::set_page_size(1024);
+    BufferPool::set_page_size(1024);
 
     setup();
 
@@ -250,7 +250,7 @@ fn inserter3(column_count: usize, table_rc: &Pod<BTreeTable>) {
 #[test]
 fn test_concurrent_delete() {
     // Use a small page size to speed up the test.
-    // BufferPool::set_page_size(1024);
+    BufferPool::set_page_size(1024);
 
     setup();
 
