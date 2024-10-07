@@ -3,7 +3,6 @@ use std::{
     usize,
 };
 
-use super::SearchFor;
 use crate::{
     btree::{
         buffer_pool::BufferPool,
@@ -13,283 +12,128 @@ use crate::{
         },
     },
     error::SmallError,
-    storage::tuple::{Cell, Tuple},
+    storage::tuple::Tuple,
     transaction::{Permission, Transaction},
-    types::ResultPod,
+    types::SmallResult,
     utils::HandyRwLock,
-    BTreeTable, Database,
+    BTreeTable,
 };
 
-// insert-related functions
+enum Action {
+    /// Current page doesn't need to split/merge to perform the given action,
+    /// release all latches of its ancestors.
+    Release,
+
+    /// Current page needs to split to perform the insert action, insert the
+    /// split entry to its parent page.
+    InsertEntry(Entry),
+}
+
 impl BTreeTable {
     /// Insert a tuple into this BTreeFile, keeping the tuples in sorted order.
-    /// May cause pages to split if the page where tuple belongs is full.
     pub fn insert_tuple(&self, tx: &Transaction, tuple: &Tuple) -> Result<(), SmallError> {
-        return self.crab_insert_tuple(tx, tuple);
+        let root_pointer_rc = self.get_root_ptr_page(tx, Permission::ReadWrite);
+        let mut root_pointer = root_pointer_rc.wl();
 
-        let mut leaf = self.get_available_leaf(tx, &tuple)?;
-        leaf.insert_tuple(&tuple)?;
+        let root_pid = root_pointer.get_root_pid();
 
-        return Ok(());
-    }
-
-    /// Get a leaf page that can accommodate the given tuple, in both space and
-    /// key range perspective.
-    fn get_available_leaf(
-        &self,
-        tx: &Transaction,
-        tuple: &Tuple,
-    ) -> Result<RwLockWriteGuard<'_, BTreeLeafPage>, SmallError> {
-        let root_pid = self.get_root_pid(tx);
-
-        // Find and lock the left-most leaf page corresponding to the key field.
-        let field = tuple.get_cell(self.key_field);
-        let mut leaf_rc = self.find_leaf_page(
-            tx,
-            Permission::ReadWrite,
-            root_pid,
-            &SearchFor::Target(field),
-        );
-
-        if leaf_rc.rl().empty_slots_count() == 0 {
-            // Split the leaf page if there are no more slots available.
-            leaf_rc = self.split_leaf_page(tx, leaf_rc, tuple.get_cell(self.key_field))?;
-        }
-
-        // At this point, we can release all latches on ancestor pages.
-        //
-        // Ancestor closer to root will enter the latch queue earlier and should be
-        // released earlier. So we should release latches in the FIFO order to improve
-        // the performance.
-        todo!()
-    }
-
-    /// Split a leaf page to make room for new tuples and
-    /// recursively split the parent page as needed to
-    /// accommodate a new entry. The new entry should have
-    /// a key matching the key field of the first tuple in
-    /// the right-hand page (the key is "copied up"), and
-    /// child pointers pointing to the two leaf pages
-    /// resulting from the split.  Update sibling pointers
-    /// and parent pointers as needed.
-    ///
-    /// Return the leaf page into which a new tuple with
-    /// key field "field" should be inserted.
-    ///
-    /// # Arguments
-    ///
-    /// - `field`: the key field of the tuple to be inserted after the
-    /// split is complete. Necessary to know which of the two
-    /// pages to return.
-    pub fn split_leaf_page(
-        &self,
-        tx: &Transaction,
-        page_rc: Arc<RwLock<BTreeLeafPage>>,
-        field: Cell,
-    ) -> ResultPod<BTreeLeafPage> {
-        let new_sibling_rc = self.get_empty_leaf_page(tx);
-        let parent_pid: BTreePageID;
-        let key: Cell;
-
-        // borrow of new_sibling_rc start here
-        // borrow of page_rc start here
-        {
-            let mut new_sibling = new_sibling_rc.wl();
-            let mut page = page_rc.wl();
-            // 1. adding a new page on the right of the existing
-            // page and moving half of the tuples to the new page
-            let tuple_count = page.tuples_count();
-            let move_tuple_count = tuple_count / 2;
-
-            let mut it = BTreeLeafPageIterator::new(&page);
-            let mut delete_indexes: Vec<usize> = Vec::new();
-            for tuple in it.by_ref().rev().take(move_tuple_count) {
-                delete_indexes.push(tuple.get_slot_number());
-                new_sibling.insert_tuple(&tuple)?;
+        let root_ptr_callback = |action: &Action| match action {
+            Action::Release => {
+                drop(root_pointer);
             }
+            Action::InsertEntry(entry) => {
+                let new_root_rc = self.get_empty_interanl_page(tx);
+                let mut new_root = new_root_rc.wl();
 
-            for i in delete_indexes {
-                page.delete_tuple(i);
+                new_root.insert_entry(&entry).unwrap();
+                root_pointer.set_root_pid(&new_root.get_pid());
             }
+        };
 
-            let mut it = BTreeLeafPageIterator::new(&page);
-            key = it.next_back().unwrap().get_cell(self.key_field);
-
-            // get parent pid for use later
-            parent_pid = page.get_parent_pid();
-        }
-        // borrow of new_sibling_rc end here
-        // borrow of page_rc end here
-
-        // 2. Copy the middle key up into the parent page, and
-        // recursively split the parent as needed to accommodate
-        // the new entry.
-        //
-        // We put this method outside all the borrow blocks since
-        // once the parent page is split, a lot of children will
-        // been borrowed. (may including the current leaf page)
-        let parent_rc = self.get_parent_with_empty_slots(tx, parent_pid, &field);
-
-        // borrow of parent_rc start here
-        // borrow of page_rc start here
-        // borrow of new_sibling_rc start here
-        {
-            let mut parent = parent_rc.wl();
-            let mut page = page_rc.wl();
-            let mut new_sibling = new_sibling_rc.wl();
-            let mut entry = Entry::new(&key, &page.get_pid(), &new_sibling.get_pid());
-
-            parent.insert_entry(&mut entry)?;
-
-            // set left pointer for the old right sibling
-            if let Some(old_right_pid) = page.get_right_pid() {
-                let old_right_rc =
-                    BufferPool::get_leaf_page(tx, Permission::ReadWrite, &old_right_pid).unwrap();
-                old_right_rc.wl().set_left_pid(Some(new_sibling.get_pid()));
-
-                // release the latch on "old_right_rc"
-                Database::mut_concurrent_status().release_latch(tx, &old_right_pid)?;
-            }
-
-            // set sibling id
-            new_sibling.set_right_pid(page.get_right_pid());
-            new_sibling.set_left_pid(Some(page.get_pid()));
-            page.set_right_pid(Some(new_sibling.get_pid()));
-
-            // set parent id
-            page.set_parent_pid(&parent.get_pid());
-            new_sibling.set_parent_pid(&parent.get_pid());
-        }
-        // borrow of parent_rc end here
-        // borrow of page_rc end here
-        // borrow of new_sibling_rc end here
-
-        Database::mut_concurrent_status()
-            .release_latch(tx, &parent_pid)
-            .unwrap();
-
-        if field > key {
-            // release all page latches except the new sibling page
-            //  - the original filled page (page_rc)
-            let pid = page_rc.rl().get_pid();
-            Database::mut_concurrent_status().release_latch(tx, &pid)?;
-
-            Ok(new_sibling_rc)
-        } else {
-            // release all page latches except the original filled page
-            //  - the new sibling page (new_sibling_rc)
-            let new_sibling_pid = new_sibling_rc.rl().get_pid();
-            Database::mut_concurrent_status().release_latch(tx, &new_sibling_pid)?;
-
-            Ok(page_rc)
-        }
-    }
-
-    pub(crate) fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
-        let header_pages = self.get_header_pages(tx);
-        let empty_page_index = header_pages.get_empty_page_index();
-        header_pages.release_latches();
-        empty_page_index as u32
-    }
-
-    /// Get a parent page ready to accept new entries.
-    ///
-    /// This may mean creating a page to become the new root of the tree,
-    /// splitting the existing parent page if there are no empty slots,
-    /// or simply locking and returning the existing parent page.
-    ///
-    /// # Arguments
-    ///
-    /// - `parentId`: the id of the parent. May be an internal page or the
-    /// root-pointer page
-    ///
-    /// - `field`: the key field of the tuple to be inserted after the
-    /// split is complete. Necessary to know which of the two pages to
-    /// return.
-    fn get_parent_with_empty_slots(
-        &self,
-        tx: &Transaction,
-        parent_id: BTreePageID,
-        field: &Cell,
-    ) -> Arc<RwLock<BTreeInternalPage>> {
-        // create a parent page if necessary
-        // this will be the new root of the tree
-        match parent_id.category {
-            PageCategory::RootPointer => {
-                // the parent page is not an internal page, create a new internal page as the
-                // parent
-                let new_parent_rc = self.get_empty_interanl_page(tx);
-
-                // set the new parent as the root of the tree
-                self.set_root_pid(tx, &new_parent_rc.wl().get_pid());
-
-                new_parent_rc
-            }
+        match root_pid.category {
             PageCategory::Internal => {
-                let parent_rc =
-                    BufferPool::get_internal_page(tx, Permission::ReadWrite, &parent_id).unwrap();
-
-                if parent_rc.rl().empty_slots_count() > 0 {
-                    return parent_rc;
-                } else {
-                    // split upper parent
-                    return self.split_internal_page(tx, parent_rc, field);
-                }
+                let page_rc = BufferPool::get_internal_page(tx, Permission::ReadWrite, &root_pid)?;
+                let page = page_rc.write().unwrap();
+                self.insert_to_internal(tx, page, root_ptr_callback, tuple)?;
+                return Ok(());
+            }
+            PageCategory::Leaf => {
+                let page_rc = BufferPool::get_leaf_page(tx, Permission::ReadWrite, &root_pid)?;
+                let page = page_rc.write().unwrap();
+                self.insert_to_leaf(tx, page, root_ptr_callback, tuple)?;
+                return Ok(());
             }
             _ => {
-                todo!()
+                return Err(SmallError::new("Invalid page category"));
             }
         }
     }
 
-    /// Split an internal page to make room for new entries and
-    /// recursively split its parent page as needed to accommodate
-    /// a new entry. The new entry for the parent should have a
-    /// key matching the middle key in the original internal page
-    /// being split (this key is "pushed up" to the parent).
-    ///
-    /// Make a right sibling page and move half of entries to it.
-    ///
-    /// The child pointers of the new parent entry should point to the
-    /// two internal pages resulting from the split. Update parent
-    /// pointers as needed.
-    ///
-    /// Return the internal page into which an entry with key field
-    /// "field" should be inserted
-    ///
-    /// # Arguments
-    ///
-    /// - `field`: the key field of the tuple to be inserted after the
-    /// split is complete. Necessary to know which of the two
-    /// pages to return.
-    fn split_internal_page(
+    /// Insert a tuple into the leaf page, may cause the page to split.
+    fn insert_to_leaf(
         &self,
         tx: &Transaction,
-        page_rc: Arc<RwLock<BTreeInternalPage>>,
-        field: &Cell,
-    ) -> Arc<RwLock<BTreeInternalPage>> {
-        let sibling_rc = self.get_empty_interanl_page(tx);
-        let key: Cell;
-        let mut parent_pid: BTreePageID;
-        let mut new_entry: Entry;
+        mut page: RwLockWriteGuard<'_, BTreeLeafPage>,
+        parent_callback: impl FnOnce(&Action),
+        tuple: &Tuple,
+    ) -> SmallResult {
+        if page.empty_slots_count() > 0 {
+            parent_callback(&Action::Release);
+            return page.insert_tuple(tuple);
+        }
 
-        // borrow of sibling_rc start here
-        // borrow of page_rc start here
-        {
+        let key = tuple.get_cell(self.key_field);
+
+        let new_sibling_rc = self.get_empty_leaf_page(tx);
+        let mut new_sibling = new_sibling_rc.wl();
+
+        let tuple_count = page.tuples_count();
+        let move_tuple_count = tuple_count / 2;
+
+        let mut it = BTreeLeafPageIterator::new(&page);
+        let mut delete_indexes: Vec<usize> = Vec::new();
+        for tuple in it.by_ref().rev().take(move_tuple_count) {
+            delete_indexes.push(tuple.get_slot_number());
+            new_sibling.insert_tuple(&tuple)?;
+        }
+
+        for i in delete_indexes {
+            page.delete_tuple(i);
+        }
+
+        // set sibling id
+        new_sibling.set_right_pid(page.get_right_pid());
+        new_sibling.set_left_pid(Some(page.get_pid()));
+        page.set_right_pid(Some(new_sibling.get_pid()));
+
+        let mut it = BTreeLeafPageIterator::new(&page);
+        let split_point = it.next_back().unwrap().get_cell(self.key_field);
+
+        let entry = Entry::new(&key, &page.get_pid(), &new_sibling.get_pid());
+        parent_callback(&Action::InsertEntry(entry));
+
+        if key > split_point {
+            return new_sibling.insert_tuple(tuple);
+        } else {
+            return page.insert_tuple(tuple);
+        }
+    }
+
+    /// Insert a tuple into the subtree whose root is the "page", may cause the
+    /// page to split.
+    fn insert_to_internal(
+        &self,
+        tx: &Transaction,
+        mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
+        parent_callback: impl FnOnce(&Action),
+        tuple: &Tuple,
+    ) -> SmallResult {
+        if page.empty_slots_count() > 0 {
+            parent_callback(&Action::Release);
+            return self.insert_to_internal_safe(tx, page, tuple);
+        } else {
+            let sibling_rc = self.get_empty_interanl_page(tx);
             let mut sibling = sibling_rc.wl();
-            let mut page = page_rc.wl();
-
-            parent_pid = page.get_parent_pid();
-
-            if parent_pid.category == PageCategory::RootPointer {
-                // create new parent page if the parent page is root
-                // pointer page.
-                let parent_rc = self.get_empty_interanl_page(tx);
-                parent_pid = parent_rc.rl().get_pid();
-
-                // update the root pointer
-                self.set_root_pid(tx, &parent_pid);
-            }
 
             let enties_count = page.entries_count();
             let move_entries_count = enties_count / 2;
@@ -316,38 +160,98 @@ impl BTreeTable {
             // set parent id for right child to the middle entry
             Self::set_parent(tx, &middle_entry.get_right_child(), &sibling.get_pid());
 
-            key = middle_entry.get_key();
-            new_entry = Entry::new(&key, &page.get_pid(), &sibling.get_pid());
+            let split_point = middle_entry.get_key();
+            let new_entry = Entry::new(&split_point, &page.get_pid(), &sibling.get_pid());
+
+            let parent_pid = page.get_parent_pid();
+            page.set_parent_pid(&parent_pid);
+            sibling.set_parent_pid(&parent_pid);
+
+            parent_callback(&Action::InsertEntry(new_entry));
+
+            let key = tuple.get_cell(self.key_field);
+            if key > split_point {
+                return self.insert_to_internal_safe(tx, sibling, tuple);
+            } else {
+                return self.insert_to_internal_safe(tx, page, tuple);
+            }
         }
-        // borrow of sibling_rc end here
-        // borrow of page_rc end here
+    }
 
-        let parent_rc = self.get_parent_with_empty_slots(tx, parent_pid, field);
-        parent_pid = parent_rc.rl().get_pid();
-        page_rc.wl().set_parent_pid(&parent_pid);
-        sibling_rc.wl().set_parent_pid(&parent_pid);
-
-        // borrow of parent_rc start here
-        {
-            let mut parent = parent_rc.wl();
-            parent.insert_entry(&mut new_entry).unwrap();
+    fn insert_to_internal_safe(
+        &self,
+        tx: &Transaction,
+        mut page: RwLockWriteGuard<'_, BTreeInternalPage>,
+        tuple: &Tuple,
+    ) -> SmallResult {
+        if page.empty_slots_count() == 0 {
+            return Err(SmallError::new(
+                "no empty slots, this api should be called only when there is empty slots",
+            ));
         }
-        // borrow of parent_rc end here
 
-        Database::mut_concurrent_status()
-            .release_latch(tx, &parent_pid)
-            .unwrap();
+        let key = tuple.get_cell(self.key_field);
 
-        if *field > key {
-            Database::mut_concurrent_status()
-                .release_latch(tx, &page_rc.rl().get_pid())
-                .unwrap();
-            sibling_rc
-        } else {
-            Database::mut_concurrent_status()
-                .release_latch(tx, &sibling_rc.rl().get_pid())
-                .unwrap();
-            page_rc
+        let mut child_pid_opt: Option<BTreePageID> = None;
+
+        let it = BTreeInternalPageIterator::new(&page);
+        let mut entry: Option<Entry> = None;
+        let mut found = false;
+        for e in it {
+            if e.get_key() >= key {
+                child_pid_opt = Some(e.get_left_child());
+                found = true;
+                break;
+            }
+
+            entry = Some(e);
+        }
+
+        if !found {
+            // if not found, search in right of the last
+            // entry
+            match entry {
+                Some(e) => {
+                    child_pid_opt = Some(e.get_right_child());
+                }
+                None => todo!(),
+            }
+        }
+
+        let internal_callback = |action: &Action| match action {
+            Action::Release => {
+                // already release the latch of ancestors before, no need to do
+                // that here.
+                drop(page);
+            }
+            Action::InsertEntry(entry) => {
+                page.insert_entry(&entry).unwrap();
+            }
+        };
+
+        match child_pid_opt {
+            Some(child_pid) => match child_pid.category {
+                PageCategory::Internal => {
+                    let child_rc =
+                        BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid)?;
+                    let child = child_rc.write().unwrap();
+                    self.insert_to_internal(tx, child, internal_callback, tuple)?;
+                    return Ok(());
+                }
+                PageCategory::Leaf => {
+                    let child_rc =
+                        BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid)?;
+                    let child = child_rc.write().unwrap();
+                    self.insert_to_leaf(tx, child, internal_callback, tuple)?;
+                    return Ok(());
+                }
+                _ => {
+                    return Err(SmallError::new("Invalid page category"));
+                }
+            },
+            None => {
+                todo!()
+            }
         }
     }
 }

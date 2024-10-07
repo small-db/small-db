@@ -15,16 +15,17 @@ pub trait HandyRwLock<T: ?Sized> {
 
 impl<T: ?Sized> HandyRwLock<T> for RwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T> {
+        return self.write().unwrap();
         // try to get the lock using exponential backoff
 
-        let sleep = 10;
-        loop {
-            match self.try_write() {
-                Ok(guard) => return guard,
-                Err(_) => std::thread::sleep(std::time::Duration::from_micros(sleep)),
-            }
-            // sleep *= 2;
-        }
+        // let sleep = 10;
+        // loop {
+        //     match self.try_write() {
+        //         Ok(guard) => return guard,
+        //         Err(_) => std::thread::sleep(std::time::Duration::from_micros(sleep)),
+        //     }
+        //     // sleep *= 2;
+        // }
     }
 
     fn rl(&self) -> RwLockReadGuard<'_, T> {

@@ -15,7 +15,7 @@ fn test_insert_parallel() {
         .parse::<usize>()
         .unwrap();
     let threads_count = env::var("THREADS_COUNT")
-        .unwrap_or("10".to_string())
+        .unwrap_or("100".to_string())
         .parse::<usize>()
         .unwrap();
 
@@ -46,9 +46,6 @@ fn test_insert_parallel() {
             handle.join().unwrap();
         }
     }
-
-    let duration = start.elapsed();
-    log::info!("{} insertion threads took: {:?}", threads_count, duration);
 
     {
         let mut log_manager = Database::mut_log_manager();

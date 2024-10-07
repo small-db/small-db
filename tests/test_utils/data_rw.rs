@@ -53,7 +53,7 @@ pub fn insert_random(
         .collect();
 
     for tuple in &tuples {
-        table.crab_insert_tuple(&tx, &tuple).unwrap();
+        table.insert_tuple(&tx, &tuple).unwrap();
     }
     tx.commit().unwrap();
 }

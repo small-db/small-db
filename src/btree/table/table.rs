@@ -499,6 +499,13 @@ impl BTreeTable {
             PageCategory::Header => todo!(),
         }
     }
+
+    pub(crate) fn get_empty_page_index(&self, tx: &Transaction) -> u32 {
+        let header_pages = self.get_header_pages(tx);
+        let empty_page_index = header_pages.get_empty_page_index();
+        header_pages.release_latches();
+        empty_page_index as u32
+    }
 }
 
 /// debug methods
