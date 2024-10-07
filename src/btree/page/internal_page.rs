@@ -1,7 +1,7 @@
 use std::{fmt, io::Cursor};
 
 use bit_vec::BitVec;
-use log::{debug, error};
+use log::error;
 
 use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory};
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::{Permission, Transaction},
     types::SmallResult,
-    utils::{ceil_div, floor_div, HandyRwLock},
+    utils::{ceil_div, HandyRwLock},
 };
 
 /// The internal page is used to store the keys and the page id of the
@@ -67,7 +67,7 @@ pub struct BTreeInternalPage {
     /// is `slot_count - 1`.)
     ///
     /// This filed should never be changed after the page is created.
-    slot_count: usize,
+    slots_count: usize,
 
     /// The header is used to indicate the status of each slot.
     ///
@@ -76,7 +76,9 @@ pub struct BTreeInternalPage {
     /// The bytes size of `header` should be `ceiling(slot_count /
     /// 8)`.
     header: BitVec<u32>,
+    used_slots: usize,
 
+    /// TODO: what's the usage of this field? can we remove it?
     children_category: PageCategory,
 
     old_data: Vec<u8>,
@@ -86,7 +88,7 @@ impl BTreeInternalPage {
     fn new(pid: &BTreePageID, bytes: &[u8], table_schema: &TableSchema) -> Self {
         let mut instance: Self;
 
-        let slot_count = Self::get_children_cap(table_schema);
+        let slots_count = Self::get_children_cap(table_schema);
 
         let mut reader = Cursor::new(bytes);
 
@@ -110,14 +112,14 @@ impl BTreeInternalPage {
         // read keys
         let mut keys: Vec<Cell> = Vec::new();
         keys.push(Cell::Int64(0));
-        for _ in 1..slot_count {
+        for _ in 1..slots_count {
             let key = i64::decode(&mut reader, &());
             keys.push(Cell::Int64(key));
         }
 
         // read children
         let mut children: Vec<BTreePageID> = Vec::new();
-        for _ in 0..slot_count {
+        for _ in 0..slots_count {
             let child = BTreePageID::new(
                 children_category,
                 pid.get_table_id(),
@@ -126,12 +128,15 @@ impl BTreeInternalPage {
             children.push(child);
         }
 
+        let used_slots = header.iter().filter(|x| *x).count();
+
         instance = Self {
             pid: pid.clone(),
             keys,
             children,
-            slot_count,
+            slots_count,
             header,
+            used_slots,
             children_category,
             old_data: Vec::new(),
         };
@@ -186,6 +191,7 @@ impl BTreeInternalPage {
 
     pub fn delete_key_and_right_child(&mut self, record_id: usize) {
         self.mark_slot_status(record_id, false);
+        self.used_slots -= 1;
     }
 
     pub fn delete_key_and_left_child(&mut self, record_id: usize) {
@@ -195,12 +201,16 @@ impl BTreeInternalPage {
                 self.children[i] = self.children[record_id];
 
                 self.mark_slot_status(record_id, false);
+                self.used_slots -= 1;
                 return;
             }
         }
     }
 
+    /// TODO: remove this method
     pub fn update_entry(&mut self, entry: &Entry) {
+        todo!();
+
         let record_id = entry.get_record_id();
 
         // set left child
@@ -217,10 +227,10 @@ impl BTreeInternalPage {
 
     /// Returns true if associated slot on this page is filled.
     pub fn is_slot_used(&self, slot_index: usize) -> bool {
-        if slot_index >= self.slot_count {
+        if slot_index >= self.slots_count {
             error!(
                 "slot index out of range, slot index: {}, slot count: {}",
-                slot_index, self.slot_count
+                slot_index, self.slots_count
             );
         }
         self.header[slot_index]
@@ -349,11 +359,11 @@ impl BTreeInternalPage {
         }
 
         if check_occupancy && depth > 0 {
-            if self.children_count() < self.slot_count / 2 {
+            if self.children_count() < self.slots_count / 2 {
                 let err_msg = format!(
                     "children count: {}, max children: {}, pid: {:?}",
                     self.children_count(),
-                    self.slot_count / 2,
+                    self.slots_count / 2,
                     self.get_pid(),
                 );
                 return Err(SmallError::new(&err_msg));
@@ -366,7 +376,12 @@ impl BTreeInternalPage {
 
 // Insertion methods.
 impl BTreeInternalPage {
-    pub fn insert_entry(&mut self, e: &Entry) -> SmallResult {
+    /// Insert a new entry to the page.
+    ///
+    /// Throws an error if:
+    /// - the page is full
+    /// - the left child of the new entry is not found in the page
+    pub(crate) fn insert_entry(&mut self, e: &Entry) -> SmallResult {
         if self.empty_slots_count() == 0 {
             return Err(SmallError::new("No empty slots on this page."));
         }
@@ -376,29 +391,31 @@ impl BTreeInternalPage {
             // reset the `children_category`
             self.children_category = e.get_left_child().category;
 
-            // add the entry to the first slot (slot 1)
+            // For the first entry, the left child should be insert manually. This action is
+            // not needed for the rest of the entries since we only insert an entry when the
+            // left child of it is found.
             self.children[0] = e.get_left_child();
-            self.children[1] = e.get_right_child();
-            self.keys[1] = e.get_key();
-            self.mark_slot_status(0, true);
-            self.mark_slot_status(1, true);
 
+            // This action is necessary to make the child at slot 0 as "used".
+            self.mark_slot_status(0, true);
+
+            self.insert_key_and_right(1, e);
             return Ok(());
         }
 
-        // find the first empty slot, start from 1
+        // Find the first empty slot. Start from 1 since we are looking for entry.
         let mut empty_slot = 0;
-        for i in 0..self.slot_count {
+        for i in 1..self.slots_count {
             if !self.is_slot_used(i) {
                 empty_slot = i;
                 break;
             }
         }
 
-        // find the child pointer matching the left or right child in
-        // this entry
+        // Find the child pointer matching the left or right child in this entry. Start
+        // from 0 since we are looking for child.
         let mut slot_just_ahead: usize = usize::MAX;
-        for i in 0..self.slot_count {
+        for i in 0..self.slots_count {
             if !self.is_slot_used(i) {
                 continue;
             }
@@ -423,14 +440,18 @@ impl BTreeInternalPage {
         }
 
         if slot_just_ahead == usize::MAX {
+            let iter = BTreeInternalPageIterator::new(self);
+            let entries = format!("{:?}", iter.collect::<Vec<Entry>>());
+            let header: Vec<bool> = self.header.iter().collect();
             let err = SmallError::new(&format!(
-                "No slot found for entry {}, pid: {}, entries count: {}",
+                "No slot found for entry {}, pid: {}, entries({}): {:?}, header: {:?}",
                 e,
                 self.get_pid(),
-                self.entries_count()
+                self.entries_count(),
+                entries,
+                header,
             ));
-            let iter = BTreeInternalPageIterator::new(self);
-            debug!("page entries: {:?}", iter.collect::<Vec<Entry>>());
+            log::error!("{}", err);
             return Err(err);
         }
 
@@ -450,30 +471,28 @@ impl BTreeInternalPage {
             good_slot = slot_just_ahead + 1
         }
 
-        self.keys[good_slot] = e.get_key();
-        self.children[good_slot] = e.get_right_child();
-        self.mark_slot_status(good_slot, true);
+        self.insert_key_and_right(good_slot, e);
         Ok(())
+    }
+
+    fn insert_key_and_right(&mut self, slot: usize, e: &Entry) {
+        self.keys[slot] = e.get_key();
+        self.children[slot] = e.get_right_child();
+        self.mark_slot_status(slot, true);
+        self.used_slots += 1;
     }
 }
 
 // Methods for accessing dynamic attributes.
 impl BTreeInternalPage {
-    /// Empty slots (entries/children) count.
+    /// Count of empty slots for entries/chilren.
     pub fn empty_slots_count(&self) -> usize {
-        let mut count = 0;
-        // start from 1 because the first key slot is not used
-        // since a page with m keys has m+1 pointers
-        for i in 1..self.slot_count {
-            if !self.is_slot_used(i) {
-                count += 1
-            }
-        }
-        count
+        // "slot 0" is a placeholder slot.
+        return self.slots_count - self.used_slots - 1;
     }
 
     pub fn children_count(&self) -> usize {
-        let children_count = self.slot_count - self.empty_slots_count();
+        let children_count = self.slots_count - self.empty_slots_count();
 
         // The minimum number of children is 2. (Since a single child
         // cannot form an entry.)
@@ -485,28 +504,29 @@ impl BTreeInternalPage {
     }
 
     pub fn entries_count(&self) -> usize {
-        self.slot_count - self.empty_slots_count() - 1
+        self.slots_count - self.empty_slots_count() - 1
     }
 
     /// Get the minimum number of children needed to keep this page stable.
     ///
     /// "floor division" vs "ceiling division":
     /// - they are the same when the "slot count" is even
-    /// - when the "slot count" is odd, the "ceiling division" will mark the current
-    ///  page as unstable when "used_slots == floor_dev(slot_count, 2)" and make it
-    ///  rebalance or merge with its sibling.
+    /// - when the "slot count" is odd, the "ceiling division" will mark the
+    ///   current
+    ///  page as unstable when "used_slots == floor_dev(slot_count, 2)" and make
+    /// it  rebalance or merge with its sibling.
     pub fn get_stable_threshold(&self) -> usize {
         // what if "self" is the root page?
         todo!();
 
-        ceil_div(self.slot_count, 2)
+        ceil_div(self.slots_count, 2)
     }
 }
 
 /// Associated functions.
 impl BTreeInternalPage {
     pub fn get_children_capacity(&self) -> usize {
-        self.slot_count
+        self.slots_count
     }
 
     /// Get the capacity of children (pages) in this page. The
@@ -533,21 +553,21 @@ impl BTreeInternalPage {
 
 impl BTreePageInit for BTreeInternalPage {
     fn new_empty_page(pid: &BTreePageID, schema: &TableSchema) -> Self {
-        let slot_count = Self::get_children_cap(schema);
+        let slots_count = Self::get_children_cap(schema);
 
         // init empty header
         let mut header = BitVec::new();
-        header.grow(slot_count, false);
+        header.grow(slots_count, false);
 
         // init empty keys
         let mut keys = Vec::new();
-        for _ in 0..slot_count {
+        for _ in 0..slots_count {
             keys.push(Cell::Int64(0));
         }
 
         // init empty children
         let mut children = Vec::new();
-        for _ in 0..slot_count {
+        for _ in 0..slots_count {
             children.push(BTreePageID::new(PageCategory::Leaf, pid.get_table_id(), 0));
         }
 
@@ -555,8 +575,9 @@ impl BTreePageInit for BTreeInternalPage {
             pid: pid.clone(),
             keys,
             children,
-            slot_count,
+            slots_count,
             header,
+            used_slots: 0,
             children_category: PageCategory::Leaf,
             old_data: Vec::new(),
         }
@@ -584,14 +605,14 @@ impl BTreePage for BTreeInternalPage {
         // write header
         self.header.encode(&mut writer, &());
 
-        // write keys
+        // write keys, start from 1 for entries
         let t = table_schema.get_pkey().get_type();
-        for i in 1..self.slot_count {
+        for i in 1..self.slots_count {
             self.keys[i].encode(&mut writer, &t);
         }
 
-        // write children
-        for i in 0..self.slot_count {
+        // write children, start from 0 for children
+        for i in 0..self.slots_count {
             self.children[i].page_index.encode(&mut writer, &());
         }
 
@@ -677,7 +698,7 @@ pub struct BTreeInternalPageIterator<'page> {
 
 impl<'page> BTreeInternalPageIterator<'page> {
     pub fn new(page: &'page BTreeInternalPage) -> Self {
-        let mut right_child_position = page.slot_count;
+        let mut right_child_position = page.slots_count;
         loop {
             if right_child_position == 0 {
                 break;
@@ -710,7 +731,7 @@ impl Iterator for BTreeInternalPageIterator<'_> {
             self.cursor += 1;
             let cursor = self.cursor;
 
-            if cursor >= self.page.slot_count {
+            if cursor >= self.page.slots_count {
                 return None;
             }
 

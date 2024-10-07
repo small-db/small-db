@@ -9,7 +9,7 @@ use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout
 #[cfg(feature = "benchmark")]
 // action_per_thread: 1000
 // threads_count: 100
-// best time: 11.80s
+// best time: 7.26s.
 fn test_insert_parallel() {
     setup();
 
