@@ -5,10 +5,10 @@
 #   - Generate flamegraph
 #
 # Usage:
-#   ./scripts/debug/trace.sh <test_name>
+#   ./scripts/debug/track.sh <test_name>
 #
 # e.g:
-#   ./scripts/debug/trace.sh test_insert_parallel
+#   ./scripts/debug/track.sh test_insert_parallel
 
 set -o errexit
 set -o nounset
@@ -28,37 +28,18 @@ function trace_linux() {
     echo "BINARY: $BINARY"
 
     # ===============================================================
-    # run target, gather syscall
-    # ===============================================================
-
-    # echo "Running target, gathering syscall..."
-
-    # # clear logs
-    # sudo rm -f out
-
-    # RUST_LOG=info \
-    #     sudo perf stat -e 'syscalls:sys_enter_*' -- \
-    #     $BINARY -- \
-    #     $TEST_NAME --exact --nocapture \
-    #     2>&1 | grep syscalls | sort \
-    #     >>out &&
-    #     sudo rm -rf data
-
-    # ===============================================================
     # run target, generate flamegraph (and perf report)
     # ===============================================================
 
     echo "running target ..."
 
-    # sudo perf record -F 1000 --call-graph dwarf -- \
-    # sudo perf record -F 99 -g -- \
-
     RUST_LOG=debug \
-        sudo perf record -F 500 -g -- \
+        sudo perf record -F 100 --call-graph dwarf -- \
         $BINARY -- \
         $TEST_NAME --exact --nocapture \
-        >>out &&
-        sudo rm -rf data
+        >>out
+
+    sudo chmod -R 777 "$DATA_DIR"
 
     echo "generating flamegraph ..."
 
