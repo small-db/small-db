@@ -6,7 +6,7 @@ use std::{
 
 use bit_vec::BitVec;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, PageIndex};
+use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory, PageIndex};
 use crate::{
     btree::buffer_pool::BufferPool,
     io::{Serializeable, SmallWriter},
@@ -22,7 +22,7 @@ use crate::{
 /// - 4 bytes: page id of the next header page
 /// - n bytes: header
 pub struct BTreeHeaderPage {
-    base: BTreeBasePage,
+    pid: BTreePageID,
 
     next_pid: Option<BTreePageID>,
 
@@ -52,7 +52,7 @@ impl BTreeHeaderPage {
         let slot_count = header.len();
 
         instance = BTreeHeaderPage {
-            base: BTreeBasePage::new(pid),
+            pid: pid.clone(),
             next_pid: None,
             header,
             slot_count,
@@ -102,7 +102,7 @@ impl BTreePageInit for BTreeHeaderPage {
         header.grow(slot_count, false);
 
         Self {
-            base: BTreeBasePage::new(pid),
+            pid: pid.clone(),
             next_pid: None,
             header,
             slot_count,
@@ -117,15 +117,7 @@ impl BTreePage for BTreeHeaderPage {
     }
 
     fn get_pid(&self) -> BTreePageID {
-        self.base.get_pid()
-    }
-
-    fn get_parent_pid(&self) -> BTreePageID {
-        self.base.get_parent_pid()
-    }
-
-    fn set_parent_pid(&mut self, pid: &BTreePageID) {
-        self.base.set_parent_pid(pid)
+        self.pid.clone()
     }
 
     fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {

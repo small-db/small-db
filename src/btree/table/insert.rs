@@ -140,10 +140,6 @@ impl BTreeTable {
             for e in it.by_ref().rev().take(move_entries_count) {
                 delete_indexes.push(e.get_record_id());
                 sibling.insert_entry(&e).unwrap();
-
-                // set parent id for the right child
-                let right_pid = e.get_right_child();
-                Self::set_parent(tx, &right_pid, &sibling.get_pid());
             }
 
             let middle_entry = it.next_back().unwrap();
@@ -154,15 +150,8 @@ impl BTreeTable {
                 page.delete_key_and_right_child(i);
             }
 
-            // set parent id for right child to the middle entry
-            Self::set_parent(tx, &middle_entry.get_right_child(), &sibling.get_pid());
-
             let split_point = middle_entry.get_key();
             let new_entry = Entry::new(&split_point, &page.get_pid(), &sibling.get_pid());
-
-            let parent_pid = page.get_parent_pid();
-            page.set_parent_pid(&parent_pid);
-            sibling.set_parent_pid(&parent_pid);
 
             parent_callback(&Action::InsertEntry(new_entry));
 

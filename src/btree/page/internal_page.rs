@@ -3,7 +3,7 @@ use std::{fmt, io::Cursor};
 use bit_vec::BitVec;
 use log::{debug, error};
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory};
+use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory};
 use crate::{
     btree::{buffer_pool::BufferPool, consts::INDEX_SIZE},
     error::SmallError,
@@ -11,7 +11,7 @@ use crate::{
     storage::{table_schema::TableSchema, tuple::Cell},
     transaction::{Permission, Transaction},
     types::SmallResult,
-    utils::{floor_div, HandyRwLock},
+    utils::{ceil_div, floor_div, HandyRwLock},
 };
 
 /// The internal page is used to store the keys and the page id of the
@@ -31,7 +31,7 @@ use crate::{
 ///
 /// count(used_slots) >= floor_dev(slot_count, 2)
 pub struct BTreeInternalPage {
-    base: BTreeBasePage,
+    pid: BTreePageID,
 
     keys: Vec<Cell>,
 
@@ -101,13 +101,6 @@ impl BTreeInternalPage {
             );
         }
 
-        // read parent page index
-        let parent_pid = BTreePageID::new(
-            PageCategory::Internal,
-            pid.get_table_id(),
-            u32::decode(&mut reader, &()),
-        );
-
         // read children category
         let children_category = PageCategory::decode(&mut reader, &());
 
@@ -133,11 +126,8 @@ impl BTreeInternalPage {
             children.push(child);
         }
 
-        let mut base = BTreeBasePage::new(pid);
-        base.set_parent_pid(&parent_pid);
-
         instance = Self {
-            base,
+            pid: pid.clone(),
             keys,
             children,
             slot_count,
@@ -179,10 +169,6 @@ impl BTreeInternalPage {
     }
 
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer {
-            return true;
-        }
-
         self.children_count() >= self.get_stable_threshold()
     }
 
@@ -502,10 +488,18 @@ impl BTreeInternalPage {
         self.slot_count - self.empty_slots_count() - 1
     }
 
-    /// Get the minimum number of children (pages) needed to keep this
-    /// page stable.
+    /// Get the minimum number of children needed to keep this page stable.
+    ///
+    /// "floor division" vs "ceiling division":
+    /// - they are the same when the "slot count" is even
+    /// - when the "slot count" is odd, the "ceiling division" will mark the current
+    ///  page as unstable when "used_slots == floor_dev(slot_count, 2)" and make it
+    ///  rebalance or merge with its sibling.
     pub fn get_stable_threshold(&self) -> usize {
-        floor_div(self.slot_count, 2)
+        // what if "self" is the root page?
+        todo!();
+
+        ceil_div(self.slot_count, 2)
     }
 }
 
@@ -558,7 +552,7 @@ impl BTreePageInit for BTreeInternalPage {
         }
 
         Self {
-            base: BTreeBasePage::new(pid),
+            pid: pid.clone(),
             keys,
             children,
             slot_count,
@@ -575,15 +569,7 @@ impl BTreePage for BTreeInternalPage {
     }
 
     fn get_pid(&self) -> BTreePageID {
-        self.base.get_pid()
-    }
-
-    fn get_parent_pid(&self) -> BTreePageID {
-        self.base.get_parent_pid()
-    }
-
-    fn set_parent_pid(&mut self, pid: &BTreePageID) {
-        self.base.set_parent_pid(pid)
+        self.pid.clone()
     }
 
     fn get_page_data(&self, table_schema: &TableSchema) -> Vec<u8> {
@@ -591,9 +577,6 @@ impl BTreePage for BTreeInternalPage {
 
         // write page category
         self.get_pid().category.encode(&mut writer, &());
-
-        // write parent page index
-        self.get_parent_pid().page_index.encode(&mut writer, &());
 
         // write children category
         self.children_category.encode(&mut writer, &());

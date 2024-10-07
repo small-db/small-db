@@ -15,8 +15,15 @@ pub trait BTreePage: BTreePageInit {
 
     fn get_pid(&self) -> BTreePageID;
 
-    fn get_parent_pid(&self) -> BTreePageID;
-    fn set_parent_pid(&mut self, pid: &BTreePageID);
+    /// TODO: remove this api
+    fn get_parent_pid(&self) -> BTreePageID {
+        todo!()
+    }
+
+    /// TODO: remove this api
+    fn set_parent_pid(&mut self, pid: &BTreePageID) {
+        todo!()
+    }
 
     /// Generates a byte array representing the contents of this page.
     /// Used to serialize this page to disk.

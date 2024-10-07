@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use super::{BTreeBasePage, BTreePage, BTreePageID, BTreePageInit, PageCategory, FIRST_LEAF_PID};
+use super::{BTreePage, BTreePageID, BTreePageInit, PageCategory, FIRST_LEAF_PID};
 use crate::{
     btree::buffer_pool::BufferPool,
     io::{Serializeable, SmallWriter},
@@ -14,7 +14,7 @@ use crate::{
 /// - 4 bytes: root page category (leaf/internal)
 /// - 4 bytes: header page index
 pub struct BTreeRootPointerPage {
-    base: BTreeBasePage,
+    pid: BTreePageID,
 
     /// The type of this field is `BTreePageID` instead of
     /// `Option<BTreePageID>` because the root page is always
@@ -55,7 +55,7 @@ impl BTreeRootPointerPage {
         };
 
         let mut instance = Self {
-            base: BTreeBasePage::new(pid),
+            pid: pid.clone(),
             root_pid,
             old_data: Vec::new(),
         };
@@ -82,7 +82,7 @@ impl BTreePageInit for BTreeRootPointerPage {
         };
 
         Self {
-            base: BTreeBasePage::new(pid),
+            pid: pid.clone(),
             root_pid,
             old_data: Vec::new(),
         }
@@ -95,15 +95,7 @@ impl BTreePage for BTreeRootPointerPage {
     }
 
     fn get_pid(&self) -> BTreePageID {
-        self.base.get_pid()
-    }
-
-    fn get_parent_pid(&self) -> BTreePageID {
-        self.base.get_parent_pid()
-    }
-
-    fn set_parent_pid(&mut self, pid: &BTreePageID) {
-        self.base.set_parent_pid(pid)
+        self.pid.clone()
     }
 
     fn get_page_data(&self, _table_schema: &TableSchema) -> Vec<u8> {

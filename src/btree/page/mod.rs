@@ -1,6 +1,3 @@
-mod base_page;
-pub use base_page::*;
-
 mod header_page;
 mod internal_page;
 mod leaf_page;

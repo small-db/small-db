@@ -1,10 +1,6 @@
 use log::debug;
 use small_db::{
-    btree::{
-        buffer_pool::BufferPool,
-        page::{BTreeInternalPageIterator, BTreePage},
-        table::BTreeTableIterator,
-    },
+    btree::{buffer_pool::BufferPool, page::BTreeInternalPageIterator, table::BTreeTableIterator},
     storage::tuple::Cell,
     transaction::Transaction,
     utils::{ceil_div, floor_div, HandyRwLock},

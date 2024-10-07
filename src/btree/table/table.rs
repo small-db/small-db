@@ -231,45 +231,6 @@ impl BTreeTable {
             .unwrap();
     }
 
-    pub(crate) fn set_parent(tx: &Transaction, child_pid: &BTreePageID, parent_pid: &BTreePageID) {
-        match child_pid.category {
-            PageCategory::RootPointer => todo!(),
-            PageCategory::Internal => {
-                log::info!("{} set parent: {:?} -> {:?}", tx, child_pid, parent_pid,);
-
-                let child_rc =
-                    BufferPool::get_internal_page(tx, Permission::ReadWrite, &child_pid).unwrap();
-
-                // borrow of left_rc start here
-                {
-                    let mut left = child_rc.wl();
-                    left.set_parent_pid(&parent_pid);
-                }
-                // borrow of left_rc end here
-
-                Database::mut_concurrent_status()
-                    .release_latch(tx, &child_pid)
-                    .unwrap();
-            }
-            PageCategory::Leaf => {
-                let child_rc =
-                    BufferPool::get_leaf_page(tx, Permission::ReadWrite, &child_pid).unwrap();
-
-                // borrow of left_rc start here
-                {
-                    let mut child = child_rc.wl();
-                    child.set_parent_pid(&parent_pid);
-                }
-                // borrow of left_rc end here
-
-                Database::mut_concurrent_status()
-                    .release_latch(tx, &child_pid)
-                    .unwrap();
-            }
-            PageCategory::Header => todo!(),
-        }
-    }
-
     /// Finds and locks the leaf page in the B+ tree based on the search
     /// condition.
     ///
