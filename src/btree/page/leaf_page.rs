@@ -162,30 +162,21 @@ impl BTreeLeafPage {
 
     /// stable means at least half of the page is occupied
     pub fn stable(&self) -> bool {
-        if self.get_parent_pid().category == PageCategory::RootPointer {
-            return true;
-        }
+        // TODO: what if this page is the root page?
+        todo!();
 
         let stable_threshold = ceil_div(self.slot_count, 2);
         return self.tuples_count() >= stable_threshold;
     }
 
     /// Returns the number of empty slots on this page.
-    ///
-    /// TODO: use a counter to keep track of empty slots
     pub fn empty_slots_count(&self) -> usize {
-        let mut count = 0;
-        for i in 0..self.slot_count {
-            if !self.is_slot_used(i) {
-                count += 1;
-            }
-        }
-        count
+        return self.slot_count - self.used_slots;
     }
 
     /// Returns the number of tuples currently stored on this page
     pub fn tuples_count(&self) -> usize {
-        self.slot_count - self.empty_slots_count()
+        return self.used_slots;
     }
 
     /// Adds a tuple to the page such that all tuples remain in sorted order.
@@ -237,6 +228,7 @@ impl BTreeLeafPage {
         // insert new record into the correct spot in sorted order
         self.tuples[good_slot] = tuple.clone();
         self.mark_slot_status(good_slot, true);
+        self.used_slots += 1;
 
         return Ok(());
     }
@@ -256,6 +248,7 @@ impl BTreeLeafPage {
 
     pub(crate) fn delete_tuple(&mut self, slot_index: usize) {
         self.mark_slot_status(slot_index, false);
+        self.used_slots -= 1;
     }
 
     pub(crate) fn mvcc_delete_tuple(&mut self, tx: &TransactionID, slot_index: usize) {
