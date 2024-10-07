@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, RwLock, RwLockWriteGuard},
-    usize,
-};
+use std::{sync::RwLockWriteGuard, usize};
 
 use crate::{
     btree::{

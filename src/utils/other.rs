@@ -15,17 +15,10 @@ pub trait HandyRwLock<T: ?Sized> {
 
 impl<T: ?Sized> HandyRwLock<T> for RwLock<T> {
     fn wl(&self) -> RwLockWriteGuard<'_, T> {
+        // We don't use "try_write + sleep" here because the ideal wait time is dynamic.
+        // Neither a fixed wait time nor exponential backoff is better than "futex
+        // wait."
         return self.write().unwrap();
-        // try to get the lock using exponential backoff
-
-        // let sleep = 10;
-        // loop {
-        //     match self.try_write() {
-        //         Ok(guard) => return guard,
-        //         Err(_) => std::thread::sleep(std::time::Duration::from_micros(sleep)),
-        //     }
-        //     // sleep *= 2;
-        // }
     }
 
     fn rl(&self) -> RwLockReadGuard<'_, T> {
