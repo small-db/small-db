@@ -39,6 +39,7 @@ pub struct BTreeLeafPage {
 
     // indicate slots' status: true means occupied, false means empty
     header: BitVec<u32>,
+    used_slots: usize,
 
     // all tuples (include empty tuples)
     tuples: Vec<Tuple>,
@@ -78,6 +79,7 @@ impl BTreeLeafPage {
 
         // read header
         let header = BitVec::decode(&mut reader, &());
+        let used_slots = header.iter().filter(|&x| x).count();
 
         // read tuples
         let mut tuples = Vec::new();
@@ -96,6 +98,7 @@ impl BTreeLeafPage {
             pid: pid.clone(),
             slot_count,
             header,
+            used_slots,
             tuples,
             right_sibling_id,
             left_sibling_id,
@@ -399,6 +402,7 @@ impl BTreePageInit for BTreeLeafPage {
             pid: pid.clone(),
             slot_count,
             header,
+            used_slots: 0,
             tuples,
             right_sibling_id: EMPTY_PID,
             left_sibling_id: EMPTY_PID,

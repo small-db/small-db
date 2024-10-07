@@ -108,6 +108,7 @@ impl BTreeInternalPage {
 
         // read header
         let header = BitVec::decode(&mut reader, &());
+        let used_slots = header.iter().filter(|&x| x).count();
 
         // read keys
         let mut keys: Vec<Cell> = Vec::new();
@@ -127,8 +128,6 @@ impl BTreeInternalPage {
             );
             children.push(child);
         }
-
-        let used_slots = header.iter().filter(|x| *x).count();
 
         instance = Self {
             pid: pid.clone(),
