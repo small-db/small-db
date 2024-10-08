@@ -7,7 +7,7 @@ use std::{
 use super::Catalog;
 use crate::{
     btree::buffer_pool::BufferPool,
-    transaction::{ConcurrentStatus, LogManager},
+    transaction::{ConcurrentStatus, LogManager, WALManager},
     types::Pod,
     utils::HandyRwLock,
 };
@@ -35,6 +35,8 @@ pub struct Database {
     catalog: Pod<Catalog>,
     concurrent_status: Pod<ConcurrentStatus>,
     log_manager: Pod<LogManager>,
+
+    wal: Pod<WALManager>,
 }
 
 static mut SINGLETON: *mut Database = 0 as *mut Database;
@@ -55,7 +57,9 @@ impl Database {
             buffer_pool: Arc::new(RwLock::new(BufferPool::new())),
             concurrent_status: Arc::new(RwLock::new(ConcurrentStatus::new())),
             catalog: Arc::new(RwLock::new(Catalog::new())),
-            log_manager: Arc::new(RwLock::new(LogManager::new(log_path))),
+            log_manager: Arc::new(RwLock::new(LogManager::new(&log_path))),
+
+            wal: Arc::new(RwLock::new(WALManager::new(&log_path))),
         };
 
         return instance;
@@ -116,6 +120,10 @@ impl Database {
     }
 
     pub fn mut_log_manager() -> RwLockWriteGuard<'static, LogManager> {
+        Self::global().log_manager.wl()
+    }
+
+    pub(crate) fn mut_wal() -> RwLockWriteGuard<'static, LogManager> {
         Self::global().log_manager.wl()
     }
 

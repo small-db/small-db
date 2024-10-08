@@ -180,7 +180,11 @@ impl BTreeLeafPage {
     }
 
     /// Adds a tuple to the page such that all tuples remain in sorted order.
-    pub fn insert_tuple(&mut self, tuple: &Tuple) -> Result<(), SmallError> {
+    pub(crate) fn insert_tuple(&mut self, tuple: &Tuple) -> SmallResult {
+        if self.empty_slots_count() == 0 {
+            return Err(SmallError::new("no empty slot"));
+        }
+
         // find the first empty slot
         let mut first_empty_slot: i64 = 0;
         for i in 0..self.slot_count {
@@ -229,6 +233,8 @@ impl BTreeLeafPage {
         self.tuples[good_slot] = tuple.clone();
         self.mark_slot_status(good_slot, true);
         self.used_slots += 1;
+
+        // insert action successed, write a "UPDATE" record to WAL
 
         return Ok(());
     }

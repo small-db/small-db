@@ -109,7 +109,7 @@ impl LogManager {
     /// then do it, while if someone starts adding log file
     /// entries, then first throw out the initial log file
     /// contents.
-    pub fn new<P: AsRef<Path> + Clone>(file_path: P) -> Self {
+    pub(crate) fn new<P: AsRef<Path> + Clone>(file_path: &P) -> Self {
         let mut file = SmallFile::new(file_path);
 
         let size = file.get_size().unwrap();

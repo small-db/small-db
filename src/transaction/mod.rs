@@ -1,5 +1,8 @@
-mod log_aries;
-pub use log_aries::*;
+mod wal;
+pub use wal::*;
+
+mod wal_new;
+pub use wal_new::*;
 
 mod tx;
 pub use tx::*;

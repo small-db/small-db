@@ -9,7 +9,7 @@ use crate::test_utils::{insert_random, new_random_btree_table, setup, TreeLayout
 #[cfg(feature = "benchmark")]
 // action_per_thread: 1000
 // threads_count: 100
-// best time: 6.28s.
+// best time: 5.74s.
 fn test_insert_parallel() {
     setup();
 
@@ -59,7 +59,9 @@ fn test_insert_parallel() {
     let expect_rows = threads_count * action_per_thread;
     info!("{} insertion threads took: {:?}", threads_count, duration);
     info!("ms:{:?}", duration.as_millis());
-    Database::mut_buffer_pool().clear();
+
+    Database::reset();
+
     info!(
         "table.tuples_count(): {:?}, expect: {:?}",
         table.tuples_count(),

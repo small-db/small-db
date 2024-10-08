@@ -30,13 +30,6 @@ pub fn setup() {
     let _ = fs::remove_dir_all(DATA_DIR);
 
     Database::reset();
-
-    // increase lock acquisition timeout for benchmark
-    if cfg!(feature = "benchmark") {
-        ConcurrentStatus::set_timeout(30);
-    }
-
-    // print_features();
 }
 
 /// Simulate crash.
