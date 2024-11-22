@@ -32,7 +32,7 @@ pub async fn main() {
     )));
     let authenticator = Arc::new(StatelessMakeHandler::new(Arc::new(NoopStartupHandler)));
 
-    let server_addr = "127.0.0.1:5433";
+    let server_addr = "127.0.0.1:5432";
     let listener = TcpListener::bind(server_addr).await.unwrap();
     info!("Listening to {}", server_addr);
     loop {

@@ -9,13 +9,13 @@
     //  - vscode semantic checking
     //  - test (the "Run Test" button just above the test function)
     //  - debug (the "Debug" button just above the test function)
-    "rust-analyzer.cargo.features": [
-        "aries_steal",
-        "aries_force",
-        "read_committed",
-        "benchmark",
-    ],
+    // "rust-analyzer.cargo.features": [
+    //     "aries_steal",
+    //     "aries_force",
+    //     "read_committed",
+    //     "benchmark",
+    // ],
     // Disable default features. This must be set to make setting
     // "rust-analyzer.cargo.features" works.
-    "rust-analyzer.cargo.noDefaultFeatures": true,
+    // "rust-analyzer.cargo.noDefaultFeatures": true,
 }
