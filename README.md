@@ -3,6 +3,8 @@
 [![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
 
+**The work has been moved to [small-db-v2](https://github.com/small-db/small-db-v2), which is a distributed database written in C++.**
+
 A small database for learning purposes. We aim to cover all major database concepts in this project.
 
 ## Table of Contents
