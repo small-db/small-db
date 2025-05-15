@@ -16,42 +16,20 @@
 // c++ std
 // =====================================================================
 
-#include <memory>
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 // =====================================================================
 // third-party libraries
 // =====================================================================
 
-// absl
-#include "absl/status/status.h"
-#include "absl/strings/str_format.h"
-
 // json
 #include "nlohmann/json.hpp"
-
-// rocksdb
-#include "rocksdb/db.h"
-#include "rocksdb/options.h"
-#include "rocksdb/slice.h"
-
-// spdlog
-#include "spdlog/spdlog.h"
 
 // =====================================================================
 // local libraries
 // =====================================================================
 
-#include "src/encode/encode.h"
-#include "src/id/generator.h"
-#include "src/insert/insert.h"
-#include "src/rocks/rocks.h"
-#include "src/schema/const.h"
-#include "src/schema/partition.h"
-#include "src/server_info/info.h"
 #include "src/type/type.h"
 
 // =====================================================================

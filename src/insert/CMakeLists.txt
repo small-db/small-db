@@ -28,14 +28,12 @@ add_library(small::insert ALIAS small_insert)
 add_library(small_insert_proto
     insert.proto
 )
-
 target_link_libraries(small_insert_proto
     PUBLIC
     protobuf::libprotobuf
     gRPC::grpc
     gRPC::grpc++
 )
-
 target_include_directories(small_insert_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)

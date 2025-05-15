@@ -29,9 +29,6 @@
 // spdlog
 #include "spdlog/spdlog.h"
 
-// json
-#include "nlohmann/json.hpp"
-
 // =====================================================================
 // local libraries
 // =====================================================================
@@ -122,6 +119,8 @@ absl::Status Catalog::CreateTable(
 
     db->WriteRow(this->system_tables, row);
 
+    // propagate catalog changes to other nodes
+
     return absl::OkStatus();
 }
 
@@ -163,15 +162,13 @@ absl::Status Catalog::SetPartition(const std::string& table_name,
                 std::to_string(static_cast<int>(strategy)));
         }
     }
-
-    return absl::OkStatus();
 }
+
 void Catalog::WritePartition(
     const std::shared_ptr<small::schema::Table>& table) {
     std::visit(
         [&](auto&& partition) {
             using T = std::decay_t<decltype(partition)>;
-
             if constexpr (std::is_same_v<T, small::schema::ListPartition>) {
                 for (auto& [p_name, p] : partition.partitions) {
                     std::vector<small::type::Datum> row;

@@ -5,5 +5,7 @@
         "ms-vscode.cmake-tools",
         // - c++ intellisense
         "llvm-vs-code-extensions.vscode-clangd",
+        // - cmake formatting
+        "kylinideteam.cmake-intellisence",
     ]
 }
