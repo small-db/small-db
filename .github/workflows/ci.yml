@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint
-        run: ./scripts/ci/lint
+        run: ./scripts/format/lint.sh
       - name: Install Dependencies
-        run: ./scripts/ci/install-deps
+        run: ./scripts/build/install-deps.sh
       - name: Build
-        run: ./scripts/ci/build
+        run: ./scripts/build/build.sh
       - name: Test
-        run: ./scripts/ci/test
+        run: ./scripts/test/test.sh

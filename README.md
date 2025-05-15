@@ -4,9 +4,10 @@
 
 ## Development
 
-### Operating System
+### Environment
 
-- Ubuntu 24.04 LTS
+- Ubuntu 24.04 LTS (or newer version)
+- CMake 3.21.3 (or newer version)
 
 ### Build From Source
 
@@ -24,14 +25,18 @@ cmake --preset=debug
 cmake --build ./build/debug
 ```
 
+### Run Tests
 
-### Style Guide
+```bash
+# run all tests
+./scripts/test/test.sh
+```
+
+### Code Style
 
 - [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
 
 ### Build System
-
-- [CMake 3.21.3](https://cmake.org/)
 
 ### CMake Configuration & Build
 
@@ -65,20 +70,18 @@ ctest --test-dir build
 
 ## Partitioning
 
-- https://www.cockroachlabs.com/docs/stable/partitioning
-- https://www.postgresql.org/docs/current/ddl-partitioning.html
-- https://rasiksuhail.medium.com/guide-to-postgresql-table-partitioning-c0814b0fbd9b
+- <https://www.cockroachlabs.com/docs/stable/partitioning>
+- <https://www.postgresql.org/docs/current/ddl-partitioning.html>
+- <https://rasiksuhail.medium.com/guide-to-postgresql-table-partitioning-c0814b0fbd9b>
 
-
-> A database may only be opened by one process at a time. - https://github.com/facebook/rocksdb/wiki/basic-operations#concurrency
-
+> A database may only be opened by one process at a time. - <https://github.com/facebook/rocksdb/wiki/basic-operations#concurrency>
 
 ## TODO - CI
 
 - valgrind
 - sanitizer (address, memory, undefined)
 
-# small-db
+# small-db (legacy)
 
 [![test](https://github.com/small-db/small-db/actions/workflows/test.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test.yml)
 [![docs](https://docs.rs/small-db/badge.svg)](https://docs.rs/small-db)
@@ -94,7 +97,6 @@ A small database for learning purposes. We aim to cover all major database conce
 - [Q&A](#qa)
 - [Notes](#notes)
 - [Status](#status)
-
 
 **Thanks for your attention. For any issues/bugs/thoughts, please feel free to open an [issue](https://github.com/small-db/small-db/issues) or send an email to [Xiaochen Cui](mailto:jcnlcxc.new@gmail.com)**
 
@@ -189,9 +191,6 @@ TODO: update this section (the classification is not accurate)
 [![test (aries_no_steal, aries_no_force, serializable)](https://github.com/small-db/small-db/actions/workflows/test_aries_no_steal_aries_no_force_serializable.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/test_aries_no_steal_aries_no_force_serializable.yml)
 
 <!-- [COMPILATION OPTIONS END] -->
-
-
-
 
 ## Development
 
@@ -391,7 +390,7 @@ The test "test_insert_parallel" deadlocks. Our target is to make parallel insert
 
 Like the following code, the parallel insertion of 100k records should be finished in 30 second.
 
-https://github.com/small-db/small-db/blob/f864abb8ca4d62a907b0c565da1b209012c9268d/docs/record/benchmark_20240527_220536.json#L170-L183
+<https://github.com/small-db/small-db/blob/f864abb8ca4d62a907b0c565da1b209012c9268d/docs/record/benchmark_20240527_220536.json#L170-L183>
 
 ### Others
 
