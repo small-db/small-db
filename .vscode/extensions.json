@@ -1,4 +1,9 @@
 {
     "recommendations": [
+        // - cmake debugging
+        // - cmake intellisense
+        "ms-vscode.cmake-tools",
+        // - c++ intellisense
+        "llvm-vs-code-extensions.vscode-clangd",
     ]
 }
