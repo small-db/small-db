@@ -1,0 +1,30 @@
+function(get_all_targets DIR RESULT_VAR)
+    set(TARGETS_LIST "")
+    get_property(TGTS DIRECTORY "${DIR}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(TGT IN LISTS TGTS)
+        list(APPEND TARGETS_LIST "${TGT}")
+    endforeach()
+
+    get_property(SUBDIRS DIRECTORY "${DIR}" PROPERTY SUBDIRECTORIES)
+    foreach(SUBDIR IN LISTS SUBDIRS)
+        get_all_targets("${SUBDIR}" SUBDIR_TARGETS)
+        list(APPEND TARGETS_LIST ${SUBDIR_TARGETS})
+    endforeach()
+
+    set(${RESULT_VAR} ${TARGETS_LIST} PARENT_SCOPE)
+endfunction()
+
+function(print_added_target LIST_A LIST_B)
+    set(DIFFERENCE_LIST)
+    list(APPEND DIFFERENCE_LIST ${${LIST_B}})
+
+    foreach(ITEM IN LISTS ${LIST_A})
+        list(REMOVE_ITEM DIFFERENCE_LIST "${ITEM}")
+    endforeach()
+
+    list(LENGTH DIFFERENCE_LIST COUNT)
+    message(STATUS "imported ${COUNT} new targets:")
+    foreach(ITEM IN LISTS DIFFERENCE_LIST)
+        message(STATUS "- ${ITEM}")
+    endforeach()
+endfunction()

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package small.insert;
+
+service Insert {
+  rpc Insert(Row) returns (InsertReply) {}
+}
+
+message Row {
+  string table_name = 1;
+  repeated string column_names = 2;
+  repeated string column_values = 3;
+}
+
+message InsertReply {
+  bool success = 1;
+}

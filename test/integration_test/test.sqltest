@@ -1,0 +1,59 @@
+statement ok
+DROP TABLE users;
+
+statement ok
+CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name STRING,
+    balance INT,
+    country STRING
+) PARTITION BY LIST (country);
+
+statement ok
+CREATE TABLE users_eu PARTITION OF users FOR
+VALUES
+    IN ('Germany', 'France', 'Italy');
+
+statement ok 
+CREATE TABLE users_us PARTITION OF users FOR
+VALUES
+    IN ('USA', 'Canada');
+
+statement ok 
+CREATE TABLE users_asia PARTITION OF users FOR
+VALUES
+    IN ('China', 'Japan', 'Korea');
+
+statement ok
+ALTER TABLE users_eu ADD CONSTRAINT check_region CHECK (region = 'eu');
+
+statement ok
+ALTER TABLE users_us ADD CONSTRAINT check_region CHECK (region = 'us');
+
+statement ok
+ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');
+
+query TT
+SELECT * FROM system.tables;
+----
+ table_name | columns
+------------+--------
+ users      | [{"is_primary_key":true,"name":"id","type":10},{"is_primary_key":false,"name":"name","type":20},{"is_primary_key":false,"name":"balance","type":10},{"is_primary_key":false,"name":"country","type":20}]
+
+query TTTTT
+SELECT * FROM system.partitions WHERE table_name = 'users';
+----
+table_name | partition_name | constraint      | column_name | partition_value
+-----------+----------------+-----------------+--------------+---------------------------------
+users      | users_asia     | {"region":"asia"} | country      | ["China","Japan","Korea"]
+users      | users_eu       | {"region":"eu"}   | country      | ["Germany","France","Italy"]
+users      | users_us       | {"region":"us"}     | country      | ["USA","Canada"]
+
+statement ok
+INSERT INTO users (id, name, balance, country) VALUES
+(1, 'Alice', 1000, 'Germany'),
+(2, 'Bob', 2000, 'USA'),
+(3, 'Charlie', 1500, 'France'),
+(4, 'David', 3000, 'China'),
+(5, 'Eve', 2500, 'Japan');
+

@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "sql_test",
+            "program": "${workspaceFolder}/bazel-bin/test/integration_test/sql_test",
+            "cwd": "${workspaceFolder}",
+            "sourceMap": {
+                "/proc/self/cwd/": "${workspaceFolder}/",
+                "/home/xiaochen/.cache/bazel/_bazel_xiaochen/def8392de60694faa9c9ea704dc32257/sandbox/processwrapper-sandbox/31/execroot/_main/": "${workspaceFolder}/",
+            },
+        },
+        {
+            "name": "server",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/server/main",
+            "args": [
+                "5432"
+            ],
+            "cwd": "${workspaceFolder}",
+            // build the server before launching it
+            // "preLaunchTask": "build server (debug)"
+        },
+        {
+            "name": "hello_world",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/tmp/hello_world",
+            "cwd": "${workspaceFolder}",
+            "sourceMap": {
+                "/proc/self/cwd/": "${workspaceFolder}/"
+            },
+            // build the binary before launching it
+            "preLaunchTask": "build hello_world (debug)",
+        },
+    ]
+}

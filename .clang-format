@@ -1,0 +1,28 @@
+# reference:
+# - http://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# - https://gist.github.com/idelsink/c25049d8c987890935f4
+
+---
+BasedOnStyle: Google
+---
+Language: Cpp
+IndentWidth: 4
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # C++ Standard Library headers (no dots)
+  - Regex: "^<[^.]*>$"
+    Priority: 1
+    SortPriority: 0
+    CaseSensitive: false
+  # Third-party library headers
+  - Regex: '^".*.h"'
+    Priority: 2
+    SortPriority: 0
+    CaseSensitive: false
+  - Regex: '^".*"' # Project headers (everything else in quotes)
+    Priority: 3
+    SortPriority: 0
+    CaseSensitive: false
+---
+

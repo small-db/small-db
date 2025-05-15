@@ -1,0 +1,23 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build server (debug)",
+            "type": "shell",
+            "command": "bazel build //src/server:main -c dbg",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+        {
+            "label": "build hello_world (debug)",
+            "type": "shell",
+            "command": "bazel build //src/tmp:hello_world -c dbg",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+    ]
+}

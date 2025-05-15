@@ -1,0 +1,48 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/clang-18",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++-18",
+                "CMAKE_PREFIX_PATH": "~/local/cpplib"
+            }
+        },
+        {
+            "name": "sanitizer-address",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-fsanitize=address",
+                "CMAKE_C_FLAGS": "-fsanitize=address"
+            }
+        },
+        {
+            "name": "sanitizer-memory",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-fsanitize=memory",
+                "CMAKE_C_FLAGS": "-fsanitize=memory"
+            }
+        },
+        {
+            "name": "debug",
+            "description": "debug build",
+            "inherits": [
+                "base"
+            ],
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ]
+}

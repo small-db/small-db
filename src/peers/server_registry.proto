@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package small.server_registry;
+
+service ServerRegistry {
+  rpc Register(RegistryRequest) returns (RegistryReply) {}
+}
+
+message RegistryRequest {
+  string sql_address = 1;
+  string rpc_address = 2;
+  string region = 3;
+}
+
+message RegistryReply {
+  bool success = 1;
+}

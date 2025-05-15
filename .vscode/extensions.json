@@ -1,10 +1,4 @@
 {
     "recommendations": [
-        "tamasfe.even-better-toml",
-        "rust-lang.rust-analyzer",
-        "vscodevim.vim",
-        "github.copilot",
-        "vadimcn.vscode-lldb",
-        "ms-python.python"
     ]
 }
