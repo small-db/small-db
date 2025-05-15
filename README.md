@@ -2,13 +2,28 @@
 
 [![build](https://github.com/small-db/small-db/actions/workflows/ci.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/ci.yml)
 
-## Usage
-
-### Start Cluster with Docker
-
-TODO
-
 ## Development
+
+### Operating System
+
+- Ubuntu 24.04 LTS
+
+### Build From Source
+
+```bash
+# clone the repo
+git clone https://github.com/small-db/small-db.git
+
+# install dependencies
+./scripts/build/install-deps.sh
+
+# (cmake) configure
+cmake --preset=debug
+
+# (cmake) build all targets
+cmake --build ./build/debug
+```
+
 
 ### Style Guide
 
