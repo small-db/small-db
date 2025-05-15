@@ -32,41 +32,16 @@ cmake --build ./build/debug
 ./scripts/test/test.sh
 ```
 
-### Code Style
-
-- [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
-
-### Build System
-
-### CMake Configuration & Build
-
-```shell
-# configure with "debug" preset
-cmake --preset=debug
-# build all targets
-cmake --build ./build/debug
-```
-
 ### Start Server
 
 ```shell
-# start server with custom port
+# TODO: this is broken, need to fix it
 ./build/src/server/server --port=5432
 ```
 
-### Run Integration Test
+### Code Style
 
-```shell
-ctest --test-dir build
-./build/sql_test
-```
-
-### Format Code & Run Linter
-
-```shell
-# TODO: this is broken
-./scripts/format/run-format.sh
-```
+- [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
 
 ## Partitioning
 

@@ -168,29 +168,28 @@ grpc::Status InsertService::Insert(grpc::ServerContext* context,
                                    small::insert::InsertReply* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
-    // auto info = small::server_base::get_info();
-    // if (!info.ok())
-    //     return grpc::Status(grpc::StatusCode::INTERNAL,
-    //                         "failed to get server info");
-    // std::string db_path = info.value()->db_path;
-    // auto db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
+    auto info = small::server_info::get_info();
+    if (!info.ok())
+        return {grpc::StatusCode::INTERNAL, "failed to get server info"};
+    std::string db_path = info.value()->db_path;
+    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
 
-    // // get the table
-    // auto result =
-    //     small::catalog::Catalog::GetInstance()->GetTable(request->table_name());
-    // if (!result) {
-    //     return grpc::Status(grpc::StatusCode::NOT_FOUND,
-    //                         fmt::format("table {} not found, server: {}",
-    //                                     request->table_name(), db_path));
-    // }
-    // auto table = result.value();
+    // get the table
+    auto result =
+        small::catalog::Catalog::GetInstance()->GetTable(request->table_name());
+    if (!result) {
+        return {grpc::StatusCode::NOT_FOUND,
+                fmt::format("table {} not found, server: {}",
+                            request->table_name(), db_path)};
+    }
+    const auto& table = result.value();
 
-    // const auto& column_values = request->column_values();
-    // std::vector<std::string> values;
-    // for (const auto& value : column_values) {
-    //     values.push_back(value);
-    // }
-    // db->WriteRowWire(table, values);
+    const auto& column_values = request->column_values();
+    std::vector<std::string> values;
+    for (const auto& value : column_values) {
+        values.push_back(value);
+    }
+    db->WriteRowWire(table, values);
     return grpc::Status::OK;
 }
 

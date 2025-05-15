@@ -5,10 +5,9 @@
 # ]
 # ///
 import argparse
-import sys
 
 import cxc_toolkit
-
+import cxc_toolkit.exec
 
 from scripts import format
 

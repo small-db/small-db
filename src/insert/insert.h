@@ -19,15 +19,16 @@
 // =====================================================================
 
 // pg_query
-#include "pg_query.h"
 #include "pg_query.pb-c.h"
 
 // absl
-#include "absl/status/statusor.h"
 #include "absl/status/status.h"
 
-// arrow
-#include "arrow/api.h"
+// =====================================================================
+// local libraries
+// =====================================================================
+
+#include "src/rocks/rocks.h"
 
 // =====================================================================
 // protobuf generated files
@@ -38,14 +39,16 @@
 
 namespace small::insert {
 
-absl::Status insert(
-    PgQuery__InsertStmt* insert_stmt);
+absl::Status insert(PgQuery__InsertStmt* insert_stmt);
 
 class InsertService final : public small::insert::Insert::Service {
+   private:
+    small::rocks::RocksDBWrapper* db_;
+
    public:
-    virtual grpc::Status Insert(grpc::ServerContext* context,
-                                const small::insert::Row* request,
-                                small::insert::InsertReply* response);
+    grpc::Status Insert(grpc::ServerContext* context,
+                        const small::insert::Row* request,
+                        small::insert::InsertReply* response) final;
 };
 
 }  // namespace small::insert
