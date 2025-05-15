@@ -107,7 +107,7 @@ psql -h localhost -p 5433 -d default_db -U xiaochen
 - **page-latch** strategy (each page has its own latch)
 - **tree-latch** strategy (each leaf page has its own latch, and all other pages are protected by a tree latch. MySQL InnoDB uses this strategy.)
 
-![insertions per second](./docs/img/insertions_per_second.png)
+![insertions per second](./small-rows-rust/docs/img/insertions_per_second.png)
 
 ### Four Types of ARIES Log Recovery Algorithms
 
