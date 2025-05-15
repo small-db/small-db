@@ -1,6 +1,6 @@
-# small-db-v2
+# small-db
 
-[![build](https://github.com/small-db/small-db-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/small-db/small-db-v2/actions/workflows/ci.yml)
+[![build](https://github.com/small-db/small-db/actions/workflows/ci.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/ci.yml)
 
 ## Usage
 
