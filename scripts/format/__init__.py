@@ -4,7 +4,7 @@ import io
 import os
 
 DEFAULT_EXTENSIONS = "c,h,C,H,cpp,hpp,cc,hh,c++,h++,cxx,hxx"
-DEFAULT_CLANG_FORMAT_IGNORE = ".clang-format-ignore"
+DEFAULT_CLANG_FORMAT_IGNORE = "format-ignore"
 
 
 def excludes_from_file(ignore_file):

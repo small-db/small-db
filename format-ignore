@@ -1,0 +1,15 @@
+# config files and directories to ignored by:
+# - clang-format
+# - cpplint
+
+# external code: tpc-e
+./test/tpc-e/*
+
+# build files
+./build/*
+
+# playground files
+./play/*
+
+# small-db legacy
+./small-rows-rust/*
