@@ -4,13 +4,14 @@ add_library(query_lib
 )
 
 target_link_libraries(query_lib
-    PUBLIC
+    PRIVATE
+    small::rocks
+    small::schema
+    small::server_info
+    small::catalog
     spdlog
     absl::status
     libpg_query_lib
     arrow_lib
-    small::rocks
-    small::schema
     magic_enum
-    small::server_info
 )

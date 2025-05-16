@@ -7,16 +7,17 @@ target_link_libraries(small_insert
     PUBLIC
     small::insert_proto
     PRIVATE
+    small::rocks
+    small::schema
+    small::semantics
+    small::encode
+    small::catalog
     spdlog
     absl::status
     libpg_query_lib
     arrow_lib
-    small::rocks
-    small::schema
     server_registry
     magic_enum
-    small::semantics
-    small::encode
 )
 
 add_library(small::insert ALIAS small_insert)

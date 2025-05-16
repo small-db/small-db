@@ -35,8 +35,8 @@
 // protobuf generated files
 // =====================================================================
 
-// #include "catalog.grpc.pb.h"
-// #include "catalog.pb.h"
+#include "catalog.grpc.pb.h"
+#include "catalog.pb.h"
 
 namespace small::catalog {
 
