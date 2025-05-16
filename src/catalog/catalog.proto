@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package small.catalog;
 
-import "src/schema/schema.proto";
+// import "src/schema/schema.proto";
 
 service Catalog {
   rpc createTable(CreateTableRequest) returns (CreateTableReply) {}
@@ -10,7 +10,7 @@ service Catalog {
 
 message CreateTableRequest {
   string table_name = 1;
-  repeated small.schema.Column columns = 2;
+//   repeated small.schema.Column columns = 2;
 }
 
 message CreateTableReply {
