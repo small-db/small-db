@@ -31,6 +31,13 @@
 #include "src/rocks/rocks.h"
 #include "src/schema/schema.h"
 
+// =====================================================================
+// protobuf generated files
+// =====================================================================
+
+// #include "catalog.grpc.pb.h"
+// #include "catalog.pb.h"
+
 namespace small::catalog {
 
 class Catalog {
@@ -89,5 +96,12 @@ class Catalog {
         const std::string& partition_name,
         const std::pair<std::string, std::string>& constraint);
 };
+
+// class CatalogService final : public small::catalog::Catalog::Service {
+//    public:
+//     grpc::Status CreateTable(grpc::ServerContext* context,
+//                              const small::catalog::CreateTableRequest* request,
+//                              small::catalog::CreateTableReply* response) final;
+// };
 
 }  // namespace small::catalog

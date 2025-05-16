@@ -4,6 +4,8 @@ add_library(small_catalog
 )
 
 target_link_libraries(small_catalog
+    PUBLIC
+    small::catalog_proto
     PRIVATE
     spdlog::spdlog
     nlohmann_json::nlohmann_json
@@ -30,12 +32,14 @@ target_include_directories(small_catalog_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
 protobuf_generate(TARGET small_catalog_proto
     LANGUAGE cpp
+    # PROTOC_OPTIONS "-I${CMAKE_SOURCE_DIR}"
 )
 protobuf_generate(
     TARGET small_catalog_proto
     LANGUAGE grpc
     GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
     PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
+    # PROTOC_OPTIONS "-I${CMAKE_SOURCE_DIR}"
 )
 
 add_library(small::catalog_proto ALIAS small_catalog_proto)
