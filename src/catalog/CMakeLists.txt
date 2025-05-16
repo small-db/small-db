@@ -7,9 +7,10 @@ target_link_libraries(small_catalog
     PUBLIC
     small::catalog_proto
     PRIVATE
+    small::schema
+    small::gossip
     spdlog::spdlog
     nlohmann_json::nlohmann_json
-    small::schema
 )
 
 add_library(small::catalog ALIAS small_catalog)

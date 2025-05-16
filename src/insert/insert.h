@@ -42,9 +42,6 @@ namespace small::insert {
 absl::Status insert(PgQuery__InsertStmt* insert_stmt);
 
 class InsertService final : public small::insert::Insert::Service {
-   private:
-    small::rocks::RocksDBWrapper* db_;
-
    public:
     grpc::Status Insert(grpc::ServerContext* context,
                         const small::insert::Row* request,

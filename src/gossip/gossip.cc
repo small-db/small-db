@@ -25,6 +25,9 @@
 // spdlog
 #include "spdlog/spdlog.h"
 
+// grpc
+#include "grpcpp/create_channel.h"
+
 // =====================================================================
 // local libraries
 // =====================================================================
@@ -51,16 +54,34 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& peer_addr)
     : self_info(self_info) {
-    std::thread([this, peer_addr]() {
-        SPDLOG_INFO("gossip server started");
-        while (true) {
-            SPDLOG_INFO("gossip: communicating with peers...");
+    // std::thread([this, peer_addr]() {
+    //     SPDLOG_INFO("gossip server started");
+    //     while (true) {
+    //         SPDLOG_INFO("gossip: communicating with peers...");
 
-            if (this->peers.empty()) {
-            } else {
-            }
-        }
-    }).detach();
+    //         if (this->peers.empty()) {
+    //             SPDLOG_INFO("gossip: communicating with peer {}", peer_addr);
+
+    //             auto channel = grpc::CreateChannel(
+    //                 peer_addr, grpc::InsecureChannelCredentials());
+    //             auto stub = small::gossip::Gossip::NewStub(channel);
+    //             grpc::ClientContext context;
+    //             small::gossip::Entries request;
+    //             small::gossip::Entries result;
+    //             grpc::Status status =
+    //                 stub->Exchange(&context, request, &result);
+    //             if (!status.ok()) {
+    //                 SPDLOG_ERROR("gossip: failed to communicate with peer {}",
+    //                              peer_addr);
+    //             } else {
+    //                 SPDLOG_INFO(
+    //                     "gossip: successfully communicated with peer {}",
+    //                     peer_addr);
+    //             }
+    //         } else {
+    //         }
+    //     }
+    // }).detach();
 }
 
 GossipServer* GossipServer::instance_ptr = nullptr;
@@ -95,6 +116,13 @@ std::vector<small::server_info::ImmutableInfo> get_nodes() {
         GossipServer::get_instance()->info_store.get_info("nodes");
 
     return std::vector<small::server_info::ImmutableInfo>();
+}
+
+grpc::Status GossipService::Exchange(grpc::ServerContext* context,
+                                     const small::gossip::Entries* entries,
+                                     small::gossip::Entries* response) {
+    // SPDLOG_INFO("gossip server: exchange");
+    return grpc::Status::OK;
 }
 
 }  // namespace small::gossip

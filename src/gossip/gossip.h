@@ -31,8 +31,8 @@
 // protobuf generated files
 // =====================================================================
 
-// #include "gossip.grpc.pb.h"
-// #include "gossip.pb.h"
+#include "gossip.grpc.pb.h"
+#include "gossip.pb.h"
 
 namespace small::gossip {
 
@@ -111,13 +111,11 @@ class GossipServer {
 
 std::vector<small::server_info::ImmutableInfo> get_nodes();
 
-// class GossipService final : public small::gossip::Gossip::Service {
-//    public:
-//     explicit GossipService() = default;
-
-//     grpc::Status Gossip(grpc::ServerContext* context,
-//                         const small::gossip::GossipRequest* request,
-//                         small::gossip::GossipResponse* response) override;
-// };
+class GossipService final : public small::gossip::Gossip::Service {
+   public:
+    grpc::Status Exchange(grpc::ServerContext* context,
+                          const small::gossip::Entries* entries,
+                          small::gossip::Entries* response) final;
+};
 
 }  // namespace small::gossip

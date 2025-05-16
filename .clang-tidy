@@ -1,3 +1,6 @@
+# ref:
+# - https://github.com/LadybirdBrowser/ladybird/blob/master/.clang-tidy
+
 # Generated from CLion Inspection settings
 ---
 Checks: '-*,
