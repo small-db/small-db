@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package small.catalog;
+package small.gossip;
 
 service Gossip {
   // Send all entries to the peer, then peer reply with entries that are
