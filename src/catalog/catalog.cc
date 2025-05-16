@@ -43,17 +43,17 @@
 
 namespace small::catalog {
 
-Catalog* Catalog::instancePtr = nullptr;
+CatalogManager* CatalogManager::instancePtr = nullptr;
 
-void Catalog::InitInstance() {
+void CatalogManager::InitInstance() {
     if (instancePtr == nullptr) {
-        instancePtr = new Catalog();
+        instancePtr = new CatalogManager();
     } else {
         SPDLOG_ERROR("catalog instance already initialized");
     }
 }
 
-Catalog* Catalog::GetInstance() {
+CatalogManager* CatalogManager::GetInstance() {
     if (instancePtr == nullptr) {
         SPDLOG_ERROR("catalog instance not initialized");
         return nullptr;
@@ -61,7 +61,7 @@ Catalog* Catalog::GetInstance() {
     return instancePtr;
 }
 
-Catalog::Catalog() {
+CatalogManager::CatalogManager() {
     std::vector<small::schema::Column> columns;
     columns.emplace_back("table_name", small::type::Type::String, true);
     columns.emplace_back("columns", small::type::Type::String);
@@ -89,7 +89,7 @@ Catalog::Catalog() {
         db_path, {"TablesCF", "PartitionCF"});
 }
 
-std::optional<std::shared_ptr<small::schema::Table>> Catalog::GetTable(
+std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
     const std::string& table_name) {
     auto it = tables.find(table_name);
     if (it != tables.end()) {
@@ -99,7 +99,7 @@ std::optional<std::shared_ptr<small::schema::Table>> Catalog::GetTable(
     }
 }
 
-absl::Status Catalog::CreateTable(
+absl::Status CatalogManager::CreateTable(
     const std::string& table_name,
     const std::vector<small::schema::Column>& columns) {
     auto table = GetTable(table_name);
@@ -124,7 +124,7 @@ absl::Status Catalog::CreateTable(
     return absl::OkStatus();
 }
 
-absl::Status Catalog::DropTable(const std::string& table_name) {
+absl::Status CatalogManager::DropTable(const std::string& table_name) {
     auto it = tables.find(table_name);
     if (it != tables.end()) {
         tables.erase(it);
@@ -134,7 +134,7 @@ absl::Status Catalog::DropTable(const std::string& table_name) {
     return absl::OkStatus();
 }
 
-absl::Status Catalog::SetPartition(const std::string& table_name,
+absl::Status CatalogManager::SetPartition(const std::string& table_name,
                                    const std::string& partition_column,
                                    PgQuery__PartitionStrategy strategy) {
     switch (strategy) {
@@ -164,7 +164,7 @@ absl::Status Catalog::SetPartition(const std::string& table_name,
     }
 }
 
-void Catalog::WritePartition(
+void CatalogManager::WritePartition(
     const std::shared_ptr<small::schema::Table>& table) {
     std::visit(
         [&](auto&& partition) {
@@ -187,7 +187,7 @@ void Catalog::WritePartition(
         table->partition);
 }
 
-absl::Status Catalog::AddListPartition(const std::string& table_name,
+absl::Status CatalogManager::AddListPartition(const std::string& table_name,
                                        const std::string& partition_name,
                                        const std::vector<std::string>& values) {
     for (const auto& [table_name, table] : tables) {
@@ -202,7 +202,7 @@ absl::Status Catalog::AddListPartition(const std::string& table_name,
     return absl::NotFoundError("table not found");
 }
 
-absl::Status Catalog::AddPartitionConstraint(
+absl::Status CatalogManager::AddPartitionConstraint(
     const std::string& partition_name,
     const std::pair<std::string, std::string>& constraint) {
     for (const auto& [table_name, table] : tables) {

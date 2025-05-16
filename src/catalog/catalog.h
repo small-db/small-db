@@ -40,16 +40,16 @@
 
 namespace small::catalog {
 
-class Catalog {
+class CatalogManager {
    private:
     // singleton instance - the only instance
-    static Catalog* instancePtr;
+    static CatalogManager* instancePtr;
 
     // singleton instance - constructor protector
-    Catalog();
+    CatalogManager();
 
     // singleton instance - destructor protector
-    ~Catalog() = default;
+    ~CatalogManager() = default;
 
     small::rocks::RocksDBWrapper* db;
 
@@ -65,13 +65,13 @@ class Catalog {
 
    public:
     // singleton instance - assignment-blocker
-    void operator=(const Catalog&) = delete;
+    void operator=(const CatalogManager&) = delete;
 
     // singleton instance - copy-blocker
-    Catalog(const Catalog&) = delete;
+    CatalogManager(const CatalogManager&) = delete;
 
     // singleton instance - get api
-    static Catalog* GetInstance();
+    static CatalogManager* GetInstance();
 
     // singleton instance - init api
     static void InitInstance();

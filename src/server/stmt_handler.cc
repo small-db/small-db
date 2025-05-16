@@ -115,7 +115,7 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
         }
     }
 
-    auto status = small::catalog::Catalog::GetInstance()->CreateTable(
+    auto status = small::catalog::CatalogManager::GetInstance()->CreateTable(
         table_name, columns);
     if (!status.ok()) {
         SPDLOG_ERROR("create table failed: {}", status.ToString());
@@ -133,7 +133,7 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
         auto partition_column = std::string(
             create_stmt->partspec->part_params[0]->partition_elem->name);
 
-        auto status = small::catalog::Catalog::GetInstance()->SetPartition(
+        auto status = small::catalog::CatalogManager::GetInstance()->SetPartition(
             table_name, partition_column, strategy);
         if (!status.ok()) {
             SPDLOG_ERROR("set partitioning failed: {}", status.ToString());
@@ -146,7 +146,7 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
 
 absl::Status handle_drop_table(PgQuery__DropStmt* drop_stmt) {
     auto table_name = drop_stmt->objects[0]->list->items[0]->string->sval;
-    return small::catalog::Catalog::GetInstance()->DropTable(table_name);
+    return small::catalog::CatalogManager::GetInstance()->DropTable(table_name);
 }
 
 absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
@@ -159,7 +159,7 @@ absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
         values.push_back(datum->a_const->sval->sval);
     }
 
-    return small::catalog::Catalog::GetInstance()->AddListPartition(
+    return small::catalog::CatalogManager::GetInstance()->AddListPartition(
         table_name, partition_name, values);
 }
 
@@ -174,7 +174,7 @@ absl::Status handle_add_constraint(PgQuery__AlterTableStmt* alter_stmt) {
     auto rexpr = expr->rexpr->a_const->sval->sval;
     SPDLOG_INFO("partition_name: {}, lexpr: {}, op: {}, rexpr: {}",
                 partition_name, lexpr, op, rexpr);
-    return small::catalog::Catalog::GetInstance()->AddPartitionConstraint(
+    return small::catalog::CatalogManager::GetInstance()->AddPartitionConstraint(
         partition_name, std::make_pair(lexpr, rexpr));
 }
 

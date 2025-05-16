@@ -318,7 +318,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         return EXIT_FAILURE;
     }
 
-    small::catalog::Catalog::InitInstance();
+    small::catalog::CatalogManager::InitInstance();
 
     small::gossip::GossipServer::init_instance(args);
     // === initialize singleton instances end ===

@@ -62,7 +62,7 @@ namespace small::insert {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     auto table_name = insert_stmt->relation->relname;
-    auto result = small::catalog::Catalog::GetInstance()->GetTable(table_name);
+    auto result = small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!result) {
         return absl::InternalError(
             fmt::format("table {} not found", table_name));
@@ -176,7 +176,7 @@ grpc::Status InsertService::Insert(grpc::ServerContext* context,
 
     // get the table
     auto result =
-        small::catalog::Catalog::GetInstance()->GetTable(request->table_name());
+        small::catalog::CatalogManager::GetInstance()->GetTable(request->table_name());
     if (!result) {
         return {grpc::StatusCode::NOT_FOUND,
                 fmt::format("table {} not found, server: {}",
