@@ -133,8 +133,9 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
         auto partition_column = std::string(
             create_stmt->partspec->part_params[0]->partition_elem->name);
 
-        auto status = small::catalog::CatalogManager::GetInstance()->SetPartition(
-            table_name, partition_column, strategy);
+        auto status =
+            small::catalog::CatalogManager::GetInstance()->SetPartition(
+                table_name, partition_column, strategy);
         if (!status.ok()) {
             SPDLOG_ERROR("set partitioning failed: {}", status.ToString());
             return status;
@@ -174,8 +175,8 @@ absl::Status handle_add_constraint(PgQuery__AlterTableStmt* alter_stmt) {
     auto rexpr = expr->rexpr->a_const->sval->sval;
     SPDLOG_INFO("partition_name: {}, lexpr: {}, op: {}, rexpr: {}",
                 partition_name, lexpr, op, rexpr);
-    return small::catalog::CatalogManager::GetInstance()->AddPartitionConstraint(
-        partition_name, std::make_pair(lexpr, rexpr));
+    return small::catalog::CatalogManager::GetInstance()
+        ->AddPartitionConstraint(partition_name, std::make_pair(lexpr, rexpr));
 }
 
 std::shared_ptr<arrow::RecordBatch> EmptyBatch() {

@@ -10,3 +10,6 @@
 
 # playground files
 ./play/*
+
+# small-db legacy
+./small-rows-rust/*
