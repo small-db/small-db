@@ -43,6 +43,11 @@ class GossipMessage {
     void add_recipient(const std::string& recipient_id);
 };
 
+class InfoStore {
+   public:
+    std::vector<char> get_info(const std::string& key);
+};
+
 class GossipServer {
    private:
     // singleton instance - the only instance
@@ -64,6 +69,8 @@ class GossipServer {
 
     // singleton instance - copy-blocker
     GossipServer(const GossipServer&) = delete;
+
+    InfoStore info_store;
 
     // singleton instance - init api
     static void init_instance(

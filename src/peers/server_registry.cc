@@ -56,8 +56,7 @@
 
 namespace small::server_registry {
 
-absl::Status Peers::add(
-    const small::server_info::ImmutableInfo& args) {
+absl::Status Peers::add(const small::server_info::ImmutableInfo& args) {
     std::lock_guard<std::mutex> lock(this->mutex_);
 
     SPDLOG_INFO(
@@ -85,11 +84,10 @@ grpc::Status RegistryService::Register(grpc::ServerContext* context,
         "region: {}",
         request->sql_address(), request->rpc_address(), request->region());
 
-    auto status =
-        small::server_registry::Peers::get_instance()->add(
-            small::server_info::ImmutableInfo(request->sql_address(),
-                                           request->rpc_address(), "",
-                                           request->region(), ""));
+    auto status = small::server_registry::Peers::get_instance()->add(
+        small::server_info::ImmutableInfo(request->sql_address(),
+                                          request->rpc_address(), "",
+                                          request->region(), ""));
 
     if (!status.ok()) {
         SPDLOG_ERROR("failed to register server: {}", status.ToString());
@@ -105,8 +103,7 @@ grpc::Status RegistryService::Register(grpc::ServerContext* context,
 std::vector<small::server_info::ImmutableInfo> get_servers(
     std::unordered_map<std::string, std::string>& constraints) {
     std::vector<small::server_info::ImmutableInfo> result;
-    auto servers =
-        small::server_registry::Peers::get_instance()->peers;
+    auto servers = small::server_registry::Peers::get_instance()->peers;
     SPDLOG_INFO("get servers: {}", servers.size());
     for (const auto& server : servers) {
         SPDLOG_INFO("server: sql_address: {}, rpc_address: {}, region: {}",

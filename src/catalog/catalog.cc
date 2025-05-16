@@ -33,6 +33,7 @@
 // local libraries
 // =====================================================================
 
+#include "src/gossip/gossip.h"
 #include "src/server_info/info.h"
 
 // =====================================================================
@@ -102,6 +103,24 @@ std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
 absl::Status CatalogManager::CreateTable(
     const std::string& table_name,
     const std::vector<small::schema::Column>& columns) {
+    // update local catalog
+    auto status = CreateTableLocal(table_name, columns);
+    if (!status.ok()) {
+        SPDLOG_ERROR("create table failed: {}", status.ToString());
+        return status;
+    }
+
+    // propagate catalog changes to other nodes
+    auto nodes_bytes =
+        small::gossip::GossipServer::get_instance()->info_store.get_info(
+            "nodes");
+
+    return absl::OkStatus();
+}
+
+absl::Status CatalogManager::CreateTableLocal(
+    const std::string& table_name,
+    const std::vector<small::schema::Column>& columns) {
     auto table = GetTable(table_name);
     if (table.has_value()) {
         return absl::AlreadyExistsError("Table already exists");
@@ -118,9 +137,6 @@ absl::Status CatalogManager::CreateTable(
     row.emplace_back(nlohmann::json(columns).dump());
 
     db->WriteRow(this->system_tables, row);
-
-    // propagate catalog changes to other nodes
-
     return absl::OkStatus();
 }
 
