@@ -50,7 +50,18 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
 
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& peer_addr)
-    : self_info(self_info) {}
+    : self_info(self_info) {
+    std::thread([this, peer_addr]() {
+        SPDLOG_INFO("gossip server started");
+        while (true) {
+            SPDLOG_INFO("gossip: communicating with peers...");
+
+            if (this->peers.empty()) {
+            } else {
+            }
+        }
+    }).detach();
+}
 
 GossipServer* GossipServer::instance_ptr = nullptr;
 

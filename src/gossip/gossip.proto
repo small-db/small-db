@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package small.catalog;
+
+service Gossip {
+  // Send all entries to the peer, then peer reply with entries that are
+  // newer than entries in the request.
+  rpc Exchange(Entries) returns (Entries) {}
+}
+
+message Entries {
+  repeated Entry entries = 1;
+}
+
+message Entry {
+  string key = 1;
+  string value = 2;
+
+  // The timestamp of the last update to this entry, in milliseconds since
+  // epoch.
+  int64 last_update_ts = 3;
+}
