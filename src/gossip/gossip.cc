@@ -43,12 +43,22 @@ GossipMessage::GossipMessage(const std::string& message) : message(message) {
     SPDLOG_ERROR("unimplemented");
 }
 
+std::vector<char> InfoStore::get_info(const std::string& key) {
+    SPDLOG_ERROR("unimplemented");
+    return std::vector<char>();
+}
+
+GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
+                           const std::string& peer_addr)
+    : self_info(self_info) {}
+
 GossipServer* GossipServer::instance_ptr = nullptr;
 
 void GossipServer::init_instance(
-    const small::server_info::ImmutableInfo& self_info) {
+    const small::server_info::ImmutableInfo& self_info,
+    const std::string& peer_addr) {
     if (instance_ptr == nullptr) {
-        instance_ptr = new GossipServer(self_info);
+        instance_ptr = new GossipServer(self_info, peer_addr);
     } else {
         SPDLOG_ERROR("gossip server instance already initialized");
     }
@@ -67,6 +77,13 @@ void GossipServer::transmit_message(const GossipMessage& message) {}
 void GossipServer::broadcast_message(const std::string& message) {
     GossipMessage gossip_message(message);
     transmit_message(gossip_message);
+}
+
+std::vector<small::server_info::ImmutableInfo> get_nodes() {
+    auto nodes_bytes =
+        GossipServer::get_instance()->info_store.get_info("nodes");
+
+    return std::vector<small::server_info::ImmutableInfo>();
 }
 
 }  // namespace small::gossip

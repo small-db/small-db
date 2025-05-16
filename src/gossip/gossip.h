@@ -48,13 +48,30 @@ class InfoStore {
     std::vector<char> get_info(const std::string& key);
 };
 
+// Design:
+// - Each server own exactly one GossipServer instance.
+// - Every 3 seconds, the GossipServer randomly selects several peers to
+//   talk with.
+// - Each talk consists of 3 steps:
+//   1. Send the list of keys and the "latest-update" timestamp of each key to
+//      the peer.
+//   2. The peer responds with the keys that it has a version of as well as the
+//      "latest-update" timestamp and the value of each key.
+//   3. GossipServer updates its local store with the values received from the
+//      peer.
+//
+// Notes:
+// - At least one peer is needed to initiate the GossipServer. We don't use
+//   multicast and broadcast since they can only be used in LAN, and small-db
+//   are supposted to be use in WAN and LAN.
 class GossipServer {
    private:
     // singleton instance - the only instance
     static GossipServer* instance_ptr;
 
     // singleton instance - protected constructor
-    GossipServer() = default;
+    explicit GossipServer(const small::server_info::ImmutableInfo& self_info,
+                          const std::string& peer_addr);
 
     // singleton instance - protected destructor
     ~GossipServer() = default;
@@ -72,17 +89,19 @@ class GossipServer {
 
     InfoStore info_store;
 
+    std::vector<small::server_info::ImmutableInfo> peers;
+
     // singleton instance - init api
     static void init_instance(
-        const small::server_info::ImmutableInfo& self_info);
+        const small::server_info::ImmutableInfo& self_info,
+        const std::string& peer_addr);
 
     // singleton instance - get api
     static GossipServer* get_instance();
 
-    explicit GossipServer(const small::server_info::ImmutableInfo& self_info)
-        : self_info(self_info) {}
-
     void broadcast_message(const std::string& message);
 };
+
+std::vector<small::server_info::ImmutableInfo> get_nodes();
 
 }  // namespace small::gossip

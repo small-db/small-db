@@ -75,37 +75,6 @@
 
 namespace small::server {
 
-class Server {
-   private:
-    // singleton instance - the only instance
-    static Server* instance_ptr;
-
-    // singleton instance - protected destructor
-    ~Server() = default;
-
-    explicit Server(const small::server_info::ImmutableInfo& info)
-        : info(info) {
-        this->gossip_server = new small::gossip::GossipServer(info);
-    }
-
-    small::server_info::ImmutableInfo info;
-
-    small::gossip::GossipServer* gossip_server;
-
-   public:
-    // singleton instance - assignment-blocker
-    void operator=(const Server&) = delete;
-
-    // singleton instance - copy-blocker
-    Server(const Server&) = delete;
-
-    // singleton instance - init api
-    static void init_instance(const small::server_info::ImmutableInfo& info);
-
-    // singleton instance - get api
-    static Server* get_instance();
-};
-
 std::atomic<bool> stopSignal = false;
 
 class ReaderWriter {
@@ -320,7 +289,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
 
     small::catalog::CatalogManager::InitInstance();
 
-    small::gossip::GossipServer::init_instance(args);
+    small::gossip::GossipServer::init_instance(args, args.join);
     // === initialize singleton instances end ===
 
     SPDLOG_INFO(

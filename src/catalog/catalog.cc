@@ -115,7 +115,9 @@ absl::Status CatalogManager::CreateTable(
         small::gossip::GossipServer::get_instance()->info_store.get_info(
             "nodes");
 
-    return absl::OkStatus();
+    auto nodes = small::gossip::get_nodes();
+
+    return absl::UnimplementedError("create table not implemented for gossip");
 }
 
 absl::Status CatalogManager::CreateTableLocal(
