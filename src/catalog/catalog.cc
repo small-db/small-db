@@ -116,8 +116,12 @@ absl::Status CatalogManager::CreateTable(
             "nodes");
 
     auto nodes = small::gossip::get_nodes();
+    SPDLOG_INFO("nodes size: {}", nodes.size());
+    for (const auto& node : nodes) {
+        SPDLOG_INFO("node: {}", node.sql_addr);
+    }
 
-    return absl::UnimplementedError("create table not implemented for gossip");
+    return absl::UnimplementedError("distributed DDL not implemented");
 }
 
 absl::Status CatalogManager::CreateTableLocal(
