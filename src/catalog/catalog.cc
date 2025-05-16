@@ -135,8 +135,8 @@ absl::Status CatalogManager::DropTable(const std::string& table_name) {
 }
 
 absl::Status CatalogManager::SetPartition(const std::string& table_name,
-                                   const std::string& partition_column,
-                                   PgQuery__PartitionStrategy strategy) {
+                                          const std::string& partition_column,
+                                          PgQuery__PartitionStrategy strategy) {
     switch (strategy) {
         case PG_QUERY__PARTITION_STRATEGY__PARTITION_STRATEGY_LIST: {
             auto p = small::schema::ListPartition(partition_column);
@@ -187,9 +187,9 @@ void CatalogManager::WritePartition(
         table->partition);
 }
 
-absl::Status CatalogManager::AddListPartition(const std::string& table_name,
-                                       const std::string& partition_name,
-                                       const std::vector<std::string>& values) {
+absl::Status CatalogManager::AddListPartition(
+    const std::string& table_name, const std::string& partition_name,
+    const std::vector<std::string>& values) {
     for (const auto& [table_name, table] : tables) {
         if (auto* listP =
                 std::get_if<small::schema::ListPartition>(&table->partition)) {
@@ -218,6 +218,14 @@ absl::Status CatalogManager::AddPartitionConstraint(
         }
     }
     return absl::NotFoundError("Partition not found");
+}
+
+grpc::Status CatalogService::CreateTable(
+    grpc::ServerContext* context,
+    const small::catalog::CreateTableRequest* request,
+    small::catalog::CreateTableReply* response) {
+    SPDLOG_INFO("create table request: {}", request->DebugString());
+    return grpc::Status::OK;
 }
 
 }  // namespace small::catalog
