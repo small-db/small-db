@@ -302,6 +302,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         {
             std::make_shared<small::server_registry::RegistryService>(),
             std::make_shared<insert::InsertService>(),
+            std::make_shared<small::gossip::GossipService>(),
         });
 
     status = small::server_registry::join(args);
