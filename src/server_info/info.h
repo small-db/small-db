@@ -32,6 +32,8 @@ namespace small::server_info {
 // Immutable information of a server.
 class ImmutableInfo {
    public:
+    std::string id;
+
     // IPv4 SQL address in the form of <ip>:<port>.
     //
     // Don't use broadcast or multicast address since this field will be used to

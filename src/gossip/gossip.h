@@ -55,6 +55,28 @@ class InfoStore {
     std::vector<char> get_info(const std::string& key);
 };
 
+template <typename T>
+class Info {
+   public:
+    T value;
+    std::chrono::milliseconds last_updated;
+
+    // Info() = default;
+    Info(const T& val, std::chrono::milliseconds ts)
+        : value(val), last_updated(ts) {}
+
+    bool is_newer_than(const Info<T>& other) const {
+        return last_updated > other.last_updated;
+    }
+
+    void update(const T& new_val, std::chrono::milliseconds ts) {
+        if (ts >= last_updated) {
+            value = new_val;
+            last_updated = ts;
+        }
+    }
+};
+
 // Design:
 // - Each server own exactly one GossipServer instance.
 // - Every 3 seconds, the GossipServer randomly selects several peers to
@@ -96,7 +118,8 @@ class GossipServer {
 
     InfoStore info_store;
 
-    std::vector<small::server_info::ImmutableInfo> peers;
+    std::unordered_map<std::string, Info<small::server_info::ImmutableInfo>>
+        peers;
 
     // singleton instance - init api
     static void init_instance(

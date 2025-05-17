@@ -47,7 +47,13 @@ ImmutableInfo::ImmutableInfo(const std::string& sql_addr,
       grpc_addr(grpc_addr),
       data_dir(data_dir),
       region(region),
-      join(join) {}
+      join(join) {
+    uuid_t uuid;
+    uuid_generate(uuid);
+    char str[37];
+    uuid_unparse(uuid, str);
+    this->id = std::string(str);
+}
 
 ServerInfo::ServerInfo() {
     uuid_t uuid;

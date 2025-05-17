@@ -61,6 +61,12 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& peer_addr)
     : self_info(self_info) {
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+    auto key = fmt::format("node:{}", self_info.id);
+    this->peers.emplace(
+        key, Info<small::server_info::ImmutableInfo>(self_info, now));
+
     std::thread([this, peer_addr]() {
         SPDLOG_INFO("gossip server started");
         while (true) {

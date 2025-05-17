@@ -7,5 +7,7 @@
         "llvm-vs-code-extensions.vscode-clangd",
         // - cmake formatting
         "kylinideteam.cmake-intellisence",
+        // - c++ debugging
+        "vadimcn.vscode-lldb",
     ]
 }
