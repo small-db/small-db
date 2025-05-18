@@ -243,7 +243,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             SPDLOG_ERROR("unknown statement, node_case: {}",
                          magic_enum::enum_name(stmt->node_case));
             return absl::InternalError(
-                fmt::format("unknown statement, node_case: {}",
+                std::format("unknown statement, node_case: {}",
                             magic_enum::enum_name(stmt->node_case)));
             break;
     }

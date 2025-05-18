@@ -2,7 +2,7 @@
 # base configuration
 # ============================================================================== #
 cmake_minimum_required(VERSION 3.28)
-project(small-db)
+project(small-db LANGUAGES CXX)
 
 # ============================================================================== #
 # compiler settings
@@ -89,3 +89,5 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+add_subdirectory(play)
