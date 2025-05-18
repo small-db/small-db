@@ -77,6 +77,23 @@ struct formatter<small::gossip::Info<T>> {
     constexpr auto format(const small::gossip::Info<T>& info,
                           Context& ctx) const {
         auto out = ctx.out();
+        fmt::format_to(out, "{");
+        fmt::format_to(out, "value: {}, ", info.value);
+
+        // Convert last_updated (milliseconds since epoch) to time_t
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            info.last_updated);
+        std::time_t t =
+            std::chrono::duration_cast<std::chrono::seconds>(ms).count();
+        std::tm tm = *std::localtime(&t);
+
+        // Format as "YYYY-MM-DD HH:MM:SS"
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%F %T", &tm);
+        fmt::format_to(out, "last_updated: {}", buf);
+
+        fmt::format_to(out, "}");
+
         return out;
     }
 };
@@ -89,6 +106,13 @@ struct formatter<small::server_info::ImmutableInfo> {
     constexpr auto format(const small::server_info::ImmutableInfo& info,
                           Context& ctx) const {
         auto out = ctx.out();
+        fmt::format_to(out, "{");
+        fmt::format_to(out, "sql_addr: {}, ", info.sql_addr);
+        fmt::format_to(out, "grpc_addr: {}, ", info.grpc_addr);
+        fmt::format_to(out, "data_dir: {}, ", info.data_dir);
+        fmt::format_to(out, "region: {}, ", info.region);
+        fmt::format_to(out, "}");
+
         return out;
     }
 };
