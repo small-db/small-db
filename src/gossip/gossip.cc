@@ -48,6 +48,53 @@
 
 #include "src/gossip/gossip.h"
 
+namespace fmt {
+
+template <typename K, typename V>
+struct fmt::formatter<std::unordered_map<K, V>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename Context>
+    constexpr auto format(const std::unordered_map<K, V>& map,
+                          Context& ctx) const {
+        auto out = ctx.out();
+        fmt::format_to(out, "{{");
+        bool first = true;
+        for (const auto& [k, v] : map) {
+            if (!first) fmt::format_to(out, ", ");
+            fmt::format_to(out, "{}: {}", k, v);
+            first = false;
+        }
+        return fmt::format_to(out, "}}");
+    }
+};
+
+template <typename T>
+struct fmt::formatter<small::gossip::Info<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename Context>
+    constexpr auto format(const small::gossip::Info<T>& info,
+                          Context& ctx) const {
+        auto out = ctx.out();
+        return out;
+    }
+};
+
+template <>
+struct fmt::formatter<small::server_info::ImmutableInfo> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename Context>
+    constexpr auto format(const small::server_info::ImmutableInfo& info,
+                          Context& ctx) const {
+        auto out = ctx.out();
+        return out;
+    }
+};
+
+}  // namespace fmt
+
 namespace small::gossip {
 
 GossipMessage::GossipMessage(const std::string& message) : message(message) {
@@ -59,8 +106,6 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
     return std::vector<char>();
 }
 
-struct QuotableString : std::string_view {};
-
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& peer_addr)
     : self_info(self_info) {
@@ -69,7 +114,7 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
     auto key = std::format("node:{}", self_info.id);
     this->peers.emplace(
         key, Info<small::server_info::ImmutableInfo>(self_info, now));
-    // SPDLOG_INFO("peers: {}", this->peers);
+    SPDLOG_INFO("peers: {}", this->peers);
 
     std::thread([this, peer_addr]() {
         SPDLOG_INFO("gossip server started");
@@ -145,3 +190,44 @@ grpc::Status GossipService::Exchange(grpc::ServerContext* context,
 }
 
 }  // namespace small::gossip
+
+// template <typename K, typename V>
+// struct std::formatter<std::unordered_map<K, V>> {
+//     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+//     template <typename FormatContext>
+//     auto format(const std::unordered_map<K, V>& map, FormatContext& ctx) {
+//         auto out = ctx.out();
+//         std::format_to(out, "{{");
+//         bool first = true;
+//         for (const auto& [k, v] : map) {
+//             if (!first) std::format_to(out, ", ");
+//             std::format_to(out, "{}: {}", k, v);
+//             first = false;
+//         }
+//         return std::format_to(out, "}}");
+//     }
+// };
+
+// template <>
+// struct std::formatter<
+//     std::unordered_map<std::string,
+//                        small::gossip::Info<small::server_info::ImmutableInfo>>,
+//     char> {
+//     bool quoted = false;
+
+//     template <class ParseContext>
+//     constexpr ParseContext::iterator parse(ParseContext& ctx) {
+//         return ctx.begin();
+//     }
+
+//     template <class FmtContext>
+//     FmtContext::iterator format(
+//         std::unordered_map<std::string, small::gossip::Info<
+//                                             small::server_info::ImmutableInfo>>,
+//         FmtContext& ctx) const {
+//         std::ostringstream out;
+//         std::string result = out.str();
+//         return std::ranges::copy(std::move(result), ctx.out()).out;
+//     }
+// };

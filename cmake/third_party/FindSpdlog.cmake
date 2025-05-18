@@ -6,6 +6,6 @@ FetchContent_Declare(
 )
 
 # SPDLOG_USE_STD_FORMAT
-set(SPDLOG_USE_STD_FORMAT ON)
+# set(SPDLOG_USE_STD_FORMAT ON)
 
 FetchContent_MakeAvailable(spdlog_content)
