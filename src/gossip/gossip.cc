@@ -51,7 +51,7 @@
 namespace fmt {
 
 template <typename K, typename V>
-struct fmt::formatter<std::unordered_map<K, V>> {
+struct formatter<std::unordered_map<K, V>> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename Context>
@@ -70,7 +70,7 @@ struct fmt::formatter<std::unordered_map<K, V>> {
 };
 
 template <typename T>
-struct fmt::formatter<small::gossip::Info<T>> {
+struct formatter<small::gossip::Info<T>> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename Context>
@@ -82,7 +82,7 @@ struct fmt::formatter<small::gossip::Info<T>> {
 };
 
 template <>
-struct fmt::formatter<small::server_info::ImmutableInfo> {
+struct formatter<small::server_info::ImmutableInfo> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename Context>
