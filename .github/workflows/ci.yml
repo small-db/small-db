@@ -18,3 +18,8 @@ jobs:
         run: ./scripts/build/build.sh
       - name: Test
         run: ./scripts/test/test.sh
+
+# ref:
+# - https://github.com/skyzh/mini-lsm/blob/main/.github/workflows/main.yml
+# - https://github.com/actions/deploy-pages
+# - https://github.com/actions/upload-pages-artifact
