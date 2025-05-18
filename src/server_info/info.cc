@@ -29,8 +29,8 @@
 // uuid
 #include "uuid/uuid.h"
 
-// json
-#include "nlohmann/json.hpp"
+// // json
+// #include "nlohmann/json.hpp"
 
 // =====================================================================
 // self header
@@ -43,25 +43,25 @@ namespace small::server_info {
 // Static instance pointer definition (must be outside class)
 ServerInfo* ServerInfo::instance = nullptr;
 
-void to_json(nlohmann::json& j, const ImmutableInfo& info) {
-    j = nlohmann::json{
-        {"id", info.id},
-        {"sql_addr", info.sql_addr},
-        {"grpc_addr", info.grpc_addr},
-        {"data_dir", info.data_dir},
-        {"region", info.region},
-        {"join", info.join},
-    };
-}
+// void to_json(nlohmann::json& j, const ImmutableInfo& info) {
+//     j = nlohmann::json{
+//         {"id", info.id},
+//         {"sql_addr", info.sql_addr},
+//         {"grpc_addr", info.grpc_addr},
+//         {"data_dir", info.data_dir},
+//         {"region", info.region},
+//         {"join", info.join},
+//     };
+// }
 
-void from_json(const nlohmann::json& j, ImmutableInfo& info) {
-    j.at("id").get_to(info.id);
-    j.at("sql_addr").get_to(info.sql_addr);
-    j.at("grpc_addr").get_to(info.grpc_addr);
-    j.at("data_dir").get_to(info.data_dir);
-    j.at("region").get_to(info.region);
-    j.at("join").get_to(info.join);
-}
+// void from_json(const nlohmann::json& j, ImmutableInfo& info) {
+//     j.at("id").get_to(info.id);
+//     j.at("sql_addr").get_to(info.sql_addr);
+//     j.at("grpc_addr").get_to(info.grpc_addr);
+//     j.at("data_dir").get_to(info.data_dir);
+//     j.at("region").get_to(info.region);
+//     j.at("join").get_to(info.join);
+// }
 
 ImmutableInfo::ImmutableInfo(const std::string& sql_addr,
                              const std::string& grpc_addr,

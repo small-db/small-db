@@ -8,17 +8,17 @@ add_library(small_schema
 
 target_link_libraries(small_schema
     PUBLIC
-    small::rocks
-    small::type
-    small::encode
-    small::server_info
-    small::insert
     rocksdb
     spdlog
     absl::status
     libpg_query_lib
     nlohmann_json::nlohmann_json
     id_lib
+    small::rocks
+    small::type
+    small::encode
+    small::server_info
+    small::insert
 )
 
 add_library(small::schema ALIAS small_schema)
