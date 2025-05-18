@@ -27,6 +27,9 @@
 // absl
 #include "absl/status/statusor.h"
 
+// json
+#include "nlohmann/json.hpp"
+
 namespace small::server_info {
 
 // Immutable information of a server.
@@ -54,6 +57,10 @@ class ImmutableInfo {
                   const std::string& data_dir, const std::string& region,
                   const std::string& join);
 };
+
+void to_json(nlohmann::json& j, const ImmutableInfo& info);
+
+void from_json(const nlohmann::json& j, ImmutableInfo& info);
 
 class ServerInfo {
    private:

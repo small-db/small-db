@@ -16,7 +16,6 @@
 // c++ std
 // =====================================================================
 
-#include <format>
 #include <string>
 
 // =====================================================================
@@ -156,6 +155,14 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                 grpc::ClientContext context;
                 small::gossip::Entries request;
                 small::gossip::Entries result;
+
+                for (const auto& [key, info] : this->peers) {
+                    auto entry = request.add_entries();
+                    entry->set_key(key);
+                    entry->set_value(nlohmann::json(info.value).dump());
+                    entry->set_last_update_ts(info.last_updated.count());
+                }
+
                 grpc::Status status =
                     stub->Exchange(&context, request, &result);
                 if (!status.ok()) {

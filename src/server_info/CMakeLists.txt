@@ -8,6 +8,7 @@ target_link_libraries(small_server_info
     absl::statusor
     PRIVATE
     spdlog::spdlog
+    nlohmann_json::nlohmann_json
     uuid
 )
 
