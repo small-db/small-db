@@ -66,6 +66,10 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
     auto key = fmt::format("node:{}", self_info.id);
     this->peers.emplace(
         key, Info<small::server_info::ImmutableInfo>(self_info, now));
+    // // std::unordered_map<std::string, Info<small::server_info::ImmutableInfo>>
+    // //     foo;
+    // std::unordered_map<std::string, std::string> foo;
+    // SPDLOG_INFO("peers: {}", foo);
     // SPDLOG_INFO("peers: {}", this->peers);
 
     std::thread([this, peer_addr]() {
