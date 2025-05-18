@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
         return app.exit(e);
     }
 
-    std::string sql_addr = std::format("0.0.0.0:{}", sql_port);
-    std::string grpc_addr = std::format("0.0.0.0:{}", grpc_addr);
+    std::string sql_addr = fmt::format("0.0.0.0:{}", sql_port);
+    std::string grpc_addr = fmt::format("0.0.0.0:{}", grpc_addr);
 
     return small::server::RunServer(small::server_info::ImmutableInfo(
         sql_addr, grpc_addr, region, join, data_dir));

@@ -66,7 +66,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!result) {
         return absl::InternalError(
-            std::format("table {} not found", table_name));
+            fmt::format("table {} not found", table_name));
     }
 
     const auto& table = result.value();
@@ -85,7 +85,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
 
         if (partition_column_id == -1) {
             return absl::InternalError(
-                std::format("partition column {} not found", partition_column));
+                fmt::format("partition column {} not found", partition_column));
         }
 
         // process row by row
@@ -101,7 +101,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             // get the partition
             auto partition = listP->lookup(partition_value);
             if (!partition) {
-                return absl::InternalError(std::format(
+                return absl::InternalError(fmt::format(
                     "partition not found for value {}", partition_value));
             }
 
@@ -113,12 +113,12 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             auto servers =
                 small::server_registry::get_servers(partition->constraints);
             if (servers.empty()) {
-                return absl::InternalError(std::format(
+                return absl::InternalError(fmt::format(
                     "no server found for partition {}", partition_value));
             }
             if (servers.size() > 1) {
                 return absl::InternalError(
-                    std::format("multiple servers found for partition {}",
+                    fmt::format("multiple servers found for partition {}",
                                 partition_value));
             }
 
@@ -131,7 +131,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                 auto datum = small::semantics::extract_const(
                     row->list->items[i]->a_const);
                 if (!datum.has_value()) {
-                    return absl::InternalError(std::format(
+                    return absl::InternalError(fmt::format(
                         "failed to extract const for column {}", column_name));
                 }
                 auto column_value = small::encode::encode(datum.value());
@@ -149,7 +149,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             grpc::Status status = stub->Insert(&context, request, &result);
             if (!status.ok()) {
                 return absl::InternalError(
-                    std::format("failed to insert row into server {}: {}",
+                    fmt::format("failed to insert row into server {}: {}",
                                 server.grpc_addr, status.error_message()));
             }
         }
@@ -158,7 +158,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     } else {
         // no partition, unimplemented
         return absl::UnimplementedError(
-            std::format("insert into table {} without partition is not "
+            fmt::format("insert into table {} without partition is not "
                         "supported yet",
                         table_name));
     }
@@ -180,7 +180,7 @@ grpc::Status InsertService::Insert(grpc::ServerContext* context,
         request->table_name());
     if (!result) {
         return {grpc::StatusCode::NOT_FOUND,
-                std::format("table {} not found, server: {}",
+                fmt::format("table {} not found, server: {}",
                             request->table_name(), db_path)};
     }
     const auto& table = result.value();

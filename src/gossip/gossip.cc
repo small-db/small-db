@@ -111,7 +111,7 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
     : self_info(self_info) {
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
-    auto key = std::format("node:{}", self_info.id);
+    auto key = fmt::format("node:{}", self_info.id);
     this->peers.emplace(
         key, Info<small::server_info::ImmutableInfo>(self_info, now));
     SPDLOG_INFO("peers: {}", this->peers);

@@ -5,7 +5,11 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
 )
 
-# SPDLOG_USE_STD_FORMAT
-# set(SPDLOG_USE_STD_FORMAT ON)
+# We use fmt::format instead of std::format in small-db.
+# 
+# This allows us to define custom formatters (fmt::formatter<T>) for
+# std types (like std::unordered_map) without causing compiler errors
+# or undefined behavior.
+set(SPDLOG_USE_STD_FORMAT OFF)
 
 FetchContent_MakeAvailable(spdlog_content)
