@@ -25,7 +25,7 @@ add_subdirectory(cmake/helper)
 # process of installing "grpc":
 # > gcl --depth 1 git@github.com:grpc/grpc.git
 # > cd grpc
-# > cmake -S . -B ./cmake/build -DCMAKE_CXX_STANDARD=17 -DgRPC_INSTALL=ON -DCMAKE_INSTALL_PREFIX=~/local/cpplib -G Ninja
+# > cmake -S . -B ./cmake/build -DCMAKE_CXX_STANDARD=17 -DgRPC_BUILD_TESTS=OFF -DgRPC_INSTALL=ON -DCMAKE_INSTALL_PREFIX=~/local/cpplib -G Ninja
 # > cmake --build ./cmake/build --target install
 # 
 # "grpc" bundles following packages:
@@ -36,6 +36,9 @@ add_subdirectory(cmake/helper)
 # - "re2" (<CMAKE_INSTALL_PREFIX>/lib/cmake/re2/re2Config.cmake)
 # - "utf_range" (<CMAKE_INSTALL_PREFIX>/lib/cmake/utf_range/utf_range-config.cmake)
 
+# Find Protobuf installation
+# Looks for protobuf-config.cmake file installed by Protobuf's cmake installation.
+option(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
 
 # "gRPC" must comes after "Protobuf" since it depends on "Protobuf"

@@ -28,9 +28,15 @@ add_library(foo_proto
 )
 target_link_libraries(foo_proto
     PUBLIC
+    # protobuf::libprotobuf
+    # gRPC::grpc
+    # gRPC::grpc++
+    absl::check
+    absl::flags
+    absl::flags_parse
+    absl::log
+    gRPC::grpc++_reflection
     protobuf::libprotobuf
-    gRPC::grpc
-    gRPC::grpc++
 )
 target_include_directories(foo_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

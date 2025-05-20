@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-// Use lite runtime to avoid linking issues from Abseil logging in full
-// protobuf.
-option optimize_for = LITE_RUNTIME;
+// // Use lite runtime to avoid linking issues from Abseil logging in full
+// // protobuf.
+// option optimize_for = LITE_RUNTIME;
 
 package small.gossip;
 
