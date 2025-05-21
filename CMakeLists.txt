@@ -92,6 +92,7 @@ find_package(CLI11 REQUIRED)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
+    ${CMAKE_BINARY_DIR}
 )
 
 # define macros
