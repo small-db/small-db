@@ -10,7 +10,7 @@ target_link_libraries(small_gossip
     PRIVATE
     # small::server_info
     # nlohmann_json::nlohmann_json
-    # spdlog::spdlog
+    spdlog::spdlog
     # spdlog
 )
 
