@@ -8,10 +8,10 @@ target_link_libraries(small_gossip
     # small::gossip_proto
     hw_grpc_proto
     PRIVATE
-    small::server_info
+    # small::server_info
     # nlohmann_json::nlohmann_json
     # spdlog::spdlog
-    spdlog
+    # spdlog
 )
 
 add_library(small::gossip ALIAS small_gossip)
