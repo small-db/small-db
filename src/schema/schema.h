@@ -55,38 +55,38 @@
 
 namespace small::schema {
 
-class Column {
-   public:
-    std::string name;
-    small::type::Type type;
-    bool is_primary_key = false;
+// class Column {
+//    public:
+//     std::string name;
+//     small::type::Type type;
+//     bool is_primary_key = false;
 
-    // The type must be DefaultConstructible to be converted from JSON.
-    // (https://github.com/nlohmann/json)
-    Column() = default;
+//     // The type must be DefaultConstructible to be converted from JSON.
+//     // (https://github.com/nlohmann/json)
+//     Column() = default;
 
-    Column(const std::string& name, const small::type::Type& type,
-           bool is_primary_key = false);
+//     Column(const std::string& name, const small::type::Type& type,
+//            bool is_primary_key = false);
 
-    void set_primary_key(bool set);
-};
+//     void set_primary_key(bool set);
+// };
 
-void to_json(nlohmann::json& j, const Column& c);
+// void to_json(nlohmann::json& j, const Column& c);
 
-void from_json(const nlohmann::json& j, Column& c);
+// void from_json(const nlohmann::json& j, Column& c);
 
-class Table {
-   public:
-    std::string name;
-    std::vector<Column> columns;
+// class Table {
+//    public:
+//     std::string name;
+//     std::vector<Column> columns;
 
-    partition_t partition;
+//     partition_t partition;
 
-    Table() = default;
+//     Table() = default;
 
-    Table(const std::string& name, const std::vector<Column>& columns);
+//     Table(const std::string& name, const std::vector<Column>& columns);
 
-    int get_pk_index();
-};
+//     int get_pk_index();
+// };
 
 }  // namespace small::schema

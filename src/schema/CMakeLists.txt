@@ -7,7 +7,7 @@ add_library(small_schema
 )
 
 target_link_libraries(small_schema
-    PUBLIC
+    PRIVATE
     rocksdb
     spdlog
     absl::status

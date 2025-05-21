@@ -5,4 +5,22 @@ package small.schema;
 message Column {
   string name = 1;
   string type = 2;
+  bool is_primary_key = 3;
+}
+
+message Partition {
+  oneof kind {
+    NullPartition null_partition = 1;
+    ListPartition list_partition = 2;
+  }
+}
+
+message NullPartition {}
+
+message ListPartition {}
+
+message Table {
+  string name = 1;
+  repeated Column columns = 2;
+  Partition partition = 3;
 }

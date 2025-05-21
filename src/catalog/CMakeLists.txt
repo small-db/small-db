@@ -24,6 +24,7 @@ add_library(small_catalog_proto
 )
 target_link_libraries(small_catalog_proto
     PUBLIC
+    small::schema_proto
     protobuf::libprotobuf
     gRPC::grpc
     gRPC::grpc++
