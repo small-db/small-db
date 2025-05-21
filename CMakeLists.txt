@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 # helper functions
 # ======================================================================== #
 
-# add_subdirectory(cmake/helper)
+add_subdirectory(cmake/helper)
 
 # ======================================================================== #
 # external packages
@@ -69,21 +69,21 @@ include(grpc)
 # ======================================================================== #
 
 # # step 1: update CMAKE_MODULE_PATH
-# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/third_party/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/third_party/")
 
 # # step 2: include FetchContent module
-# include(FetchContent)
-# set(FETCHCONTENT_QUIET OFF)
+include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
 
 # step 3: include third-party packages
-# find_package(Arrow REQUIRED)
-# find_package(Spdlog REQUIRED)
-# find_package(PgQuery REQUIRED)
-# find_package(GoogleTest REQUIRED)
-# find_package(RocksDB REQUIRED)
-# find_package(Json REQUIRED)
-# find_package(MagicEnum REQUIRED)
-# find_package(CLI11 REQUIRED)
+find_package(Arrow REQUIRED)
+find_package(Spdlog REQUIRED)
+find_package(PgQuery REQUIRED)
+find_package(GoogleTest REQUIRED)
+find_package(RocksDB REQUIRED)
+find_package(Json REQUIRED)
+find_package(MagicEnum REQUIRED)
+find_package(CLI11 REQUIRED)
 # find_package(UUID_V4 REQUIRED)
 
 # ============================================================================== #

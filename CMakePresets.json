@@ -11,7 +11,11 @@
             "hidden": true,
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_PREFIX_PATH": "~/local/cpplib"
+                "CMAKE_C_COMPILER": "/usr/bin/clang-18",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++-18",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_PREFIX_PATH": "./cmake/libs_install",
+                "CMAKE_INSTALL_PREFIX": "./cmake/libs_install"
             }
         },
         {
@@ -22,8 +26,7 @@
             ],
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ]
