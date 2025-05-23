@@ -35,23 +35,23 @@
 
 namespace small::type {
 
-enum class Type {
-    Int64 = 10,
-    String = 20,
-};
+// enum class Type {
+//     Int64 = 10,
+//     String = 20,
+// };
 
-using Datum = std::variant<int64_t, std::string>;
+// using Datum = std::variant<int64_t, std::string>;
 
-std::string to_string(Type type);
+// std::string to_string(Type type);
 
-absl::StatusOr<Type> from_string(const std::string& type_name);
+// absl::StatusOr<Type> from_string(const std::string& type_name);
 
-pqxx::oid to_pgwire_oid(Type type);
+// pqxx::oid to_pgwire_oid(Type type);
 
-absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid);
+// absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid);
 
-gandiva::DataTypePtr get_gandiva_type(Type type);
+// gandiva::DataTypePtr get_gandiva_type(Type type);
 
-int16_t get_pgwire_size(Type type);
+// int16_t get_pgwire_size(Type type);
 
 }  // namespace small::type

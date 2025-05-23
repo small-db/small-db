@@ -26,64 +26,64 @@
 
 namespace small::schema {
 
-void to_json(nlohmann::json& j, const ListPartition::SinglePartition& p) {
-    j = nlohmann::json{
-        {"values", p.values},
-        {"constraints", p.constraints},
-    };
-}
+// void to_json(nlohmann::json& j, const ListPartition::SinglePartition& p) {
+//     j = nlohmann::json{
+//         {"values", p.values},
+//         {"constraints", p.constraints},
+//     };
+// }
 
-void from_json(const nlohmann::json& j, ListPartition::SinglePartition& p) {
-    j.at("values").get_to(p.values);
-    j.at("constraints").get_to(p.constraints);
-}
+// void from_json(const nlohmann::json& j, ListPartition::SinglePartition& p) {
+//     j.at("values").get_to(p.values);
+//     j.at("constraints").get_to(p.constraints);
+// }
 
-void to_json(nlohmann::json& j, const partition_t& p) {
-    std::visit(
-        [&j](const auto& partition) {
-            using T = std::decay_t<decltype(partition)>;
-            if constexpr (std::is_same_v<T, ListPartition>) {
-                j["type"] = "ListPartition";
-                j["content"] = nlohmann::json{
-                    {"column_name", partition.column_name},
-                    {"partitions", partition.partitions},
-                };
-            } else {
-                j["type"] = "NullPartition";
-                j["content"] = nullptr;
-            }
-        },
-        p);
-}
+// void to_json(nlohmann::json& j, const partition_t& p) {
+//     std::visit(
+//         [&j](const auto& partition) {
+//             using T = std::decay_t<decltype(partition)>;
+//             if constexpr (std::is_same_v<T, ListPartition>) {
+//                 j["type"] = "ListPartition";
+//                 j["content"] = nlohmann::json{
+//                     {"column_name", partition.column_name},
+//                     {"partitions", partition.partitions},
+//                 };
+//             } else {
+//                 j["type"] = "NullPartition";
+//                 j["content"] = nullptr;
+//             }
+//         },
+//         p);
+// }
 
-void from_json(const nlohmann::json& j, partition_t& p) {
-    std::string type = j.at("type").get<std::string>();
+// void from_json(const nlohmann::json& j, partition_t& p) {
+//     std::string type = j.at("type").get<std::string>();
 
-    if (type == "ListPartition") {
-        ListPartition partition;
-        const auto& content = j.at("content");
+//     if (type == "ListPartition") {
+//         ListPartition partition;
+//         const auto& content = j.at("content");
 
-        content.at("column_name").get_to(partition.column_name);
-        content.at("partitions").get_to(partition.partitions);
+//         content.at("column_name").get_to(partition.column_name);
+//         content.at("partitions").get_to(partition.partitions);
 
-        p = partition;
-    } else if (type == "NullPartition") {
-        p = NullPartition{};
-    } else {
-        throw std::runtime_error("Unknown partition type in from_json: " +
-                                 type);
-    }
-}
+//         p = partition;
+//     } else if (type == "NullPartition") {
+//         p = NullPartition{};
+//     } else {
+//         throw std::runtime_error("Unknown partition type in from_json: " +
+//                                  type);
+//     }
+// }
 
-std::optional<ListPartition::SinglePartition> ListPartition::lookup(
-    std::string value) {
-    for (auto& [name, partition] : partitions) {
-        if (std::find(partition.values.begin(), partition.values.end(),
-                      value) != partition.values.end()) {
-            return partition;
-        }
-    }
-    return std::nullopt;
-}
+// std::optional<ListPartition::SinglePartition> ListPartition::lookup(
+//     std::string value) {
+//     for (auto& [name, partition] : partitions) {
+//         if (std::find(partition.values.begin(), partition.values.end(),
+//                       value) != partition.values.end()) {
+//             return partition;
+//         }
+//     }
+//     return std::nullopt;
+// }
 
 }  // namespace small::schema

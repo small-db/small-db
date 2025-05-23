@@ -2,6 +2,18 @@ syntax = "proto3";
 
 package small.schema;
 
+import "src/type/type.proto";
+
+message Table {
+  string name = 1;
+  Columns columns = 2;
+  Partition partition = 3;
+}
+
+message Columns {
+  repeated Column columns = 1;
+}
+
 message Column {
   string name = 1;
   string type = 2;
@@ -18,9 +30,3 @@ message Partition {
 message NullPartition {}
 
 message ListPartition {}
-
-message Table {
-  string name = 1;
-  repeated Column columns = 2;
-  Partition partition = 3;
-}

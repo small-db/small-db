@@ -6,11 +6,14 @@ add_library(small_catalog
 target_link_libraries(small_catalog
     PUBLIC
     small::catalog_proto
+    small::rocks
+    libpg_query_lib
     PRIVATE
     small::schema
     small::gossip
     spdlog::spdlog
     nlohmann_json::nlohmann_json
+    rocksdb
 )
 
 add_library(small::catalog ALIAS small_catalog)

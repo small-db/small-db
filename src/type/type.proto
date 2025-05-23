@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package small.type;
+
+enum Type {
+  INT64 = 0;
+  STRING = 1;
+}
+
+message Datum {
+  oneof value {
+    int64 int64_value = 1;
+    string string_value = 2;
+  }
+}

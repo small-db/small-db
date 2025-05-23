@@ -9,7 +9,7 @@ target_link_libraries(small_rocks
     spdlog
     absl::status
     small::type
-    small::encode
+    # small::encode
     small::schema
 )
 

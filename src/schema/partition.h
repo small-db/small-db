@@ -33,32 +33,32 @@
 
 namespace small::schema {
 
-class NullPartition {};
+// class NullPartition {};
 
-class ListPartition {
-   public:
-    // the partition column
-    std::string column_name;
+// class ListPartition {
+//    public:
+//     // the partition column
+//     std::string column_name;
 
-    class SinglePartition {
-       public:
-        std::vector<std::string> values;
-        std::unordered_map<std::string, std::string> constraints;
-    };
+//     class SinglePartition {
+//        public:
+//         std::vector<std::string> values;
+//         std::unordered_map<std::string, std::string> constraints;
+//     };
 
-    // key: partition name
-    // value: partition values
-    //
-    // use ordered map to keep a consistent order on disk
-    std::map<std::string, SinglePartition> partitions;
+//     // key: partition name
+//     // value: partition values
+//     //
+//     // use ordered map to keep a consistent order on disk
+//     std::map<std::string, SinglePartition> partitions;
 
-    std::optional<SinglePartition> lookup(std::string value);
-};
+//     std::optional<SinglePartition> lookup(std::string value);
+// };
 
-using partition_t = std::variant<NullPartition, ListPartition>;
+// using partition_t = std::variant<NullPartition, ListPartition>;
 
-void to_json(nlohmann::json& j, const partition_t& p);
+// void to_json(nlohmann::json& j, const partition_t& p);
 
-void from_json(const nlohmann::json& j, partition_t& p);
+// void from_json(const nlohmann::json& j, partition_t& p);
 
 }  // namespace small::schema

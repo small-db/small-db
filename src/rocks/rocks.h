@@ -37,6 +37,7 @@
 
 #include "src/encode/encode.h"
 #include "src/schema/schema.h"
+#include "src/schema/schema.pb.h"
 #include "src/type/type.h"
 
 namespace small::rocks {

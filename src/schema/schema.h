@@ -42,10 +42,6 @@
 // absl
 #include "absl/status/status.h"
 
-// pg_query
-#include "pg_query.h"
-#include "pg_query.pb-c.h"
-
 // =====================================================================
 // local libraries
 // =====================================================================

@@ -25,6 +25,13 @@
 #include <vector>
 
 // =====================================================================
+// third-party libraries
+// =====================================================================
+
+// pg_query
+#include "pg_query.pb-c.h"
+
+// =====================================================================
 // local libraries
 // =====================================================================
 
@@ -57,9 +64,6 @@ class CatalogManager {
         tables;
     std::shared_ptr<small::schema::Table> system_tables;
     std::shared_ptr<small::schema::Table> system_partitions;
-
-    std::unordered_map<std::string, std::shared_ptr<small::schema::partition_t>>
-        parititions;
 
     void WritePartition(const std::shared_ptr<small::schema::Table>& table);
 

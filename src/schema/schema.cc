@@ -36,8 +36,8 @@
 // generated files
 // =====================================================================
 
-#include "schema.pb.h"
 #include "schema.grpc.pb.h"
+#include "schema.pb.h"
 
 // =====================================================================
 // self header
@@ -47,45 +47,45 @@
 
 namespace small::schema {
 
-void to_json(nlohmann::json& j, const Column& c) {
-    j = nlohmann::json{
-        {"name", c.name},
-        {"type", c.type},
-        {"is_primary_key", c.is_primary_key},
-    };
-}
+// void to_json(nlohmann::json& j, const Column& c) {
+//     j = nlohmann::json{
+//         {"name", c.name()},
+//         {"type", c.type()},
+//         {"is_primary_key", c.is_primary_key()},
+//     };
+// }
 
-void from_json(const nlohmann::json& j, Column& c) {
-    j.at("name").get_to(c.name);
-    j.at("type").get_to(c.type);
-    j.at("is_primary_key").get_to(c.is_primary_key);
-}
+// void from_json(const nlohmann::json& j, Column& c) {
+//     j.at("name").get_to(c.name);
+//     j.at("type").get_to(c.type);
+//     j.at("is_primary_key").get_to(c.is_primary_key);
+// }
 
-void to_json(nlohmann::json& j, const Table& t) {
-    j = nlohmann::json{{"name", t.name}, {"columns", t.columns}};
-}
+// void to_json(nlohmann::json& j, const Table& t) {
+//     j = nlohmann::json{{"name", t.name}, {"columns", t.columns}};
+// }
 
-void from_json(const nlohmann::json& j, Table& t) {
-    j.at("name").get_to(t.name);
-    j.at("columns").get_to(t.columns);
-}
+// void from_json(const nlohmann::json& j, Table& t) {
+//     j.at("name").get_to(t.name);
+//     j.at("columns").get_to(t.columns);
+// }
 
-Column::Column(const std::string& name, const small::type::Type& type,
-               bool is_primary_key)
-    : name(name), type(type), is_primary_key(is_primary_key) {}
+// Column::Column(const std::string& name, const small::type::Type& type,
+//                bool is_primary_key)
+//     : name(name), type(type), is_primary_key(is_primary_key) {}
 
-void Column::set_primary_key(bool set) { is_primary_key = set; }
+// void Column::set_primary_key(bool set) { is_primary_key = set; }
 
-Table::Table(const std::string& name, const std::vector<Column>& columns)
-    : name(name), columns(columns) {}
+// Table::Table(const std::string& name, const std::vector<Column>& columns)
+//     : name(name), columns(columns) {}
 
-int Table::get_pk_index() {
-    for (int i = 0; i < columns.size(); ++i) {
-        if (columns[i].is_primary_key) {
-            return i;
-        }
-    }
-    return -1;
-}
+// int Table::get_pk_index() {
+//     for (int i = 0; i < columns.size(); ++i) {
+//         if (columns[i].is_primary_key) {
+//             return i;
+//         }
+//     }
+//     return -1;
+// }
 
 }  // namespace small::schema

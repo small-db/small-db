@@ -66,6 +66,29 @@ CatalogManager* CatalogManager::GetInstance() {
 }
 
 CatalogManager::CatalogManager() {
+    small::schema::Columns columns;
+
+    auto column = columns.add_columns();
+    column->set_name("table_name");
+    column->set_type(small::type::Type::STRING);
+    column->set_is_primary_key(true);
+
+    column = columns.add_columns();
+    column->set_name("columns");
+    column->set_type(small::type::Type::STRING);
+
+    auto system_tables = std::make_shared<small::schema::Table>();
+    system_tables->set_name("system.tables");
+    system_tables
+        ->set
+
+            // ->set_type(small::type::Type::String);
+            columns.add_columns()
+        ->set_name("columns");
+    columns.add_columns()->set_name("partition");
+    this->tables["system.tables"] =
+        std::make_shared<small::schema::Table>("system.tables", columns);
+
     std::vector<small::schema::Column> columns;
     columns.emplace_back("table_name", small::type::Type::String, true);
     columns.emplace_back("columns", small::type::Type::String);

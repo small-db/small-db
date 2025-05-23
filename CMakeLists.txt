@@ -21,6 +21,10 @@ add_subdirectory(cmake/helper)
 # ======================================================================== #
 
 # append to CMAKE_MODULE_PATH
+# 
+# CMAKE_MODULE_PATH is used by:
+# - find_package() to search for packages
+# - include() to search for cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/recipes/external")
 
 include(grpc)

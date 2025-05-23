@@ -25,11 +25,12 @@
 // =====================================================================
 
 #include "src/type/type.h"
+#include "src/type/type.pb.h"
 
 namespace small::encode {
 
-std::string encode(const small::type::Datum& datum);
+// std::string encode(const small::type::Datum& datum);
 
-small::type::Datum decode(const std::string& str, small::type::Type type);
+// small::type::Datum decode(const std::string& str, small::type::Type type);
 
 }  // namespace small::encode
