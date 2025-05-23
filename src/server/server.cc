@@ -302,15 +302,9 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         args.grpc_addr,
         {
             // std::make_shared<small::server_registry::RegistryService>(),
-            std::make_shared<insert::InsertService>(),
-            // std::make_shared<small::gossip::GossipService>(),
+            std::make_shared<small::insert::InsertServiceImpl>(),
+            std::make_shared<small::gossip::GossipServiceImpl>(),
         });
-
-    // status = small::server_registry::join(args);
-    // if (!status.ok()) {
-    //     SPDLOG_ERROR("failed to join peer: {}", status.ToString());
-    //     return EXIT_FAILURE;
-    // }
 
     struct sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);

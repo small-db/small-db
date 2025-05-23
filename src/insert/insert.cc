@@ -176,7 +176,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     }
 }
 
-grpc::Status InsertService::Insert(grpc::ServerContext* context,
+grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
                                    const small::insert::Row* request,
                                    small::insert::InsertReply* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());

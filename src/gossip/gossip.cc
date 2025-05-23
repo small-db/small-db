@@ -134,53 +134,52 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& peer_addr)
     : self_info(self_info) {
-    // auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-    //     std::chrono::system_clock::now().time_since_epoch());
-    // auto key = fmt::format("node:{}", self_info.id);
-    // this->peers.emplace(
-    //     key, Info<small::server_info::ImmutableInfo>(self_info, now));
-    // SPDLOG_INFO("peers: {}", this->peers);
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
+    auto key = fmt::format("node:{}", self_info.id);
+    this->peers.emplace(
+        key, Info<small::server_info::ImmutableInfo>(self_info, now));
+    SPDLOG_INFO("peers: {}", this->peers);
 
-    // std::thread([this, peer_addr]() {
-    //     SPDLOG_INFO("gossip server started");
-    //     while (true) {
-    //         std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::thread([this, peer_addr]() {
+        SPDLOG_INFO("gossip server started");
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    //         SPDLOG_INFO("gossip: communicating with peers...");
+            SPDLOG_INFO("gossip: communicating with peers...");
 
-    //         if (this->peers.empty()) {
-    //             SPDLOG_INFO("gossip: communicating with peer {}", peer_addr);
+            if (this->peers.empty()) {
+                SPDLOG_INFO("gossip: communicating with peer {}", peer_addr);
 
-    //             auto channel = grpc::CreateChannel(
-    //                 peer_addr, grpc::InsecureChannelCredentials());
-    //             auto stub = small::gossip::Gossip::NewStub(channel);
-    //             grpc::ClientContext context;
-    //             small::gossip::Entries request;
-    //             small::gossip::Entries result;
+                auto channel = grpc::CreateChannel(
+                    peer_addr, grpc::InsecureChannelCredentials());
+                auto stub = small::gossip::Gossip::NewStub(channel);
+                grpc::ClientContext context;
+                small::gossip::Entries request;
+                small::gossip::Entries result;
 
-    //             // for (const auto& [key, info] : this->peers) {
-    //             //     auto entry = request.add_entries();
-    //             //     entry->set_key(key);
-    //             //     //
-    //             entry->set_value(nlohmann::json(info.value).dump());
-    //             //     entry->set_last_update_ts(info.last_updated.count());
-    //             // }
+                // for (const auto& [key, info] : this->peers) {
+                //     auto entry = request.add_entries();
+                //     entry->set_key(key);
+                //     //
+                // entry->set_value(nlohmann::json(info.value).dump());
+                //     entry->set_last_update_ts(info.last_updated.count());
+                // }
 
-    //             grpc::Status status =
-    //                 stub->Exchange(&context, request, &result);
-    //             if (!status.ok()) {
-    //                 SPDLOG_ERROR("gossip: failed to communicate with peer
-    //                 {}",
-    //                              peer_addr);
-    //             } else {
-    //                 SPDLOG_INFO(
-    //                     "gossip: successfully communicated with peer {}",
-    //                     peer_addr);
-    //             }
-    //         } else {
-    //         }
-    //     }
-    // }).detach();
+                grpc::Status status =
+                    stub->Exchange(&context, request, &result);
+                if (!status.ok()) {
+                    SPDLOG_ERROR("gossip: failed to communicate with peer {} ",
+                                 peer_addr);
+                } else {
+                    SPDLOG_INFO(
+                        "gossip: successfully communicated with peer {}",
+                        peer_addr);
+                }
+            } else {
+            }
+        }
+    }).detach();
 }
 
 GossipServer* GossipServer::instance_ptr = nullptr;
@@ -217,9 +216,9 @@ std::vector<small::server_info::ImmutableInfo> get_nodes() {
     return std::vector<small::server_info::ImmutableInfo>();
 }
 
-grpc::Status GossipService::Exchange(grpc::ServerContext* context,
-                                     const small::gossip::Entries* entries,
-                                     small::gossip::Entries* response) {
+grpc::Status GossipServiceImpl::Exchange(grpc::ServerContext* context,
+                                         const small::gossip::Entries* entries,
+                                         small::gossip::Entries* response) {
     SPDLOG_INFO("gossip: received entries from peer");
     return grpc::Status::OK;
 }

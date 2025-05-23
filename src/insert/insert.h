@@ -25,12 +25,6 @@
 #include "absl/status/status.h"
 
 // =====================================================================
-// local libraries
-// =====================================================================
-
-#include "src/rocks/rocks.h"
-
-// =====================================================================
 // protobuf generated files
 // =====================================================================
 
@@ -41,7 +35,7 @@ namespace small::insert {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt);
 
-class InsertService final : public small::insert::Insert::Service {
+class InsertServiceImpl final : public small::insert::Insert::Service {
    public:
     grpc::Status Insert(grpc::ServerContext* context,
                         const small::insert::Row* request,
