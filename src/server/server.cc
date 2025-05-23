@@ -325,9 +325,8 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     // bind socket and listen for connections
     if (bind(sock_listen_fd, (struct sockaddr*)&server_addr,
              sizeof(server_addr)) < 0) {
-        std::string error_msg =
-            fmt::format("error binding socket: {}", strerror(errno));
-        SPDLOG_ERROR(error_msg);
+        SPDLOG_ERROR("error binding socket {}, error: {}", args.sql_addr,
+                     errno);
         return EXIT_FAILURE;
     }
 

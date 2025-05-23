@@ -54,6 +54,11 @@ class GossipMessage {
 
 class InfoStore {
    public:
+    std::mutex mtx;
+
+    // std::vector<char> get_info(const std::string& key);
+    std::unordered_map<std::string, small::gossip::Entry> entries;
+
     std::vector<char> get_info(const std::string& key);
 };
 

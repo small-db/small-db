@@ -218,9 +218,41 @@ std::vector<small::server_info::ImmutableInfo> get_nodes() {
     return std::vector<small::server_info::ImmutableInfo>();
 }
 
+grpc::Status update(InfoStore& info_store,
+                    const small::gossip::Entries* peer_entries) {
+    std::lock_guard<std::mutex> lock(info_store.mtx);
+
+    std::vector<small::gossip::Entry> self_newer;
+
+    for (const auto& [_, peer_entry] : peer_entries->entries()) {
+        auto key = peer_entry.key();
+        auto value = peer_entry.value();
+        auto last_update = peer_entry.last_update();
+
+        auto it = info_store.entries.find(key);
+        if (it != info_store.entries.end()) {
+            if (it->second.last_update() < last_update) {
+                // Update the value and timestamp if the new one is more recent
+                it->second.set_value(value);
+                it->second.set_last_update(last_update);
+            }
+        } else {
+            // If the key doesn't exist, add it to the store
+            small::gossip::Entry new_entry;
+            new_entry.set_key(key);
+            new_entry.set_value(value);
+            new_entry.set_last_update(last_update);
+            info_store.entries[key] = new_entry;
+        }
+    }
+    return grpc::Status::OK;
+}
+
 grpc::Status GossipServiceImpl::Exchange(grpc::ServerContext* context,
                                          const small::gossip::Entries* entries,
                                          small::gossip::Entries* response) {
+    auto reply = update(GossipServer::get_instance()->info_store, entries);
+
     SPDLOG_INFO("gossip: received entries from peer");
     return grpc::Status::OK;
 }

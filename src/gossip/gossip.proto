@@ -1,9 +1,5 @@
 syntax = "proto3";
 
-// // Use lite runtime to avoid linking issues from Abseil logging in full
-// // protobuf.
-// option optimize_for = LITE_RUNTIME;
-
 package small.gossip;
 
 service Gossip {
@@ -13,9 +9,7 @@ service Gossip {
 }
 
 message Entries {
-  repeated Entry entries = 1;
-  // string a = 1;
-  // string b = 2;
+  map<string, Entry> entries = 1;
 }
 
 message Entry {
@@ -24,5 +18,5 @@ message Entry {
 
   // The timestamp of the last update to this entry, in milliseconds since
   // epoch.
-  int64 last_update_ts = 3;
+  int64 last_update = 3;
 }
