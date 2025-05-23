@@ -33,6 +33,12 @@
 // pqxx
 #include "pqxx/pqxx"
 
+// =====================================================================
+// local libraries
+// =====================================================================
+
+#include "src/type/type.pb.h"
+
 namespace small::type {
 
 // enum class Type {
@@ -44,7 +50,7 @@ namespace small::type {
 
 // std::string to_string(Type type);
 
-// absl::StatusOr<Type> from_string(const std::string& type_name);
+absl::StatusOr<small::type::Type> from_string(const std::string& type_name);
 
 // pqxx::oid to_pgwire_oid(Type type);
 

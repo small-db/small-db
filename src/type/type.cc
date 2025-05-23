@@ -32,6 +32,12 @@
 #include "magic_enum/magic_enum.hpp"
 
 // =====================================================================
+// local libraries
+// =====================================================================
+
+#include "src/type/type.pb.h"
+
+// =====================================================================
 // self include
 // =====================================================================
 
@@ -51,15 +57,15 @@ namespace small::type {
 //     }
 // }
 
-// absl::StatusOr<Type> from_string(const std::string& type_name) {
-//     if (type_name == "int4") {
-//         return Type::Int64;
-//     } else if (type_name == "string") {
-//         return Type::String;
-//     } else {
-//         return absl::InternalError("unknown type: " + type_name);
-//     }
-// }
+absl::StatusOr<small::type::Type> from_string(const std::string& type_name) {
+    if (type_name == "int4") {
+        return small::type::Type::INT64;
+    } else if (type_name == "string") {
+        return small::type::Type::STRING;
+    } else {
+        return absl::InternalError("unknown type: " + type_name);
+    }
+}
 
 // pqxx::oid to_pgwire_oid(Type type) {
 //     switch (type) {

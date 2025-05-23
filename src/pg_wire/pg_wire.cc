@@ -125,7 +125,7 @@ class RowDescriptionResponse : public Message {
         const std::shared_ptr<arrow::Schema>& schema)
         : schema(schema) {}
 
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'T');
 
         // message length (placeholder)
