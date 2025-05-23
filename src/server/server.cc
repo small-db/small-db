@@ -17,6 +17,7 @@
 // =====================================================================
 
 #include <arpa/inet.h>
+#include <grpcpp/server_builder.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
@@ -300,16 +301,16 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     start_grpc_server(
         args.grpc_addr,
         {
-            std::make_shared<small::server_registry::RegistryService>(),
+            // std::make_shared<small::server_registry::RegistryService>(),
             std::make_shared<insert::InsertService>(),
             // std::make_shared<small::gossip::GossipService>(),
         });
 
-    status = small::server_registry::join(args);
-    if (!status.ok()) {
-        SPDLOG_ERROR("failed to join peer: {}", status.ToString());
-        return EXIT_FAILURE;
-    }
+    // status = small::server_registry::join(args);
+    // if (!status.ok()) {
+    //     SPDLOG_ERROR("failed to join peer: {}", status.ToString());
+    //     return EXIT_FAILURE;
+    // }
 
     struct sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
