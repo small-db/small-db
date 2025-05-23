@@ -146,7 +146,7 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
-            SPDLOG_INFO("gossip: communicating with peers...");
+            SPDLOG_INFO("gossip: communicating with peers {}", this->peers);
 
             if (this->peers.empty()) {
                 SPDLOG_INFO("gossip: communicating with peer {}", peer_addr);
