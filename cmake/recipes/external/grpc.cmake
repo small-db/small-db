@@ -37,9 +37,25 @@ endif()
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
 
-function(small_proto_target NAME)
-    set(TARGET_NAME "small_${NAME}")
-    set(PROTO_FILES ${ARGN})
+function(small_proto_target)
+    cmake_parse_arguments(
+        # prefix
+        SPT
+        # no options
+        ""
+        # one-value keywords
+        "TARGET"
+        # multi-value keywords
+        "SOURCES;DEPS"
+        # argument list
+        ${ARGN}
+    )
+
+    set(TARGET_NAME "small_${SPT_TARGET}")
+    set(PROTO_FILES ${SPT_SOURCES})
+    set(DEPS ${SPT_DEPS})
+
+    message(STATUS "creating target ${TARGET_NAME} with sources ${PROTO_FILES}")
 
     add_library(${TARGET_NAME}
         ${PROTO_FILES}
@@ -50,6 +66,7 @@ function(small_proto_target NAME)
         protobuf::libprotobuf
         gRPC::grpc
         gRPC::grpc++
+        ${DEPS}
     )
 
     protobuf_generate(
@@ -68,5 +85,5 @@ function(small_proto_target NAME)
         PROTOC_OUT_DIR "${CMAKE_BINARY_DIR}"
     )
 
-    add_library(small::${NAME} ALIAS ${TARGET_NAME})
+    add_library(small::${SPT_TARGET} ALIAS ${TARGET_NAME})
 endfunction()

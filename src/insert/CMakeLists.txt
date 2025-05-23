@@ -27,4 +27,7 @@ add_library(small::insert ALIAS small_insert)
 # protobuf target
 # ======================================================================== #
 
-small_proto_target(insert_proto insert.proto)
+small_proto_target(
+    TARGET insert_proto 
+    SOURCES insert.proto
+)
