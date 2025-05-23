@@ -350,7 +350,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         SPDLOG_ERROR("SPDLOG_ERROR adding new listeding socket to epoll..\n");
     }
 
-    while (1) {
+    while (true) {
         if (stopSignal.load()) {
             SPDLOG_INFO("stop signal received, stopping the server");
             break;
