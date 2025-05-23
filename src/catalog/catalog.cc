@@ -66,45 +66,47 @@ CatalogManager* CatalogManager::GetInstance() {
 }
 
 CatalogManager::CatalogManager() {
-    small::schema::Columns columns;
+    auto system_tables = std::make_shared<small::schema::Table>();
+    this->tables["system.tables"] = system_tables;
+    this->system_tables = system_tables;
 
-    auto column = columns.add_columns();
+    system_tables->set_name("system.tables");
+
+    auto column = system_tables->mutable_columns()->add_columns();
     column->set_name("table_name");
     column->set_type(small::type::Type::STRING);
     column->set_is_primary_key(true);
 
-    column = columns.add_columns();
+    column = system_tables->mutable_columns()->add_columns();
     column->set_name("columns");
     column->set_type(small::type::Type::STRING);
 
-    auto system_tables = std::make_shared<small::schema::Table>();
-    system_tables->set_name("system.tables");
-    system_tables
-        ->set
+    auto system_partitions = std::make_shared<small::schema::Table>();
+    this->tables["system.partitions"] = system_partitions;
+    this->system_partitions = system_partitions;
 
-            // ->set_type(small::type::Type::String);
-            columns.add_columns()
-        ->set_name("columns");
-    columns.add_columns()->set_name("partition");
-    this->tables["system.tables"] =
-        std::make_shared<small::schema::Table>("system.tables", columns);
+    system_partitions->set_name("system.partitions");
 
-    std::vector<small::schema::Column> columns;
-    columns.emplace_back("table_name", small::type::Type::String, true);
-    columns.emplace_back("columns", small::type::Type::String);
-    this->tables["system.tables"] =
-        std::make_shared<small::schema::Table>("system.tables", columns);
-    this->system_tables = this->tables["system.tables"];
+    column = system_partitions->mutable_columns()->add_columns();
+    column->set_name("table_name");
+    column->set_type(small::type::Type::STRING);
 
-    columns.clear();
-    columns.emplace_back("table_name", small::type::Type::String);
-    columns.emplace_back("partition_name", small::type::Type::String, true);
-    columns.emplace_back("constraint", small::type::Type::String);
-    columns.emplace_back("column_name", small::type::Type::String);
-    columns.emplace_back("partition_value", small::type::Type::String);
-    this->tables["system.partitions"] =
-        std::make_shared<small::schema::Table>("system.partitions", columns);
-    this->system_partitions = this->tables["system.partitions"];
+    column = system_partitions->mutable_columns()->add_columns();
+    column->set_name("partition_name");
+    column->set_type(small::type::Type::STRING);
+    column->set_is_primary_key(true);
+
+    column = system_partitions->mutable_columns()->add_columns();
+    column->set_name("constraint");
+    column->set_type(small::type::Type::STRING);
+
+    column = system_partitions->mutable_columns()->add_columns();
+    column->set_name("column_name");
+    column->set_type(small::type::Type::STRING);
+
+    column = system_partitions->mutable_columns()->add_columns();
+    column->set_name("partition_value");
+    column->set_type(small::type::Type::STRING);
 
     auto info = small::server_info::get_info();
     if (!info.ok()) {
