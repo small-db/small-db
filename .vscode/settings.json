@@ -1,3 +1,6 @@
 {
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/debug/compile_commands.json",
+    "lldb.launch.initCommands": [
+        "settings set target.process.follow-fork-mode child"
+    ]
 }
