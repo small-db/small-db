@@ -27,6 +27,7 @@
 // =====================================================================
 
 #include "src/type/type.h"
+#include "src/type/type.pb.h"
 
 namespace small::semantics {
 

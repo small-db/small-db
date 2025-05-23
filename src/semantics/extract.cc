@@ -43,10 +43,14 @@ namespace small::semantics {
 std::optional<small::type::Datum> extract_const(PgQuery__AConst* node) {
     switch (node->val_case) {
         case PG_QUERY__A__CONST__VAL_SVAL: {
-            return small::type::Datum(node->sval->sval);
+            auto datum = small::type::Datum();
+            datum.set_string_value(node->sval->sval);
+            return datum;
         }
         case PG_QUERY__A__CONST__VAL_IVAL: {
-            return small::type::Datum(static_cast<int64_t>(node->ival->ival));
+            auto datum = small::type::Datum();
+            datum.set_int64_value(static_cast<int64_t>(node->ival->ival));
+            return datum;
         }
         default: {
             SPDLOG_ERROR("unknown const type, node_case: {}",

@@ -31,6 +31,12 @@
 // json
 #include "nlohmann/json.hpp"
 
+// =====================================================================
+// local libraries
+// =====================================================================
+
+#include "src/schema/schema.pb.h"
+
 namespace small::schema {
 
 // class NullPartition {};
@@ -60,5 +66,9 @@ namespace small::schema {
 // void to_json(nlohmann::json& j, const partition_t& p);
 
 // void from_json(const nlohmann::json& j, partition_t& p);
+
+std::optional<small::schema::ListPartitionItem> lookup(
+    const small::schema::ListPartition& list_partition,
+    const std::string& value);
 
 }  // namespace small::schema

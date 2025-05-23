@@ -41,16 +41,16 @@
 // =====================================================================
 
 #include "src/catalog/catalog.h"
-#include "src/encode/encode.h"
-#include "src/peers/server_registry.h"
+#include "src/gossip/gossip.h"
 #include "src/semantics/extract.h"
+#include "src/server_info/info.h"
 
 // =====================================================================
 // protobuf generated files
 // =====================================================================
 
-#include "insert.grpc.pb.h"
-#include "insert.pb.h"
+#include "src/insert/insert.grpc.pb.h"
+#include "src/insert/insert.pb.h"
 
 // =====================================================================
 // self header
@@ -70,9 +70,11 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     }
 
     const auto& table = result.value();
-    if (auto* listP =
-            std::get_if<small::schema::ListPartition>(&table->partition)) {
-        auto partition_column = listP->column_name;
+
+    if (table->partition().has_list_partition()) {
+        auto list_partition = table->partition().list_partition();
+
+        auto partition_column = list_partition.column_name();
 
         // get partition column id (in the insert statement)
         int partition_column_id = -1;
@@ -99,19 +101,21 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             SPDLOG_INFO("partition value: {}", partition_value);
 
             // get the partition
-            auto partition = listP->lookup(partition_value);
+            auto partition =
+                small::schema::lookup(list_partition, partition_value);
             if (!partition) {
                 return absl::InternalError(fmt::format(
                     "partition not found for value {}", partition_value));
             }
 
-            for (const auto& [key, value] : partition->constraints) {
+            for (const auto& [key, value] : partition->constraints()) {
                 SPDLOG_INFO("partition constraint: {} = {}", key, value);
             }
 
             // search a server for the partition
-            auto servers =
-                small::server_registry::get_servers(partition->constraints);
+            // auto servers =
+            //     small::server_registry::get_servers(partition->constraints());
+            auto servers = small::gossip::get_nodes();
             if (servers.empty()) {
                 return absl::InternalError(fmt::format(
                     "no server found for partition {}", partition_value));
@@ -134,9 +138,17 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                     return absl::InternalError(fmt::format(
                         "failed to extract const for column {}", column_name));
                 }
-                auto column_value = small::encode::encode(datum.value());
+                // auto column_value = small::encode::encode(datum.value());
+
+                std::string column_json;
+                auto status = google::protobuf::util::MessageToJsonString(
+                    datum.value(), &column_json);
+                if (!status.ok()) {
+                    return status;
+                }
+
                 request.add_column_names(column_name);
-                request.add_column_values(column_value);
+                request.add_column_values(column_json);
             }
             request.set_table_name(table_name);
             SPDLOG_INFO("insert row: {}", request.DebugString());

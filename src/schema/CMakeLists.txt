@@ -38,10 +38,6 @@ target_link_libraries(small_schema_proto
     gRPC::grpc
     gRPC::grpc++
 )
-target_include_directories(small_schema_proto
-    PUBLIC
-    ${CMAKE_CURRENT_BINARY_DIR}
-)
 
 protobuf_generate(
     TARGET small_schema_proto

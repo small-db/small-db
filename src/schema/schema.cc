@@ -36,8 +36,8 @@
 // generated files
 // =====================================================================
 
-#include "schema.grpc.pb.h"
-#include "schema.pb.h"
+#include "src/schema/schema.grpc.pb.h"
+#include "src/schema/schema.pb.h"
 
 // =====================================================================
 // self header

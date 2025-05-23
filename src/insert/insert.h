@@ -34,8 +34,8 @@
 // protobuf generated files
 // =====================================================================
 
-#include "insert.grpc.pb.h"
-#include "insert.pb.h"
+#include "src/insert/insert.grpc.pb.h"
+#include "src/insert/insert.pb.h"
 
 namespace small::insert {
 

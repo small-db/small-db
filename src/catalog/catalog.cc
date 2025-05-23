@@ -251,7 +251,7 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
     auto* partition_item =
         &(*list_partition->mutable_partitions())[partition_name];
     auto constraints = partition_item->mutable_constraints();
-    constraints->insert(new_constraint.first, new_constraint.second);
+    constraints->insert(new_constraint);
     return UpdateTable(table);
 }
 

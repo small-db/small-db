@@ -19,6 +19,12 @@
 #include <string>
 
 // =====================================================================
+// local libraries
+// =====================================================================
+
+#include "src/schema/schema.pb.h"
+
+// =====================================================================
 // self header
 // =====================================================================
 
@@ -75,15 +81,19 @@ namespace small::schema {
 //     }
 // }
 
-// std::optional<ListPartition::SinglePartition> ListPartition::lookup(
-//     std::string value) {
-//     for (auto& [name, partition] : partitions) {
-//         if (std::find(partition.values.begin(), partition.values.end(),
-//                       value) != partition.values.end()) {
-//             return partition;
-//         }
-//     }
-//     return std::nullopt;
-// }
+std::optional<small::schema::ListPartitionItem> lookup(
+    const small::schema::ListPartition& list_partition,
+    const std::string& value) {
+    auto partitions = list_partition.partitions();
+    for (auto& entry : partitions) {
+        auto& partition = entry.second;
+        for (const auto& v : partition.values()) {
+            if (v == value) {
+                return partition;
+            }
+        }
+    }
+    return std::nullopt;
+}
 
 }  // namespace small::schema

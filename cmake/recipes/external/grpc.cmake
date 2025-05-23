@@ -36,3 +36,37 @@ else()
 endif()
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
+
+function(small_proto_target NAME)
+    set(TARGET_NAME "small_${NAME}")
+    set(PROTO_FILES ${ARGN})
+
+    add_library(${TARGET_NAME}
+        ${PROTO_FILES}
+    )
+
+    target_link_libraries(${TARGET_NAME}
+        PUBLIC
+        protobuf::libprotobuf
+        gRPC::grpc
+        gRPC::grpc++
+    )
+
+    protobuf_generate(
+        TARGET ${TARGET_NAME}
+        LANGUAGE cpp
+        IMPORT_DIRS ${CMAKE_SOURCE_DIR}
+        PROTOC_OUT_DIR "${CMAKE_BINARY_DIR}"
+    )
+
+    protobuf_generate(
+        TARGET ${TARGET_NAME}
+        LANGUAGE grpc
+        GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+        PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
+        IMPORT_DIRS ${CMAKE_SOURCE_DIR}
+        PROTOC_OUT_DIR "${CMAKE_BINARY_DIR}"
+    )
+
+    add_library(small::${NAME} ALIAS ${TARGET_NAME})
+endfunction()
