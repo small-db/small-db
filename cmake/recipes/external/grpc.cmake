@@ -53,7 +53,12 @@ function(small_proto_target)
 
     set(TARGET_NAME "small_${SPT_TARGET}")
     set(PROTO_FILES ${SPT_SOURCES})
-    set(DEPS ${SPT_DEPS})
+
+    # add "small_" prefix to all deps
+    set(DEPS "")
+    foreach(dep IN LISTS SPT_DEPS)
+        list(APPEND DEPS "small_${dep}")
+    endforeach()
 
     message(STATUS "creating target ${TARGET_NAME} with sources ${PROTO_FILES}")
 

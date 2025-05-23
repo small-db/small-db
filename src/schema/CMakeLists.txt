@@ -28,7 +28,7 @@ add_library(small::schema ALIAS small_schema)
 # ======================================================================== #
 
 small_proto_target(
-    schema_proto
+    TARGET schema_proto
     SOURCES schema.proto
     DEPS type_proto
 )
