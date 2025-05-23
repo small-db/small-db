@@ -96,9 +96,11 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
                     SPDLOG_ERROR("unknown type: {}", type_name.value());
                     return type.status();
                 }
-                small::schema::Column column(column_def->colname, type.value());
+                auto column = small::schema::Column();
+                column.set_name(column_def->colname);
+                column.set_type(type.value());
                 if (primary_key) {
-                    column.set_primary_key(true);
+                    column.set_is_primary_key(true);
                 }
                 columns.push_back(column);
 
@@ -160,7 +162,7 @@ absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
         values.push_back(datum->a_const->sval->sval);
     }
 
-    return small::catalog::CatalogManager::GetInstance()->AddListPartition(
+    return small::catalog::CatalogManager::GetInstance()->ListPartitionAddValue(
         table_name, partition_name, values);
 }
 
@@ -176,7 +178,8 @@ absl::Status handle_add_constraint(PgQuery__AlterTableStmt* alter_stmt) {
     SPDLOG_INFO("partition_name: {}, lexpr: {}, op: {}, rexpr: {}",
                 partition_name, lexpr, op, rexpr);
     return small::catalog::CatalogManager::GetInstance()
-        ->AddPartitionConstraint(partition_name, std::make_pair(lexpr, rexpr));
+        ->ListPartitionAddConstraint(partition_name,
+                                     std::make_pair(lexpr, rexpr));
 }
 
 std::shared_ptr<arrow::RecordBatch> EmptyBatch() {

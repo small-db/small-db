@@ -102,8 +102,8 @@ class CatalogManager {
                                        const std::vector<std::string>& values);
 
     absl::Status ListPartitionAddConstraint(
-        const std::string& table_name, const std::string& partition_name,
-        const std::pair<std::string, std::string>& constraint);
+        const std::string& partition_name,
+        const std::pair<std::string, std::string>& new_constraint);
 };
 
 class CatalogService final : public small::catalog::Catalog::Service {

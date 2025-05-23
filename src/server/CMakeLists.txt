@@ -16,13 +16,12 @@ target_link_libraries(small_server
     small::semantics
     small::util::ip
     small::pg_wire
+    small::insert
+    small::query
     spdlog::spdlog
     libpg_query_lib
-    query_lib
-    small::insert
     ssl
     crypto
-    # server_registry_proto
     absl::status
 )
 

@@ -240,19 +240,25 @@ absl::Status CatalogManager::ListPartitionAddValue(
 }
 
 absl::Status CatalogManager::ListPartitionAddConstraint(
-    const std::string& table_name, const std::string& partition_name,
+    const std::string& partition_name,
     const std::pair<std::string, std::string>& new_constraint) {
-    auto it = tables.find(table_name);
-    if (it == tables.end()) {
-        return absl::NotFoundError("table not found");
+    for (auto& [table_name, table] : tables) {
+        auto partition = table->partition();
+        if (partition.has_list_partition()) {
+            auto partitions = table->mutable_partition()
+                                  ->mutable_list_partition()
+                                  ->mutable_partitions();
+            auto partition_it = partitions->find(partition_name);
+            if (partition_it != partitions->end()) {
+                auto& partition_item = partition_it->second;
+                auto constraints = partition_item.mutable_constraints();
+                constraints->insert(new_constraint);
+                return UpdateTable(table);
+            }
+        }
     }
-    auto& table = it->second;
-    auto* list_partition = table->mutable_partition()->mutable_list_partition();
-    auto* partition_item =
-        &(*list_partition->mutable_partitions())[partition_name];
-    auto constraints = partition_item->mutable_constraints();
-    constraints->insert(new_constraint);
-    return UpdateTable(table);
+
+    return absl::NotFoundError("parition not found");
 }
 
 grpc::Status CatalogService::CreateTable(

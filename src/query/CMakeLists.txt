@@ -1,9 +1,9 @@
-add_library(query_lib
+add_library(small_query
     query.cc
     query.h
 )
 
-target_link_libraries(query_lib
+target_link_libraries(small_query
     PRIVATE
     small::rocks
     small::schema
@@ -15,3 +15,5 @@ target_link_libraries(query_lib
     arrow_lib
     magic_enum
 )
+
+add_library(small::query ALIAS small_query)
