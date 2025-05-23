@@ -7,6 +7,8 @@
 
 # build files
 ./build/*
+./cmake/libs_source/*
+./cmake/libs_install/*
 
 # playground files
 ./play/*

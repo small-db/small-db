@@ -29,11 +29,8 @@
 // spdlog
 #include "spdlog/spdlog.h"
 
-// json
-#include "nlohmann/json_fwd.hpp"
-
 // protobuf
-#include <google/protobuf/util/json_util.h>
+#include "google/protobuf/util/json_util.h"
 
 // =====================================================================
 // local libraries

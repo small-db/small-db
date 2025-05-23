@@ -9,5 +9,7 @@
         "kylinideteam.cmake-intellisence",
         // - c++ debugging
         "vadimcn.vscode-lldb",
+        "redhat.vscode-yaml",
+        "mine.cpplint",
     ]
 }

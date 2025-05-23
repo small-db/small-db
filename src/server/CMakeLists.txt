@@ -37,18 +37,3 @@ target_link_libraries(server
     spdlog::spdlog
     CLI11::CLI11
 )
-
-# add_executable(server2
-#     main2.cc
-# )
-
-# target_link_libraries(server2
-#     small::gossip
-#     absl::check
-#     absl::flags
-#     absl::flags_parse
-#     absl::log
-#     ${_REFLECTION}
-#     ${_GRPC_GRPCPP}
-#     ${_PROTOBUF_LIBPROTOBUF}
-# )
