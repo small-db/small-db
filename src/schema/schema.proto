@@ -16,7 +16,7 @@ message Columns {
 
 message Column {
   string name = 1;
-  string type = 2;
+  small.type.Type type = 2;
   bool is_primary_key = 3;
 }
 
