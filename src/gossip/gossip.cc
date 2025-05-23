@@ -222,10 +222,10 @@ grpc::Status update(InfoStore& info_store,
                     const small::gossip::Entries* peer_entries) {
     std::lock_guard<std::mutex> lock(info_store.mtx);
 
-    std::vector<small::gossip::Entry> self_newer;
+    small::gossip::Entries self_newer;
 
-    for (const auto& [_, peer_entry] : peer_entries->entries()) {
-        auto key = peer_entry.key();
+    // step 1: update entries that are newer in the peer
+    for (const auto& [key, peer_entry] : peer_entries->entries()) {
         auto value = peer_entry.value();
         auto last_update = peer_entry.last_update();
 
@@ -235,14 +235,12 @@ grpc::Status update(InfoStore& info_store,
                 // Update the value and timestamp if the new one is more recent
                 it->second.set_value(value);
                 it->second.set_last_update(last_update);
+            } else {
+                // If the existing entry is more recent, add it to self_newer
             }
         } else {
             // If the key doesn't exist, add it to the store
-            small::gossip::Entry new_entry;
-            new_entry.set_key(key);
-            new_entry.set_value(value);
-            new_entry.set_last_update(last_update);
-            info_store.entries[key] = new_entry;
+            self_newer.mutable_entries()->insert({key, it->second});
         }
     }
     return grpc::Status::OK;

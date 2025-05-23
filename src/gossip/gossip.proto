@@ -13,10 +13,9 @@ message Entries {
 }
 
 message Entry {
-  string key = 1;
-  string value = 2;
+  string value = 1;
 
   // The timestamp of the last update to this entry, in milliseconds since
   // epoch.
-  int64 last_update = 3;
+  int64 last_update = 2;
 }
