@@ -87,8 +87,8 @@ class RocksDBWrapper {
 
     void PrintAllKV();
 
-    void WriteRow(const std::shared_ptr<small::schema::Table>& table,
-                  const std::vector<small::type::Datum>& values);
+    void WriteRow(const std::string& table_name, const std::string& pk,
+                  const std::string& row_json);
 
     void WriteRowWire(const std::shared_ptr<small::schema::Table>& table,
                       const std::vector<std::string>& values);

@@ -202,30 +202,11 @@ void RocksDBWrapper::PrintAllKV() {
     }
 }
 
-void RocksDBWrapper::WriteRow(
-    const std::shared_ptr<small::schema::Table>& table,
-    const std::vector<small::type::Datum>& values) {
-    int pk_index = -1;
-    for (int i = 0; i < table->columns().columns_size(); ++i) {
-        if (table->columns().columns().Get(i).is_primary_key()) {
-            pk_index = i;
-            break;
-        }
-    }
-
-    for (int i = 0; i < table->columns().columns_size(); ++i) {
-        std::string pk_binary;
-        if (!values[pk_index].SerializeToString(&pk_binary)) {
-            throw std::runtime_error("Failed to serialize primary key");
-        }
-        auto key =
-            absl::StrFormat("/%s/%s/column_%d", table->name(), pk_binary, i);
-        std::string value_binary;
-        if (!values[i].SerializeToString(&value_binary)) {
-            throw std::runtime_error("Failed to serialize value");
-        }
-        this->Put(key, value_binary);
-    }
+void RocksDBWrapper::WriteRow(const std::string& table_name,
+                              const std::string& pk,
+                              const std::string& row_json) {
+    auto key = absl::StrFormat("/%s/%s", table_name, pk);
+    this->Put(key, row_json);
 }
 
 void RocksDBWrapper::WriteRowWire(

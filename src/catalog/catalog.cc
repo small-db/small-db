@@ -32,6 +32,9 @@
 // json
 #include "nlohmann/json_fwd.hpp"
 
+// protobuf
+#include <google/protobuf/util/json_util.h>
+
 // =====================================================================
 // local libraries
 // =====================================================================
@@ -72,12 +75,12 @@ CatalogManager::CatalogManager() {
 
     system_tables->set_name("system.tables");
 
-    auto column = system_tables->mutable_columns()->add_columns();
+    auto column = system_tables->add_columns();
     column->set_name("table_name");
     column->set_type(small::type::Type::STRING);
     column->set_is_primary_key(true);
 
-    column = system_tables->mutable_columns()->add_columns();
+    column = system_tables->add_columns();
     column->set_name("columns");
     column->set_type(small::type::Type::STRING);
 
@@ -87,24 +90,24 @@ CatalogManager::CatalogManager() {
 
     system_partitions->set_name("system.partitions");
 
-    column = system_partitions->mutable_columns()->add_columns();
+    column = system_partitions->add_columns();
     column->set_name("table_name");
     column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->mutable_columns()->add_columns();
+    column = system_partitions->add_columns();
     column->set_name("partition_name");
     column->set_type(small::type::Type::STRING);
     column->set_is_primary_key(true);
 
-    column = system_partitions->mutable_columns()->add_columns();
+    column = system_partitions->add_columns();
     column->set_name("constraint");
     column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->mutable_columns()->add_columns();
+    column = system_partitions->add_columns();
     column->set_name("column_name");
     column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->mutable_columns()->add_columns();
+    column = system_partitions->add_columns();
     column->set_name("partition_value");
     column->set_type(small::type::Type::STRING);
 
@@ -155,22 +158,32 @@ absl::Status CatalogManager::CreateTable(
 absl::Status CatalogManager::CreateTableLocal(
     const std::string& table_name,
     const std::vector<small::schema::Column>& columns) {
-    auto table = GetTable(table_name);
-    if (table.has_value()) {
+    if (GetTable(table_name).has_value()) {
         return absl::AlreadyExistsError("Table already exists");
     }
 
+    auto table = std::make_shared<small::schema::Table>();
+    table->set_name(table_name);
+    for (const auto& column : columns) {
+        table->add_columns()->CopyFrom(column);
+    }
+
+    return UpdateTable(table);
+}
+
+absl::Status CatalogManager::UpdateTable(
+    const std::shared_ptr<small::schema::Table>& table) {
     // write to in-memory cache
-    auto new_table =
-        std::make_shared<small::schema::Table>(table_name, columns);
-    tables[table_name] = new_table;
+    tables[table->name()] = table;
 
     // write to disk
-    std::vector<small::type::Datum> row;
-    row.emplace_back(table_name);
-    row.emplace_back(nlohmann::json(columns).dump());
+    std::string json;
+    auto status = google::protobuf::util::MessageToJsonString(*table, &json);
+    if (!status.ok()) {
+        return status;
+    }
 
-    db->WriteRow(this->system_tables, row);
+    db->WriteRow(this->system_tables->name(), table->name(), json);
     return absl::OkStatus();
 }
 
@@ -189,21 +202,16 @@ absl::Status CatalogManager::SetPartition(const std::string& table_name,
                                           PgQuery__PartitionStrategy strategy) {
     switch (strategy) {
         case PG_QUERY__PARTITION_STRATEGY__PARTITION_STRATEGY_LIST: {
-            auto p = small::schema::ListPartition(partition_column);
             auto table = GetTable(table_name);
             if (!table.has_value()) {
                 return absl::NotFoundError("Table not found");
             }
 
-            // write to in-memory cache
-            this->parititions[table_name] =
-                std::make_shared<small::schema::partition_t>(p);
-            table.value()->partition = p;
+            auto list_partition =
+                table.value()->mutable_partition()->mutable_list_partition();
+            list_partition->set_column_name(partition_column);
 
-            // write to disk
-            WritePartition(table.value());
-
-            return absl::OkStatus();
+            return UpdateTable(table.value());
         }
 
         default: {
@@ -214,60 +222,37 @@ absl::Status CatalogManager::SetPartition(const std::string& table_name,
     }
 }
 
-void CatalogManager::WritePartition(
-    const std::shared_ptr<small::schema::Table>& table) {
-    std::visit(
-        [&](auto&& partition) {
-            using T = std::decay_t<decltype(partition)>;
-            if constexpr (std::is_same_v<T, small::schema::ListPartition>) {
-                for (auto& [p_name, p] : partition.partitions) {
-                    std::vector<small::type::Datum> row;
-                    row.emplace_back(table->name);
-                    row.emplace_back(p_name);
-                    row.emplace_back(nlohmann::json(p.constraints).dump());
-                    row.emplace_back(partition.column_name);
-                    row.emplace_back(nlohmann::json(p.values).dump());
-                    db->WriteRow(this->system_partitions, row);
-                }
-            } else {
-                SPDLOG_ERROR("unsupported partition type: {}",
-                             typeid(T).name());
-            }
-        },
-        table->partition);
-}
-
-absl::Status CatalogManager::AddListPartition(
+absl::Status CatalogManager::ListPartitionAddValue(
     const std::string& table_name, const std::string& partition_name,
     const std::vector<std::string>& values) {
-    for (const auto& [table_name, table] : tables) {
-        if (auto* listP =
-                std::get_if<small::schema::ListPartition>(&table->partition)) {
-            listP->partitions[partition_name] =
-                small::schema::ListPartition::SinglePartition{values, {}};
-            WritePartition(table);
-            return absl::OkStatus();
-        }
+    auto it = tables.find(table_name);
+    if (it == tables.end()) {
+        return absl::NotFoundError("table not found");
     }
-    return absl::NotFoundError("table not found");
+    auto& table = it->second;
+    auto* list_partition = table->mutable_partition()->mutable_list_partition();
+    auto* partition_item =
+        &(*list_partition->mutable_partitions())[partition_name];
+    for (const auto& v : values) {
+        partition_item->add_values(v);
+    }
+    return UpdateTable(table);
 }
 
-absl::Status CatalogManager::AddPartitionConstraint(
-    const std::string& partition_name,
-    const std::pair<std::string, std::string>& constraint) {
-    for (const auto& [table_name, table] : tables) {
-        if (auto* listP =
-                std::get_if<small::schema::ListPartition>(&table->partition)) {
-            auto it = listP->partitions.find(partition_name);
-            if (it != listP->partitions.end()) {
-                auto& p = it->second;
-                p.constraints.insert(constraint);
-                WritePartition(table);
-                return absl::OkStatus();
-            }
-        }
+absl::Status CatalogManager::ListPartitionAddConstraint(
+    const std::string& table_name, const std::string& partition_name,
+    const std::pair<std::string, std::string>& new_constraint) {
+    auto it = tables.find(table_name);
+    if (it == tables.end()) {
+        return absl::NotFoundError("table not found");
     }
-    return absl::NotFoundError("Partition not found");
+    auto& table = it->second;
+    auto* list_partition = table->mutable_partition()->mutable_list_partition();
+    auto* partition_item =
+        &(*list_partition->mutable_partitions())[partition_name];
+    auto constraints = partition_item->mutable_constraints();
+    constraints->insert(new_constraint.first, new_constraint.second);
+    return UpdateTable(table);
 }
 
 grpc::Status CatalogService::CreateTable(

@@ -65,7 +65,8 @@ class CatalogManager {
     std::shared_ptr<small::schema::Table> system_tables;
     std::shared_ptr<small::schema::Table> system_partitions;
 
-    void WritePartition(const std::shared_ptr<small::schema::Table>& table);
+    absl::Status UpdateTable(
+        const std::shared_ptr<small::schema::Table>& table);
 
     absl::Status CreateTableLocal(
         const std::string& table_name,
@@ -96,12 +97,12 @@ class CatalogManager {
                               const std::string& partition_column,
                               PgQuery__PartitionStrategy strategy);
 
-    absl::Status AddListPartition(const std::string& table_name,
-                                  const std::string& partition_name,
-                                  const std::vector<std::string>& values);
+    absl::Status ListPartitionAddValue(const std::string& table_name,
+                                       const std::string& partition_name,
+                                       const std::vector<std::string>& values);
 
-    absl::Status AddPartitionConstraint(
-        const std::string& partition_name,
+    absl::Status ListPartitionAddConstraint(
+        const std::string& table_name, const std::string& partition_name,
         const std::pair<std::string, std::string>& constraint);
 };
 

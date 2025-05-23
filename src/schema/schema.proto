@@ -6,12 +6,8 @@ import "src/type/type.proto";
 
 message Table {
   string name = 1;
-  Columns columns = 2;
+  repeated Column columns = 2;
   Partition partition = 3;
-}
-
-message Columns {
-  repeated Column columns = 1;
 }
 
 message Column {
@@ -29,4 +25,17 @@ message Partition {
 
 message NullPartition {}
 
-message ListPartition {}
+message ListPartition {
+  // the column to partition on
+  string column_name = 1;
+
+  // all named partitions
+  map<string, ListPartitionItem> partitions = 2;
+}
+
+message ListPartitionItem {
+  // the values for this partition
+  repeated string values = 1;
+
+  map<string, string> constraints = 2;
+}
