@@ -6,9 +6,9 @@ add_library(small_server
 )
 
 target_link_libraries(small_server
-    # PUBLIC
-    PRIVATE
+    PUBLIC
     small::server_info
+    PRIVATE
     small::schema
     small::insert_proto
     small::catalog
@@ -22,7 +22,7 @@ target_link_libraries(small_server
     small::insert
     ssl
     crypto
-    server_registry_proto
+    # server_registry_proto
     absl::status
 )
 

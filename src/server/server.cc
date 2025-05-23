@@ -57,7 +57,7 @@
 #include "src/catalog/catalog.h"
 #include "src/gossip/gossip.h"
 #include "src/insert/insert.h"
-#include "src/peers/server_registry.h"
+// #include "src/peers/server_registry.h"
 #include "src/pg_wire/pg_wire.h"
 #include "src/server/stmt_handler.h"
 #include "src/server_info/info.h"

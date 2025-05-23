@@ -27,9 +27,6 @@
 // absl
 #include "absl/status/statusor.h"
 
-// // json
-// #include "nlohmann/json.hpp"
-
 namespace small::server_info {
 
 // Immutable information of a server.
