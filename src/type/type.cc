@@ -79,17 +79,17 @@ pqxx::oid to_pgwire_oid(Type type) {
     }
 }
 
-// absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid) {
-//     switch (oid) {
-//         case 20:  // int8
-//             return Type::Int64;
-//         case 25:  // text
-//             return Type::String;
-//         default:
-//             return absl::InternalError("unknown oid: " +
-//                                               std::to_string(oid));
-//     }
-// }
+absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid) {
+    switch (oid) {
+        case 20:  // int8
+            return Type::INT64;
+        case 25:  // text
+            return Type::STRING;
+        default:
+            return absl::InternalError("unknown oid: " +
+                                              std::to_string(oid));
+    }
+}
 
 gandiva::DataTypePtr get_gandiva_type(Type type) {
     switch (type) {

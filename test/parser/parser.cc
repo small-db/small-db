@@ -45,12 +45,12 @@ namespace parser {
 small::type::Type from_sqltest(char c) {
     switch (c) {
         case 'T':
-            return small::type::Type::String;
+            return small::type::Type::STRING;
         case 'I':
-            return small::type::Type::Int64;
+            return small::type::Type::INT64;
         default:
             SPDLOG_ERROR("unknown type: {}", c);
-            return small::type::Type::Int64;
+            return small::type::Type::INT64;
     }
 }
 
@@ -76,8 +76,7 @@ static absl::StatusOr<std::unique_ptr<SQLTestUnit>> init(
     std::vector<std::string> lines) {
     // this first line is tags <tag1> <tag2>
     if (lines.size() < 2) {
-        return absl::InternalError(
-            "a sql unit must have at least 2 lines");
+        return absl::InternalError("a sql unit must have at least 2 lines");
     }
 
     std::vector<std::string> tags =
@@ -91,8 +90,7 @@ static absl::StatusOr<std::unique_ptr<SQLTestUnit>> init(
     }
 
     if (tags.size() != 2) {
-        return absl::InternalError(
-            "a sql unit must have exactly 2 tags");
+        return absl::InternalError("a sql unit must have exactly 2 tags");
     }
 
     SQLTestUnit::behaviour_t behavior;

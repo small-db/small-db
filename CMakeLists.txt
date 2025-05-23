@@ -102,7 +102,7 @@ include_directories(
 # define macros
 #
 # https://github.com/gabime/spdlog/wiki/Custom-formatting#source-location-flags
-# add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 add_subdirectory(src)
-# add_subdirectory(test)
+add_subdirectory(test)

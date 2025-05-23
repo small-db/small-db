@@ -54,7 +54,7 @@ absl::StatusOr<Type> from_string(const std::string& type_name);
 
 pqxx::oid to_pgwire_oid(Type type);
 
-// absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid);
+absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid);
 
 gandiva::DataTypePtr get_gandiva_type(Type type);
 
