@@ -103,9 +103,9 @@ std::tuple<std::string_view, std::string_view, int> parse_key(
 std::shared_ptr<arrow::Schema> get_input_schema(
     const small::schema::Table& table) {
     arrow::FieldVector fields;
-    for (const auto& column : table.columns) {
+    for (const auto& column : table.columns()) {
         fields.push_back(arrow::field(
-            column.name, small::type::get_gandiva_type(column.type)));
+            column.name(), small::type::get_gandiva_type(column.type())));
     }
     return arrow::schema(fields);
 }
@@ -113,17 +113,17 @@ std::shared_ptr<arrow::Schema> get_input_schema(
 std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
     const small::schema::Table& table) {
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
-    for (const auto& column : table.columns) {
-        switch (column.type) {
-            case small::type::Type::Int64:
+    for (const auto& column : table.columns()) {
+        switch (column.type()) {
+            case small::type::Type::INT64:
                 builders.push_back(std::make_shared<arrow::Int64Builder>());
                 break;
-            case small::type::Type::String:
+            case small::type::Type::STRING:
                 builders.push_back(std::make_shared<arrow::StringBuilder>());
                 break;
             default:
                 SPDLOG_ERROR("unsupported type: {}",
-                             small::type::to_string(column.type));
+                             small::type::to_string(column.type()));
                 break;
         }
     }
@@ -160,13 +160,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
     // init builders
     auto builders = get_builders(*table.value());
-
-    int pk_index = table.value()->get_pk_index();
-    if (pk_index == -1) {
-        SPDLOG_ERROR("primary key not found");
-        return absl::Status(absl::StatusCode::kInvalidArgument,
-                            "primary key not found");
-    }
 
     for (const auto& [key, value] : kv_pairs) {
         SPDLOG_INFO("key: {}, value: {}", key, value);

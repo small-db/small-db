@@ -45,17 +45,17 @@
 
 namespace small::type {
 
-// std::string to_string(Type type) {
-//     switch (type) {
-//         case Type::Int64:
-//             return "int4";
-//         case Type::String:
-//             return "string";
-//         default:
-//             throw std::runtime_error("unknown type" +
-//                                      std::string(magic_enum::enum_name(type)));
-//     }
-// }
+std::string to_string(Type type) {
+    switch (type) {
+        case Type::INT64:
+            return "int4";
+        case Type::STRING:
+            return "string";
+        default:
+            throw std::runtime_error("unknown type" +
+                                     std::string(magic_enum::enum_name(type)));
+    }
+}
 
 absl::StatusOr<Type> from_string(const std::string& type_name) {
     if (type_name == "int4") {
@@ -91,16 +91,16 @@ pqxx::oid to_pgwire_oid(Type type) {
 //     }
 // }
 
-// gandiva::DataTypePtr get_gandiva_type(Type type) {
-//     switch (type) {
-//         case Type::Int64:
-//             return arrow::int64();
-//         case Type::String:
-//             return arrow::utf8();
-//         default:
-//             throw std::runtime_error("Unsupported type for Gandiva");
-//     }
-// }
+gandiva::DataTypePtr get_gandiva_type(Type type) {
+    switch (type) {
+        case Type::INT64:
+            return arrow::int64();
+        case Type::STRING:
+            return arrow::utf8();
+        default:
+            throw std::runtime_error("Unsupported type for Gandiva");
+    }
+}
 
 // > For a fixed-size type, typlen is the number of bytes in the internal
 // > representation of the type. But for a variable-length type, typlen is

@@ -13,14 +13,12 @@ target_link_libraries(small_schema
     small::schema_proto
     small::rocks
     small::type
-    # small::encode
     small::server_info
-    # small::insert
+    small::id
     rocksdb
     spdlog
     absl::status
     libpg_query_lib
-    id_lib
 )
 
 add_library(small::schema ALIAS small_schema)
