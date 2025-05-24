@@ -66,8 +66,8 @@
 namespace query {
 
 // parse key from rocksdb, the format is:
-// /<table_name>/<pk>/column_<column_id>
-std::tuple<std::string_view, std::string_view, int> parse_key(
+// /<table_name>/<pk>
+std::tuple<std::string_view, std::string_view> parse_key(
     const std::string& key) {
     size_t first_slash = key.find('/');
     if (first_slash == std::string::npos) {
@@ -79,25 +79,10 @@ std::tuple<std::string_view, std::string_view, int> parse_key(
         throw std::invalid_argument("Invalid key format: missing second slash");
     }
 
-    size_t third_slash = key.find('/', second_slash + 1);
-    if (third_slash == std::string::npos) {
-        throw std::invalid_argument("Invalid key format: missing third slash");
-    }
-
     std::string_view table_name = std::string_view(key).substr(
         first_slash + 1, second_slash - first_slash - 1);
-    std::string_view pk = std::string_view(key).substr(
-        second_slash + 1, third_slash - second_slash - 1);
-
-    std::string_view column_part =
-        std::string_view(key).substr(third_slash + 1);
-    if (column_part.find("column_") != 0) {
-        throw std::invalid_argument(
-            "Invalid key format: missing 'column_' prefix");
-    }
-    int column_id = std::stoi(std::string(column_part.substr(7)));
-
-    return {table_name, pk, column_id};
+    std::string_view pk = std::string_view(key).substr(second_slash + 1);
+    return {table_name, pk};
 }
 
 std::shared_ptr<arrow::Schema> get_input_schema(
@@ -110,16 +95,19 @@ std::shared_ptr<arrow::Schema> get_input_schema(
     return arrow::schema(fields);
 }
 
-std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
-    const small::schema::Table& table) {
-    std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
+std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
+get_builders(const small::schema::Table& table) {
+    std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
+        builders;
     for (const auto& column : table.columns()) {
         switch (column.type()) {
             case small::type::Type::INT64:
-                builders.push_back(std::make_shared<arrow::Int64Builder>());
+                builders[column.name()] =
+                    std::make_shared<arrow::Int64Builder>();
                 break;
             case small::type::Type::STRING:
-                builders.push_back(std::make_shared<arrow::StringBuilder>());
+                builders[column.name()] =
+                    std::make_shared<arrow::StringBuilder>();
                 break;
             default:
                 SPDLOG_ERROR("unsupported type: {}",
@@ -164,39 +152,66 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     for (const auto& [key, value] : kv_pairs) {
         SPDLOG_INFO("key: {}, value: {}", key, value);
 
-        auto [_, _, column_id] = parse_key(key);
+        nlohmann::json parsed = nlohmann::json::parse(value);
 
-        // append to builder
-        auto& builder = builders[column_id];
-        if (auto int_builder =
-                std::dynamic_pointer_cast<arrow::Int64Builder>(builder)) {
-            int64_t int_value = std::stoll(value);
-            auto result = int_builder->Append(int_value);
-            if (!result.ok()) {
-                SPDLOG_ERROR("Failed to append value: {}", result.ToString());
-                return absl::Status(absl::StatusCode::kInternal,
-                                    "Failed to append value");
+        auto [_, _] = parse_key(key);
+
+        for (const auto& column : table.value()->columns()) {
+            // ensure the builder is valid
+            auto builder = builders[column.name()];
+            if (builder == nullptr) {
+                return absl::Status(
+                    absl::StatusCode::kInternal,
+                    "builder is null for column: " + column.name());
             }
-        } else if (auto string_builder =
-                       std::dynamic_pointer_cast<arrow::StringBuilder>(
-                           builder)) {
-            auto result = string_builder->Append(value);
-            if (!result.ok()) {
-                SPDLOG_ERROR("Failed to append value: {}", result.ToString());
-                return absl::Status(absl::StatusCode::kInternal,
-                                    "Failed to append value");
+
+            // ensure the value is valid
+            if (!parsed.contains(column.name())) {
+                return absl::Status(absl::StatusCode::kInvalidArgument,
+                                    "column not found in json");
             }
-        } else {
-            SPDLOG_ERROR("Unsupported builder type for column_id: {}",
-                         column_id);
-            return absl::Status(absl::StatusCode::kInvalidArgument,
-                                "Unsupported builder type for column_id: " +
-                                    std::to_string(column_id));
+
+            switch (column.type()) {
+                case small::type::Type::INT64: {
+                    auto int_builder =
+                        std::dynamic_pointer_cast<arrow::Int64Builder>(builder);
+                    int64_t int_value = parsed[column.name()];
+                    auto result = int_builder->Append(int_value);
+                    if (!result.ok()) {
+                        return absl::Status(
+                            absl::StatusCode::kInternal,
+                            fmt::format("failed to append value, error {}",
+                                        result.ToString()));
+                    }
+                    break;
+                }
+                case small::type::Type::STRING: {
+                    auto string_builder =
+                        std::dynamic_pointer_cast<arrow::StringBuilder>(
+                            builder);
+                    std::string string_value = parsed[column.name()];
+                    auto result = string_builder->Append(string_value);
+                    if (!result.ok()) {
+                        return absl::Status(
+                            absl::StatusCode::kInternal,
+                            fmt::format("failed to append value, error {}",
+                                        result.ToString()));
+                        break;
+                    }
+                }
+                default:
+                    SPDLOG_ERROR("unsupported type: {}",
+                                 small::type::to_string(column.type()));
+                    return absl::Status(
+                        absl::StatusCode::kInvalidArgument,
+                        "unsupported type: " +
+                            small::type::to_string(column.type()));
+            }
         }
     }
 
     arrow::ArrayVector columns;
-    for (const auto& builder : builders) {
+    for (const auto& [_, builder] : builders) {
         auto result = builder->Finish();
         if (!result.ok()) {
             return absl::Status(
