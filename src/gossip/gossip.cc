@@ -40,8 +40,8 @@
 // protobuf generated files
 // =====================================================================
 
-#include "gossip.grpc.pb.h"
-#include "gossip.pb.h"
+#include "src/gossip/gossip.grpc.pb.h"
+#include "src/gossip/gossip.pb.h"
 
 // =====================================================================
 // self header
@@ -131,14 +131,26 @@ std::vector<char> InfoStore::get_info(const std::string& key) {
     return std::vector<char>();
 }
 
-GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
-                           const std::string& peer_addr)
-    : self_info(self_info) {
+void GossipServer::update_node(
+    const small::server_info::ImmutableInfo& node_info) {
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
     auto key = fmt::format("node:{}", self_info.id);
 
-    std::thread([this, peer_addr]() {
+    auto entry = Entry();
+    entry.set_value(nlohmann::json(self_info).dump());
+    entry.set_last_update(now.count());
+
+    this->info_store.update(key, entry);
+}
+
+GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
+                           const std::string& seed_peer)
+    : self_info(self_info) {
+    // add self to the nodes list
+    this->update_node(self_info);
+
+    std::thread([this, seed_peer]() {
         SPDLOG_INFO("gossip server started");
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -146,37 +158,31 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
             SPDLOG_INFO("gossip: communicating with peers {}", this->peers);
 
             if (this->peers.empty()) {
-                if (peer_addr.empty()) {
+                if (seed_peer.empty()) {
                     SPDLOG_INFO("gossip: no peers to communicate with");
                     continue;
                 }
 
-                SPDLOG_INFO("gossip: communicating with peer {}", peer_addr);
+                SPDLOG_INFO("gossip: communicating with peer {}", seed_peer);
 
                 auto channel = grpc::CreateChannel(
-                    peer_addr, grpc::InsecureChannelCredentials());
+                    seed_peer, grpc::InsecureChannelCredentials());
                 auto stub = small::gossip::Gossip::NewStub(channel);
                 grpc::ClientContext context;
                 small::gossip::Entries request;
                 small::gossip::Entries result;
 
-                // for (const auto& [key, info] : this->peers) {
-                //     auto entry = request.add_entries();
-                //     entry->set_key(key);
-                //     //
-                // entry->set_value(nlohmann::json(info.value).dump());
-                //     entry->set_last_update_ts(info.last_updated.count());
-                // }
+                request = this->info_store.entries;
 
                 grpc::Status status =
                     stub->Exchange(&context, request, &result);
                 if (!status.ok()) {
                     SPDLOG_ERROR("gossip: failed to communicate with peer {} ",
-                                 peer_addr);
+                                 seed_peer);
                 } else {
                     SPDLOG_INFO(
                         "gossip: successfully communicated with peer {}",
-                        peer_addr);
+                        seed_peer);
                 }
             } else {
             }
@@ -218,8 +224,8 @@ std::vector<small::server_info::ImmutableInfo> get_nodes() {
     return std::vector<small::server_info::ImmutableInfo>();
 }
 
-grpc::Status update(InfoStore& info_store,
-                    const small::gossip::Entries* peer_entries) {
+small::gossip::Entries update(InfoStore& info_store,
+                              const small::gossip::Entries* peer_entries) {
     std::lock_guard<std::mutex> lock(info_store.mtx);
 
     small::gossip::Entries self_newer;
@@ -229,29 +235,45 @@ grpc::Status update(InfoStore& info_store,
         auto value = peer_entry.value();
         auto last_update = peer_entry.last_update();
 
-        auto it = info_store.entries.find(key);
-        if (it != info_store.entries.end()) {
+        auto it = info_store.entries.mutable_entries()->find(key);
+        if (it != info_store.entries.entries().end()) {
             if (it->second.last_update() < last_update) {
-                // Update the value and timestamp if the new one is more recent
+                // peer's entry is newer, update the store
                 it->second.set_value(value);
                 it->second.set_last_update(last_update);
             } else {
-                // If the existing entry is more recent, add it to self_newer
+                // self's entry is newer, add it to self_newer
+                self_newer.mutable_entries()->insert({key, it->second});
             }
         } else {
-            // If the key doesn't exist, add it to the store
-            self_newer.mutable_entries()->insert({key, it->second});
+            // key doesn't exist in self
+            info_store.entries.mutable_entries()->insert({key, peer_entry});
         }
     }
-    return grpc::Status::OK;
+
+    // step 2: update entries that are newer in self
+    for (const auto& [key, self_entry] : info_store.entries.entries()) {
+        auto it = peer_entries->entries().find(key);
+        if (it != peer_entries->entries().end()) {
+            // If the key exists in both, check which one is newer
+            if (self_entry.last_update() > it->second.last_update()) {
+                // Add the self entry to self_newer
+                self_newer.mutable_entries()->insert({key, self_entry});
+            }
+        } else {
+            // If the key doesn't exist in the peer, add it to self_newer
+            self_newer.mutable_entries()->insert({key, self_entry});
+        }
+    }
+
+    return self_newer;
 }
 
 grpc::Status GossipServiceImpl::Exchange(grpc::ServerContext* context,
                                          const small::gossip::Entries* entries,
                                          small::gossip::Entries* response) {
     auto reply = update(GossipServer::get_instance()->info_store, entries);
-
-    SPDLOG_INFO("gossip: received entries from peer");
+    *response = reply;
     return grpc::Status::OK;
 }
 

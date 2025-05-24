@@ -33,8 +33,8 @@
 // protobuf generated files
 // =====================================================================
 
-#include "gossip.grpc.pb.h"
-#include "gossip.pb.h"
+#include "src/gossip/gossip.grpc.pb.h"
+#include "src/gossip/gossip.pb.h"
 
 namespace small::gossip {
 
@@ -57,9 +57,22 @@ class InfoStore {
     std::mutex mtx;
 
     // std::vector<char> get_info(const std::string& key);
-    std::unordered_map<std::string, small::gossip::Entry> entries;
+    Entries entries;
 
     std::vector<char> get_info(const std::string& key);
+
+    void update(const std::string& key, const Entry& entry) {
+        std::lock_guard<std::mutex> lock(mtx);
+
+        auto it = entries.entries().find(key);
+        if (it != entries.entries().end() &&
+            it->second.last_update() >= entry.last_update()) {
+            // the stored entry is newer, do not update
+            return;
+        }
+
+        entries.mutable_entries()->insert({key, entry});
+    }
 };
 
 template <typename T>
@@ -68,7 +81,6 @@ class Info {
     T value;
     std::chrono::milliseconds last_updated;
 
-    // Info() = default;
     Info(const T& val, std::chrono::milliseconds ts)
         : value(val), last_updated(ts) {}
 
@@ -116,6 +128,8 @@ class GossipServer {
 
     small::server_info::ImmutableInfo self_info;
 
+    void update_node(const small::server_info::ImmutableInfo& node_info);
+
    public:
     // singleton instance - assignment-blocker
     void operator=(const GossipServer&) = delete;
@@ -131,7 +145,7 @@ class GossipServer {
     // singleton instance - init api
     static void init_instance(
         const small::server_info::ImmutableInfo& self_info,
-        const std::string& peer_addr);
+        const std::string& seed_peer);
 
     // singleton instance - get api
     static GossipServer* get_instance();

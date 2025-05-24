@@ -6,10 +6,9 @@ add_library(small_server_info
 target_link_libraries(small_server_info
     PUBLIC
     absl::statusor
+    nlohmann_json::nlohmann_json
     PRIVATE
     spdlog
-    # spdlog::spdlog
-    # nlohmann_json::nlohmann_json
     uuid
 )
 
