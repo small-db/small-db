@@ -73,7 +73,7 @@ CatalogManager::CatalogManager() {
     system_tables->set_name("system.tables");
 
     auto column = system_tables->add_columns();
-    column->set_name("table_name");
+    column->set_name("name");
     column->set_type(small::type::Type::STRING);
     column->set_is_primary_key(true);
 
