@@ -141,12 +141,12 @@ absl::Status CatalogManager::CreateTable(
     auto nodes = small::gossip::get_nodes();
     SPDLOG_INFO("nodes size: {}", nodes.size());
 
-    if (nodes.size() != 3) {
-        return absl::InternalError("not enough nodes");
-    }
-
     for (const auto& [_, node] : nodes) {
         SPDLOG_INFO("node: {}", node.sql_addr);
+    }
+
+    if (nodes.size() != 3) {
+        return absl::InternalError("not enough nodes");
     }
 
     return absl::OkStatus();
