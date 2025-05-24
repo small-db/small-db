@@ -288,6 +288,7 @@ small::gossip::Entries GossipServer::update(
 grpc::Status GossipServiceImpl::Exchange(grpc::ServerContext* context,
                                          const small::gossip::Entries* entries,
                                          small::gossip::Entries* response) {
+    SPDLOG_INFO("gossip: received entries from peer");
     auto reply = GossipServer::get_instance()->update(
         GossipServer::get_instance()->info_store, *entries);
     *response = reply;
