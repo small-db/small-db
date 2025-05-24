@@ -138,18 +138,18 @@ absl::Status CatalogManager::CreateTable(
         return status;
     }
 
-    // // propagate catalog changes to other nodes
-    // auto nodes_bytes =
-    //     small::gossip::GossipServer::get_instance()->info_store.get_info(
-    //         "nodes");
-
     auto nodes = small::gossip::get_nodes();
     SPDLOG_INFO("nodes size: {}", nodes.size());
+
+    if (nodes.size() != 3) {
+        return absl::InternalError("not enough nodes");
+    }
+
     for (const auto& [_, node] : nodes) {
         SPDLOG_INFO("node: {}", node.sql_addr);
     }
 
-    return absl::UnimplementedError("distributed DDL not implemented");
+    return absl::OkStatus();
 }
 
 absl::Status CatalogManager::CreateTableLocal(

@@ -34,19 +34,12 @@
 #include "pqxx/pqxx"
 
 // =====================================================================
-// local libraries
+// protobuf generated code
 // =====================================================================
 
 #include "src/type/type.pb.h"
 
 namespace small::type {
-
-// enum class Type {
-//     Int64 = 10,
-//     String = 20,
-// };
-
-// using Datum = std::variant<int64_t, std::string>;
 
 std::string to_string(Type type);
 
