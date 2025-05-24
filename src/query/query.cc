@@ -196,8 +196,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                             absl::StatusCode::kInternal,
                             fmt::format("failed to append value, error {}",
                                         result.ToString()));
-                        break;
                     }
+                    break;
                 }
                 default:
                     SPDLOG_ERROR("unsupported type: {}",
