@@ -138,12 +138,9 @@ void GossipServer::update_node(
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-    if (!this->peers.contains(node_info.id)) {
+    if (!this->nodes.contains(node_info.id)) {
         SPDLOG_INFO("gossip: adding new node {}", node_info);
-        this->peers.insert(
-            {node_info.id,
-             Info<small::server_info::ImmutableInfo>(
-                 node_info, std::chrono::milliseconds(now.count()))});
+        this->nodes.insert({node_info.id, node_info});
     }
 
     if (sync_to_store) {
@@ -168,9 +165,9 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
-            SPDLOG_INFO("gossip: communicating with peers {}", this->peers);
+            SPDLOG_INFO("gossip: communicating with peers {}", this->nodes);
 
-            if (this->peers.empty()) {
+            if (this->nodes.empty()) {
                 if (seed_peer.empty()) {
                     SPDLOG_INFO("gossip: no peers to communicate with");
                     continue;
@@ -230,11 +227,8 @@ void GossipServer::broadcast_message(const std::string& message) {
     transmit_message(gossip_message);
 }
 
-std::vector<small::server_info::ImmutableInfo> get_nodes() {
-    auto nodes_bytes =
-        GossipServer::get_instance()->info_store.get_info("nodes");
-
-    return std::vector<small::server_info::ImmutableInfo>();
+std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes() {
+    return GossipServer::get_instance()->nodes;
 }
 
 small::gossip::Entries GossipServer::update(

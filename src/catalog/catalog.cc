@@ -145,7 +145,7 @@ absl::Status CatalogManager::CreateTable(
 
     auto nodes = small::gossip::get_nodes();
     SPDLOG_INFO("nodes size: {}", nodes.size());
-    for (const auto& node : nodes) {
+    for (const auto& [_, node] : nodes) {
         SPDLOG_INFO("node: {}", node.sql_addr);
     }
 

@@ -140,8 +140,7 @@ class GossipServer {
 
     InfoStore info_store;
 
-    std::unordered_map<std::string, Info<small::server_info::ImmutableInfo>>
-        peers;
+    std::unordered_map<std::string, small::server_info::ImmutableInfo> nodes;
 
     // singleton instance - init api
     static void init_instance(
@@ -156,7 +155,7 @@ class GossipServer {
     Entries update(InfoStore& info_store, const Entries& peer_entries);
 };
 
-std::vector<small::server_info::ImmutableInfo> get_nodes();
+std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes();
 
 class GossipServiceImpl final : public small::gossip::Gossip::Service {
    public:
