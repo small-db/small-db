@@ -154,8 +154,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
         nlohmann::json parsed = nlohmann::json::parse(value);
 
-        auto [_, _] = parse_key(key);
-
         for (const auto& column : table.value()->columns()) {
             // ensure the builder is valid
             auto builder = builders[column.name()];
@@ -167,6 +165,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
             // ensure the value is valid
             if (!parsed.contains(column.name())) {
+                SPDLOG_INFO("json: {}", parsed.dump());
+                SPDLOG_ERROR("column not found in json: {}", column.name());
                 return absl::Status(absl::StatusCode::kInvalidArgument,
                                     "column not found in json");
             }
