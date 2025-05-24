@@ -128,7 +128,8 @@ class GossipServer {
 
     small::server_info::ImmutableInfo self_info;
 
-    void update_node(const small::server_info::ImmutableInfo& node_info);
+    void update_node(const small::server_info::ImmutableInfo& node_info,
+                     bool sync_to_store);
 
    public:
     // singleton instance - assignment-blocker
@@ -151,6 +152,8 @@ class GossipServer {
     static GossipServer* get_instance();
 
     void broadcast_message(const std::string& message);
+
+    Entries update(InfoStore& info_store, const Entries& peer_entries);
 };
 
 std::vector<small::server_info::ImmutableInfo> get_nodes();

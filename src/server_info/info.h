@@ -56,6 +56,8 @@ class ImmutableInfo {
     ImmutableInfo(const std::string& sql_addr, const std::string& grpc_addr,
                   const std::string& data_dir, const std::string& region,
                   const std::string& join);
+
+    ImmutableInfo() = default;
 };
 
 void to_json(nlohmann::json& j, const ImmutableInfo& info);
