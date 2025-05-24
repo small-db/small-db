@@ -167,7 +167,7 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
 
             SPDLOG_INFO("gossip: communicating with peers {}", this->nodes);
 
-            if (this->nodes.empty()) {
+            if (this->nodes.size() == 1) {
                 if (seed_peer.empty()) {
                     SPDLOG_INFO("gossip: no peers to communicate with");
                     continue;
