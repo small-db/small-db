@@ -14,6 +14,9 @@
 
 #pragma once
 
+#define BACKWARD_HAS_DW 1
+#include <backward.hpp>
+
 #include "src/server_info/info.h"
 
 namespace small::server {
