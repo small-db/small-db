@@ -12,17 +12,14 @@
 ### Build From Source
 
 ```bash
-# clone the repo
+# clone
 git clone https://github.com/small-db/small-db.git
 
 # install dependencies
 ./scripts/build/install-deps.sh
 
-# (cmake) configure
-cmake --preset=debug
-
-# (cmake) build all targets
-cmake --build ./build/debug
+# build
+./scripts/build/build.sh
 ```
 
 ### Run Tests
