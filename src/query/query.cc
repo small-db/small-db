@@ -189,6 +189,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                     auto string_builder =
                         std::dynamic_pointer_cast<arrow::StringBuilder>(
                             builder);
+                    SPDLOG_INFO("column: {}", column.name());
                     std::string string_value = parsed[column.name()];
                     auto result = string_builder->Append(string_value);
                     if (!result.ok()) {

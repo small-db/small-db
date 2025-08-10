@@ -66,47 +66,52 @@ CatalogManager* CatalogManager::GetInstance() {
 }
 
 CatalogManager::CatalogManager() {
-    auto system_tables = std::make_shared<small::schema::Table>();
-    this->tables["system.tables"] = system_tables;
-    this->system_tables = system_tables;
+    // init table "system.tables"
+    {
+        auto system_tables = std::make_shared<small::schema::Table>();
+        this->tables["system.tables"] = system_tables;
+        this->system_tables = system_tables;
 
-    system_tables->set_name("system.tables");
+        system_tables->set_name("system.tables");
 
-    auto column = system_tables->add_columns();
-    column->set_name("name");
-    column->set_type(small::type::Type::STRING);
-    column->set_is_primary_key(true);
+        auto column = system_tables->add_columns();
+        column->set_name("name");
+        column->set_type(small::type::Type::STRING);
+        column->set_is_primary_key(true);
 
-    column = system_tables->add_columns();
-    column->set_name("columns");
-    column->set_type(small::type::Type::STRING);
+        column = system_tables->add_columns();
+        column->set_name("columns");
+        column->set_type(small::type::Type::STRING);
+    }
 
-    auto system_partitions = std::make_shared<small::schema::Table>();
-    this->tables["system.partitions"] = system_partitions;
-    this->system_partitions = system_partitions;
+    {
+        auto system_partitions = std::make_shared<small::schema::Table>();
+        this->tables["system.partitions"] = system_partitions;
+        this->system_partitions = system_partitions;
 
-    system_partitions->set_name("system.partitions");
+        system_partitions->set_name("system.partitions");
 
-    column = system_partitions->add_columns();
-    column->set_name("table_name");
-    column->set_type(small::type::Type::STRING);
+        auto column = system_partitions->add_columns();
+        column->set_name("table_name");
+        column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->add_columns();
-    column->set_name("partition_name");
-    column->set_type(small::type::Type::STRING);
-    column->set_is_primary_key(true);
+        column = system_partitions->add_columns();
+        column->set_name("partition_name");
+        column->set_type(small::type::Type::STRING);
+        column->set_is_primary_key(true);
 
-    column = system_partitions->add_columns();
-    column->set_name("constraint");
-    column->set_type(small::type::Type::STRING);
+        column = system_partitions->add_columns();
+        column->set_name("constraint");
+        column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->add_columns();
-    column->set_name("column_name");
-    column->set_type(small::type::Type::STRING);
+        column = system_partitions->add_columns();
+        column->set_name("column_name");
+        column->set_type(small::type::Type::STRING);
 
-    column = system_partitions->add_columns();
-    column->set_name("partition_value");
-    column->set_type(small::type::Type::STRING);
+        column = system_partitions->add_columns();
+        column->set_name("partition_value");
+        column->set_type(small::type::Type::STRING);
+    }
 
     auto info = small::server_info::get_info();
     if (!info.ok()) {
@@ -140,11 +145,9 @@ absl::Status CatalogManager::CreateTable(
 
     auto nodes = small::gossip::get_nodes();
     SPDLOG_INFO("nodes size: {}", nodes.size());
-
     for (const auto& [_, node] : nodes) {
         SPDLOG_INFO("node: {}", node.sql_addr);
     }
-
     if (nodes.size() != 3) {
         return absl::InternalError("not enough nodes");
     }
@@ -179,7 +182,6 @@ absl::Status CatalogManager::UpdateTable(
     if (!status.ok()) {
         return status;
     }
-
     db->WriteRow(this->system_tables->name(), table->name(), json);
     return absl::OkStatus();
 }
