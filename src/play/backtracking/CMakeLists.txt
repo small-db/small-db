@@ -18,6 +18,7 @@ target_link_libraries(backtracking PUBLIC
     dw          # DWARF library (libdw)
     bfd         # Binary file descriptor library
 )
+
 target_include_directories(backtracking PRIVATE ${backward_SOURCE_DIR})
 
 # Enable debug symbols and optimization flags for better stack traces

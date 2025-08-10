@@ -62,12 +62,28 @@ void f(int i) {
   }
 }
 
+// Simple exception class - the most basic exception you can create
+class FooException : public std::exception {
+public:
+  // Override the what() method to provide an error message
+  const char* what() const noexcept override {
+    return "FooException occurred!";
+  }
+};
+
+int foo() {
+  // Function that throws our simple exception
+  throw FooException();
+}
+
 int main() {
   try {
     f(0);
   } catch (const TracedException &ex) {
     std::cout << ex.what();
   }
+
+  foo();
   
   return 0;
 }
