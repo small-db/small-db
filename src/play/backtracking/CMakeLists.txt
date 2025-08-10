@@ -1,5 +1,4 @@
-find_package(Boost REQUIRED COMPONENTS stacktrace_basic)
-find_package(Boost REQUIRED COMPONENTS stacktrace_addr2line)
+include(FetchContent)
 
 FetchContent_Declare(backward
     GIT_REPOSITORY https://github.com/bombela/backward-cpp
@@ -12,10 +11,18 @@ add_executable(backtracking
     main.cc
 )
 
-target_link_libraries(backtracking
-    PRIVATE
-    # Boost::stacktrace_basic
-    # Boost::stacktrace_addr2line
-    # Backward::Interface
-    Backward::Backward
+# Link backward library and required system libraries
+target_link_libraries(backtracking PUBLIC 
+    backward
+    dl          # Dynamic linking library
+    dw          # DWARF library (libdw)
+    bfd         # Binary file descriptor library
+)
+target_include_directories(backtracking PRIVATE ${backward_SOURCE_DIR})
+
+# Enable debug symbols and optimization flags for better stack traces
+target_compile_options(backtracking PRIVATE 
+    -g          # Debug symbols
+    -O1         # Light optimization (better than -O0 for stack traces)
+    -fno-omit-frame-pointer  # Keep frame pointers
 )

@@ -1,26 +1,73 @@
+#include <backward.hpp>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <iomanip>
 
-#include <boost/stacktrace.hpp>
+class TracedException : public std::runtime_error {
+public:
+  TracedException() : std::runtime_error(_get_trace()) {}
 
-void foo() {
-    throw std::runtime_error("An error occurred in foo");
-    std::cout << "foo" << std::endl;
-}
+private:
+  std::string _get_trace() {
+    std::ostringstream ss;
 
-void bar() {
-    foo();
-    std::cout << "bar" << std::endl;
-}
+    backward::StackTrace stackTrace;
+    backward::TraceResolver resolver;
+    stackTrace.load_here();
+    resolver.load_stacktrace(stackTrace);
 
-int main(int argc, char* argv[]) {
-    try {
-        bar();
-    } catch (const std::exception& e) {
-        std::cout << "Caught exception: " << e.what() << std::endl;
-        std::cout << "Stacktrace:\n"
-                  << boost::stacktrace::stacktrace() << std::endl;
+    for (std::size_t i = 0; i < stackTrace.size(); ++i) {
+      const backward::ResolvedTrace trace = resolver.resolve(stackTrace[i]);
+
+      ss << "#" << i << " ";
+      
+      // Print object/function name
+      if (!trace.object_function.empty()) {
+        ss << trace.object_function;
+      } else {
+        ss << "0x" << std::hex << stackTrace[i].addr << std::dec;
+      }
+      
+      // Print source file and line number if available
+      if (!trace.source.filename.empty()) {
+        ss << "\n     at " << trace.source.filename;
+        if (trace.source.line > 0) {
+          ss << ":" << trace.source.line;
+        }
+        if (trace.source.col > 0) {
+          ss << ":" << trace.source.col;
+        }
+      }
+      
+      // Print object file if available
+      if (!trace.object_filename.empty()) {
+        ss << "\n     in " << trace.object_filename;
+      }
+      
+      ss << "\n";
     }
-    std::cout << "backtracking play" << std::endl;
-    return 0;
+
+    return ss.str();
+  }
+};
+
+void f(int i) {
+  if (i >= 42) {
+    throw TracedException();
+  } else {
+    std::cout << "i=" << i << "\n";
+    f(i + 1);
+  }
+}
+
+int main() {
+  try {
+    f(0);
+  } catch (const TracedException &ex) {
+    std::cout << ex.what();
+  }
+  
+  return 0;
 }
