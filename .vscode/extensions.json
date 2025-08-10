@@ -1,15 +1,24 @@
 {
     "recommendations": [
+        // ================================================
+        // cmake
+        // ================================================
         // - cmake debugging
         // - cmake intellisense
         "ms-vscode.cmake-tools",
-        // - c++ intellisense
-        "llvm-vs-code-extensions.vscode-clangd",
         // - cmake formatting
         "kylinideteam.cmake-intellisence",
+        // ================================================
+        // c++
+        // ================================================
+        // - c++ intellisense
+        "llvm-vs-code-extensions.vscode-clangd",
         // - c++ debugging
         "vadimcn.vscode-lldb",
-        "redhat.vscode-yaml",
         "mine.cpplint",
+        // ================================================
+        // clutter
+        // ================================================
+        "redhat.vscode-yaml",
     ]
 }
