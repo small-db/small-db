@@ -6,8 +6,12 @@ import "src/type/type.proto";
 
 message Table {
   string name = 1;
-  repeated Column columns = 2;
+  Columns columns = 2;
   Partition partition = 3;
+}
+
+message Columns {
+  repeated Column columns = 1;
 }
 
 message Column {

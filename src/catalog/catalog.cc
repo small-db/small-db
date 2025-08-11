@@ -74,12 +74,12 @@ CatalogManager::CatalogManager() {
 
         system_tables->set_name("system.tables");
 
-        auto column = system_tables->add_columns();
+        auto column = system_tables->mutable_columns()->add_columns();
         column->set_name("name");
         column->set_type(small::type::Type::STRING);
         column->set_is_primary_key(true);
 
-        column = system_tables->add_columns();
+        column = system_tables->mutable_columns()->add_columns();
         column->set_name("columns");
         column->set_type(small::type::Type::STRING);
     }
@@ -91,24 +91,24 @@ CatalogManager::CatalogManager() {
 
         system_partitions->set_name("system.partitions");
 
-        auto column = system_partitions->add_columns();
+        auto column = system_partitions->mutable_columns()->add_columns();
         column->set_name("table_name");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->add_columns();
+        column = system_partitions->mutable_columns()->add_columns();
         column->set_name("partition_name");
         column->set_type(small::type::Type::STRING);
         column->set_is_primary_key(true);
 
-        column = system_partitions->add_columns();
+        column = system_partitions->mutable_columns()->add_columns();
         column->set_name("constraint");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->add_columns();
+        column = system_partitions->mutable_columns()->add_columns();
         column->set_name("column_name");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->add_columns();
+        column = system_partitions->mutable_columns()->add_columns();
         column->set_name("partition_value");
         column->set_type(small::type::Type::STRING);
     }
@@ -165,7 +165,7 @@ absl::Status CatalogManager::CreateTableLocal(
     auto table = std::make_shared<small::schema::Table>();
     table->set_name(table_name);
     for (const auto& column : columns) {
-        table->add_columns()->CopyFrom(column);
+        table->mutable_columns()->add_columns()->CopyFrom(column);
     }
 
     return UpdateTable(table);
@@ -176,18 +176,12 @@ absl::Status CatalogManager::UpdateTable(
     // write to in-memory cache
     tables[table->name()] = table;
 
-    // write to disk using columnar storage format
+    // write to disk
     std::vector<std::string> values;
-    // Store table name
     values.push_back(table->name());
     
-    // Encode all columns as a single cell by creating a temporary table with just columns
-    auto temp_table = std::make_unique<small::schema::Table>();
-    temp_table->mutable_columns()->CopyFrom(table->columns());
-
-    
     std::string columns_json;
-    auto status = google::protobuf::util::MessageToJsonString(*temp_table, &columns_json);
+    auto status = google::protobuf::util::MessageToJsonString(table->columns(), &columns_json);
     if (!status.ok()) {
         return status;
     }

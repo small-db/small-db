@@ -88,7 +88,7 @@ std::tuple<std::string_view, std::string_view> parse_key(
 std::shared_ptr<arrow::Schema> get_input_schema(
     const small::schema::Table& table) {
     arrow::FieldVector fields;
-    for (const auto& column : table.columns()) {
+    for (const auto& column : table.columns().columns()) {
         fields.push_back(arrow::field(
             column.name(), small::type::get_gandiva_type(column.type())));
     }
@@ -99,7 +99,7 @@ std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
 get_builders(const small::schema::Table& table) {
     std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
         builders;
-    for (const auto& column : table.columns()) {
+    for (const auto& column : table.columns().columns()) {
         switch (column.type()) {
             case small::type::Type::INT64:
                 builders[column.name()] =
@@ -154,7 +154,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
         nlohmann::json parsed = nlohmann::json::parse(value);
 
-        for (const auto& column : table.value()->columns()) {
+        for (const auto& column : table.value()->columns().columns()) {
             // ensure the builder is valid
             auto builder = builders[column.name()];
             if (builder == nullptr) {
