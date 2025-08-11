@@ -176,13 +176,24 @@ absl::Status CatalogManager::UpdateTable(
     // write to in-memory cache
     tables[table->name()] = table;
 
-    // write to disk
-    std::string json;
-    auto status = google::protobuf::util::MessageToJsonString(*table, &json);
+    // write to disk using columnar storage format
+    std::vector<std::string> values;
+    // Store table name
+    values.push_back(table->name());
+    
+    // Encode all columns as a single cell by creating a temporary table with just columns
+    auto temp_table = std::make_unique<small::schema::Table>();
+    temp_table->mutable_columns()->CopyFrom(table->columns());
+
+    
+    std::string columns_json;
+    auto status = google::protobuf::util::MessageToJsonString(*temp_table, &columns_json);
     if (!status.ok()) {
         return status;
     }
-    db->WriteRow(this->system_tables->name(), table->name(), json);
+    values.push_back(columns_json);
+
+    db->WriteRow(this->system_tables, table->name(), values);
     return absl::OkStatus();
 }
 

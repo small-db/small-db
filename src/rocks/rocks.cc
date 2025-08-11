@@ -202,11 +202,14 @@ void RocksDBWrapper::PrintAllKV() {
     }
 }
 
-void RocksDBWrapper::WriteRow(const std::string& table_name,
-                              const std::string& pk,
-                              const std::string& row_json) {
-    auto key = absl::StrFormat("/%s/%s", table_name, pk);
-    this->Put(key, row_json);
+void RocksDBWrapper::WriteRow(const std::shared_ptr<small::schema::Table>& table,
+                               const std::string& pk,
+                               const std::vector<std::string>& values) {
+    for (int i = 0; i < table->columns().size(); ++i) {
+        const auto& column = table->columns()[i];
+        auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
+        this->Put(key, values[i]);
+    }
 }
 
 void RocksDBWrapper::WriteRowWire(
