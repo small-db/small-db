@@ -38,5 +38,9 @@ Scan(/users/, /users/Ω)
 ### Safety
 
 - **No slash conflicts** — Table and column names never contain `/`, so key parsing is unambiguous.
-
 - **Primary key encoding** — String primary keys are hex-encoded before storage, ensuring binary safety and avoiding collisions with special characters.
+
+### Motivation
+
+- **Variable-length columns**: Since we store each column separately, we don't need to encode length information
+- **Selective queries**: Because columns are stored independently, we can skip unneeded columns to reduce I/O
