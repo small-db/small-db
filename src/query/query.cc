@@ -143,16 +143,15 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                             "failed to get server info");
     std::string db_path = info.value()->db_path;
     auto db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
-    auto scan_preix = "/" + table_name + "/";
-    auto kv_pairs = db->GetAll(scan_preix);
+    auto rows = db->ReadTable(table_name);
 
     // init builders
     auto builders = get_builders(*table.value());
 
-    for (const auto& [key, value] : kv_pairs) {
-        SPDLOG_INFO("key: {}, value: {}", key, value);
+    for (const auto& [pk, columns] : rows) {
+        SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
 
-        nlohmann::json parsed = nlohmann::json::parse(value);
+        // nlohmann::json parsed = nlohmann::json::parse(columns);
 
         for (const auto& column : table.value()->columns().columns()) {
             // ensure the builder is valid
@@ -164,8 +163,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
             }
 
             // ensure the value is valid
-            if (!parsed.contains(column.name())) {
-                SPDLOG_INFO("json: {}", parsed.dump());
+            if (!columns.contains(column.name())) {
+                SPDLOG_INFO("json: {}", nlohmann::json(columns).dump());
                 SPDLOG_ERROR("column not found in json: {}", column.name());
                 return absl::Status(absl::StatusCode::kInvalidArgument,
                                     "column not found in json");
@@ -175,7 +174,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 case small::type::Type::INT64: {
                     auto int_builder =
                         std::dynamic_pointer_cast<arrow::Int64Builder>(builder);
-                    int64_t int_value = parsed[column.name()];
+                    // FIXME: columns[column.name()] is a string
+                    int64_t int_value = columns[column.name()];
                     auto result = int_builder->Append(int_value);
                     if (!result.ok()) {
                         return absl::Status(

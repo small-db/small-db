@@ -78,8 +78,15 @@ class RocksDBWrapper {
     bool Get(const std::string& cf_name, const std::string& key,
              std::string& value);
 
-    std::vector<std::pair<std::string, std::string>> GetAll(
-        const std::string& prefix);
+    /**
+     * @brief Retrieves all rows from a table
+     * 
+     * @param table_name Name of the table to read
+     * @return Map structure: {primary_key -> {column_name -> value}}
+     */
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> ReadTable(
+        const std::string& table_name);
+
     std::vector<std::pair<std::string, std::string>> GetAllKV(
         const std::string& cf_name);
 

@@ -132,27 +132,37 @@ bool RocksDBWrapper::Get(const std::string& cf_name, const std::string& key,
     return status.ok();
 }
 
-std::vector<std::pair<std::string, std::string>> RocksDBWrapper::GetAll(
-    const std::string& prefix) {
-    rocksdb::Options options;
-    rocksdb::BlockBasedTableOptions table_options;
-    table_options.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, false));
-    table_options.whole_key_filtering = false;
-    options.table_factory.reset(
-        rocksdb::NewBlockBasedTableFactory(table_options));
-    options.prefix_extractor.reset(
-        rocksdb::NewCappedPrefixTransform(prefix.size()));
-
+std::unordered_map<std::string, std::unordered_map<std::string, std::string>> RocksDBWrapper::ReadTable(
+    const std::string& table_name) {
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
 
+    auto scan_prefix = "/" + table_name + "/";
+
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
-    std::vector<std::pair<std::string, std::string>> kv_pairs;
-    for (it->Seek(prefix); it->Valid() && it->key().starts_with(prefix);
+    
+    // Result structure: {primary_key -> {column_name -> value}}
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> result;
+    
+    for (it->Seek(scan_prefix); it->Valid() && it->key().starts_with(scan_prefix);
          it->Next()) {
-        kv_pairs.emplace_back(it->key().ToString(), it->value().ToString());
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+        
+        // Parse key format: "/{table_name}/{pk}/{column_name}"
+        // Skip the leading "/" and table_name + "/"
+        size_t start_pos = scan_prefix.length();
+        size_t pk_end = key.find('/', start_pos);
+        if (pk_end != std::string::npos) {
+            std::string pk = key.substr(start_pos, pk_end - start_pos);
+            std::string column_name = key.substr(pk_end + 1);
+            
+            // Add to result structure
+            result[pk][column_name] = value;
+        }
     }
-    return kv_pairs;
+    
+    return result;
 }
 
 std::vector<std::pair<std::string, std::string>> RocksDBWrapper::GetAllKV(
