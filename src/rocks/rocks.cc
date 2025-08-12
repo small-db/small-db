@@ -41,8 +41,6 @@
 // local libraries
 // =====================================================================
 
-#include "src/encode/encode.h"
-#include "src/schema/schema.h"
 #include "src/type/type.h"
 
 // =====================================================================

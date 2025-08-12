@@ -175,7 +175,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                     auto int_builder =
                         std::dynamic_pointer_cast<arrow::Int64Builder>(builder);
                     // FIXME: columns[column.name()] is a string
-                    int64_t int_value = small::type::decode(columns[column.name()], small::type::Type::INT64).int64_value();
+                    int64_t int_value = small::type::decode(columns.at(column.name()), small::type::Type::INT64).int64_value();
                     auto result = int_builder->Append(int_value);
                     if (!result.ok()) {
                         return absl::Status(
@@ -190,7 +190,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         std::dynamic_pointer_cast<arrow::StringBuilder>(
                             builder);
                     SPDLOG_INFO("column: {}", column.name());
-                    std::string string_value = parsed[column.name()];
+                    std::string string_value = small::type::decode(columns.at(column.name()), small::type::Type::STRING).string_value();
                     auto result = string_builder->Append(string_value);
                     if (!result.ok()) {
                         return absl::Status(

@@ -18,7 +18,6 @@
 // c++ std
 // =====================================================================
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -29,16 +28,12 @@
 // =====================================================================
 
 #include "rocksdb/db.h"
-#include "rocksdb/options.h"
 
 // =====================================================================
 // local libraries
 // =====================================================================
 
-#include "src/encode/encode.h"
-#include "src/schema/schema.h"
 #include "src/schema/schema.pb.h"
-#include "src/type/type.h"
 
 namespace small::rocks {
 
