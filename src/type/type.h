@@ -53,4 +53,8 @@ gandiva::DataTypePtr get_gandiva_type(Type type);
 
 int16_t get_pgwire_size(Type type);
 
+std::string encode(const Datum& datum);
+
+Datum decode(const std::string& str, Type type);
+
 }  // namespace small::type

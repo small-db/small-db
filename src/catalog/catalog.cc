@@ -177,17 +177,23 @@ absl::Status CatalogManager::UpdateTable(
     tables[table->name()] = table;
 
     // write to disk
-    std::vector<std::string> values;
-    values.push_back(table->name());
-    
-    std::string columns_json;
-    auto status = google::protobuf::util::MessageToJsonString(table->columns(), &columns_json);
-    if (!status.ok()) {
-        return status;
-    }
-    values.push_back(columns_json);
+    {
+        std::vector<std::string> values;
 
-    db->WriteRow(this->system_tables, table->name(), values);
+        // column: name
+        values.push_back(table->name());
+
+        // column: columns
+        std::string columns_json;
+        auto status = google::protobuf::util::MessageToJsonString(
+            table->columns(), &columns_json);
+        if (!status.ok()) {
+            return status;
+        }
+        values.push_back(columns_json);
+
+        db->WriteRow(this->system_tables, table->name(), values);
+    }
     return absl::OkStatus();
 }
 

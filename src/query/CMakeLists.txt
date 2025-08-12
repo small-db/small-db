@@ -9,6 +9,7 @@ target_link_libraries(small_query
     small::schema
     small::server_info
     small::catalog
+    small::type
     spdlog
     absl::status
     libpg_query_lib

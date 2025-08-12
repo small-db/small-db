@@ -120,4 +120,36 @@ int16_t get_pgwire_size(Type type) {
     }
 }
 
+std::string encode(const Datum& datum) {
+    switch (datum.value_case()) {
+        case Datum::kInt64Value:
+            return std::to_string(datum.int64_value());
+        case Datum::kStringValue:
+            return datum.string_value();
+        default:
+            throw std::runtime_error("unknown datum value case");
+    }
+}
+
+Datum decode(const std::string& str, Type type) {
+    Datum datum;
+    switch (type) {
+        case Type::INT64: {
+            try {
+                int64_t value = std::stoll(str);
+                datum.set_int64_value(value);
+            } catch (const std::exception& e) {
+                throw std::runtime_error("failed to decode string to int64: " + str);
+            }
+            break;
+        }
+        case Type::STRING:
+            datum.set_string_value(str);
+            break;
+        default:
+            throw std::runtime_error("unsupported type for decoding");
+    }
+    return datum;
+}
+
 }  // namespace small::type

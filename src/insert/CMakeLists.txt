@@ -10,14 +10,12 @@ target_link_libraries(small_insert
     small::rocks
     small::schema
     small::semantics
-    # small::encode
     small::catalog
     small::gossip
     spdlog
     absl::status
     libpg_query_lib
     arrow_lib
-    # server_registry
     magic_enum
 )
 

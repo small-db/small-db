@@ -138,7 +138,6 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                     return absl::InternalError(fmt::format(
                         "failed to extract const for column {}", column_name));
                 }
-                // auto column_value = small::encode::encode(datum.value());
 
                 std::string column_json;
                 auto status = google::protobuf::util::MessageToJsonString(
