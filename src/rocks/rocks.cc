@@ -189,10 +189,8 @@ std::vector<std::pair<std::string, std::string>> RocksDBWrapper::GetAllKV(
     return kv_pairs;
 }
 
-bool RocksDBWrapper::Delete(const std::string& cf_name,
-                            const std::string& key) {
-    auto* handle = GetColumnFamilyHandle(cf_name);
-    rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), handle, key);
+bool RocksDBWrapper::Delete(const std::string& key) {
+    rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
     return status.ok();
 }
 

@@ -75,7 +75,7 @@ CatalogManager::CatalogManager() {
         system_tables->set_name("system.tables");
 
         auto column = system_tables->mutable_columns()->add_columns();
-        column->set_name("name");
+        column->set_name("table_name");
         column->set_type(small::type::Type::STRING);
         column->set_is_primary_key(true);
 
@@ -119,8 +119,7 @@ CatalogManager::CatalogManager() {
         return;
     }
     std::string db_path = info.value()->db_path;
-    this->db = small::rocks::RocksDBWrapper::GetInstance(
-        db_path, {"TablesCF", "PartitionCF"});
+    this->db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
 }
 
 std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
@@ -203,7 +202,7 @@ absl::Status CatalogManager::DropTable(const std::string& table_name) {
         tables.erase(it);
     }
 
-    db->Delete("TablesCF", table_name);
+    db->Delete(table_name);
     return absl::OkStatus();
 }
 

@@ -38,7 +38,7 @@ SELECT * FROM system.tables;
 ----
  table_name | columns
 ------------+--------
- users      | [{"is_primary_key":true,"name":"id","type":10},{"is_primary_key":false,"name":"name","type":20},{"is_primary_key":false,"name":"balance","type":10},{"is_primary_key":false,"name":"country","type":20}]
+ users      | id:int(PK), name:str, balance:int, country:str
 
 query TTTTT
 SELECT * FROM system.partitions WHERE table_name = 'users';

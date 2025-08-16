@@ -95,19 +95,23 @@ std::shared_ptr<arrow::Schema> get_input_schema(
     return arrow::schema(fields);
 }
 
-std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
-get_builders(const small::schema::Table& table) {
-    std::unordered_map<std::string, std::shared_ptr<arrow::ArrayBuilder>>
-        builders;
-    for (const auto& column : table.columns().columns()) {
+/**
+ * @brief Get the builders object.
+ *
+ * @param table
+ * @return std::vector<std::shared_ptr<arrow::ArrayBuilder>> -
+ *         order by column order in table
+ */
+std::vector<std::shared_ptr<arrow::ArrayBuilder>>
+get_builders(const std::shared_ptr<small::schema::Table>& table) {
+    std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
+    for (const auto& column : table->columns().columns()) {
         switch (column.type()) {
             case small::type::Type::INT64:
-                builders[column.name()] =
-                    std::make_shared<arrow::Int64Builder>();
+                builders.push_back(std::make_shared<arrow::Int64Builder>());
                 break;
             case small::type::Type::STRING:
-                builders[column.name()] =
-                    std::make_shared<arrow::StringBuilder>();
+                builders.push_back(std::make_shared<arrow::StringBuilder>());
                 break;
             default:
                 SPDLOG_ERROR("unsupported type: {}",
@@ -146,23 +150,19 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto rows = db->ReadTable(table_name);
 
     // init builders
-    auto builders = get_builders(*table.value());
+    auto builders = get_builders(table.value());
 
     for (const auto& [pk, columns] : rows) {
         SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
 
-        // nlohmann::json parsed = nlohmann::json::parse(columns);
-
         for (const auto& column : table.value()->columns().columns()) {
-            // ensure the builder is valid
-            auto builder = builders[column.name()];
-            if (builder == nullptr) {
-                return absl::Status(
-                    absl::StatusCode::kInternal,
-                    "builder is null for column: " + column.name());
-            }
+            SPDLOG_INFO("column: {}", column.name());
+        }
 
-            // ensure the value is valid
+        for (int i = 0; i < table.value()->columns().columns().size(); i++) {
+            const auto& column = table.value()->columns().columns()[i];
+            const auto& builder = builders[i];
+
             if (!columns.contains(column.name())) {
                 SPDLOG_INFO("json: {}", nlohmann::json(columns).dump());
                 SPDLOG_ERROR("column not found in json: {}", column.name());
@@ -174,7 +174,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 case small::type::Type::INT64: {
                     auto int_builder =
                         std::dynamic_pointer_cast<arrow::Int64Builder>(builder);
-                    // FIXME: columns[column.name()] is a string
                     int64_t int_value = small::type::decode(columns.at(column.name()), small::type::Type::INT64).int64_value();
                     auto result = int_builder->Append(int_value);
                     if (!result.ok()) {
@@ -191,6 +190,12 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                             builder);
                     SPDLOG_INFO("column: {}", column.name());
                     std::string string_value = small::type::decode(columns.at(column.name()), small::type::Type::STRING).string_value();
+                    SPDLOG_INFO("string_value: {}", string_value);
+
+                    if (table_name == "system.tables" && column.name() == "columns") {
+                        // dedicate branch to modify the value for "columns" column
+                    }
+
                     auto result = string_builder->Append(string_value);
                     if (!result.ok()) {
                         return absl::Status(
@@ -212,14 +217,15 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     }
 
     arrow::ArrayVector columns;
-    for (const auto& [_, builder] : builders) {
+    for (const auto& builder : builders) {
+        // SPDLOG_INFO("column_name: {}", column_name);
         auto result = builder->Finish();
         if (!result.ok()) {
             return absl::Status(
                 absl::StatusCode::kInternal,
                 "Failed to finish builder: " + result.status().ToString());
         }
-        auto column = result.ValueOrDie();
+        const auto& column = result.ValueOrDie();
         columns.push_back(column);
     }
 

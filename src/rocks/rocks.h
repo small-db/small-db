@@ -85,7 +85,7 @@ class RocksDBWrapper {
     std::vector<std::pair<std::string, std::string>> GetAllKV(
         const std::string& cf_name);
 
-    bool Delete(const std::string& cf_name, const std::string& key);
+    bool Delete(const std::string& key);
 
     void PrintAllKV();
 
