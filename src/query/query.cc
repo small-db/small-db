@@ -194,6 +194,44 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
                     if (table_name == "system.tables" && column.name() == "columns") {
                         // dedicate branch to modify the value for "columns" column
+
+                        // input: {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}
+                        // output: int(PK), name:str, balance:int, country:str
+
+                        small::schema::Columns cols;
+                        auto status = google::protobuf::util::JsonStringToMessage(string_value, &cols);
+                        if (!status.ok()) {
+                            return absl::Status(
+                                absl::StatusCode::kInternal,
+                                fmt::format("failed to parse json, error {}",
+                                            status.ToString()));
+                        }
+
+                        for (const auto& col : cols.columns()) {
+                            SPDLOG_INFO("col: {}", col.name());
+                        }
+
+                        string_value = "";
+                        for (int i = 0; i < cols.columns().size(); i++) {
+                            const auto& col = cols.columns().Get(i);
+
+                            // name
+                            string_value += col.name();
+
+                            // type
+                            string_value += ":";
+                            string_value += small::type::to_string(col.type());
+
+                            // is_primary_key
+                            if (col.is_primary_key()) {
+                                string_value += "(PK)";
+                            }
+
+                            // comma
+                            if (i != cols.columns().size() - 1) {
+                                string_value += ", ";
+                            }
+                        }
                     }
 
                     auto result = string_builder->Append(string_value);

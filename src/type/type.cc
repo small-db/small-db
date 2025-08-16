@@ -48,9 +48,9 @@ namespace small::type {
 std::string to_string(Type type) {
     switch (type) {
         case Type::INT64:
-            return "int4";
+            return "int";
         case Type::STRING:
-            return "string";
+            return "str";
         default:
             throw std::runtime_error("unknown type" +
                                      std::string(magic_enum::enum_name(type)));
@@ -58,6 +58,16 @@ std::string to_string(Type type) {
 }
 
 absl::StatusOr<Type> from_string(const std::string& type_name) {
+    if (type_name == "int") {
+        return Type::INT64;
+    } else if (type_name == "str") {
+        return Type::STRING;
+    } else {
+        return absl::InternalError("unknown type: " + type_name);
+    }
+}
+
+absl::StatusOr<Type> from_ast_string(const std::string& type_name) {
     if (type_name == "int4") {
         return Type::INT64;
     } else if (type_name == "string") {

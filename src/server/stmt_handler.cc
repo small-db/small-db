@@ -91,7 +91,7 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
                     }
                 }
 
-                auto type = small::type::from_string(type_name.value());
+                auto type = small::type::from_ast_string(type_name.value());
                 if (!type.ok()) {
                     SPDLOG_ERROR("unknown type: {}", type_name.value());
                     return type.status();

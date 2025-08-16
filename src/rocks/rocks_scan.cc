@@ -50,6 +50,7 @@ int main(int argc, char** argv) {
     }
 
     for (const auto& data_dir : data_dir_list) {
+        SPDLOG_INFO("scan data dir: {}", data_dir);
         auto db = small::rocks::RocksDBWrapper::GetInstance(data_dir, {});
         db->PrintAllKV();
     }

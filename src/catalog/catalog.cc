@@ -184,8 +184,12 @@ absl::Status CatalogManager::UpdateTable(
 
         // column: columns
         std::string columns_json;
+        google::protobuf::util::JsonPrintOptions options;
+        options.always_print_fields_with_no_presence = true;
+        options.preserve_proto_field_names = true;
+        options.always_print_enums_as_ints = false;
         auto status = google::protobuf::util::MessageToJsonString(
-            table->columns(), &columns_json);
+            table->columns(), &columns_json, options);
         if (!status.ok()) {
             return status;
         }

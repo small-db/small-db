@@ -139,7 +139,7 @@ class RowDescriptionResponse : public Message {
             const auto& field = schema->field(i);
 
             auto data_type =
-                small::type::from_string(field->type()->ToString().c_str())
+                small::type::from_ast_string(field->type()->ToString().c_str())
                     .value();
 
             // The field name.
