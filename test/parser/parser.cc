@@ -64,6 +64,17 @@ std::vector<std::string> split_and_trim(const std::string& input,
     return result;
 }
 
+// comment line starts with "//"
+bool is_comment_line(const std::string& line) {
+    size_t start = 0;
+    while (start < line.length() && std::isspace(line[start])) {
+        start++;
+    }
+
+    return start + 1 < line.length() && line[start] == '/' &&
+           line[start + 1] == '/';
+}
+
 SQLTestUnit::SQLTestUnit(std::vector<std::string> labels, std::string sql,
                          std::string raw_expected,
                          behaviour_t expected_behavior)
@@ -161,6 +172,10 @@ absl::StatusOr<std::vector<SQLTestUnit>> read_sql_test(
     std::string line;
     std::vector<std::string> lines;
     while (std::getline(file, line)) {
+        if (is_comment_line(line)) {
+            continue;
+        }
+
         if (line.empty()) {
             if (!lines.empty()) {
                 auto sql_unit = init(lines);

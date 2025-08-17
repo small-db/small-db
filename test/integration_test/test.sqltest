@@ -49,11 +49,11 @@ users      | users_asia     | {"region":"asia"} | country      | ["China","Japan
 users      | users_eu       | {"region":"eu"}   | country      | ["Germany","France","Italy"]
 users      | users_us       | {"region":"us"}   | country      | ["USA","Canada"]
 
-statement ok
-INSERT INTO users (id, name, balance, country) VALUES
-(1, 'Alice', 1000, 'Germany'),
-(2, 'Bob', 2000, 'USA'),
-(3, 'Charlie', 1500, 'France'),
-(4, 'David', 3000, 'China'),
-(5, 'Eve', 2500, 'Japan');
+// statement ok
+// INSERT INTO users (id, name, balance, country) VALUES
+// (1, 'Alice', 1000, 'Germany'),
+// (2, 'Bob', 2000, 'USA'),
+// (3, 'Charlie', 1500, 'France'),
+// (4, 'David', 3000, 'China'),
+// (5, 'Eve', 2500, 'Japan');
 
