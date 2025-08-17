@@ -10,7 +10,9 @@ set -o nounset
 sudo apt-get install -y \
     libpq-dev \
     libpqxx-dev \
-    uuid-dev
+    uuid-dev \
+    libdw-dev \
+    binutils-dev
 
 # ======================================================================== #
 # install libraries locally
