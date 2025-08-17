@@ -47,19 +47,19 @@
 
 namespace small::schema {
 
-// void to_json(nlohmann::json& j, const Column& c) {
-//     j = nlohmann::json{
-//         {"name", c.name()},
-//         {"type", c.type()},
-//         {"is_primary_key", c.is_primary_key()},
-//     };
-// }
+void to_json(nlohmann::json& j, const Column& c) {
+    j = nlohmann::json{
+        {"name", c.name()},
+        {"type", c.type()},
+        {"is_primary_key", c.is_primary_key()},
+    };
+}
 
-// void from_json(const nlohmann::json& j, Column& c) {
-//     j.at("name").get_to(c.name);
-//     j.at("type").get_to(c.type);
-//     j.at("is_primary_key").get_to(c.is_primary_key);
-// }
+void from_json(const nlohmann::json& j, Column& c) {
+    c.set_name(j.at("name").get<std::string>());
+    c.set_type(j.at("type").get<small::type::Type>());
+    c.set_is_primary_key(j.at("is_primary_key").get<bool>());
+}
 
 // void to_json(nlohmann::json& j, const Table& t) {
 //     j = nlohmann::json{{"name", t.name}, {"columns", t.columns}};

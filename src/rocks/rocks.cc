@@ -130,7 +130,7 @@ bool RocksDBWrapper::Get(const std::string& cf_name, const std::string& key,
     return status.ok();
 }
 
-std::unordered_map<std::string, std::unordered_map<std::string, std::string>> RocksDBWrapper::ReadTable(
+std::map<std::string, std::map<std::string, std::string>> RocksDBWrapper::ReadTable(
     const std::string& table_name) {
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
@@ -140,7 +140,7 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> Ro
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
     
     // Result structure: {primary_key -> {column_name -> value}}
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> result;
+    std::map<std::string, std::map<std::string, std::string>> result;
     
     for (it->Seek(scan_prefix); it->Valid() && it->key().starts_with(scan_prefix);
          it->Next()) {
@@ -211,8 +211,8 @@ void RocksDBWrapper::PrintAllKV() {
 void RocksDBWrapper::WriteRow(const std::shared_ptr<small::schema::Table>& table,
                                const std::string& pk,
                                const std::vector<std::string>& values) {
-    for (int i = 0; i < table->columns().columns_size(); ++i) {
-        const auto& column = table->columns().columns(i);
+    for (int i = 0; i < table->columns().size(); ++i) {
+        const auto& column = table->columns()[i];
         auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
         this->Put(key, values[i]);
     }

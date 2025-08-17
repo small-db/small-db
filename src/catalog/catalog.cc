@@ -38,6 +38,7 @@
 
 #include "src/gossip/gossip.h"
 #include "src/server_info/info.h"
+#include "src/schema/schema.h"
 
 // =====================================================================
 // self header
@@ -74,12 +75,12 @@ CatalogManager::CatalogManager() {
 
         system_tables->set_name("system.tables");
 
-        auto column = system_tables->mutable_columns()->add_columns();
+        auto column = system_tables->add_columns();
         column->set_name("table_name");
         column->set_type(small::type::Type::STRING);
         column->set_is_primary_key(true);
 
-        column = system_tables->mutable_columns()->add_columns();
+        column = system_tables->add_columns();
         column->set_name("columns");
         column->set_type(small::type::Type::STRING);
     }
@@ -91,24 +92,24 @@ CatalogManager::CatalogManager() {
 
         system_partitions->set_name("system.partitions");
 
-        auto column = system_partitions->mutable_columns()->add_columns();
+        auto column = system_partitions->add_columns();
         column->set_name("table_name");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->mutable_columns()->add_columns();
+        column = system_partitions->add_columns();
         column->set_name("partition_name");
         column->set_type(small::type::Type::STRING);
         column->set_is_primary_key(true);
 
-        column = system_partitions->mutable_columns()->add_columns();
+        column = system_partitions->add_columns();
         column->set_name("constraint");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->mutable_columns()->add_columns();
+        column = system_partitions->add_columns();
         column->set_name("column_name");
         column->set_type(small::type::Type::STRING);
 
-        column = system_partitions->mutable_columns()->add_columns();
+        column = system_partitions->add_columns();
         column->set_name("partition_value");
         column->set_type(small::type::Type::STRING);
     }
@@ -164,7 +165,7 @@ absl::Status CatalogManager::CreateTableLocal(
     auto table = std::make_shared<small::schema::Table>();
     table->set_name(table_name);
     for (const auto& column : columns) {
-        table->mutable_columns()->add_columns()->CopyFrom(column);
+        table->add_columns()->CopyFrom(column);
     }
 
     return UpdateTable(table);
@@ -183,17 +184,7 @@ absl::Status CatalogManager::UpdateTable(
         values.push_back(table->name());
 
         // columns
-        std::string columns_json;
-        google::protobuf::util::JsonPrintOptions options;
-        options.always_print_fields_with_no_presence = true;
-        options.preserve_proto_field_names = true;
-        options.always_print_enums_as_ints = false;
-        auto status = google::protobuf::util::MessageToJsonString(
-            table->columns(), &columns_json, options);
-        if (!status.ok()) {
-            return status;
-        }
-        values.push_back(columns_json);
+        values.push_back(nlohmann::json(table->columns()).dump());
 
         db->WriteRow(this->system_tables, table->name(), values);
 
@@ -213,24 +204,15 @@ absl::Status CatalogManager::UpdateTable(
                     values.push_back(partition_name);
 
                     // constraint
-                    std::string constraints_json;
-                    auto status = google::protobuf::util::MessageToJsonString(
-                        partition_item.constraints(), &constraints_json,
-                        options);
-                    if (!status.ok()) {
-                        return status;
-                    }
-                    values.push_back(constraints_json);
+                    values.push_back(
+                        nlohmann::json(partition_item.constraints()).dump());
 
                     // column_name
                     values.push_back(list_partition.column_name());
 
-                    // partition values (encode using json nlohmann::json)
-                    nlohmann::json partition_values_json;
-                    for (const auto& value : partition_item.values()) {
-                        partition_values_json.push_back(value);
-                    }
-                    values.push_back(partition_values_json.dump());
+                    // partition values
+                    values.push_back(
+                        nlohmann::json(partition_item.values()).dump());
 
                     db->WriteRow(this->system_partitions, partition_name,
                                  values);
@@ -306,8 +288,7 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
             auto partition_it = partitions->find(partition_name);
             if (partition_it != partitions->end()) {
                 auto& partition_item = partition_it->second;
-                auto constraints =
-                    partition_item.mutable_constraints()->mutable_constraints();
+                auto* constraints = partition_item.mutable_constraints();
                 constraints->insert(new_constraint);
                 return UpdateTable(table);
             }

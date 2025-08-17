@@ -109,7 +109,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             }
 
             for (const auto& [key, value] :
-                 partition->constraints().constraints()) {
+                 partition->constraints()) {
                 SPDLOG_INFO("partition constraint: {} = {}", key, value);
             }
 

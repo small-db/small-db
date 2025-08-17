@@ -79,7 +79,7 @@ class RocksDBWrapper {
      * @param table_name Name of the table to read
      * @return Map structure: {primary_key -> {column_name -> value}}
      */
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> ReadTable(
+    std::map<std::string, std::map<std::string, std::string>> ReadTable(
         const std::string& table_name);
 
     std::vector<std::pair<std::string, std::string>> GetAllKV(

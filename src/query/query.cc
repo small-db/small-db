@@ -88,7 +88,7 @@ std::tuple<std::string_view, std::string_view> parse_key(
 std::shared_ptr<arrow::Schema> get_input_schema(
     const small::schema::Table& table) {
     arrow::FieldVector fields;
-    for (const auto& column : table.columns().columns()) {
+    for (const auto& column : table.columns()) {
         fields.push_back(arrow::field(
             column.name(), small::type::get_gandiva_type(column.type())));
     }
@@ -105,7 +105,7 @@ std::shared_ptr<arrow::Schema> get_input_schema(
 std::vector<std::shared_ptr<arrow::ArrayBuilder>>
 get_builders(const std::shared_ptr<small::schema::Table>& table) {
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
-    for (const auto& column : table->columns().columns()) {
+    for (const auto& column : table->columns()) {
         switch (column.type()) {
             case small::type::Type::INT64:
                 builders.push_back(std::make_shared<arrow::Int64Builder>());
@@ -155,12 +155,12 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     for (const auto& [pk, columns] : rows) {
         SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
 
-        for (const auto& column : table.value()->columns().columns()) {
+        for (const auto& column : table.value()->columns()) {
             SPDLOG_INFO("column: {}", column.name());
         }
 
-        for (int i = 0; i < table.value()->columns().columns().size(); i++) {
-            const auto& column = table.value()->columns().columns()[i];
+        for (int i = 0; i < table.value()->columns().size(); i++) {
+            const auto& column = table.value()->columns()[i];
             const auto& builder = builders[i];
 
             if (!columns.contains(column.name())) {
@@ -198,22 +198,16 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         // input: {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}
                         // output: int(PK), name:str, balance:int, country:str
 
-                        small::schema::Columns cols;
-                        auto status = google::protobuf::util::JsonStringToMessage(string_value, &cols);
-                        if (!status.ok()) {
-                            return absl::Status(
-                                absl::StatusCode::kInternal,
-                                fmt::format("failed to parse json, error {}",
-                                            status.ToString()));
-                        }
+                        std::vector<small::schema::Column> columns;
+                        nlohmann::json::parse(string_value).get_to(columns);
 
-                        for (const auto& col : cols.columns()) {
+                        for (const auto& col : columns) {
                             SPDLOG_INFO("col: {}", col.name());
                         }
 
                         string_value = "";
-                        for (int i = 0; i < cols.columns().size(); i++) {
-                            const auto& col = cols.columns().Get(i);
+                        for (int i = 0; i < columns.size(); i++) {
+                            const auto& col = columns[i];
 
                             // name
                             string_value += col.name();
@@ -228,7 +222,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                             }
 
                             // comma
-                            if (i != cols.columns().size() - 1) {
+                            if (i != columns.size() - 1) {
                                 string_value += ", ";
                             }
                         }
