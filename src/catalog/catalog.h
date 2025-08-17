@@ -60,8 +60,15 @@ class CatalogManager {
 
     small::rocks::RocksDBWrapper* db;
 
+    // all tables, key: table_name, value: table
     std::unordered_map<std::string, std::shared_ptr<small::schema::Table>>
         tables;
+
+    // all partitions, key: partition_name, value: partition
+    std::unordered_map<std::string, std::shared_ptr<small::schema::Partition>>
+        partitions;
+
+    // built-in tables
     std::shared_ptr<small::schema::Table> system_tables;
     std::shared_ptr<small::schema::Table> system_partitions;
 
@@ -97,7 +104,7 @@ class CatalogManager {
                               const std::string& partition_column,
                               PgQuery__PartitionStrategy strategy);
 
-    absl::Status ListPartitionAddValue(const std::string& table_name,
+    absl::Status ListPartitionAddValues(const std::string& table_name,
                                        const std::string& partition_name,
                                        const std::vector<std::string>& values);
 

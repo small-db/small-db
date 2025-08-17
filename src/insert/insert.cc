@@ -108,7 +108,8 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                     "partition not found for value {}", partition_value));
             }
 
-            for (const auto& [key, value] : partition->constraints()) {
+            for (const auto& [key, value] :
+                 partition->constraints().constraints()) {
                 SPDLOG_INFO("partition constraint: {} = {}", key, value);
             }
 
@@ -176,8 +177,8 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
 }
 
 grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
-                                   const small::insert::Row* request,
-                                   small::insert::InsertReply* response) {
+                                       const small::insert::Row* request,
+                                       small::insert::InsertReply* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
     auto info = small::server_info::get_info();

@@ -179,10 +179,10 @@ absl::Status CatalogManager::UpdateTable(
     {
         std::vector<std::string> values;
 
-        // column: name
+        // name
         values.push_back(table->name());
 
-        // column: columns
+        // columns
         std::string columns_json;
         google::protobuf::util::JsonPrintOptions options;
         options.always_print_fields_with_no_presence = true;
@@ -196,6 +196,34 @@ absl::Status CatalogManager::UpdateTable(
         values.push_back(columns_json);
 
         db->WriteRow(this->system_tables, table->name(), values);
+
+        // partition
+        if (table->has_partition()) {
+            auto partition = table->partition();
+            if (partition.has_list_partition()) {
+                auto list_partition = partition.list_partition();
+                for (const auto& [partition_name, partition_item] :
+                     list_partition.partitions()) {
+                    std::vector<std::string> partition_values;
+                    partition_values.push_back(table->name());
+                    partition_values.push_back(partition_name);
+
+                    // partition_values.push_back(partition_item.constraints());
+                    auto status = google::protobuf::util::MessageToJsonString(
+                        partition_item.constraints(), &columns_json, options);
+                    if (!status.ok()) {
+                        return status;
+                    }
+
+                    partition_values.push_back(list_partition.column_name());
+                    for (const auto& value : partition_item.values()) {
+                        partition_values.push_back(value);
+                    }
+                    db->WriteRow(this->system_partitions, partition_name,
+                                 partition_values);
+                }
+            }
+        }
     }
     return absl::OkStatus();
 }
@@ -235,13 +263,14 @@ absl::Status CatalogManager::SetPartition(const std::string& table_name,
     }
 }
 
-absl::Status CatalogManager::ListPartitionAddValue(
+absl::Status CatalogManager::ListPartitionAddValues(
     const std::string& table_name, const std::string& partition_name,
     const std::vector<std::string>& values) {
     auto it = tables.find(table_name);
     if (it == tables.end()) {
         return absl::NotFoundError("table not found");
     }
+
     auto& table = it->second;
     auto* list_partition = table->mutable_partition()->mutable_list_partition();
     auto* partition_item =
@@ -264,7 +293,8 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
             auto partition_it = partitions->find(partition_name);
             if (partition_it != partitions->end()) {
                 auto& partition_item = partition_it->second;
-                auto constraints = partition_item.mutable_constraints();
+                auto constraints =
+                    partition_item.mutable_constraints()->mutable_constraints();
                 constraints->insert(new_constraint);
                 return UpdateTable(table);
             }

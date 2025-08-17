@@ -269,6 +269,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
     int num_records = columns[0]->length();
 
+    SPDLOG_INFO("input_schema: {}", input_schema->ToString());
+    SPDLOG_INFO("num_records: {}", num_records);
+    SPDLOG_INFO("columns: {}", columns[0]->ToString());
+
     auto in_batch =
         arrow::RecordBatch::Make(input_schema, num_records, columns);
 
@@ -313,6 +317,11 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     }
 
     auto pool = arrow::default_memory_pool();
+
+    // log in_batch and input_schema
+    SPDLOG_INFO("in_batch: {}", in_batch->ToString());
+    SPDLOG_INFO("input_schema: {}", input_schema->ToString());
+
     arrow::ArrayVector outputs;
     status = projector->Evaluate(*in_batch, pool, &outputs);
     if (!status.ok()) {

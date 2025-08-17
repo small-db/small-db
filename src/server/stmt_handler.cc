@@ -162,7 +162,7 @@ absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
         values.push_back(datum->a_const->sval->sval);
     }
 
-    return small::catalog::CatalogManager::GetInstance()->ListPartitionAddValue(
+    return small::catalog::CatalogManager::GetInstance()->ListPartitionAddValues(
         table_name, partition_name, values);
 }
 
@@ -206,18 +206,15 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
         case PG_QUERY__NODE__NODE_CREATE_STMT: {
             auto create_stmt = stmt->create_stmt;
             if (create_stmt->n_inh_relations == 0) {
-                // return handle_create_table(create_stmt);
                 return WrapEmptyStatus(
                     [&]() { return handle_create_table(create_stmt); });
             } else {
-                // return handle_add_partition(create_stmt);
                 return WrapEmptyStatus(
                     [&]() { return handle_add_partition(create_stmt); });
             }
             break;
         }
         case PG_QUERY__NODE__NODE_DROP_STMT: {
-            // return handle_drop_table(stmt->drop_stmt);
             return WrapEmptyStatus(
                 [&]() { return handle_drop_table(stmt->drop_stmt); });
             break;
@@ -227,7 +224,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_ALTER_TABLE_STMT: {
-            // return handle_add_constraint(stmt->alter_table_stmt);
             return WrapEmptyStatus([&]() {
                 return handle_add_constraint(stmt->alter_table_stmt);
             });

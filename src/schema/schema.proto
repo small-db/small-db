@@ -41,5 +41,9 @@ message ListPartitionItem {
   // the values for this partition
   repeated string values = 1;
 
-  map<string, string> constraints = 2;
+  Constraints constraints = 2;
+}
+
+message Constraints {
+  map<string, string> constraints = 1;
 }

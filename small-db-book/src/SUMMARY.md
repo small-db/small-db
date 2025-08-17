@@ -11,6 +11,15 @@
 
 - [Store Data](./single_server/store_data.md)
 
+# Build a Multi-Server (Distributed) Database
+
+# Work with Faults
+
+- [Clock Skew](./faults/clock_skew.md)
+- [Partition Failure](./faults/partition_failure.md)
+- [Network Failure](./faults/network_failure.md)
+- [Network Latency](./faults/network_latency.md)
+
 # Partitioning & Sharding
 
 # Appendix
