@@ -163,12 +163,22 @@ absl::Status CatalogManager::CreateTable(
     }
 
     for (const auto& [_, server] : nodes) {
+        // skip self (contains "50001")
+        if (server.grpc_addr.find("50001") != std::string::npos) {
+            SPDLOG_INFO("skipping self server: {}, grpc_addr: {}",
+                        server.sql_addr, server.grpc_addr);
+            continue;
+        }
+
+        SPDLOG_INFO("sending create table request to server: {}",
+                    server.grpc_addr);
+
         auto channel = grpc::CreateChannel(server.grpc_addr,
                                            grpc::InsecureChannelCredentials());
         auto stub = Catalog::NewStub(channel);
         grpc::ClientContext context;
-        small::catalog::CreateTableReply result;
-        grpc::Status status = stub->CreateTable(&context, request, &result);
+        small::catalog::CreateTableReply reply;
+        grpc::Status status = stub->CreateTable(&context, request, &reply);
         if (!status.ok()) {
             return absl::InternalError(
                 fmt::format("failed to create table on server {}: {}",
@@ -322,7 +332,7 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
     return absl::NotFoundError("parition not found");
 }
 
-grpc::Status CatalogService::CreateTable(
+grpc::Status CatalogServiceImpl::CreateTable(
     grpc::ServerContext* context,
     const small::catalog::CreateTableRequest* request,
     small::catalog::CreateTableReply* response) {

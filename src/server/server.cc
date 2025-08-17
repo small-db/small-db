@@ -301,9 +301,9 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     start_grpc_server(
         args.grpc_addr,
         {
-            // std::make_shared<small::server_registry::RegistryService>(),
             std::make_shared<small::insert::InsertServiceImpl>(),
             std::make_shared<small::gossip::GossipServiceImpl>(),
+            std::make_shared<small::catalog::CatalogServiceImpl>(),
         });
 
     struct sockaddr_in client_addr{};

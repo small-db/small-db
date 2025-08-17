@@ -113,7 +113,7 @@ class CatalogManager {
         const std::pair<std::string, std::string>& new_constraint);
 };
 
-class CatalogService final : public small::catalog::Catalog::Service {
+class CatalogServiceImpl final : public small::catalog::Catalog::Service {
    public:
     grpc::Status CreateTable(grpc::ServerContext* context,
                              const small::catalog::CreateTableRequest* request,
