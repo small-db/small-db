@@ -102,8 +102,8 @@ std::shared_ptr<arrow::Schema> get_input_schema(
  * @return std::vector<std::shared_ptr<arrow::ArrayBuilder>> -
  *         order by column order in table
  */
-std::vector<std::shared_ptr<arrow::ArrayBuilder>>
-get_builders(const std::shared_ptr<small::schema::Table>& table) {
+std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
+    const std::shared_ptr<small::schema::Table>& table) {
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
     for (const auto& column : table->columns()) {
         switch (column.type()) {
@@ -174,7 +174,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 case small::type::Type::INT64: {
                     auto int_builder =
                         std::dynamic_pointer_cast<arrow::Int64Builder>(builder);
-                    int64_t int_value = small::type::decode(columns.at(column.name()), small::type::Type::INT64).int64_value();
+                    int64_t int_value =
+                        small::type::decode(columns.at(column.name()),
+                                            small::type::Type::INT64)
+                            .int64_value();
                     auto result = int_builder->Append(int_value);
                     if (!result.ok()) {
                         return absl::Status(
@@ -189,13 +192,19 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         std::dynamic_pointer_cast<arrow::StringBuilder>(
                             builder);
                     SPDLOG_INFO("column: {}", column.name());
-                    std::string string_value = small::type::decode(columns.at(column.name()), small::type::Type::STRING).string_value();
+                    std::string string_value =
+                        small::type::decode(columns.at(column.name()),
+                                            small::type::Type::STRING)
+                            .string_value();
                     SPDLOG_INFO("string_value: {}", string_value);
 
-                    if (table_name == "system.tables" && column.name() == "columns") {
-                        // dedicate branch to modify the value for "columns" column
+                    if (table_name == "system.tables" &&
+                        column.name() == "columns") {
+                        // dedicate branch to modify the value for "columns"
+                        // column
 
-                        // input: {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}
+                        // input:
+                        // {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}
                         // output: int(PK), name:str, balance:int, country:str
 
                         std::vector<small::schema::Column> columns;

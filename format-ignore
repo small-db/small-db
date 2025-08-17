@@ -11,7 +11,7 @@
 ./cmake/libs_install/*
 
 # playground files
-./play/*
+./src/play/*
 
 # small-db legacy
 ./small-rows-rust/*

@@ -96,8 +96,7 @@ absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid) {
         case 25:  // text
             return Type::STRING;
         default:
-            return absl::InternalError("unknown oid: " +
-                                              std::to_string(oid));
+            return absl::InternalError("unknown oid: " + std::to_string(oid));
     }
 }
 
@@ -149,7 +148,8 @@ Datum decode(const std::string& str, Type type) {
                 int64_t value = std::stoll(str);
                 datum.set_int64_value(value);
             } catch (const std::exception& e) {
-                throw std::runtime_error("failed to decode string to int64: " + str);
+                throw std::runtime_error("failed to decode string to int64: " +
+                                         str);
             }
             break;
         }

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -130,23 +131,23 @@ bool RocksDBWrapper::Get(const std::string& cf_name, const std::string& key,
     return status.ok();
 }
 
-std::map<std::string, std::map<std::string, std::string>> RocksDBWrapper::ReadTable(
-    const std::string& table_name) {
+std::map<std::string, std::map<std::string, std::string>>
+RocksDBWrapper::ReadTable(const std::string& table_name) {
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
 
     auto scan_prefix = "/" + table_name + "/";
 
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
-    
+
     // Result structure: {primary_key -> {column_name -> value}}
     std::map<std::string, std::map<std::string, std::string>> result;
-    
-    for (it->Seek(scan_prefix); it->Valid() && it->key().starts_with(scan_prefix);
-         it->Next()) {
+
+    for (it->Seek(scan_prefix);
+         it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
         std::string key = it->key().ToString();
         std::string value = it->value().ToString();
-        
+
         // Parse key format: "/{table_name}/{pk}/{column_name}"
         // Skip the leading "/" and table_name + "/"
         size_t start_pos = scan_prefix.length();
@@ -154,12 +155,12 @@ std::map<std::string, std::map<std::string, std::string>> RocksDBWrapper::ReadTa
         if (pk_end != std::string::npos) {
             std::string pk = key.substr(start_pos, pk_end - start_pos);
             std::string column_name = key.substr(pk_end + 1);
-            
+
             // Add to result structure
             result[pk][column_name] = value;
         }
     }
-    
+
     return result;
 }
 
@@ -208,12 +209,13 @@ void RocksDBWrapper::PrintAllKV() {
     }
 }
 
-void RocksDBWrapper::WriteRow(const std::shared_ptr<small::schema::Table>& table,
-                               const std::string& pk,
-                               const std::vector<std::string>& values) {
+void RocksDBWrapper::WriteRow(
+    const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
+    const std::vector<std::string>& values) {
     for (int i = 0; i < table->columns().size(); ++i) {
         const auto& column = table->columns()[i];
-        auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
+        auto key =
+            absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
         this->Put(key, values[i]);
     }
 }

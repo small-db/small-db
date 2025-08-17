@@ -162,8 +162,8 @@ absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
         values.push_back(datum->a_const->sval->sval);
     }
 
-    return small::catalog::CatalogManager::GetInstance()->ListPartitionAddValues(
-        table_name, partition_name, values);
+    return small::catalog::CatalogManager::GetInstance()
+        ->ListPartitionAddValues(table_name, partition_name, values);
 }
 
 absl::Status handle_add_constraint(PgQuery__AlterTableStmt* alter_stmt) {
