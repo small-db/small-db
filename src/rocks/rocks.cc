@@ -223,19 +223,6 @@ void RocksDBWrapper::WriteRow(
 void RocksDBWrapper::WriteRowWire(
     const std::shared_ptr<small::schema::Table>& table,
     const std::vector<std::string>& values) {
-    // int pk_index = -1;
-    // for (int i = 0; i < table->columns().size(); ++i) {
-    //     if (table->columns()[i].is_primary_key()) {
-    //         pk_index = i;
-    //         break;
-    //     }
-    // }
-
-    // for (int i = 0; i < table->columns().size(); ++i) {
-    //     auto key = absl::StrFormat("/%s/%s/column_%d", table->name(),
-    //                                values[pk_index], i);
-    //     this->Put(key, values[i]);
-    // }
 }
 
 }  // namespace small::rocks

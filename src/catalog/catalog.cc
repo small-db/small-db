@@ -32,13 +32,16 @@
 // protobuf
 #include "google/protobuf/util/json_util.h"
 
+// grpc
+#include "grpcpp/create_channel.h"
+
 // =====================================================================
 // local libraries
 // =====================================================================
 
 #include "src/gossip/gossip.h"
-#include "src/server_info/info.h"
 #include "src/schema/schema.h"
+#include "src/server_info/info.h"
 
 // =====================================================================
 // self header
@@ -143,13 +146,22 @@ absl::Status CatalogManager::CreateTable(
         return status;
     }
 
-    auto nodes = small::gossip::get_nodes();
+    auto nodes = small::gossip::get_nodes(std::nullopt);
     SPDLOG_INFO("nodes size: {}", nodes.size());
     for (const auto& [_, node] : nodes) {
         SPDLOG_INFO("node: {}", node.sql_addr);
     }
     if (nodes.size() != 3) {
         return absl::InternalError("not enough nodes");
+    }
+
+    for (const auto& [_, server] : nodes) {
+        auto channel = grpc::CreateChannel(server.grpc_addr,
+                                           grpc::InsecureChannelCredentials());
+        auto stub = Catalog::NewStub(channel);
+        grpc::ClientContext context;
+        small::catalog::CreateTableReply result;
+        // TODO: send the request
     }
 
     return absl::OkStatus();

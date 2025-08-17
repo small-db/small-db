@@ -101,34 +101,36 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             SPDLOG_INFO("partition value: {}", partition_value);
 
             // get the partition
-            auto partition =
+            auto partition_item =
                 small::schema::lookup(list_partition, partition_value);
-            if (!partition) {
+            if (!partition_item) {
                 return absl::InternalError(fmt::format(
                     "partition not found for value {}", partition_value));
             }
 
-            for (const auto& [key, value] :
-                 partition->constraints()) {
+            for (const auto& [key, value] : partition_item->constraints()) {
                 SPDLOG_INFO("partition constraint: {} = {}", key, value);
             }
 
-            // search a server for the partition
-            // auto servers =
-            //     small::server_registry::get_servers(partition->constraints());
-            auto servers = small::gossip::get_nodes();
+            auto servers =
+                small::gossip::get_nodes(partition_item->constraints());
             if (servers.empty()) {
                 return absl::InternalError(fmt::format(
                     "no server found for partition {}", partition_value));
             }
             if (servers.size() > 1) {
+                for (const auto& [_, server] : servers) {
+                    auto json_server = nlohmann::json(server).dump();
+                    SPDLOG_ERROR("found server for partition {}: {}",
+                                 partition_value, json_server);
+                }
                 return absl::InternalError(
                     fmt::format("multiple servers found for partition {}",
                                 partition_value));
             }
 
             // insert the row into the server
-            auto server = servers[0];
+            auto server = servers.begin()->second;
 
             small::insert::Row request;
             for (int i = 0; i < insert_stmt->n_cols; i++) {
@@ -202,7 +204,11 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
     for (const auto& value : column_values) {
         values.push_back(value);
     }
-    db->WriteRowWire(table, values);
+
+    // TODO: get pk
+    auto pk = values[0];
+
+    db->WriteRow(table, pk, values);
     return grpc::Status::OK;
 }
 

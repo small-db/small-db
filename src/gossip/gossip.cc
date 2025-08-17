@@ -34,6 +34,7 @@
 // local libraries
 // =====================================================================
 
+#include "src/schema/schema.pb.h"
 #include "src/server_info/info.h"
 
 // =====================================================================
@@ -227,8 +228,18 @@ void GossipServer::broadcast_message(const std::string& message) {
     transmit_message(gossip_message);
 }
 
-std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes() {
-    return GossipServer::get_instance()->nodes;
+std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(
+    const std::optional<google::protobuf::Map<std::string, std::string>>&
+        constraints) {
+    auto nodes = GossipServer::get_instance()->nodes;
+
+    if (constraints && constraints->contains("region")) {
+        const std::string& required_region = constraints->at("region");
+        std::erase_if(nodes, [&](auto& kv) {
+            return kv.second.region != required_region;
+        });
+    }
+    return nodes;
 }
 
 small::gossip::Entries GossipServer::update(

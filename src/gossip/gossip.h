@@ -27,6 +27,7 @@
 // local libraries
 // =====================================================================
 
+#include "src/schema/schema.pb.h"
 #include "src/server_info/info.h"
 
 // =====================================================================
@@ -155,7 +156,9 @@ class GossipServer {
     Entries update(InfoStore& info_store, const Entries& peer_entries);
 };
 
-std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes();
+std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(
+    const std::optional<google::protobuf::Map<std::string, std::string>>&
+        constraints);
 
 class GossipServiceImpl final : public small::gossip::Gossip::Service {
    public:
