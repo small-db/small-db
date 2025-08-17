@@ -204,23 +204,36 @@ absl::Status CatalogManager::UpdateTable(
                 auto list_partition = partition.list_partition();
                 for (const auto& [partition_name, partition_item] :
                      list_partition.partitions()) {
-                    std::vector<std::string> partition_values;
-                    partition_values.push_back(table->name());
-                    partition_values.push_back(partition_name);
+                    std::vector<std::string> values;
 
-                    // partition_values.push_back(partition_item.constraints());
+                    // table_name
+                    values.push_back(table->name());
+
+                    // partition_name
+                    values.push_back(partition_name);
+
+                    // constraint
+                    std::string constraints_json;
                     auto status = google::protobuf::util::MessageToJsonString(
-                        partition_item.constraints(), &columns_json, options);
+                        partition_item.constraints(), &constraints_json,
+                        options);
                     if (!status.ok()) {
                         return status;
                     }
+                    values.push_back(constraints_json);
 
-                    partition_values.push_back(list_partition.column_name());
+                    // column_name
+                    values.push_back(list_partition.column_name());
+
+                    // partition values (encode using json nlohmann::json)
+                    nlohmann::json partition_values_json;
                     for (const auto& value : partition_item.values()) {
-                        partition_values.push_back(value);
+                        partition_values_json.push_back(value);
                     }
+                    values.push_back(partition_values_json.dump());
+
                     db->WriteRow(this->system_partitions, partition_name,
-                                 partition_values);
+                                 values);
                 }
             }
         }
