@@ -155,13 +155,25 @@ absl::Status CatalogManager::CreateTable(
         return absl::InternalError("not enough nodes");
     }
 
+    small::catalog::CreateTableRequest request;
+    request.set_table_name(table_name);
+    for (const auto& column : columns) {
+        auto col = request.add_columns();
+        col->CopyFrom(column);
+    }
+
     for (const auto& [_, server] : nodes) {
         auto channel = grpc::CreateChannel(server.grpc_addr,
                                            grpc::InsecureChannelCredentials());
         auto stub = Catalog::NewStub(channel);
         grpc::ClientContext context;
         small::catalog::CreateTableReply result;
-        // TODO: send the request
+        grpc::Status status = stub->CreateTable(&context, request, &result);
+        if (!status.ok()) {
+            return absl::InternalError(
+                fmt::format("failed to create table on server {}: {}",
+                            server.grpc_addr, status.error_message()));
+        }
     }
 
     return absl::OkStatus();
@@ -315,6 +327,20 @@ grpc::Status CatalogService::CreateTable(
     const small::catalog::CreateTableRequest* request,
     small::catalog::CreateTableReply* response) {
     SPDLOG_INFO("create table request: {}", request->DebugString());
+
+    // table_name
+    const std::string& table_name = request->table_name();
+
+    // columns
+    std::vector<small::schema::Column> columns;
+    for (const auto& col : request->columns()) {
+        columns.push_back(col);
+    }
+
+    auto status =
+        small::catalog::CatalogManager::GetInstance()->CreateTableLocal(
+            table_name, columns);
+
     return grpc::Status::OK;
 }
 

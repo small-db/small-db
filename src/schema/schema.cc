@@ -61,6 +61,15 @@ void from_json(const nlohmann::json& j, Column& c) {
     c.set_is_primary_key(j.at("is_primary_key").get<bool>());
 }
 
+int get_pk_index(const Table& table) {
+    for (int i = 0; i < table.columns().size(); i++) {
+        if (table.columns()[i].is_primary_key()) {
+            return i;
+        }
+    }
+    throw std::runtime_error("no primary key found in table " + table.name());
+}
+
 // void to_json(nlohmann::json& j, const Table& t) {
 //     j = nlohmann::json{{"name", t.name}, {"columns", t.columns}};
 // }

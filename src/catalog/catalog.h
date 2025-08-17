@@ -75,10 +75,6 @@ class CatalogManager {
     absl::Status UpdateTable(
         const std::shared_ptr<small::schema::Table>& table);
 
-    absl::Status CreateTableLocal(
-        const std::string& table_name,
-        const std::vector<small::schema::Column>& columns);
-
    public:
     // singleton instance - assignment-blocker
     void operator=(const CatalogManager&) = delete;
@@ -94,6 +90,10 @@ class CatalogManager {
 
     absl::Status CreateTable(const std::string& table_name,
                              const std::vector<small::schema::Column>& columns);
+
+    absl::Status CreateTableLocal(
+        const std::string& table_name,
+        const std::vector<small::schema::Column>& columns);
 
     absl::Status DropTable(const std::string& table_name);
 

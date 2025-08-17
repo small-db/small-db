@@ -205,8 +205,7 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
         values.push_back(value);
     }
 
-    // TODO: get pk
-    auto pk = values[0];
+    auto pk = values[small::schema::get_pk_index(*table)];
 
     db->WriteRow(table, pk, values);
     return grpc::Status::OK;
