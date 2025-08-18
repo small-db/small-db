@@ -53,9 +53,8 @@
 
 #include "src/catalog/catalog.h"
 #include "src/rocks/rocks.h"
-#include "src/schema/const.h"
-#include "src/schema/schema.h"
 #include "src/server_info/info.h"
+#include "src/type/type.h"
 
 // =====================================================================
 // self header

@@ -42,6 +42,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/gossip/gossip.h"
+#include "src/schema/partition.h"
 #include "src/semantics/extract.h"
 #include "src/server_info/info.h"
 

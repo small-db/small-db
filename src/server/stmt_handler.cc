@@ -46,6 +46,7 @@
 #include "src/query/query.h"
 #include "src/schema/schema.h"
 #include "src/semantics/check.h"
+#include "src/type/type.h"
 
 // =====================================================================
 // self header
