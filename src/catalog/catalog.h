@@ -72,9 +72,6 @@ class CatalogManager {
     std::shared_ptr<small::schema::Table> system_tables;
     std::shared_ptr<small::schema::Table> system_partitions;
 
-    absl::Status UpdateTable(
-        const std::shared_ptr<small::schema::Table>& table);
-
    public:
     // singleton instance - assignment-blocker
     void operator=(const CatalogManager&) = delete;
@@ -95,6 +92,9 @@ class CatalogManager {
         const std::string& table_name,
         const std::vector<small::schema::Column>& columns);
 
+    absl::Status UpdateTable(
+        const std::shared_ptr<small::schema::Table>& table);
+
     absl::Status DropTable(const std::string& table_name);
 
     std::optional<std::shared_ptr<small::schema::Table>> GetTable(
@@ -105,8 +105,8 @@ class CatalogManager {
                               PgQuery__PartitionStrategy strategy);
 
     absl::Status ListPartitionAddValues(const std::string& table_name,
-                                       const std::string& partition_name,
-                                       const std::vector<std::string>& values);
+                                        const std::string& partition_name,
+                                        const std::vector<std::string>& values);
 
     absl::Status ListPartitionAddConstraint(
         const std::string& partition_name,
@@ -117,6 +117,11 @@ class CatalogServiceImpl final : public small::catalog::Catalog::Service {
    public:
     grpc::Status CreateTable(grpc::ServerContext* context,
                              const small::catalog::CreateTableRequest* request,
+                             small::catalog::Reply* response) final;
+
+   public:
+    grpc::Status UpdateTable(grpc::ServerContext* context,
+                             const small::schema::Table* request,
                              small::catalog::Reply* response) final;
 };
 

@@ -146,43 +146,43 @@ absl::Status CatalogManager::CreateTable(
         return status;
     }
 
-    auto nodes = small::gossip::get_nodes(std::nullopt);
-    SPDLOG_INFO("nodes size: {}", nodes.size());
-    for (const auto& [_, node] : nodes) {
-        SPDLOG_INFO("node: {}", node.sql_addr);
-    }
-    if (nodes.size() != 3) {
-        return absl::InternalError("not enough nodes");
-    }
+    // auto nodes = small::gossip::get_nodes(std::nullopt);
+    // SPDLOG_INFO("nodes size: {}", nodes.size());
+    // for (const auto& [_, node] : nodes) {
+    //     SPDLOG_INFO("node: {}", node.sql_addr);
+    // }
+    // if (nodes.size() != 3) {
+    //     return absl::InternalError("not enough nodes");
+    // }
 
-    small::catalog::CreateTableRequest request;
-    request.set_table_name(table_name);
-    for (const auto& column : columns) {
-        auto col = request.add_columns();
-        col->CopyFrom(column);
-    }
+    // small::catalog::CreateTableRequest request;
+    // request.set_table_name(table_name);
+    // for (const auto& column : columns) {
+    //     auto col = request.add_columns();
+    //     col->CopyFrom(column);
+    // }
 
-    for (const auto& [_, server] : nodes) {
-        if (server.grpc_addr ==
-            gossip::GossipServer::get_instance()->self_info.grpc_addr) {
-            continue;
-        }
+    // for (const auto& [_, server] : nodes) {
+    //     if (server.grpc_addr ==
+    //         gossip::GossipServer::get_instance()->self_info.grpc_addr) {
+    //         continue;
+    //     }
 
-        SPDLOG_INFO("sending create table request to server: {}",
-                    server.grpc_addr);
+    //     SPDLOG_INFO("sending create table request to server: {}",
+    //                 server.grpc_addr);
 
-        auto channel = grpc::CreateChannel(server.grpc_addr,
-                                           grpc::InsecureChannelCredentials());
-        auto stub = Catalog::NewStub(channel);
-        grpc::ClientContext context;
-        small::catalog::Reply reply;
-        grpc::Status status = stub->CreateTable(&context, request, &reply);
-        if (!status.ok()) {
-            return absl::InternalError(
-                fmt::format("failed to create table on server {}: {}",
-                            server.grpc_addr, status.error_message()));
-        }
-    }
+    //     auto channel = grpc::CreateChannel(server.grpc_addr,
+    //                                        grpc::InsecureChannelCredentials());
+    //     auto stub = Catalog::NewStub(channel);
+    //     grpc::ClientContext context;
+    //     small::catalog::Reply reply;
+    //     grpc::Status status = stub->CreateTable(&context, request, &reply);
+    //     if (!status.ok()) {
+    //         return absl::InternalError(
+    //             fmt::format("failed to create table on server {}: {}",
+    //                         server.grpc_addr, status.error_message()));
+    //     }
+    // }
 
     return absl::OkStatus();
 }
@@ -252,6 +252,39 @@ absl::Status CatalogManager::UpdateTable(
             }
         }
     }
+
+    // update other servers
+    auto nodes = small::gossip::get_nodes(std::nullopt);
+    SPDLOG_INFO("nodes size: {}", nodes.size());
+    for (const auto& [_, node] : nodes) {
+        SPDLOG_INFO("node: {}", node.sql_addr);
+    }
+    if (nodes.size() != 3) {
+        return absl::InternalError("not enough nodes");
+    }
+
+    for (const auto& [_, server] : nodes) {
+        if (server.grpc_addr ==
+            gossip::GossipServer::get_instance()->self_info.grpc_addr) {
+            continue;
+        }
+
+        SPDLOG_INFO("sending create table request to server: {}",
+                    server.grpc_addr);
+
+        auto channel = grpc::CreateChannel(server.grpc_addr,
+                                           grpc::InsecureChannelCredentials());
+        auto stub = Catalog::NewStub(channel);
+        grpc::ClientContext context;
+        small::catalog::Reply reply;
+        grpc::Status status = stub->UpdateTable(&context, *table, &reply);
+        if (!status.ok()) {
+            return absl::InternalError(
+                fmt::format("failed to update table on server {}: {}",
+                            server.grpc_addr, status.error_message()));
+        }
+    }
+
     return absl::OkStatus();
 }
 
@@ -349,6 +382,24 @@ grpc::Status CatalogServiceImpl::CreateTable(
         small::catalog::CatalogManager::GetInstance()->CreateTableLocal(
             table_name, columns);
 
+    return grpc::Status::OK;
+}
+
+grpc::Status CatalogServiceImpl::UpdateTable(
+    grpc::ServerContext* context, const small::schema::Table* request,
+    small::catalog::Reply* response) {
+    SPDLOG_INFO("update table request: {}", request->DebugString());
+
+    auto table = std::make_shared<small::schema::Table>();
+    table->CopyFrom(*request);
+
+    auto status =
+        small::catalog::CatalogManager::GetInstance()->UpdateTable(table);
+    if (!status.ok()) {
+        return grpc::Status(grpc::StatusCode::INTERNAL, status.ToString());
+    }
+
+    response->set_success(true);
     return grpc::Status::OK;
 }
 
