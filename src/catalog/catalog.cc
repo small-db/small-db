@@ -175,7 +175,7 @@ absl::Status CatalogManager::CreateTable(
                                            grpc::InsecureChannelCredentials());
         auto stub = Catalog::NewStub(channel);
         grpc::ClientContext context;
-        small::catalog::CreateTableReply reply;
+        small::catalog::Reply reply;
         grpc::Status status = stub->CreateTable(&context, request, &reply);
         if (!status.ok()) {
             return absl::InternalError(
@@ -333,7 +333,7 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
 grpc::Status CatalogServiceImpl::CreateTable(
     grpc::ServerContext* context,
     const small::catalog::CreateTableRequest* request,
-    small::catalog::CreateTableReply* response) {
+    small::catalog::Reply* response) {
     SPDLOG_INFO("create table request: {}", request->DebugString());
 
     // table_name

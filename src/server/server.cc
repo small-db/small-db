@@ -397,9 +397,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                             recv(newsockfd, buffer, MAX_MESSAGE_LEN, 0);
 
                         if (bytes_received < 0) {
-                            // TODO:
-                            // - add case "EAGAIN", which is the same as
-                            // "EWOULDBLOCK"
                             switch (errno) {
                                 case EWOULDBLOCK:
                                     // Non-blocking socket operation would block

@@ -117,7 +117,7 @@ class CatalogServiceImpl final : public small::catalog::Catalog::Service {
    public:
     grpc::Status CreateTable(grpc::ServerContext* context,
                              const small::catalog::CreateTableRequest* request,
-                             small::catalog::CreateTableReply* response) final;
+                             small::catalog::Reply* response) final;
 };
 
 }  // namespace small::catalog

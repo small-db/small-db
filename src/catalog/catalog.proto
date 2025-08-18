@@ -5,7 +5,8 @@ package small.catalog;
 import "src/schema/schema.proto";
 
 service Catalog {
-  rpc CreateTable(CreateTableRequest) returns (CreateTableReply) {}
+  rpc CreateTable(CreateTableRequest) returns (Reply) {}
+  rpc UpdateTable(small.schema.Table) returns (Reply) {}
 }
 
 message CreateTableRequest {
@@ -13,6 +14,6 @@ message CreateTableRequest {
   repeated small.schema.Column columns = 2;
 }
 
-message CreateTableReply {
+message Reply {
   bool success = 1;
 }

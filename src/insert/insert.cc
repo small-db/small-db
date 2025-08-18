@@ -142,16 +142,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                         "failed to extract const for column {}", column_name));
                 }
 
-                // TODO: use raw string, instead of json
-                std::string column_json;
-                auto status = google::protobuf::util::MessageToJsonString(
-                    datum.value(), &column_json);
-                if (!status.ok()) {
-                    return status;
-                }
-
                 request.add_column_names(column_name);
-                // request.add_column_values(column_json);
                 request.add_column_values(type::encode(datum.value()));
             }
             request.set_table_name(table_name);
