@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package small.schema;
 
+// =====================================================================
+// small-db protobuf types
+// =====================================================================
 import "src/type/type.proto";
 
 message Table {

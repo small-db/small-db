@@ -12,80 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The storage pattern of metadata is:
-//
-// - table metadata
-//   - key: T:<table ID>
-//   - value: <table metadata>
-// - column metadata
-//   - key: C:<table ID>:<column ID>
-//   - value: <column metadata>
-// - partition metadata
-//   - key: P:<table ID>:<partition ID>
-//   - value: <partition metadata>
-
 #pragma once
-
-// =====================================================================
-// c++ std
-// =====================================================================
-
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 
 // =====================================================================
 // third-party libraries
 // =====================================================================
 
-// absl
-#include "absl/status/status.h"
+// json
+#include "nlohmann/json.hpp"
 
 // =====================================================================
-// local libraries
+// protobuf generated files
 // =====================================================================
 
-#include "src/schema/partition.h"
-#include "src/type/type.h"
+#include "src/schema/schema.pb.h"
 
 namespace small::schema {
-
-// class Column {
-//    public:
-//     std::string name;
-//     small::type::Type type;
-//     bool is_primary_key = false;
-
-//     // The type must be DefaultConstructible to be converted from JSON.
-//     // (https://github.com/nlohmann/json)
-//     Column() = default;
-
-//     Column(const std::string& name, const small::type::Type& type,
-//            bool is_primary_key = false);
-
-//     void set_primary_key(bool set);
-// };
 
 void to_json(nlohmann::json& j, const Column& c);
 
 void from_json(const nlohmann::json& j, Column& c);
 
 int get_pk_index(const Table& table);
-
-// class Table {
-//    public:
-//     std::string name;
-//     std::vector<Column> columns;
-
-//     partition_t partition;
-
-//     Table() = default;
-
-//     Table(const std::string& name, const std::vector<Column>& columns);
-
-//     int get_pk_index();
-// };
-
 
 }  // namespace small::schema
