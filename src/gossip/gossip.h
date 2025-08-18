@@ -127,8 +127,6 @@ class GossipServer {
 
     void transmit_message(const GossipMessage& message);
 
-    small::server_info::ImmutableInfo self_info;
-
     void update_node(const small::server_info::ImmutableInfo& node_info,
                      bool sync_to_store);
 
@@ -141,6 +139,7 @@ class GossipServer {
 
     InfoStore info_store;
 
+    small::server_info::ImmutableInfo self_info;
     std::unordered_map<std::string, small::server_info::ImmutableInfo> nodes;
 
     // singleton instance - init api

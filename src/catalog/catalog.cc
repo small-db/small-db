@@ -163,8 +163,8 @@ absl::Status CatalogManager::CreateTable(
     }
 
     for (const auto& [_, server] : nodes) {
-        // TODO: remove hard-coded check
-        if (server.grpc_addr.find("50001") != std::string::npos) {
+        if (server.grpc_addr ==
+            gossip::GossipServer::get_instance()->self_info.grpc_addr) {
             SPDLOG_INFO("skipping self server: {}, grpc_addr: {}",
                         server.sql_addr, server.grpc_addr);
             continue;

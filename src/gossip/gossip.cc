@@ -131,7 +131,7 @@ GossipMessage::GossipMessage(const std::string& message) : message(message) {
 
 std::vector<char> InfoStore::get_info(const std::string& key) {
     SPDLOG_ERROR("unimplemented");
-    return std::vector<char>();
+    return {};
 }
 
 void GossipServer::update_node(
