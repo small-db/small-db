@@ -119,14 +119,9 @@ class CatalogManager {
 
 class CatalogServiceImpl final : public small::catalog::Catalog::Service {
    public:
-    grpc::Status CreateTable(grpc::ServerContext* context,
-                             const small::catalog::CreateTableRequest* request,
-                             small::catalog::Reply* response) final;
-
-   public:
     grpc::Status UpdateTable(grpc::ServerContext* context,
                              const small::schema::Table* request,
-                             small::catalog::Reply* response) final;
+                             google::protobuf::Empty* response) final;
 };
 
 }  // namespace small::catalog

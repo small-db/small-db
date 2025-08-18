@@ -50,6 +50,7 @@
 #include "src/catalog/catalog.h"
 
 namespace small::catalog {
+using grpc::Status;
 
 CatalogManager* CatalogManager::instancePtr = nullptr;
 
@@ -224,7 +225,7 @@ absl::Status CatalogManager::UpdateTable(
         if (table->has_partition()) {
             auto partition = table->partition();
             if (partition.has_list_partition()) {
-                auto list_partition = partition.list_partition();
+                const auto& list_partition = partition.list_partition();
                 for (const auto& [partition_name, partition_item] :
                      list_partition.partitions()) {
                     std::vector<std::string> values;
@@ -259,16 +260,7 @@ absl::Status CatalogManager::UpdateTable(
 
     // update other servers
     auto nodes = small::gossip::get_nodes(std::nullopt);
-    SPDLOG_INFO("nodes size: {}", nodes.size());
-    for (const auto& [_, node] : nodes) {
-        SPDLOG_INFO("node: {}", node.sql_addr);
-    }
     if (nodes.size() != 3) {
-        for (const auto& [_, node] : nodes) {
-            SPDLOG_ERROR("node: {}", node.sql_addr);
-        }
-        SPDLOG_ERROR("not enough nodes to update table, expected 3 but got {}",
-                     nodes.size());
         return absl::InternalError("not enough nodes");
     }
 
@@ -278,14 +270,11 @@ absl::Status CatalogManager::UpdateTable(
             continue;
         }
 
-        SPDLOG_INFO("sending create table request to server: {}",
-                    server.grpc_addr);
-
         auto channel = grpc::CreateChannel(server.grpc_addr,
                                            grpc::InsecureChannelCredentials());
         auto stub = Catalog::NewStub(channel);
         grpc::ClientContext context;
-        small::catalog::Reply reply;
+        google::protobuf::Empty reply;
         grpc::Status status = stub->UpdateTable(&context, *table, &reply);
         if (!status.ok()) {
             return absl::InternalError(
@@ -372,43 +361,18 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
     return absl::NotFoundError("parition not found");
 }
 
-grpc::Status CatalogServiceImpl::CreateTable(
-    grpc::ServerContext* context,
-    const small::catalog::CreateTableRequest* request,
-    small::catalog::Reply* response) {
-    SPDLOG_INFO("create table request: {}", request->DebugString());
-
-    // table_name
-    const std::string& table_name = request->table_name();
-
-    // columns
-    std::vector<small::schema::Column> columns;
-    for (const auto& col : request->columns()) {
-        columns.push_back(col);
-    }
-
-    auto status =
-        small::catalog::CatalogManager::GetInstance()->CreateTableLocal(
-            table_name, columns);
-
-    return grpc::Status::OK;
-}
-
 grpc::Status CatalogServiceImpl::UpdateTable(
     grpc::ServerContext* context, const small::schema::Table* request,
-    small::catalog::Reply* response) {
-    SPDLOG_INFO("update table request: {}", request->DebugString());
-
+    google::protobuf::Empty* response) {
     auto table = std::make_shared<small::schema::Table>();
     table->CopyFrom(*request);
 
     auto status = small::catalog::CatalogManager::GetInstance()->UpdateTable(
         table, false);
     if (!status.ok()) {
-        return grpc::Status(grpc::StatusCode::INTERNAL, status.ToString());
+        return {grpc::StatusCode::INTERNAL, status.ToString()};
     }
 
-    response->set_success(true);
     return grpc::Status::OK;
 }
 
