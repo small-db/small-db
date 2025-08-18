@@ -152,7 +152,6 @@ class SocketsManager {
         return instancePtr;
     }
 
-    // TODO: protect the access to the socket_states map with a mutex
     static SocketState get_socket_state(int sockfd) {
         auto instance = getInstance();
 
@@ -166,7 +165,6 @@ class SocketsManager {
         return it->second;
     }
 
-    // TODO: protect the access to the socket_states map with a mutex
     static void set_socket_state(int sockfd, SocketState state) {
         auto instance = getInstance();
         instance->socket_states[sockfd] = state;
