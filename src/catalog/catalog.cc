@@ -200,11 +200,11 @@ absl::Status CatalogManager::CreateTableLocal(
         table->add_columns()->CopyFrom(column);
     }
 
-    return UpdateTable(table);
+    return UpdateTable(table, true);
 }
 
 absl::Status CatalogManager::UpdateTable(
-    const std::shared_ptr<small::schema::Table>& table) {
+    const std::shared_ptr<small::schema::Table>& table, bool broadcast) {
     // write to in-memory cache
     tables[table->name()] = table;
 
@@ -253,6 +253,10 @@ absl::Status CatalogManager::UpdateTable(
         }
     }
 
+    if (!broadcast) {
+        return absl::OkStatus();
+    }
+
     // update other servers
     auto nodes = small::gossip::get_nodes(std::nullopt);
     SPDLOG_INFO("nodes size: {}", nodes.size());
@@ -260,6 +264,11 @@ absl::Status CatalogManager::UpdateTable(
         SPDLOG_INFO("node: {}", node.sql_addr);
     }
     if (nodes.size() != 3) {
+        for (const auto& [_, node] : nodes) {
+            SPDLOG_ERROR("node: {}", node.sql_addr);
+        }
+        SPDLOG_ERROR("not enough nodes to update table, expected 3 but got {}",
+                     nodes.size());
         return absl::InternalError("not enough nodes");
     }
 
@@ -312,7 +321,7 @@ absl::Status CatalogManager::SetPartition(const std::string& table_name,
                 table.value()->mutable_partition()->mutable_list_partition();
             list_partition->set_column_name(partition_column);
 
-            return UpdateTable(table.value());
+            return UpdateTable(table.value(), true);
         }
 
         default: {
@@ -338,7 +347,7 @@ absl::Status CatalogManager::ListPartitionAddValues(
     for (const auto& v : values) {
         partition_item->add_values(v);
     }
-    return UpdateTable(table);
+    return UpdateTable(table, true);
 }
 
 absl::Status CatalogManager::ListPartitionAddConstraint(
@@ -355,7 +364,7 @@ absl::Status CatalogManager::ListPartitionAddConstraint(
                 auto& partition_item = partition_it->second;
                 auto* constraints = partition_item.mutable_constraints();
                 constraints->insert(new_constraint);
-                return UpdateTable(table);
+                return UpdateTable(table, true);
             }
         }
     }
@@ -393,8 +402,8 @@ grpc::Status CatalogServiceImpl::UpdateTable(
     auto table = std::make_shared<small::schema::Table>();
     table->CopyFrom(*request);
 
-    auto status =
-        small::catalog::CatalogManager::GetInstance()->UpdateTable(table);
+    auto status = small::catalog::CatalogManager::GetInstance()->UpdateTable(
+        table, false);
     if (!status.ok()) {
         return grpc::Status(grpc::StatusCode::INTERNAL, status.ToString());
     }

@@ -92,8 +92,12 @@ class CatalogManager {
         const std::string& table_name,
         const std::vector<small::schema::Column>& columns);
 
-    absl::Status UpdateTable(
-        const std::shared_ptr<small::schema::Table>& table);
+    /*
+     * Update the table metadata, create new table if not exists. If broadcast
+     * is true, the update will be sent to all other servers.
+     */
+    absl::Status UpdateTable(const std::shared_ptr<small::schema::Table>& table,
+                             bool broadcast);
 
     absl::Status DropTable(const std::string& table_name);
 
