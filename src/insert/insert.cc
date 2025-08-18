@@ -151,7 +151,8 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                 }
 
                 request.add_column_names(column_name);
-                request.add_column_values(column_json);
+                // request.add_column_values(column_json);
+                request.add_column_values(type::encode(datum.value()));
             }
             request.set_table_name(table_name);
             SPDLOG_INFO("insert row: {}", request.DebugString());

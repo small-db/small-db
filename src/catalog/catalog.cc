@@ -165,8 +165,6 @@ absl::Status CatalogManager::CreateTable(
     for (const auto& [_, server] : nodes) {
         if (server.grpc_addr ==
             gossip::GossipServer::get_instance()->self_info.grpc_addr) {
-            SPDLOG_INFO("skipping self server: {}, grpc_addr: {}",
-                        server.sql_addr, server.grpc_addr);
             continue;
         }
 
