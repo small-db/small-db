@@ -35,3 +35,12 @@ git clone https://github.com/small-db/small-db.git
 # TODO: this is broken, need to fix it
 ./build/src/server/server --port=5432
 ```
+
+## Book Writing
+
+### Local Writing
+
+```bash
+cd small-db-book
+mdbook serve --hostname 0.0.0.0
+```

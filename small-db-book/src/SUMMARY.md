@@ -24,6 +24,6 @@
 
 # Appendix
 
-- [Programming Language & Build System](./appendix/programming_language_and_build_system.md)
-  - [Rust v.s. C++](./appendix/rust_vs_cpp.md)
-  - [Bazel v.s. CMake](./appendix/bazel_vs_cmake.md)
+- [Test File Format](./appendix/test_file_format.md)
+- [Choice of Programming Language](./appendix/programming_language.md)
+- [Choice of Build System](./appendix/build_system.md)
