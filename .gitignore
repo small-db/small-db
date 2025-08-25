@@ -83,3 +83,6 @@ small-db-jepsen/store/
 
 # LSP server data
 .lsp/
+
+# vagrant data
+.vagrant/

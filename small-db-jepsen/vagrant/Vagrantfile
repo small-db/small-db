@@ -1,0 +1,63 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # Define nodes with hostnames and IPs
+  nodes = [
+    { hostname: "asia", ip: "192.168.56.101" },
+    { hostname: "europe", ip: "192.168.56.102" },
+    { hostname: "america", ip: "192.168.56.103" }
+  ]
+
+  nodes.each do |node_config|
+    config.vm.define node_config[:hostname] do |node|
+      node.vm.box = "bento/ubuntu-24.04"
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.memory = "8240"
+        vb.cpus = 4
+      end
+
+      node.vm.network "private_network", ip: node_config[:ip]
+      node.vm.hostname = node_config[:hostname]
+
+      # install necessary packages
+      node.vm.provision "shell", inline: <<-SHELL
+        # prevent error:
+        # dpkg-preconfigure: unable to re-open stdin: No such file or directory
+        export DEBIAN_FRONTEND=noninteractive
+
+        sudo apt-get update
+
+        # ifconfig
+        sudo apt-get install -y net-tools
+      SHELL
+
+      # set timezone to PST so its log's timestamp align with the host machine
+      node.vm.provision "shell", inline: <<-SHELL
+        sudo timedatectl set-timezone America/Los_Angeles
+      SHELL
+
+      # setup chrony for time synchronization
+      node.vm.provision "shell", inline: <<-SHELL
+        # prevent error:
+        # dpkg-preconfigure: unable to re-open stdin: No such file or directory
+        export DEBIAN_FRONTEND=noninteractive
+
+        sudo apt-get -y install chrony
+      SHELL
+
+      # default user: vagrant, password: vagrant
+      # ssh from host machine: ssh vagrant@#{node_config[:ip]}
+      node.vm.provision "shell", inline: <<-SHELL
+        # enable password authentication
+        sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+        sudo sed -i 's/^PasswordAuthentication no/#PasswordAuthentication no/' /etc/ssh/sshd_config
+
+        # NOTE: this bos use "ssh" instead of "sshd"
+        sudo systemctl restart ssh
+      SHELL
+    end
+  end
+end
+  
