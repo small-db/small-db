@@ -69,3 +69,17 @@ cmake-build-*
 grpc/
 local_libs/
 cmake/local_install/
+
+# ============================================================================ #
+# jepsen
+# ============================================================================ #
+
+# configuration and cache files used by clj-kondo, a popular linter and static
+# analysis tool for Clojure
+.clj-kondo/.cache/
+
+# jepsen store
+small-db-jepsen/store/
+
+# LSP server data
+.lsp/
