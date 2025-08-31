@@ -44,3 +44,10 @@ git clone https://github.com/small-db/small-db.git
 cd small-db-book
 mdbook serve --hostname 0.0.0.0
 ```
+
+## Jepsen Test
+
+```bash
+cd small-db-jepsen
+lein run test --node asia
+```
