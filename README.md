@@ -49,5 +49,20 @@ mdbook serve --hostname 0.0.0.0
 
 ```bash
 cd small-db-jepsen
-lein run test --node asia
+
+# start virtual machines
+vagrant up
+
+# update hosts file
+echo "192.168.56.110 asia
+192.168.56.120 europe
+192.168.56.130 america" | sudo tee -a /etc/hosts
+
+# (optional) verify status by ssh (user: vagrant, password: vagrant)
+ssh vagrant@asia
+
+# run jepsen test
+lein run test --node=asia --username=vagrant --password=vagrant
 ```
+
+- If see error: `VirtualBox can't enable the AMD-V extension. Please disable the KVM kernel extension, recompile your kernel and reboot (VERR_SVM_IN_USE)`, paste it to ChatGPT and fix it.
