@@ -11,6 +11,14 @@ project(small-db LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 # ======================================================================== #
+# runtime search path
+# ======================================================================== #
+
+# # tell the binary to search $ORIGIN/../lib for .so at runtime
+# set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+# set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
+# ======================================================================== #
 # helper functions
 # ======================================================================== #
 
