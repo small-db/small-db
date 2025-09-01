@@ -66,3 +66,4 @@ lein run test --node=asia --username=vagrant --password=vagrant
 ```
 
 - If see error: `VirtualBox can't enable the AMD-V extension. Please disable the KVM kernel extension, recompile your kernel and reboot (VERR_SVM_IN_USE)`, paste it to ChatGPT and fix it.
+- Don't use libvirt as provider, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
