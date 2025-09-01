@@ -32,17 +32,7 @@ git clone https://github.com/small-db/small-db.git
 ### Start Server
 
 ```shell
-# TODO: this is broken, need to fix it
-./build/src/server/server --port=5432
-```
-
-## Book Writing
-
-### Local Writing
-
-```bash
-cd small-db-book
-mdbook serve --hostname 0.0.0.0
+./build/debug/src/server/server --sql-port 5001 --grpc-port 50001 --data-dir /tmp/us --region us --join ""
 ```
 
 ## Jepsen Test
@@ -72,8 +62,18 @@ cd small-db-jepsen
 
 # run jepsen test
 lein run test --node=asia --username=vagrant --password=vagrant
+lein run test --node=asia --username=vagrant --password=vagrant --ssh-private-key=/home/xiaochen/code/small-db/small-db-jepsen/vagrant/.vagrant/machines/asia/virtualbox/private_key
 lein run test --node=asia --node=europe --node=america --username=vagrant --password=vagrant
 ```
 
 - If see error: `VirtualBox can't enable the AMD-V extension. Please disable the KVM kernel extension, recompile your kernel and reboot (VERR_SVM_IN_USE)`, paste it to ChatGPT and fix it.
 - Don't use libvirt as provider, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
+
+## Book Writing
+
+### Local Writing
+
+```bash
+cd small-db-book
+mdbook serve --hostname 0.0.0.0
+```

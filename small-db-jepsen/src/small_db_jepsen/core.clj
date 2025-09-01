@@ -37,13 +37,14 @@
     (setup! [_ test node]
       (info node "installing small db")
       (let [host-binary "../build/debug/src/server/server"
-            remote-dir "/tmp/small-db"]
-        ;; ;; Copy server binary to VM
+            remote-dir "/tmp/small-db"
+            remote-binary (str remote-dir "/server")]
+        ;; Copy server binary to VM
         (jepsen.control/exec :mkdir :-p remote-dir)
-        (jepsen.control/upload [host-binary] (str remote-dir "/server"))
-        (jepsen.control/exec :chmod :+x (str remote-dir "/server"))
-        ;; ;; Copy dynamic libraries to VM
-        ;; (copy-dynamic-libs host-binary)
+        (jepsen.control/upload [host-binary] remote-binary)
+        (jepsen.control/exec :chmod :+x remote-binary)
+        ;; Copy dynamic libraries to VM
+        (copy-dynamic-libs host-binary)
 
         ;; Start the server
         (let [logfile (str remote-dir "/server.log")
@@ -57,7 +58,7 @@
             :pidfile pidfile
             :chdir remote-dir
             :env {:LD_LIBRARY_PATH "/tmp/lib"}}
-           (str remote-dir "/server")
+           remote-binary
            :--sql-port sql-port
            :--grpc-port grpc-port
            :--data-dir data-dir
@@ -66,7 +67,9 @@
           (info "Started small-db server on" node "with SQL port" sql-port "and gRPC port" grpc-port))))
 
     (teardown! [_ test node]
-      (info node "tearing down small db"))))
+      (info node "tearing down small db")
+      (jepsen.control/stop-daemon! remote-binary pidfile)
+      (jepsen.control/exec :rm :-rf remote-dir))))
 
 (defn small-db-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
