@@ -86,3 +86,6 @@ small-db-jepsen/store/
 
 # vagrant data
 .vagrant/
+
+# VSCode extension "Calva"
+.calva/

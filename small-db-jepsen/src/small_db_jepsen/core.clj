@@ -39,9 +39,9 @@
       (let [host-binary "../build/debug/src/server/server"
             remote-dir "/tmp/small-db"]
         ;; ;; Copy server binary to VM
-        ;; (jepsen.control/exec :mkdir :-p remote-dir)
-        ;; (jepsen.control/upload [host-binary] (str remote-dir "/server"))
-        ;; (jepsen.control/exec :chmod :+x (str remote-dir "/server"))
+        (jepsen.control/exec :mkdir :-p remote-dir)
+        (jepsen.control/upload [host-binary] (str remote-dir "/server"))
+        (jepsen.control/exec :chmod :+x (str remote-dir "/server"))
         ;; ;; Copy dynamic libraries to VM
         ;; (copy-dynamic-libs host-binary)
 
