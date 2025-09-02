@@ -98,8 +98,8 @@ class SQLTest : public ::testing::Test {
         const std::string server_path = "./build/debug/src/server/server";
 
         for (auto& arg : args) {
-            // Use fork instead of execl to keep the ability to debug the server.
-            // We may change to execl when the server is stable.
+            // Use fork instead of execl to keep the ability to debug the
+            // server. We may change to execl when the server is stable.
             pid_t pid = fork();
             if (pid == 0) {
                 // In child process
