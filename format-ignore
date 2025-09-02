@@ -15,3 +15,6 @@
 
 # small-db legacy
 ./small-rows-rust/*
+
+# jepsen files
+./small-db-jepsen/*

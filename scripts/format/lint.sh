@@ -12,4 +12,4 @@ pip install cxc-toolkit
 
 # run cpplint
 export PYTHONPATH=.
-uv run ./scripts/format/run-cpplint.py
+python ./scripts/format/run-cpplint.py

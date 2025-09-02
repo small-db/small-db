@@ -1,9 +1,4 @@
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#     "cxc-toolkit",
-# ]
-# ///
+#!/usr/bin/env python
 import argparse
 
 import cxc_toolkit
