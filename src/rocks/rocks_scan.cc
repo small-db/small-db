@@ -18,6 +18,7 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 
 // =====================================================================
 // third-party libraries
@@ -35,6 +36,50 @@
 
 #include "src/rocks/rocks.h"
 
+// Function to check if a directory is a valid RocksDB directory
+bool IsRocksDBDirectory(const std::string& dir_path) {
+    try {
+        // Try to open the directory as a RocksDB database
+        auto db = small::rocks::RocksDBWrapper::GetInstance(dir_path, {});
+        return true;
+    } catch (const std::exception& e) {
+        // If opening fails, it's not a valid RocksDB directory
+        return false;
+    }
+}
+
+// Function to find all RocksDB directories under ./data with depth limit of 1
+std::vector<std::string> FindRocksDBDirectories() {
+    std::vector<std::string> rocksdb_dirs;
+    const std::string base_path = "./data";
+    
+    // Check if base directory exists
+    if (!std::filesystem::exists(base_path)) {
+        return rocksdb_dirs;
+    }
+    
+    // Check the base directory itself
+    if (IsRocksDBDirectory(base_path)) {
+        rocksdb_dirs.push_back(base_path);
+    }
+    
+    // Check immediate subdirectories (depth 1)
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(base_path)) {
+            if (entry.is_directory()) {
+                std::string subdir_path = entry.path().string();
+                if (IsRocksDBDirectory(subdir_path)) {
+                    rocksdb_dirs.push_back(subdir_path);
+                }
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        SPDLOG_WARN("Error scanning directory {}: {}", base_path, e.what());
+    }
+    
+    return rocksdb_dirs;
+}
+
 // take args:
 // - prefix
 int main(int argc, char** argv) {
@@ -44,16 +89,18 @@ int main(int argc, char** argv) {
     std::string prefix;
     app.add_option("--prefix", prefix, "Scan prefix")->default_str("");
 
-    std::vector<std::string> data_dir_list = {
-        "./data/asia",
-        "./data/eu",
-        "./data/us",
-    };
-
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError& e) {
         return app.exit(e);
+    }
+
+    // Find all RocksDB directories dynamically
+    std::vector<std::string> data_dir_list = FindRocksDBDirectories();
+    
+    if (data_dir_list.empty()) {
+        SPDLOG_INFO("No RocksDB directories found under ./data");
+        return 0;
     }
 
     for (const auto& data_dir : data_dir_list) {
