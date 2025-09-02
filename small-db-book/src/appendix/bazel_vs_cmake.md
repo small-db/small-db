@@ -11,3 +11,4 @@
 | (vscode) intellisense of the build language | ❌ "Bazel" extension is misfunctional | ✅ "CMake Tools" extension is good |
 | (vscode) debug the build system | ❌ | ✅ |
 | generate "compile_commands.json" | ⚠️ supported by "hedron_compile_commands", requires extra setup | ✅ natively supported by option "CMAKE_EXPORT_COMPILE_COMMANDS" |
+| disk usage | ⚠️ excessive disk usage due to the use of "sandbox" | ✅ |
