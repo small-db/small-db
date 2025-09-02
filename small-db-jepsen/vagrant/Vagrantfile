@@ -18,19 +18,20 @@ Vagrant.configure("2") do |config|
         vb.cpus = 2
       end
 
+      # use ~/.ssh/id_rsa.pub as the default public key
+      node.ssh.insert_key = false
+
       node.vm.network "private_network", ip: node_config[:ip]
       node.vm.hostname = node_config[:hostname]
 
       # install necessary packages
       node.vm.provision "shell", inline: <<-SHELL
-        # prevent error:
+        # set "noninteractive" to avoid error:
         # dpkg-preconfigure: unable to re-open stdin: No such file or directory
-        export DEBIAN_FRONTEND=noninteractive
-
-        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get update
 
         # ifconfig
-        sudo apt-get install -y net-tools
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y net-tools
       SHELL
 
       # set timezone to PST so its log's timestamp align with the host machine
@@ -40,22 +41,7 @@ Vagrant.configure("2") do |config|
 
       # setup chrony for time synchronization
       node.vm.provision "shell", inline: <<-SHELL
-        # prevent error:
-        # dpkg-preconfigure: unable to re-open stdin: No such file or directory
-        export DEBIAN_FRONTEND=noninteractive
-
-        sudo apt-get -y install chrony
-      SHELL
-
-      # default user: vagrant, password: vagrant
-      # ssh from host machine: ssh vagrant@#{node_config[:ip]}
-      node.vm.provision "shell", inline: <<-SHELL
-        # enable password authentication
-        sudo sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
-        sudo sed -i 's/^PasswordAuthentication no/#PasswordAuthentication no/' /etc/ssh/sshd_config
-
-        # NOTE: this bos use "ssh" instead of "sshd"
-        sudo systemctl restart ssh
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install chrony
       SHELL
     end
   end

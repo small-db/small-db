@@ -26,8 +26,12 @@ def main():
     node_args = " ".join(f"--node {node}" for node in nodes)
 
     # run jepsen test
+    # cxc_toolkit.exec.run_command(
+    #     f"lein run test {node_args} --username vagrant --password vagrant",
+    #     work_dir="small-db-jepsen",
+    # )
     cxc_toolkit.exec.run_command(
-        f"lein run test {node_args} --username vagrant --password vagrant",
+        f"lein run test {node_args} --ssh-private-key ~/.vagrant.d/insecure_private_key",
         work_dir="small-db-jepsen",
     )
 
