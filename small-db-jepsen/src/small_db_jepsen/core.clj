@@ -32,8 +32,11 @@
 
 (def dir     "/tmp/small-db")
 (def binary  (str dir "/server"))
+(def data-dir (str dir "/data"))
 (def logfile (str dir "/server.log"))
 (def pidfile (str dir "/server.pid"))
+(def sql-port 5001)
+(def grpc-port 50001)
 
 (defn small-db
   "Small DB"
@@ -42,23 +45,20 @@
     (setup! [_ test node]
       (info node "installing small db")
       (let [host-binary "../build/debug/src/server/server"]
-        (info "touching /tmp/a")
-        (jepsen.control/exec :touch "/tmp/a")
-        (info "touching /tmp/b")
-        (jepsen.control/exec :touch "/tmp/b")
-        (info "touching /tmp/c")
-        (jepsen.control/exec :touch "/tmp/c")
         ;; Copy server binary to VM
         (jepsen.control/exec :mkdir :-p dir)
         (jepsen.control/upload [host-binary] binary)
         (jepsen.control/exec :chmod :+x binary)
-        ;; Copy dynamic libraries to VM
-        (copy-dynamic-libs host-binary)
+        ;; ;; Copy dynamic libraries to VM
+        ;; (copy-dynamic-libs host-binary)
 
-        ;; Start the server
-        (let [data-dir (str dir "/data")
-              sql-port 5001
-              grpc-port 50001]
+        ;; Start the server with configuration based on node
+        (let [[region join-server]
+              (cond
+                (= node "asia") ["asia" "america:50001"]
+                (= node "europe") ["eu" "america:50001"]
+                (= node "america") ["us" ""]
+                :else ["us" ""])]
           (jepsen.control/exec :mkdir :-p data-dir)
           (jepsen.control.util/start-daemon!
            {:logfile logfile
@@ -69,14 +69,15 @@
            :--sql-port sql-port
            :--grpc-port grpc-port
            :--data-dir data-dir
-           :--region "test")
-          ;;  "/usr/bin/env")
-          (info "Started small-db server on" node "with SQL port" sql-port "and gRPC port" grpc-port))))
+           :--region region
+           :--join join-server)
+          (info "Started small-db server on" node "with SQL port" sql-port "gRPC port" grpc-port "region" region "join" join-server))))
 
     (teardown! [_ test node]
       (info node "tearing down small db")
       (jepsen.control.util/stop-daemon! pidfile)
-      (jepsen.control/exec :rm :-rf dir))))
+      (jepsen.control/exec :rm :-rf dir)
+      )))
 
 (defn small-db-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,

@@ -20,23 +20,19 @@ def main():
     # assert all nodes are running
     assert all(status == "running" for status in statuses)
 
-    # debug: only use asia node
-    nodes = [nodes[0]]
+    # # debug: only use asia node
+    # nodes = [nodes[0]]
 
     node_args = " ".join(f"--node {node}" for node in nodes)
 
     # run jepsen test
-    # cxc_toolkit.exec.run_command(
-    #     f"lein run test {node_args} --username vagrant --password vagrant",
-    #     work_dir="small-db-jepsen",
-    # )
+    # 
+    # use private key since jepsen 0.3.9 doesn't support password upload:
+    # https://github.com/jepsen-io/jepsen/blob/a9763068b168738d31a2388bd4d9dc79d7bc9730/jepsen/src/jepsen/control/scp.clj#L59-L71
     cxc_toolkit.exec.run_command(
-        f"lein run test {node_args} --ssh-private-key ~/.vagrant.d/insecure_private_key",
+        f"lein run test {node_args} --ssh-private-key ~/.vagrant.d/insecure_private_key --username vagrant",
         work_dir="small-db-jepsen",
     )
-
-    # ("scp" "-rpC" "-P" "22" "-o StrictHostKeyChecking=no" "../build/debug/src/server/server" "vagrant@asia:/tmp/small-db/server")
-    # scp -rpC -P 22 -o StrictHostKeyChecking=no ../build/debug/src/server/server vagrant@asia:/tmp/small-db/server
 
 
 if __name__ == "__main__":

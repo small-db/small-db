@@ -69,5 +69,5 @@ int main(int argc, char *argv[]) {
     std::string grpc_addr = fmt::format("0.0.0.0:{}", grpc_port);
 
     return small::server::RunServer(small::server_info::ImmutableInfo(
-        sql_addr, grpc_addr, region, join, data_dir));
+        sql_addr, grpc_addr, data_dir, region, join));
 }

@@ -18,11 +18,19 @@ Vagrant.configure("2") do |config|
         vb.cpus = 2
       end
 
-      # use ~/.ssh/id_rsa.pub as the default public key
+      # use the default key: ~/.vagrant.d/insecure_private_key
       node.ssh.insert_key = false
 
+      # set private ip
       node.vm.network "private_network", ip: node_config[:ip]
+
+      # set hostname
       node.vm.hostname = node_config[:hostname]
+
+      # set DNS entry
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "#{nodes.map { |n| "#{n[:ip]} #{n[:hostname]}" }.join("\n")}" | sudo tee -a /etc/hosts
+      SHELL
 
       # install necessary packages
       node.vm.provision "shell", inline: <<-SHELL
