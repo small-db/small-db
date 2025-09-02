@@ -1,8 +1,38 @@
 #!/usr/bin/env python
 
 
+import cxc_toolkit
+import cxc_toolkit.exec
+
+
 def main():
-    print("Hello, World!")
+    output, _ = cxc_toolkit.exec.run_command(
+        "vagrant status", work_dir="small-db-jepsen/vagrant", stream_output=False
+    )
+
+    nodes = []
+    statuses = []
+    for line in output.decode("utf-8").split("\n"):
+        if "(virtualbox)" in line:
+            nodes.append(line.split()[0])
+            statuses.append(line.split()[1])
+
+    # assert all nodes are running
+    assert all(status == "running" for status in statuses)
+
+    # debug: only use asia node
+    nodes = [nodes[0]]
+
+    node_args = " ".join(f"--node {node}" for node in nodes)
+
+    # run jepsen test
+    cxc_toolkit.exec.run_command(
+        f"lein run test {node_args} --username vagrant --password vagrant",
+        work_dir="small-db-jepsen",
+    )
+
+    # ("scp" "-rpC" "-P" "22" "-o StrictHostKeyChecking=no" "../build/debug/src/server/server" "vagrant@asia:/tmp/small-db/server")
+    # scp -rpC -P 22 -o StrictHostKeyChecking=no ../build/debug/src/server/server vagrant@asia:/tmp/small-db/server
 
 
 if __name__ == "__main__":

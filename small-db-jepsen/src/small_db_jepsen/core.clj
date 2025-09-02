@@ -30,35 +30,42 @@
         (info "Copied" (:name lib))))
     (info "Copied" (count libs) "libraries to" remote-lib-dir)))
 
+(def dir     "/tmp/small-db")
+(def binary  (str dir "/server"))
+(def logfile (str dir "/server.log"))
+(def pidfile (str dir "/server.pid"))
+
 (defn small-db
   "Small DB"
   []
   (reify jepsen.db/DB
     (setup! [_ test node]
       (info node "installing small db")
-      (let [host-binary "../build/debug/src/server/server"
-            remote-dir "/tmp/small-db"
-            remote-binary (str remote-dir "/server")]
+      (let [host-binary "../build/debug/src/server/server"]
+        (info "touching /tmp/a")
+        (jepsen.control/exec :touch "/tmp/a")
+        (info "touching /tmp/b")
+        (jepsen.control/exec :touch "/tmp/b")
+        (info "touching /tmp/c")
+        (jepsen.control/exec :touch "/tmp/c")
         ;; Copy server binary to VM
-        (jepsen.control/exec :mkdir :-p remote-dir)
-        (jepsen.control/upload [host-binary] remote-binary)
-        (jepsen.control/exec :chmod :+x remote-binary)
+        (jepsen.control/exec :mkdir :-p dir)
+        (jepsen.control/upload [host-binary] binary)
+        (jepsen.control/exec :chmod :+x binary)
         ;; Copy dynamic libraries to VM
         (copy-dynamic-libs host-binary)
 
         ;; Start the server
-        (let [logfile (str remote-dir "/server.log")
-              pidfile (str remote-dir "/server.pid")
-              data-dir (str remote-dir "/data")
+        (let [data-dir (str dir "/data")
               sql-port 5001
               grpc-port 50001]
           (jepsen.control/exec :mkdir :-p data-dir)
           (jepsen.control.util/start-daemon!
            {:logfile logfile
             :pidfile pidfile
-            :chdir remote-dir
+            :chdir dir
             :env {:LD_LIBRARY_PATH "/tmp/lib"}}
-           remote-binary
+           binary
            :--sql-port sql-port
            :--grpc-port grpc-port
            :--data-dir data-dir
@@ -68,8 +75,8 @@
 
     (teardown! [_ test node]
       (info node "tearing down small db")
-      (jepsen.control/stop-daemon! remote-binary pidfile)
-      (jepsen.control/exec :rm :-rf remote-dir))))
+      (jepsen.control.util/stop-daemon! pidfile)
+      (jepsen.control/exec :rm :-rf dir))))
 
 (defn small-db-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,

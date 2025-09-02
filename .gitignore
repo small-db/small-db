@@ -76,7 +76,7 @@ cmake/local_install/
 
 # configuration and cache files used by clj-kondo, a popular linter and static
 # analysis tool for Clojure
-.clj-kondo/.cache/
+.clj-kondo/
 
 # jepsen store
 small-db-jepsen/store/
