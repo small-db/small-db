@@ -48,10 +48,9 @@ bool IsRocksDBDirectory(const std::string& dir_path) {
     }
 }
 
-// Function to find all RocksDB directories under ./data with depth limit of 1
-std::vector<std::string> FindRocksDBDirectories() {
+// Function to find all RocksDB directories under a given path with depth limit of 1
+std::vector<std::string> FindRocksDBDirectories(const std::string& base_path) {
     std::vector<std::string> rocksdb_dirs;
-    const std::string base_path = "./data";
     
     // Check if base directory exists
     if (!std::filesystem::exists(base_path)) {
@@ -88,6 +87,10 @@ int main(int argc, char** argv) {
     // scan prefix, optional, default is empty
     std::string prefix;
     app.add_option("--prefix", prefix, "Scan prefix")->default_str("");
+    
+    // data directory path, optional, default is ./data
+    std::string data_path = "./data";
+    app.add_option("--data-path", data_path, "Data directory path")->default_str("./data");
 
     try {
         app.parse(argc, argv);
@@ -96,10 +99,10 @@ int main(int argc, char** argv) {
     }
 
     // Find all RocksDB directories dynamically
-    std::vector<std::string> data_dir_list = FindRocksDBDirectories();
+    std::vector<std::string> data_dir_list = FindRocksDBDirectories(data_path);
     
     if (data_dir_list.empty()) {
-        SPDLOG_INFO("No RocksDB directories found under ./data");
+        SPDLOG_INFO("No RocksDB directories found under {}", data_path);
         return 0;
     }
 
