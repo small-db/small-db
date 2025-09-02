@@ -44,6 +44,8 @@ bool IsRocksDBDirectory(const std::string& dir_path) {
         return true;
     } catch (const std::exception& e) {
         // If opening fails, it's not a valid RocksDB directory
+        SPDLOG_WARN("Error opening RocksDB directory {}: {}", dir_path,
+                    e.what());
         return false;
     }
 }
