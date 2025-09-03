@@ -502,6 +502,11 @@ std::string get_str_message(int sockfd) {
 
     uint32_t len = read_int32_chars(buffer);
     std::string message(buffer + 4, len - 4);
+
+    // log in hex
+    SPDLOG_INFO("received data in hex: {}",
+                spdlog::to_hex(buffer, buffer + len));
+
     return message;
 }
 
