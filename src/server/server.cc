@@ -380,19 +380,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
             } else {
                 int newsockfd = events[i].data.fd;
 
-                // // debug: read all the data from the socket
-                // int bytes_received =
-                //     recv(newsockfd, buffer, MAX_MESSAGE_LEN, 0);
-                // if (bytes_received < 0) {
-                //     SPDLOG_ERROR("error receiving data: {}", strerror(errno));
-                //     close(newsockfd);
-                // } else {
-                //     // log in hex
-                //     SPDLOG_INFO(
-                //         "received data in hex: {}",
-                //         spdlog::to_hex(buffer, buffer + bytes_received));
-                // }
-
                 auto state = SocketsManager::get_socket_state(newsockfd);
                 switch (state) {
                     case SocketsManager::SocketState::StartUp: {
