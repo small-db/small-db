@@ -147,44 +147,6 @@ absl::Status CatalogManager::CreateTable(
         return status;
     }
 
-    // auto nodes = small::gossip::get_nodes(std::nullopt);
-    // SPDLOG_INFO("nodes size: {}", nodes.size());
-    // for (const auto& [_, node] : nodes) {
-    //     SPDLOG_INFO("node: {}", node.sql_addr);
-    // }
-    // if (nodes.size() != 3) {
-    //     return absl::InternalError("not enough nodes");
-    // }
-
-    // small::catalog::CreateTableRequest request;
-    // request.set_table_name(table_name);
-    // for (const auto& column : columns) {
-    //     auto col = request.add_columns();
-    //     col->CopyFrom(column);
-    // }
-
-    // for (const auto& [_, server] : nodes) {
-    //     if (server.grpc_addr ==
-    //         gossip::GossipServer::get_instance()->self_info.grpc_addr) {
-    //         continue;
-    //     }
-
-    //     SPDLOG_INFO("sending create table request to server: {}",
-    //                 server.grpc_addr);
-
-    //     auto channel = grpc::CreateChannel(server.grpc_addr,
-    //                                        grpc::InsecureChannelCredentials());
-    //     auto stub = Catalog::NewStub(channel);
-    //     grpc::ClientContext context;
-    //     small::catalog::Reply reply;
-    //     grpc::Status status = stub->CreateTable(&context, request, &reply);
-    //     if (!status.ok()) {
-    //         return absl::InternalError(
-    //             fmt::format("failed to create table on server {}: {}",
-    //                         server.grpc_addr, status.error_message()));
-    //     }
-    // }
-
     return absl::OkStatus();
 }
 

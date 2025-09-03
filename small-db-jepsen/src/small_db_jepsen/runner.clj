@@ -3,14 +3,14 @@
    [clojure.java.shell :refer [sh]]
    [clojure.string :as str]
    [clojure.tools.logging :refer [info]]
-   [pg.core]
    jepsen.cli
+   jepsen.client
    jepsen.control
    jepsen.control.util
    jepsen.db
    jepsen.os.debian
    jepsen.tests
-   jepsen.client))
+   [pg.core]))
 
 (defrecord Client [conn]
   jepsen.client/Client
@@ -30,14 +30,16 @@
     (def tmp-conn
       (pg.core/connect tmp-config))
 
-    ;; create table
-    (pg.core/query tmp-conn "
-      CREATE TABLE users (
-          id INT PRIMARY KEY,
-          name STRING,
-          balance INT,
-          country STRING
-      ) PARTITION BY LIST (country);"))
+    ;; create table only on america client
+    (when (= node "america")
+      (info "Creating table on america client")
+      (pg.core/query tmp-conn "
+        CREATE TABLE users (
+            id INT PRIMARY KEY,
+            name STRING,
+            balance INT,
+            country STRING
+        ) PARTITION BY LIST (country);")))
 
   (setup! [this test])
 
