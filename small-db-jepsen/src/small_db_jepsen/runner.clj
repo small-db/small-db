@@ -1,14 +1,51 @@
-(ns small-db-jepsen.core
+(ns small-db-jepsen.runner
   (:require
    [clojure.java.shell :refer [sh]]
    [clojure.string :as str]
    [clojure.tools.logging :refer [info]]
+   [pg.core]
    jepsen.cli
    jepsen.control
    jepsen.control.util
    jepsen.db
    jepsen.os.debian
-   jepsen.tests))
+   jepsen.tests
+   jepsen.client))
+
+(defrecord Client [conn]
+  jepsen.client/Client
+  (open! [this test node]
+    ;; log all args
+    (info "Opening client" node "with test" test "and this" this)
+
+    ;; declare a minimal config
+    (def tmp-config
+      {:host node
+       :port 5001
+       :user "postgres"
+       :password "postgres"
+       :database "postgres"})
+
+    ;; connect to the database
+    (def tmp-conn
+      (pg.core/connect tmp-config))
+
+    ;; create table
+    (pg.core/query tmp-conn "
+      CREATE TABLE users (
+          id INT PRIMARY KEY,
+          name STRING,
+          balance INT,
+          country STRING
+      ) PARTITION BY LIST (country);"))
+
+  (setup! [this test])
+
+  (invoke! [_ test op])
+
+  (teardown! [this test])
+
+  (close! [_ test]))
 
 (defn copy-dynamic-libs
   "Get dynamic libraries and copy them to /tmp/lib/ on VM"
@@ -84,13 +121,19 @@
          :--data-dir data-dir
          :--region region
          :--join join-server)
-        (info "Started small-db server on" node "with SQL port" sql-port "gRPC port" grpc-port "region" region "join" join-server)
-        (Thread/sleep 1000000)))
+        (info "Started small-db server on" node "with SQL port" sql-port "gRPC port" grpc-port "region" region "join" join-server))
+
+      ;; sleep for 10 seconds
+      (Thread/sleep 10000))
 
     (teardown! [_ test node]
       (info node "tearing down small db")
       (jepsen.control.util/stop-daemon! pidfile)
-      (jepsen.control/exec :rm :-rf dir))))
+      (jepsen.control/exec :rm :-rf dir))
+
+    jepsen.db/LogFiles
+    (log-files [_ test node]
+      [logfile])))
 
 (defn small-db-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
@@ -101,7 +144,8 @@
          {:name "small-db"
           :os jepsen.os.debian/os
           :db (small-db)
-          :pure-generators true}))
+          :pure-generators true
+          :client (Client. nil)}))
 
 (defn -main
   "Handles command line arguments. Can either run a test, or a web server for

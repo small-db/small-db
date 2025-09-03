@@ -30,6 +30,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // =====================================================================
@@ -56,8 +57,9 @@
 #include "src/pg_wire/pg_wire.h"
 
 namespace small::pg_wire {
+using std::string;
 
-class Message {
+class ServerMessage {
    protected:
     static void append_char(std::vector<char>& buffer, char value) {
         buffer.push_back(value);
@@ -97,7 +99,15 @@ class Message {
     virtual void encode(std::vector<char>& buffer) = 0;
 };
 
-class AuthenticationOk : public Message {
+class NoSSLSupport : public ServerMessage {
+   public:
+    NoSSLSupport() = default;
+    void encode(std::vector<char>& buffer) override {
+        append_char(buffer, 'N');
+    }
+};
+
+class AuthenticationOk : public ServerMessage {
    public:
     AuthenticationOk() = default;
     void encode(std::vector<char>& buffer) override {
@@ -107,7 +117,7 @@ class AuthenticationOk : public Message {
     }
 };
 
-class EmptyQueryResponse : public Message {
+class EmptyQueryResponse : public ServerMessage {
    public:
     EmptyQueryResponse() = default;
     void encode(std::vector<char>& buffer) override {
@@ -116,7 +126,7 @@ class EmptyQueryResponse : public Message {
     }
 };
 
-class RowDescriptionResponse : public Message {
+class RowDescriptionResponse : public ServerMessage {
    private:
     const std::shared_ptr<arrow::Schema>& schema;
 
@@ -171,7 +181,7 @@ class RowDescriptionResponse : public Message {
 };
 
 // DataRow (B)
-class DataRowResponse : public Message {
+class DataRowResponse : public ServerMessage {
    private:
     const std::shared_ptr<arrow::RecordBatch>& batch;
 
@@ -209,11 +219,11 @@ class DataRowResponse : public Message {
     }
 };
 
-class CommandCompleteResponse : public Message {
+class CommandComplete : public ServerMessage {
    public:
-    CommandCompleteResponse() = default;
+    CommandComplete() = default;
 
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         // DataRow (B)
 
         // identifier
@@ -232,7 +242,7 @@ class CommandCompleteResponse : public Message {
     }
 };
 
-class ErrorResponse : public Message {
+class ErrorResponse : public ServerMessage {
     enum class Severity {
         ERROR,
         FATAL,
@@ -307,13 +317,13 @@ class ErrorResponse : public Message {
     }
 };
 
-class ParameterStatus : public Message {
+class ParameterStatus : public ServerMessage {
     const std::string key;
     const std::string value;
 
    public:
-    ParameterStatus(const std::string& key, const std::string& value)
-        : key(key), value(value) {}
+    ParameterStatus(std::string key, std::string value)
+        : key(std::move(key)), value(std::move(value)) {}
 
     // ParameterStatus (B)
     // Byte1('S')
@@ -324,7 +334,7 @@ class ParameterStatus : public Message {
     // The name of the run-time parameter being reported.
     // String
     // The current value of the parameter.
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'S');
         append_int32(buffer, 4 + key.size() + 1 + value.size() + 1);
         append_cstring(buffer, key);
@@ -332,7 +342,7 @@ class ParameterStatus : public Message {
     }
 };
 
-class BackendKeyData : public Message {
+class BackendKeyData : public ServerMessage {
    public:
     BackendKeyData() = default;
 
@@ -345,7 +355,7 @@ class BackendKeyData : public Message {
     // The process ID of this backend.
     // Int32
     // The secret key of this backend.
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'K');
         append_int32(buffer, 12);
 
@@ -361,7 +371,7 @@ class BackendKeyData : public Message {
     }
 };
 
-class ReadyForQuery : public Message {
+class ReadyForQuery : public ServerMessage {
    public:
     ReadyForQuery() = default;
 
@@ -384,12 +394,12 @@ class ReadyForQuery : public Message {
 
 class NetworkPackage {
    private:
-    std::vector<Message*> messages;
+    std::vector<ServerMessage*> messages;
 
    public:
     NetworkPackage() = default;
 
-    void add_message(Message* message) { messages.push_back(message); }
+    void add_message(ServerMessage* message) { messages.push_back(message); }
 
     void send_all(int sockfd) {
         std::vector<char> buffer;
@@ -401,8 +411,14 @@ class NetworkPackage {
     }
 };
 
+void send_no_ssl_support(int sockfd) {
+    auto* network_package = new NetworkPackage();
+    network_package->add_message(new NoSSLSupport());
+    network_package->send_all(sockfd);
+}
+
 void send_ready(int sockfd) {
-    NetworkPackage* network_package = new NetworkPackage();
+    auto* network_package = new NetworkPackage();
     network_package->add_message(new AuthenticationOk());
 
     std::unordered_map<std::string, std::string> params{
@@ -420,26 +436,125 @@ void send_ready(int sockfd) {
 }
 
 void send_batch(int sockfd, const std::shared_ptr<arrow::RecordBatch>& batch) {
-    NetworkPackage* network_package = new NetworkPackage();
+    auto* network_package = new NetworkPackage();
     network_package->add_message(new RowDescriptionResponse(batch->schema()));
     network_package->add_message(new DataRowResponse(batch));
-    network_package->add_message(new CommandCompleteResponse());
+    network_package->add_message(new CommandComplete());
     network_package->add_message(new ReadyForQuery());
     network_package->send_all(sockfd);
 }
 
 void send_empty_result(int sockfd) {
-    NetworkPackage* network_package = new NetworkPackage();
+    auto* network_package = new NetworkPackage();
     network_package->add_message(new EmptyQueryResponse());
     network_package->add_message(new ReadyForQuery());
     network_package->send_all(sockfd);
 }
 
 void send_error(int sockfd, const std::string& error_message) {
-    NetworkPackage* network_package = new NetworkPackage();
+    auto* network_package = new NetworkPackage();
     network_package->add_message(new ErrorResponse(error_message));
     network_package->add_message(new ReadyForQuery());
     network_package->send_all(sockfd);
+}
+
+constexpr int MAX_MESSAGE_LEN = 2048;
+
+uint32_t read_int32_chars(char* buffer) {
+    uint32_t network_value;
+    memcpy(&network_value, buffer, sizeof(network_value));
+    uint32_t value = ntohl(network_value);
+    return value;
+}
+
+std::string get_str_message(int sockfd) {
+    char buffer[MAX_MESSAGE_LEN];
+    ssize_t bytes_received = recv(sockfd, buffer, MAX_MESSAGE_LEN, 0);
+
+    if (bytes_received < 0) {
+        std::string error_message =
+            fmt::format("error receiving data: {}", strerror(errno));
+        switch (errno) {
+            case EWOULDBLOCK:
+                // Non-blocking socket operation would block
+                error_message += " (would block, try again later)";
+                break;
+            case ECONNREFUSED:
+                error_message += " (connection refused)";
+                // Handle reconnection logic here
+                break;
+            case ETIMEDOUT:
+                error_message += " (connection timed out)";
+                // Handle timeout logic here
+                break;
+            case ENOTCONN:
+                error_message += " (socket is not connected)";
+                // Handle disconnection logic here
+                break;
+            default:
+                error_message +=
+                    " (recv() failed: " + std::string(strerror(errno)) + ")";
+                // Handle other errors
+                break;
+        }
+        throw std::runtime_error(error_message);
+    }
+
+    uint32_t len = read_int32_chars(buffer);
+    std::string message(buffer + 4, len - 4);
+    return message;
+}
+
+constexpr int SSL_MAGIC_CODE = 80877103;
+
+int32_t read_int32(std::string& message, int offset) {
+    int32_t network_value;
+    memcpy(&network_value, message.data() + offset, sizeof(network_value));
+    int32_t value = ntohl(network_value);
+    return value;
+}
+
+ClientMessageType read_client_message(int sockfd) {
+    std::string message = get_str_message(sockfd);
+
+    if (message.size() == 4 && read_int32(message, 0) == SSL_MAGIC_CODE) {
+        return ClientMessageType::SSLRequest;
+    } else {
+        // the first 4 bytes is version
+        std::string version(message.begin() + 4, message.begin() + 8);
+
+        std::unordered_map<std::string, std::string> recv_params;
+        // key and value are separated by '\x00'
+        int pos = 8;  // start after the version
+        while (pos < message.size()) {
+            std::string key;
+            std::string value;
+
+            // Read key
+            while (pos < message.size() && message[pos] != '\x00') {
+                key += message[pos];
+                pos++;
+            }
+            pos++;  // skip the null character
+
+            // Read value
+            while (pos < message.size() && message[pos] != '\x00') {
+                value += message[pos];
+                pos++;
+            }
+            pos++;  // skip the null character
+
+            if (!key.empty()) {
+                recv_params[key] = value;
+            }
+        }
+
+        for (const auto& kv : recv_params) {
+            SPDLOG_DEBUG("recv_param: {}={}", kv.first, kv.second);
+        }
+
+        return ClientMessageType::StartupMessage;
+    }
 }
 
 }  // namespace small::pg_wire

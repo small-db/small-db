@@ -29,6 +29,8 @@
 
 namespace small::pg_wire {
 
+void send_no_ssl_support(int sockfd);
+
 void send_ready(int sockfd);
 
 void send_batch(int sockfd, const std::shared_ptr<arrow::RecordBatch>& batch);
@@ -36,5 +38,14 @@ void send_batch(int sockfd, const std::shared_ptr<arrow::RecordBatch>& batch);
 void send_empty_result(int sockfd);
 
 void send_error(int sockfd, const std::string& error_message);
+
+std::string get_str_message(int sockfd);
+
+enum class ClientMessageType {
+    SSLRequest,
+    StartupMessage,
+};
+
+ClientMessageType read_client_message(int sockfd);
 
 }  // namespace small::pg_wire

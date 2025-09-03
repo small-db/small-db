@@ -183,7 +183,7 @@ std::mutex SocketsManager::mtx;
 // get a message with length word from connection
 std::string pq_getmessage(char* buffer) {
     int len = read_int32_chars(buffer);
-    std::string message(buffer + 4, len);
+    std::string message(buffer + 4, len - 4);
     return message;
 }
 
@@ -380,10 +380,51 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
             } else {
                 int newsockfd = events[i].data.fd;
 
+                // debug: read all the data from the socket
+                int bytes_received =
+                    recv(newsockfd, buffer, MAX_MESSAGE_LEN, 0);
+                if (bytes_received < 0) {
+                    SPDLOG_ERROR("error receiving data: {}", strerror(errno));
+                    close(newsockfd);
+                } else {
+                    // log in hex
+                    SPDLOG_INFO(
+                        "received data in hex: {}",
+                        spdlog::to_hex(buffer, buffer + bytes_received));
+                }
+
+                continue;
+
                 auto state = SocketsManager::get_socket_state(newsockfd);
                 switch (state) {
                     case SocketsManager::SocketState::StartUp: {
-                        SSLRequest::handle_ssl_request(newsockfd);
+                        auto message_type =
+                            small::pg_wire::read_client_message(newsockfd);
+
+                        switch (message_type) {
+                            case small::pg_wire::ClientMessageType::
+                                SSLRequest: {
+                                // sent by:
+                                // - c++ libpqxx client
+                                // - psql CLI client
+                                small::pg_wire::send_no_ssl_support(newsockfd);
+                                break;
+                            }
+                            case small::pg_wire::ClientMessageType::
+                                StartupMessage: {
+                                // sent by:
+                                // - clojure pg2 client
+                                small::pg_wire::send_ready(newsockfd);
+                                break;
+                            }
+                            default: {
+                                SPDLOG_ERROR("unknown client message type: {}",
+                                             static_cast<int>(message_type));
+                                exit(EXIT_FAILURE);
+                                break;
+                            }
+                        }
+
                         SocketsManager::set_socket_state(
                             newsockfd,
                             SocketsManager::SocketState::NoSSLAcknowledged);
@@ -391,104 +432,45 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                     }
 
                     case SocketsManager::SocketState::NoSSLAcknowledged: {
-                        int bytes_received =
-                            recv(newsockfd, buffer, MAX_MESSAGE_LEN, 0);
+                        auto message_type =
+                            small::pg_wire::read_client_message(newsockfd);
 
-                        if (bytes_received < 0) {
-                            switch (errno) {
-                                case EWOULDBLOCK:
-                                    // Non-blocking socket operation would block
-                                    SPDLOG_DEBUG(
-                                        "Would block, try again later");
-                                    break;
-                                case ECONNREFUSED:
-                                    SPDLOG_DEBUG("Connection refused");
-                                    // Handle reconnection logic here
-                                    break;
-                                case ETIMEDOUT:
-                                    SPDLOG_DEBUG("Connection timed out");
-                                    // Handle timeout logic here
-                                    break;
-                                case ENOTCONN:
-                                    SPDLOG_DEBUG("Socket is not connected");
-                                    // Handle disconnection logic here
-                                    break;
-                                default:
-                                    SPDLOG_DEBUG("recv() failed: {}",
-                                                 strerror(errno));
-                                    // Handle other errors
-                                    break;
+                        switch (message_type) {
+                            case small::pg_wire::ClientMessageType::
+                                StartupMessage: {
+                                // sent by:
+                                // - clojure pg2 client
+                                small::pg_wire::send_ready(newsockfd);
+                                break;
                             }
-                            continue;
-                        }
-
-                        std::string message = pq_getmessage(buffer);
-
-                        // the first 4 bytes is version
-                        std::string version(buffer + 4, 4);
-
-                        std::unordered_map<std::string, std::string>
-                            recv_params;
-                        // key and value are separated by '\x00'
-                        int pos = 8;  // start after the version
-                        while (pos < bytes_received) {
-                            std::string key;
-                            std::string value;
-
-                            // Read key
-                            while (pos < bytes_received &&
-                                   buffer[pos] != '\x00') {
-                                key += buffer[pos];
-                                pos++;
-                            }
-                            pos++;  // skip the null character
-
-                            // Read value
-                            while (pos < bytes_received &&
-                                   buffer[pos] != '\x00') {
-                                value += buffer[pos];
-                                pos++;
-                            }
-                            pos++;  // skip the null character
-
-                            if (!key.empty()) {
-                                recv_params[key] = value;
+                            default: {
+                                SPDLOG_ERROR("unknown client message type: {}",
+                                             static_cast<int>(message_type));
+                                exit(EXIT_FAILURE);
+                                break;
                             }
                         }
-
-                        small::pg_wire::send_ready(newsockfd);
 
                         SocketsManager::set_socket_state(
                             newsockfd,
                             SocketsManager::SocketState::ReadyForQuery);
                         break;
                     }
-                    case SocketsManager::SocketState::ReadyForQuery: {
-                        std::vector<char> buffer(MAX_MESSAGE_LEN);
-                        int bytes_received =
-                            recv(newsockfd, buffer.data(), buffer.size(), 0);
-                        if (bytes_received < 0) {
-                            spdlog::error("error receiving data: {}",
-                                          strerror(errno));
-                            close(newsockfd);
-                            continue;
-                        } else if (bytes_received == 0) {
-                            spdlog::info("connection closed by peer");
-                            close(newsockfd);
-                            continue;
-                        }
 
-                        char message_type = buffer[0];
+                    case SocketsManager::SocketState::ReadyForQuery: {
+                        std::string message =
+                            small::pg_wire::get_str_message(newsockfd);
+                        char message_type = message[0];
                         switch (message_type) {
                             case 'Q': {
                                 // Query
 
                                 // read length of the query
                                 int32_t query_len =
-                                    read_int32_chars(buffer.data() + 1);
+                                    read_int32_chars(message.data() + 1);
 
                                 // read the query
-                                std::string query(buffer.data() + 5,
+                                std::string query(message.data() + 5,
                                                   query_len - 4);
                                 handle_query(query, newsockfd);
                                 break;
