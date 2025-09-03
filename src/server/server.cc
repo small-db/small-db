@@ -430,6 +430,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                                 break;
                             }
                         }
+                        break;
                     }
 
                     case SocketsManager::SocketState::NoSSLAcknowledged: {
@@ -442,6 +443,9 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                                 // sent by:
                                 // - clojure pg2 client
                                 small::pg_wire::send_ready(newsockfd);
+                                SocketsManager::set_socket_state(
+                                    newsockfd,
+                                    SocketsManager::SocketState::ReadyForQuery);
                                 break;
                             }
                             default: {
@@ -451,10 +455,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                                 break;
                             }
                         }
-
-                        SocketsManager::set_socket_state(
-                            newsockfd,
-                            SocketsManager::SocketState::ReadyForQuery);
                         break;
                     }
 
