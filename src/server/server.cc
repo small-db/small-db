@@ -402,7 +402,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                         switch (message_type) {
                             case small::pg_wire::ClientMessageType::
                                 SSLRequest: {
-                                // sent by:
+                                // sent on initialization by:
                                 // - c++ libpqxx client
                                 // - psql CLI client
                                 small::pg_wire::send_no_ssl_support(newsockfd);
@@ -413,7 +413,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                             }
                             case small::pg_wire::ClientMessageType::
                                 StartupMessage: {
-                                // sent by:
+                                // sent on initialization by:
                                 // - clojure pg2 client
                                 small::pg_wire::send_ready(newsockfd);
                                 SocketsManager::set_socket_state(
@@ -438,8 +438,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                         switch (message_type) {
                             case small::pg_wire::ClientMessageType::
                                 StartupMessage: {
-                                // sent by:
-                                // - clojure pg2 client
                                 small::pg_wire::send_ready(newsockfd);
                                 SocketsManager::set_socket_state(
                                     newsockfd,
