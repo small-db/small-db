@@ -456,7 +456,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
 
                     case SocketsManager::SocketState::ReadyForQuery: {
                         std::string message =
-                            small::pg_wire::get_str_message(newsockfd);
+                            small::pg_wire::read_bytes(newsockfd);
                         char message_type = message[0];
                         switch (message_type) {
                             case 'Q': {

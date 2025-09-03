@@ -467,7 +467,7 @@ uint32_t read_int32_chars(char* buffer) {
     return value;
 }
 
-std::string get_str_message(int sockfd) {
+std::string read_bytes(int sockfd) {
     char buffer[MAX_MESSAGE_LEN];
     ssize_t bytes_received = recv(sockfd, buffer, MAX_MESSAGE_LEN, 0);
 
@@ -500,14 +500,11 @@ std::string get_str_message(int sockfd) {
         throw std::runtime_error(error_message);
     }
 
-    uint32_t len = read_int32_chars(buffer);
-    std::string message(buffer + 4, len - 4);
-
     // log in hex
     SPDLOG_INFO("received data in hex: {}",
-                spdlog::to_hex(buffer, buffer + len));
+                spdlog::to_hex(buffer, buffer + bytes_received));
 
-    return message;
+    return std::string(buffer, bytes_received);
 }
 
 constexpr int SSL_MAGIC_CODE = 80877103;
@@ -520,12 +517,14 @@ int32_t read_int32(std::string& message, int offset) {
 }
 
 ClientMessageType read_client_message(int sockfd) {
-    std::string message = get_str_message(sockfd);
+    std::string message = read_bytes(sockfd);
 
-    if (message.size() == 4 && read_int32(message, 0) == SSL_MAGIC_CODE) {
+    if (message.size() == 8 && read_int32(message, 4) == SSL_MAGIC_CODE) {
         return ClientMessageType::SSLRequest;
     } else {
-        // the first 4 bytes is version
+        // the first 4 bytes is length
+
+        // the next 4 bytes is version
         std::string version(message.begin() + 4, message.begin() + 8);
 
         std::unordered_map<std::string, std::string> recv_params;

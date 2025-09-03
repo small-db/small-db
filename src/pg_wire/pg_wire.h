@@ -39,7 +39,7 @@ void send_empty_result(int sockfd);
 
 void send_error(int sockfd, const std::string& error_message);
 
-std::string get_str_message(int sockfd);
+std::string read_bytes(int sockfd);
 
 enum class ClientMessageType {
     SSLRequest,
