@@ -152,8 +152,8 @@
           (jepsen.control/upload [tool] remote-tool)
           (jepsen.control/exec :chmod :+x remote-tool)))
 
-      ;; ;; Copy dynamic libraries to VM
-      ;; (copy-dynamic-libs host-binary)
+      ;; Copy dynamic libraries to VM
+      (copy-dynamic-libs host-binary)
 
       ;; Start the server with configuration based on node
       (let [[region join-server]
