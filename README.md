@@ -41,7 +41,7 @@ git clone https://github.com/small-db/small-db.git
 ./scripts/test/jepsen-test.py
 ```
 
-- Don't use libvirt as provider, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
+- Don't use `libvirt` as provider, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
 
 ## Book Writing
 

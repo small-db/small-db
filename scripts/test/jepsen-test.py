@@ -6,7 +6,7 @@ import cxc_toolkit
 
 def main():
     # disable the KVM kernel extension
-    cxc_toolkit.exec.run_command("sudo modprobe -r kvm_amd")
+    cxc_toolkit.exec.run_command("sudo modprobe -r kvm_amd", start_new_session=False)
 
     cxc_toolkit.exec.run_command("vagrant up", work_dir="small-db-jepsen/vagrant")
 
@@ -14,6 +14,7 @@ def main():
     cxc_toolkit.exec.run_command(
         "sudo $(go env GOPATH)/bin/hostctl add small-db-jepsen --from ./nodes",
         work_dir="small-db-jepsen/vagrant",
+        start_new_session=False,
     )
 
     output, _ = cxc_toolkit.exec.run_command(
@@ -22,7 +23,7 @@ def main():
 
     nodes = []
     statuses = []
-    for line in output.decode("utf-8").split("\n"):
+    for line in output.split("\n"):
         if "(virtualbox)" in line:
             nodes.append(line.split()[0])
             statuses.append(line.split()[1])
