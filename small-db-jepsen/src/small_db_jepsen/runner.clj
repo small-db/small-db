@@ -10,6 +10,7 @@
    jepsen.db
    jepsen.os.debian
    jepsen.tests
+   [jepsen.tests.bank :as bank]
    [pg.core]))
 
 (defrecord Client [conn]
@@ -178,19 +179,17 @@
 
 (defn small-db-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
-  :concurrency, ...), constructs a test map."
+  :concurrency, ...), constructs a test map for the bank workload."
   [opts]
-  (merge jepsen.tests/noop-test
+  (merge (bank/test)
          opts
-         {:name "small-db"
+         {:name "small-db-bank"
           :os jepsen.os.debian/os
           :db (small-db)
-          :pure-generators true
           :client (Client. nil)}))
 
 (defn -main
-  "Handles command line arguments. Can either run a test, or a web server for
-  browsing results."
+  "Handles command line arguments. Runs the bank test by default."
   [& args]
   (jepsen.cli/run! (jepsen.cli/single-test-cmd {:test-fn small-db-test})
                    args))
