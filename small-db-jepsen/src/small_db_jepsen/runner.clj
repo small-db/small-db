@@ -177,15 +177,14 @@
       [logfile])))
 
 (defn query-test
-  "Given an options map from the command line runner (e.g. :nodes, :ssh,
-  :concurrency, ...), constructs a test map for the bank workload."
+  "Run simple queries on all nodes."
   [opts]
-  (merge
-   opts
-   {:name "small-db-bank"
-    :os jepsen.os.debian/os
-    :db (small-db)
-    :client (Client. nil)}))
+  (merge jepsen.tests/noop-test
+         opts
+         {:name "small-db-bank"
+          :os jepsen.os.debian/os
+          :db (small-db)
+          :client (Client. nil)}))
 
 (defn -main
   [& args]
