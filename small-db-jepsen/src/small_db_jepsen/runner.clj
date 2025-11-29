@@ -15,10 +15,6 @@
 (defrecord Client [conn]
   jepsen.client/Client
   (open! [this test node]
-    ;; ;; log all args
-    ;; (info "Opening client:" node "with test:" test "and this: " this)
-
-    ;; declare a minimal config
     (let [config
           {:host node
            :port 5001
@@ -26,20 +22,16 @@
            :password "postgres"
            :database "postgres"}]
 
-      ;; connect to the database
       (assoc this
              :conn (pg.core/connect config)
              :node node)))
 
   (setup! [this test]
-    ;; create table from the america client
     (when (= (:node this) "america")
       (info "Creating table on america client")
 
-      ;; Drop table if exists
       (pg.core/query (:conn this) "DROP TABLE IF EXISTS users;")
 
-      ;; Create main table
       (pg.core/query (:conn this) "
           CREATE TABLE users (
               id INT PRIMARY KEY,
@@ -48,7 +40,6 @@
               country STRING
           ) PARTITION BY LIST (country);")
 
-      ;; Create partitions
       (pg.core/query (:conn this) "
           CREATE TABLE users_eu PARTITION OF users FOR
           VALUES IN ('Germany', 'France', 'Italy');")
@@ -61,7 +52,6 @@
           CREATE TABLE users_asia PARTITION OF users FOR
           VALUES IN ('China', 'Japan', 'Korea');")
 
-      ;; Add region constraints
       (pg.core/query (:conn this) "
           ALTER TABLE users_eu ADD CONSTRAINT check_region CHECK (region = 'eu');")
 
@@ -71,7 +61,6 @@
       (pg.core/query (:conn this) "
           ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');")
 
-      ;; Insert test data
       (pg.core/query (:conn this) "
           INSERT INTO users (id, name, balance, country) VALUES
           (1, 'Alice', 1000, 'Germany'),
@@ -80,7 +69,6 @@
           (4, 'David', 3000, 'China'),
           (5, 'Eve', 2500, 'Japan');")
 
-      ;; Query system tables
       (info "Querying system.tables:")
       (let [tables-result (pg.core/query (:conn this) "SELECT * FROM system.tables;")]
         (doseq [row tables-result]
