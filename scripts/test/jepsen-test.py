@@ -28,11 +28,7 @@ def main():
             nodes.append(line.split()[0])
             statuses.append(line.split()[1])
 
-    # assert all nodes are running
     assert all(status == "running" for status in statuses)
-
-    # # debug: only use asia node
-    # nodes = [nodes[0]]
 
     node_args = " ".join(f"--node {node}" for node in nodes)
 

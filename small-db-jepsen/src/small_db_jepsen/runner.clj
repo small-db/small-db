@@ -15,8 +15,8 @@
 (defrecord Client [conn]
   jepsen.client/Client
   (open! [this test node]
-    ;; ;; log all args
-    ;; (info "Opening client" node "with test" test "and this" this)
+    ;; log all args
+    (info "Opening client:" node "with test:" test "and this: " this)
 
     ;; declare a minimal config
     (let [config

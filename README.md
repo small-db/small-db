@@ -9,6 +9,12 @@
 - Ubuntu 24.04 LTS (or newer version)
 - CMake 3.21.3 (or newer version)
 
+### Check Environment
+
+```bash
+./scripts/build/check-env.py
+```
+
 ### Build From Source
 
 ```bash
