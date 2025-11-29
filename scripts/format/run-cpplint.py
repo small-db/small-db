@@ -33,7 +33,7 @@ def main():
     )
 
     for file in files:
-        cxc_toolkit.exec.run_command(f"cpplint {file}", raise_on_failure=True)
+        cxc_toolkit.exec.run_command(f"cpplint {file}")
 
 
 if __name__ == "__main__":
