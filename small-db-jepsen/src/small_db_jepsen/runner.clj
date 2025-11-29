@@ -10,8 +10,22 @@
    jepsen.db
    jepsen.os.debian
    jepsen.tests
-   [jepsen.tests.bank :as bank]
    [pg.core]))
+
+;; file location inside VM
+(def dir     "/tmp/small-db")
+(def binary  (str dir "/server"))
+(def data-dir (str dir "/data"))
+(def logfile (str dir "/server.log"))
+(def pidfile (str dir "/server.pid"))
+
+;; runtime ports
+(def sql-port 5001)
+(def grpc-port 50001)
+
+;; host binary locations
+(def host-binary "../build/debug/src/server/server")
+(def tools-binary ["../build/debug/src/rocks/rocks_scan"])
 
 (defrecord Client [conn]
   jepsen.client/Client
@@ -109,21 +123,6 @@
         (info "Copied" (:name lib))))
     (info "Copied" (count libs) "libraries to" remote-lib-dir)))
 
-;; disk location config
-(def dir     "/tmp/small-db")
-(def binary  (str dir "/server"))
-(def data-dir (str dir "/data"))
-(def logfile (str dir "/server.log"))
-(def pidfile (str dir "/server.pid"))
-
-;; runtime config
-(def sql-port 5001)
-(def grpc-port 50001)
-
-;; host binary location
-(def host-binary "../build/debug/src/server/server")
-(def tools-binary ["../build/debug/src/rocks/rocks_scan"])
-
 (defn small-db
   "Small DB"
   []
@@ -177,19 +176,18 @@
     (log-files [_ test node]
       [logfile])))
 
-(defn small-db-test
+(defn query-test
   "Given an options map from the command line runner (e.g. :nodes, :ssh,
   :concurrency, ...), constructs a test map for the bank workload."
   [opts]
-  (merge (bank/test)
-         opts
-         {:name "small-db-bank"
-          :os jepsen.os.debian/os
-          :db (small-db)
-          :client (Client. nil)}))
+  (merge
+   opts
+   {:name "small-db-bank"
+    :os jepsen.os.debian/os
+    :db (small-db)
+    :client (Client. nil)}))
 
 (defn -main
-  "Handles command line arguments. Runs the bank test by default."
   [& args]
-  (jepsen.cli/run! (jepsen.cli/single-test-cmd {:test-fn small-db-test})
+  (jepsen.cli/run! (jepsen.cli/single-test-cmd {:test-fn query-test})
                    args))
