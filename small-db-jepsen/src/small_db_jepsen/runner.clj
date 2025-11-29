@@ -15,8 +15,8 @@
 (defrecord Client [conn]
   jepsen.client/Client
   (open! [this test node]
-    ;; log all args
-    (info "Opening client:" node "with test:" test "and this: " this)
+    ;; ;; log all args
+    ;; (info "Opening client:" node "with test:" test "and this: " this)
 
     ;; declare a minimal config
     (let [config
@@ -32,15 +32,15 @@
              :node node)))
 
   (setup! [this test]
-    ;; create table only on america client
-    (when (= this :node "america")
+    ;; create table from the america client
+    (when (= (:node this) "america")
       (info "Creating table on america client")
 
       ;; Drop table if exists
-      (pg.core/query this :conn "DROP TABLE IF EXISTS users;")
+      (pg.core/query (:conn this) "DROP TABLE IF EXISTS users;")
 
       ;; Create main table
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           CREATE TABLE users (
               id INT PRIMARY KEY,
               name STRING,
@@ -49,30 +49,30 @@
           ) PARTITION BY LIST (country);")
 
       ;; Create partitions
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           CREATE TABLE users_eu PARTITION OF users FOR
           VALUES IN ('Germany', 'France', 'Italy');")
 
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           CREATE TABLE users_us PARTITION OF users FOR
           VALUES IN ('USA', 'Canada');")
 
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           CREATE TABLE users_asia PARTITION OF users FOR
           VALUES IN ('China', 'Japan', 'Korea');")
 
       ;; Add region constraints
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           ALTER TABLE users_eu ADD CONSTRAINT check_region CHECK (region = 'eu');")
 
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           ALTER TABLE users_us ADD CONSTRAINT check_region CHECK (region = 'us');")
 
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');")
 
       ;; Insert test data
-      (pg.core/query this :conn "
+      (pg.core/query (:conn this) "
           INSERT INTO users (id, name, balance, country) VALUES
           (1, 'Alice', 1000, 'Germany'),
           (2, 'Bob', 2000, 'USA'),
@@ -82,12 +82,12 @@
 
       ;; Query system tables
       (info "Querying system.tables:")
-      (let [tables-result (pg.core/query this :conn "SELECT * FROM system.tables;")]
+      (let [tables-result (pg.core/query (:conn this) "SELECT * FROM system.tables;")]
         (doseq [row tables-result]
           (info "Table:" row)))
 
       (info "Querying system.partitions:")
-      (let [partitions-result (pg.core/query this :conn "SELECT * FROM system.partitions WHERE table_name = 'users';")]
+      (let [partitions-result (pg.core/query (:conn this) "SELECT * FROM system.partitions WHERE table_name = 'users';")]
         (doseq [row partitions-result]
           (info "Partition:" row)))
 
