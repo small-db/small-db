@@ -37,7 +37,7 @@ def main():
     # use private key since upload-with-password is broken on jepsen 0.3.9:
     # https://github.com/jepsen-io/jepsen/blob/a9763068b168738d31a2388bd4d9dc79d7bc9730/jepsen/src/jepsen/control/scp.clj#L59-L71
     cxc_toolkit.exec.run_command(
-        f"lein run test {node_args} --ssh-private-key ~/.vagrant.d/insecure_private_key --username vagrant",
+        f"lein run test-all {node_args} --ssh-private-key ~/.vagrant.d/insecure_private_key --username vagrant",
         work_dir="small-db-jepsen",
     )
 

@@ -13,11 +13,12 @@
    [pg.core]))
 
 ;; file location inside VM
-(def dir     "/tmp/small-db")
-(def binary  (str dir "/server"))
-(def data-dir (str dir "/data"))
-(def logfile (str dir "/server.log"))
-(def pidfile (str dir "/server.pid"))
+(def workDir     "/tmp/small-db")
+(def binary  (str workDir "/server"))
+(def data-dir (str workDir "/data"))
+(def logfile (str workDir "/server.log"))
+(def pidfile (str workDir "/server.pid"))
+(def libDir  "/tmp/lib")
 
 ;; runtime ports
 (def sql-port 5001)
@@ -95,6 +96,8 @@
           (info "Partition:" row)))
 
       (info "Completed table setup and queries on america client"))
+
+    ;; all clients wait for 20 seconds to ensure setup is complete
     (Thread/sleep 20000))
 
   (invoke! [_ test op])
@@ -115,7 +118,7 @@
                      path (second parts)
                      path-only (first (str/split path #"\s"))]
                  {:name name :path path-only}))
-        remote-lib-dir "/tmp/lib"]
+        remote-lib-dir libDir]
     (jepsen.control/exec :mkdir :-p remote-lib-dir)
     (doseq [lib libs]
       (when (and (:path lib) (not= (:path lib) "not found"))
@@ -130,13 +133,13 @@
     (setup! [_ test node]
       (info node "installing small db")
       ;; Copy server binary to VM
-      (jepsen.control/exec :mkdir :-p dir)
+      (jepsen.control/exec :mkdir :-p workDir)
       (jepsen.control/upload [host-binary] binary)
       (jepsen.control/exec :chmod :+x binary)
 
       ;; Copy tools binary to VM
       (doseq [tool tools-binary]
-        (let [remote-tool (str dir "/" (last (str/split tool #"/")))]
+        (let [remote-tool (str workDir "/" (last (str/split tool #"/")))]
           (jepsen.control/upload [tool] remote-tool)
           (jepsen.control/exec :chmod :+x remote-tool)))
 
@@ -154,8 +157,8 @@
         (jepsen.control.util/start-daemon!
          {:logfile logfile
           :pidfile pidfile
-          :chdir dir
-          :env {:LD_LIBRARY_PATH "/tmp/lib"}}
+          :chdir workDir
+          :env {:LD_LIBRARY_PATH libDir}}
          binary
          :--sql-port sql-port
          :--grpc-port grpc-port
@@ -164,13 +167,13 @@
          :--join join-server)
         (info "Started small-db server on" node "with SQL port" sql-port "gRPC port" grpc-port "region" region "join" join-server))
 
-      ;; sleep for 10 seconds
+      ;; wait for server to start
       (Thread/sleep 10000))
 
     (teardown! [_ test node]
       (info node "tearing down small db")
       (jepsen.control.util/stop-daemon! pidfile)
-      (jepsen.control/exec :rm :-rf dir))
+      (jepsen.control/exec :rm :-rf workDir))
 
     jepsen.db/LogFiles
     (log-files [_ test node]
@@ -181,12 +184,24 @@
   [opts]
   (merge jepsen.tests/noop-test
          opts
-         {:name "small-db-bank"
+         {:name "query-test"
+          :os jepsen.os.debian/os
+          :db (small-db)
+          :client (Client. nil)}))
+
+(defn second-test
+  "a placeholder for a second test."
+  [opts]
+  (merge jepsen.tests/noop-test
+         opts
+         {:name "second-test"
           :os jepsen.os.debian/os
           :db (small-db)
           :client (Client. nil)}))
 
 (defn -main
   [& args]
-  (jepsen.cli/run! (jepsen.cli/single-test-cmd {:test-fn query-test})
+  (jepsen.cli/run! (jepsen.cli/test-all-cmd {:tests-fn (fn [opts]
+                                                         [(query-test opts)
+                                                          (second-test opts)])})
                    args))
