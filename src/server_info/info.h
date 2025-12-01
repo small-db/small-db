@@ -92,6 +92,7 @@ class ServerInfo {
 
 absl::Status init(const ImmutableInfo& args);
 
+// Get information of the current server.
 absl::StatusOr<ServerInfo*> get_info();
 
 }  // namespace small::server_info

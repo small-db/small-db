@@ -13,7 +13,6 @@ target_link_libraries(small_schema
     small::schema_proto
     small::rocks
     small::type
-    small::server_info
     small::id
     rocksdb
     spdlog

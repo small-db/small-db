@@ -14,11 +14,4 @@
 
 #pragma once
 
-// =====================================================================
-// c++ std
-// =====================================================================
-
-#include <cstdint>
-#include <string>
-
 namespace small::schema {}  // namespace small::schema
