@@ -127,9 +127,10 @@ namespace small::gossip {
 inline constexpr std::string_view KEY_PREFIX_NODE = "node:";
 
 void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
+    SPDLOG_INFO("gossip: adding node {}", node);
     std::lock_guard<std::mutex> lock(this->store.mutex);
 
-    auto key = fmt::format("node:{}", self_info.id);
+    auto key = fmt::format("node:{}", node.id);
     if (this->store.entries.entries().contains(key)) {
         return;
     }
@@ -167,6 +168,8 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
 
     std::thread([this, seed_peer]() {
         while (true) {
+            SPDLOG_INFO("gossip: starting a new round");
+
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
             // Select the peer to communicate with in this round.
@@ -193,6 +196,8 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                     peer_addr = other_nodes[dis(gen)].grpc_addr;
                 }
             }
+
+            SPDLOG_INFO("gossip: selected peer {}", peer_addr);
 
             if (peer_addr.empty()) {
                 // No peer available, wait passively
@@ -223,9 +228,9 @@ GossipServer* GossipServer::instance_ptr = nullptr;
 
 void GossipServer::init_instance(
     const small::server_info::ImmutableInfo& self_info,
-    const std::string& peer_addr) {
+    const std::string& seed_peer) {
     if (instance_ptr == nullptr) {
-        instance_ptr = new GossipServer(self_info, peer_addr);
+        instance_ptr = new GossipServer(self_info, seed_peer);
     } else {
         SPDLOG_ERROR("gossip server instance already initialized");
     }

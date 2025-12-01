@@ -93,6 +93,23 @@ class SQLTest : public ::testing::Test {
 
     inline static std::vector<int> server_pids = {};
 
+    /**
+     * @brief Starts multiple server instances using multi-process creation.
+     *
+     * @details This function uses fork() to create a new, separate child
+     * process for each server instance specified in the arguments. This
+     * approach is preferred over multi-threading due to its superior resource
+     * isolation (e.g., protection against memory leaks or crashes in sibling
+     * servers).
+     *
+     * @note Currently, this method uses fork() only to keep the server running
+     * within the same executable for easier development debugging. For a final
+     * production state, changing this to fork() + exec() should be considered
+     * to guarantee complete process state separation.
+     *
+     * @param args A list of server configuration details (ImmutableInfo) for
+     * each server instance to be launched.
+     */
     static void StartServers(
         const std::vector<small::server_info::ImmutableInfo>& args) {
         const std::string server_path = "./build/debug/src/server/server";
