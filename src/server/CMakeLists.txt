@@ -1,10 +1,3 @@
-# FetchContent_Declare(backward
-#     GIT_REPOSITORY https://github.com/bombela/backward-cpp
-#     GIT_TAG master # or a version tag, such as v1.6
-#     SYSTEM # optional, the Backward include directory will be treated as system directory
-# )
-# FetchContent_MakeAvailable(backward)
-
 add_library(small_server
     server.cc
     server.h
@@ -15,7 +8,6 @@ add_library(small_server
 target_link_libraries(small_server
     PUBLIC
     small::server_info
-    # Backward::Interface
     PRIVATE
     small::schema
     small::insert_proto
