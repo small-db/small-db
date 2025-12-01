@@ -55,15 +55,12 @@ class GossipMessage {
 
 class InfoStore {
    public:
-    std::mutex mtx;
+    std::mutex mutex;
 
-    // std::vector<char> get_info(const std::string& key);
     Entries entries;
 
-    std::vector<char> get_info(const std::string& key);
-
     void update(const std::string& key, const Entry& entry) {
-        std::lock_guard<std::mutex> lock(mtx);
+        std::lock_guard<std::mutex> lock(mutex);
 
         auto it = entries.entries().find(key);
         if (it != entries.entries().end() &&
@@ -119,16 +116,17 @@ class GossipServer {
     static GossipServer* instance_ptr;
 
     // singleton instance - protected constructor
+    //
+    // Initialize the GossipServer with self_info and seed_peer. If seed_peer
+    // is empty, the GossipServer will wait other peers passively.
     explicit GossipServer(const small::server_info::ImmutableInfo& self_info,
-                          const std::string& peer_addr);
+                          const std::string& seed_peer);
 
     // singleton instance - protected destructor
     ~GossipServer() = default;
 
-    void transmit_message(const GossipMessage& message);
-
-    void update_node(const small::server_info::ImmutableInfo& node_info,
-                     bool sync_to_store);
+    // Add a node to the nodes list if not already present.
+    void add_node(const small::server_info::ImmutableInfo& node);
 
    public:
     // singleton instance - assignment-blocker
@@ -137,10 +135,14 @@ class GossipServer {
     // singleton instance - copy-blocker
     GossipServer(const GossipServer&) = delete;
 
-    InfoStore info_store;
+    // Store of all gossip entries.
+    InfoStore store;
 
     small::server_info::ImmutableInfo self_info;
-    std::unordered_map<std::string, small::server_info::ImmutableInfo> nodes;
+
+    // Returns all known nodes in the cluster, regardless of their current
+    // availability or health status.
+    std::vector<small::server_info::ImmutableInfo> get_nodes();
 
     // singleton instance - init api
     static void init_instance(
@@ -150,9 +152,9 @@ class GossipServer {
     // singleton instance - get api
     static GossipServer* get_instance();
 
-    void broadcast_message(const std::string& message);
-
-    Entries update(InfoStore& info_store, const Entries& peer_entries);
+    // Update the local store with the entries received from a peer, return
+    // the entries that are newer in self.
+    Entries update(const Entries& peer_entries);
 };
 
 std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(

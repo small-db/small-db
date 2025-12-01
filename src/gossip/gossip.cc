@@ -16,6 +16,7 @@
 // c++ std
 // =====================================================================
 
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -123,79 +124,96 @@ struct formatter<small::server_info::ImmutableInfo> {
 
 namespace small::gossip {
 
-inline constexpr std::string_view key_prefix_node = "node:";
+inline constexpr std::string_view KEY_PREFIX_NODE = "node:";
 
-GossipMessage::GossipMessage(const std::string& message) : message(message) {
-    SPDLOG_ERROR("unimplemented");
-}
+void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
+    std::lock_guard<std::mutex> lock(this->store.mutex);
 
-std::vector<char> InfoStore::get_info(const std::string& key) {
-    SPDLOG_ERROR("unimplemented");
-    return {};
-}
+    auto key = fmt::format("node:{}", self_info.id);
+    if (this->store.entries.entries().contains(key)) {
+        return;
+    }
 
-void GossipServer::update_node(
-    const small::server_info::ImmutableInfo& node_info, bool sync_to_store) {
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
+    auto entry = Entry();
+    entry.set_value(nlohmann::json(node).dump());
+    entry.set_last_update(now.count());
 
-    if (!this->nodes.contains(node_info.id)) {
-        SPDLOG_INFO("gossip: adding new node {}", node_info);
-        this->nodes.insert({node_info.id, node_info});
+    this->store.update(key, entry);
+}
+
+std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
+    std::lock_guard<std::mutex> lock(this->store.mutex);
+
+    std::vector<small::server_info::ImmutableInfo> nodes;
+
+    for (const auto& [key, entry] : this->store.entries.entries()) {
+        if (key.starts_with(KEY_PREFIX_NODE)) {
+            nlohmann::json j = nlohmann::json::parse(entry.value());
+            auto node_info = j.get<small::server_info::ImmutableInfo>();
+            nodes.push_back(node_info);
+        }
     }
 
-    if (sync_to_store) {
-        auto key = fmt::format("node:{}", self_info.id);
-
-        auto entry = Entry();
-        entry.set_value(nlohmann::json(self_info).dump());
-        entry.set_last_update(now.count());
-
-        this->info_store.update(key, entry);
-    }
+    return nodes;
 }
 
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& seed_peer)
     : self_info(self_info) {
     // add self to the nodes list
-    this->update_node(self_info, true);
+    this->add_node(self_info);
 
     std::thread([this, seed_peer]() {
-        SPDLOG_INFO("gossip server started");
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
-            SPDLOG_INFO("gossip: communicating with peers {}", this->nodes);
+            // Select the peer to communicate with in this round.
+            auto nodes = this->get_nodes();
+            std::string peer_addr;
 
-            if (this->nodes.size() == 1) {
-                if (seed_peer.empty()) {
-                    SPDLOG_INFO("gossip: no peers to communicate with");
-                    continue;
+            if (!seed_peer.empty()) {
+                // Use seed peer if present
+                peer_addr = seed_peer;
+            } else if (nodes.size() > 1) {
+                // Choose a random node from nodes list (not self)
+                std::vector<small::server_info::ImmutableInfo> other_nodes;
+                for (const auto& node : nodes) {
+                    if (node.id != this->self_info.id) {
+                        other_nodes.push_back(node);
+                    }
                 }
 
-                SPDLOG_INFO("gossip: communicating with peer {}", seed_peer);
-
-                auto channel = grpc::CreateChannel(
-                    seed_peer, grpc::InsecureChannelCredentials());
-                auto stub = small::gossip::Gossip::NewStub(channel);
-                grpc::ClientContext context;
-                small::gossip::Entries request;
-                small::gossip::Entries result;
-
-                request = this->info_store.entries;
-
-                grpc::Status status =
-                    stub->Exchange(&context, request, &result);
-                if (!status.ok()) {
-                    SPDLOG_ERROR("gossip: failed to communicate with peer {} ",
-                                 seed_peer);
-                } else {
-                    SPDLOG_INFO(
-                        "gossip: successfully communicated with peer {}",
-                        seed_peer);
+                if (!other_nodes.empty()) {
+                    std::random_device rd;
+                    std::mt19937 gen(rd());
+                    std::uniform_int_distribution<> dis(
+                        0, static_cast<int>(other_nodes.size() - 1));
+                    peer_addr = other_nodes[dis(gen)].grpc_addr;
                 }
+            }
+
+            if (peer_addr.empty()) {
+                // No peer available, wait passively
+                continue;
+            }
+
+            auto channel = grpc::CreateChannel(
+                peer_addr, grpc::InsecureChannelCredentials());
+            auto stub = small::gossip::Gossip::NewStub(channel);
+            grpc::ClientContext context;
+            small::gossip::Entries request;
+            small::gossip::Entries result;
+
+            request = this->store.entries;
+
+            grpc::Status status = stub->Exchange(&context, request, &result);
+            if (status.ok()) {
+                auto newer_entries = this->update(result);
             } else {
+                SPDLOG_ERROR("gossip: failed to communicate with peer {} ",
+                             peer_addr);
             }
         }
     }).detach();
@@ -221,18 +239,17 @@ GossipServer* GossipServer::get_instance() {
     return instance_ptr;
 }
 
-void GossipServer::transmit_message(const GossipMessage& message) {}
-
-void GossipServer::broadcast_message(const std::string& message) {
-    GossipMessage gossip_message(message);
-    transmit_message(gossip_message);
-}
-
 std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(
     const std::optional<google::protobuf::Map<std::string, std::string>>&
         constraints) {
-    auto nodes = GossipServer::get_instance()->nodes;
+    auto nodes_vec = GossipServer::get_instance()->get_nodes();
 
+    std::unordered_map<std::string, small::server_info::ImmutableInfo> nodes;
+    for (const auto& node : nodes_vec) {
+        nodes[node.id] = node;
+    }
+
+    // TODO: Remove hard-coded filtering logic.
     if (constraints && constraints->contains("region")) {
         const std::string& required_region = constraints->at("region");
         std::erase_if(nodes, [&](auto& kv) {
@@ -243,8 +260,8 @@ std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(
 }
 
 small::gossip::Entries GossipServer::update(
-    InfoStore& info_store, const small::gossip::Entries& peer_entries) {
-    std::lock_guard<std::mutex> lock(info_store.mtx);
+    const small::gossip::Entries& peer_entries) {
+    std::lock_guard<std::mutex> lock(this->store.mutex);
 
     small::gossip::Entries self_newer;
 
@@ -253,8 +270,8 @@ small::gossip::Entries GossipServer::update(
         auto value = peer_entry.value();
         auto last_update = peer_entry.last_update();
 
-        auto it = info_store.entries.mutable_entries()->find(key);
-        if (it != info_store.entries.entries().end()) {
+        auto it = this->store.entries.mutable_entries()->find(key);
+        if (it != this->store.entries.entries().end()) {
             if (it->second.last_update() < last_update) {
                 // peer's entry is newer, update the store
                 it->second.set_value(value);
@@ -265,12 +282,12 @@ small::gossip::Entries GossipServer::update(
             }
         } else {
             // key doesn't exist in self
-            info_store.entries.mutable_entries()->insert({key, peer_entry});
+            this->store.entries.mutable_entries()->insert({key, peer_entry});
         }
     }
 
     // step 2: update entries that are newer in self
-    for (const auto& [key, self_entry] : info_store.entries.entries()) {
+    for (const auto& [key, self_entry] : this->store.entries.entries()) {
         auto it = peer_entries.entries().find(key);
         if (it != peer_entries.entries().end()) {
             // If the key exists in both, check which one is newer
@@ -285,11 +302,11 @@ small::gossip::Entries GossipServer::update(
     }
 
     // step 3: update nodes list according to the updated entries
-    for (const auto& [key, self_entry] : info_store.entries.entries()) {
-        if (key.starts_with(key_prefix_node)) {
+    for (const auto& [key, self_entry] : this->store.entries.entries()) {
+        if (key.starts_with(KEY_PREFIX_NODE)) {
             nlohmann::json j = nlohmann::json::parse(self_entry.value());
             auto node_info = j.get<small::server_info::ImmutableInfo>();
-            this->update_node(node_info, false);
+            this->add_node(node_info);
         }
     }
 
@@ -299,9 +316,7 @@ small::gossip::Entries GossipServer::update(
 grpc::Status GossipServiceImpl::Exchange(grpc::ServerContext* context,
                                          const small::gossip::Entries* entries,
                                          small::gossip::Entries* response) {
-    SPDLOG_INFO("gossip: received entries from peer");
-    auto reply = GossipServer::get_instance()->update(
-        GossipServer::get_instance()->info_store, *entries);
+    auto reply = GossipServer::get_instance()->update(*entries);
     *response = reply;
     return grpc::Status::OK;
 }
