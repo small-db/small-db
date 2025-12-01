@@ -8,6 +8,7 @@
    jepsen.control
    jepsen.control.util
    jepsen.db
+   jepsen.generator
    jepsen.os.debian
    jepsen.tests
    [pg.core]))
@@ -78,6 +79,9 @@
           ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');")
 
       (pg.core/query (:conn this) "
+          ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');")
+
+      (pg.core/query (:conn this) "
           INSERT INTO users (id, name, balance, country) VALUES
           (1, 'Alice', 1000, 'Germany'),
           (2, 'Bob', 2000, 'USA'),
@@ -85,22 +89,24 @@
           (4, 'David', 3000, 'China'),
           (5, 'Eve', 2500, 'Japan');")
 
-      (info "Querying system.tables:")
-      (let [tables-result (pg.core/query (:conn this) "SELECT * FROM system.tables;")]
-        (doseq [row tables-result]
-          (info "Table:" row)))
-
-      (info "Querying system.partitions:")
-      (let [partitions-result (pg.core/query (:conn this) "SELECT * FROM system.partitions WHERE table_name = 'users';")]
-        (doseq [row partitions-result]
-          (info "Partition:" row)))
-
-      (info "Completed table setup and queries on america client"))
+      (info "Completed table setup on america client"))
 
     ;; all clients wait for 20 seconds to ensure setup is complete
     (Thread/sleep 20000))
 
-  (invoke! [_ test op])
+  (invoke! [this test op]
+    (case (:f op)
+      :query-system-tables
+      (let [result (pg.core/query (:conn this) "SELECT * FROM system.tables;")]
+        (info (:node this) "System tables:" result)
+        (assoc op :type :ok, :value result))
+
+      :query-system-partitions
+      (let [result (pg.core/query (:conn this) "SELECT * FROM system.partitions WHERE table_name = 'users';")]
+        (info (:node this) "System partitions:" result)
+        (assoc op :type :ok, :value result))
+
+      (assoc op :type :fail, :error :unknown-operation)))
 
   (teardown! [this test])
 
@@ -187,7 +193,15 @@
          {:name "query-test"
           :os jepsen.os.debian/os
           :db (small-db)
-          :client (Client. nil)}))
+          :client (Client. nil)
+          :generator (jepsen.generator/phases
+                       (jepsen.generator/log "Querying system.tables")
+                       (jepsen.generator/once
+                         {:type :invoke, :f :query-system-tables})
+                       (jepsen.generator/log "Querying system.partitions")
+                       (jepsen.generator/once
+                         {:type :invoke, :f :query-system-partitions}))
+          }))
 
 (defn second-test
   "a placeholder for a second test."
