@@ -84,7 +84,6 @@ ServerInfo::ServerInfo() {
     uuid_generate(uuid);
     char str[37];
     uuid_unparse(uuid, str);
-    SPDLOG_INFO("server uuid: {}", str);
     this->id = std::string(str);
 }
 

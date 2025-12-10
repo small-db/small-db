@@ -59,18 +59,11 @@ class InfoStore {
 
     Entries entries;
 
-    void update(const std::string& key, const Entry& entry) {
-        std::lock_guard<std::mutex> lock(mutex);
-
-        auto it = entries.entries().find(key);
-        if (it != entries.entries().end() &&
-            it->second.last_update() >= entry.last_update()) {
-            // the stored entry is newer, do not update
-            return;
-        }
-
-        entries.mutable_entries()->insert({key, entry});
-    }
+    // Update the entry identified by key if the new entry is newer.
+    //
+    // NB: This method is not thread-safe. Caller must hold the mutex before
+    // calling this method.
+    void update(const std::string& key, const Entry& entry);
 };
 
 template <typename T>

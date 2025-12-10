@@ -32,6 +32,7 @@
 (defrecord Client [conn]
   jepsen.client/Client
   (open! [this test node]
+    (info "Opening client connection to" node)
     (let [config
           {:host node
            :port 5001
@@ -44,6 +45,7 @@
              :node node)))
 
   (setup! [this test]
+    ;; TODO: remove hardcoded node name
     (when (= (:node this) "america")
       (info "Creating table on america client")
 
@@ -174,12 +176,13 @@
         (info "Started small-db server on" node "with SQL port" sql-port "gRPC port" grpc-port "region" region "join" join-server))
 
       ;; wait for server to start
-      (Thread/sleep 10000))
+      (Thread/sleep 20000))
 
     (teardown! [_ test node]
       (info node "tearing down small db")
-      (jepsen.control.util/stop-daemon! pidfile)
-      (jepsen.control/exec :rm :-rf workDir))
+      ;; (jepsen.control.util/stop-daemon! pidfile)
+      ;; (jepsen.control/exec :rm :-rf workDir)
+      )
 
     jepsen.db/LogFiles
     (log-files [_ test node]
@@ -195,13 +198,12 @@
           :db (small-db)
           :client (Client. nil)
           :generator (jepsen.generator/phases
-                       (jepsen.generator/log "Querying system.tables")
-                       (jepsen.generator/once
-                         {:type :invoke, :f :query-system-tables})
-                       (jepsen.generator/log "Querying system.partitions")
-                       (jepsen.generator/once
-                         {:type :invoke, :f :query-system-partitions}))
-          }))
+                      (jepsen.generator/log "Querying system.tables")
+                      (jepsen.generator/once
+                       {:type :invoke, :f :query-system-tables})
+                      (jepsen.generator/log "Querying system.partitions")
+                      (jepsen.generator/once
+                       {:type :invoke, :f :query-system-partitions}))}))
 
 (defn second-test
   "a placeholder for a second test."
@@ -216,6 +218,5 @@
 (defn -main
   [& args]
   (jepsen.cli/run! (jepsen.cli/test-all-cmd {:tests-fn (fn [opts]
-                                                         [(query-test opts)
-                                                          (second-test opts)])})
+                                                         [(query-test opts)])})
                    args))

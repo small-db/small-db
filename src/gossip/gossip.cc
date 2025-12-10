@@ -126,6 +126,17 @@ namespace small::gossip {
 
 inline constexpr std::string_view KEY_PREFIX_NODE = "node:";
 
+void InfoStore::update(const std::string& key, const Entry& entry) {
+    auto it = entries.entries().find(key);
+    if (it != entries.entries().end() &&
+        it->second.last_update() >= entry.last_update()) {
+        // the stored entry is newer, do not update
+        return;
+    }
+
+    entries.mutable_entries()->insert({key, entry});
+}
+
 void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
     SPDLOG_INFO("gossip: adding node {}", node);
     std::lock_guard<std::mutex> lock(this->store.mutex);
@@ -145,7 +156,15 @@ void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
 }
 
 std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
-    std::lock_guard<std::mutex> lock(this->store.mutex);
+    // std::lock_guard<std::mutex> lock(this->store.mutex);
+
+    std::unique_lock<std::mutex> lock(this->store.mutex, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        SPDLOG_WARN(
+            "gossip: get_nodes failed to acquire lock, returning empty "
+            "nodes list");
+        return {};
+    }
 
     std::vector<small::server_info::ImmutableInfo> nodes;
 
@@ -303,15 +322,6 @@ small::gossip::Entries GossipServer::update(
         } else {
             // If the key doesn't exist in the peer, add it to self_newer
             self_newer.mutable_entries()->insert({key, self_entry});
-        }
-    }
-
-    // step 3: update nodes list according to the updated entries
-    for (const auto& [key, self_entry] : this->store.entries.entries()) {
-        if (key.starts_with(KEY_PREFIX_NODE)) {
-            nlohmann::json j = nlohmann::json::parse(self_entry.value());
-            auto node_info = j.get<small::server_info::ImmutableInfo>();
-            this->add_node(node_info);
         }
     }
 
