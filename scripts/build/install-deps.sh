@@ -7,6 +7,8 @@ set -o nounset
 # ======================================================================== #
 # install libraries from system source
 # ======================================================================== #
+sudo apt-get update -y
+
 sudo apt-get install -y \
     libpq-dev \
     libpqxx-dev \
