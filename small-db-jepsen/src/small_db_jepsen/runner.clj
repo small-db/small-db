@@ -180,9 +180,8 @@
 
     (teardown! [_ test node]
       (info node "tearing down small db")
-      ;; (jepsen.control.util/stop-daemon! pidfile)
-      ;; (jepsen.control/exec :rm :-rf workDir)
-      )
+      (jepsen.control.util/stop-daemon! pidfile)
+      (jepsen.control/exec :rm :-rf workDir))
 
     jepsen.db/LogFiles
     (log-files [_ test node]
