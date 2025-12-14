@@ -198,11 +198,9 @@
           :client (Client. nil)
           :generator (jepsen.generator/clients
                       (jepsen.generator/phases
-                       (jepsen.generator/log "Querying system.tables")
-                       (jepsen.generator/once
+                       (jepsen.generator/each-thread
                         {:type :invoke, :f :query-system-tables})
-                       (jepsen.generator/log "Querying system.partitions")
-                       (jepsen.generator/once
+                       (jepsen.generator/each-thread
                         {:type :invoke, :f :query-system-partitions})))}))
 
 (defn second-test
