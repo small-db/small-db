@@ -16,7 +16,6 @@
 // c++ std
 // =====================================================================
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -27,7 +26,6 @@
 // =====================================================================
 
 // pg_query
-#include "pg_query.h"
 #include "pg_query.pb-c.h"
 
 // spdlog
@@ -35,13 +33,10 @@
 
 // arrow
 #include "arrow/api.h"
-#include "arrow/compute/api_vector.h"
 #include "arrow/status.h"
 
 // arrow gandiva
-#include "gandiva/filter.h"
 #include "gandiva/projector.h"
-#include "gandiva/selection_vector.h"
 #include "gandiva/tree_expr_builder.h"
 
 // magic_enum
@@ -201,6 +196,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         column.name() == "columns") {
                         // dedicate branch to modify the value for "columns"
                         // column
+                        //
+                        // TODO: generalize this logic
 
                         // input:
                         // {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}

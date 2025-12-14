@@ -1,6 +1,8 @@
 add_library(small_query
     query.cc
     query.h
+    update.cc
+    update.h
 )
 
 target_link_libraries(small_query

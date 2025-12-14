@@ -1,0 +1,42 @@
+// Copyright 2025 Xiaochen Cui
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// =====================================================================
+// third-party libraries
+// =====================================================================
+
+// pg_query
+#include "pg_query.pb-c.h"
+
+// absl
+#include "absl/status/statusor.h"
+
+// arrow
+#include "arrow/api.h"
+
+// =====================================================================
+// self header
+// =====================================================================
+
+#include "src/executor/update.h"
+
+namespace query {
+
+absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
+    PgQuery__UpdateStmt* update_stmt) {
+    return absl::Status(absl::StatusCode::kInternal,
+                        "unimplemented update executor");
+}
+
+}  // namespace query
