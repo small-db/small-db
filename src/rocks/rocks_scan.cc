@@ -40,7 +40,7 @@
 bool IsRocksDBDirectory(const std::string& dir_path) {
     try {
         // Try to open the directory as a RocksDB database
-        auto db = small::rocks::RocksDBWrapper::GetInstance(dir_path, {});
+        auto db = small::rocks::RocksDBWrapper::GetInstance(dir_path);
         return true;
     } catch (const std::exception& e) {
         // If opening fails, it's not a valid RocksDB directory
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 
     for (const auto& data_dir : data_dir_list) {
         SPDLOG_INFO("scan data dir: {}", data_dir);
-        auto db = small::rocks::RocksDBWrapper::GetInstance(data_dir, {});
+        auto db = small::rocks::RocksDBWrapper::GetInstance(data_dir);
         db->PrintAllKV();
     }
 

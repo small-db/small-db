@@ -181,7 +181,7 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
     if (!info.ok())
         return {grpc::StatusCode::INTERNAL, "failed to get server info"};
     std::string db_path = info.value()->db_path;
-    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
+    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path);
 
     // get the table
     auto result = small::catalog::CatalogManager::GetInstance()->GetTable(

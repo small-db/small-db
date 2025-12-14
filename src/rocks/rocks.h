@@ -18,9 +18,9 @@
 // c++ std
 // =====================================================================
 
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -41,14 +41,11 @@ namespace small::rocks {
 class RocksDBWrapper {
    private:
     // singleton instance
-    RocksDBWrapper(const std::string& db_path,
-                   const std::vector<std::string>& column_family_names);
+    explicit RocksDBWrapper(const std::string& db_path);
     ~RocksDBWrapper();
 
    public:
-    static RocksDBWrapper* GetInstance(
-        const std::string& db_path,
-        const std::vector<std::string>& column_family_names) {
+    static RocksDBWrapper* GetInstance(const std::string& db_path) {
         static std::unordered_map<std::string, RocksDBWrapper*> instances;
         auto it = instances.find(db_path);
         if (it != instances.end()) {
@@ -56,7 +53,7 @@ class RocksDBWrapper {
         }
 
         // Create a new instance if it doesn't exist
-        instances[db_path] = new RocksDBWrapper(db_path, column_family_names);
+        instances[db_path] = new RocksDBWrapper(db_path);
         return instances[db_path];
     }
 
@@ -67,43 +64,32 @@ class RocksDBWrapper {
     void operator=(const RocksDBWrapper&) = delete;
 
     bool Put(const std::string& key, const std::string& value);
-    bool Put(const std::string& cf_name, const std::string& key,
-             const std::string& value);
 
     bool Get(const std::string& key, std::string& value);
-    bool Get(const std::string& cf_name, const std::string& key,
-             std::string& value);
 
     /**
      * @brief Retrieves all rows from a table
-     * 
+     *
      * @param table_name Name of the table to read
      * @return Map structure: {primary_key -> {column_name -> value}}
      */
     std::map<std::string, std::map<std::string, std::string>> ReadTable(
         const std::string& table_name);
 
-    std::vector<std::pair<std::string, std::string>> GetAllKV(
-        const std::string& cf_name);
+    std::vector<std::pair<std::string, std::string>> GetAllKV();
 
     bool Delete(const std::string& key);
 
     void PrintAllKV();
 
     void WriteRow(const std::shared_ptr<small::schema::Table>& table,
-                   const std::string& pk,
-                   const std::vector<std::string>& values);
-
-    void WriteRowWire(const std::shared_ptr<small::schema::Table>& table,
-                      const std::vector<std::string>& values);
+                  const std::string& pk,
+                  const std::vector<std::string>& values);
 
    private:
-    rocksdb::DB* db_;
-    std::unordered_map<std::string, rocksdb::ColumnFamilyHandle*> cf_handles_;
+    rocksdb::DB* db_ = nullptr;
 
     void Close();
-    rocksdb::ColumnFamilyHandle* GetColumnFamilyHandle(
-        const std::string& cf_name);
 };
 
 }  // namespace small::rocks

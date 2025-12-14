@@ -18,9 +18,9 @@
 
 #include <filesystem>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -52,82 +52,31 @@
 
 namespace small::rocks {
 
-RocksDBWrapper::RocksDBWrapper(
-    const std::string& db_path,
-    const std::vector<std::string>& column_family_names) {
+RocksDBWrapper::RocksDBWrapper(const std::string& db_path) {
     bool _ = std::filesystem::create_directories(db_path);
 
     rocksdb::Options options;
     options.create_if_missing = true;
-    options.create_missing_column_families = true;
-
-    std::vector<rocksdb::ColumnFamilyDescriptor> cf_descriptors;
-    std::vector<rocksdb::ColumnFamilyHandle*> handles;
-
-    // Always add the default column family
-    cf_descriptors.emplace_back(rocksdb::kDefaultColumnFamilyName,
-                                rocksdb::ColumnFamilyOptions());
-
-    // Add user-defined column families
-    for (const auto& name : column_family_names) {
-        cf_descriptors.emplace_back(name, rocksdb::ColumnFamilyOptions());
-    }
 
     // Open database with column families
-    rocksdb::Status status =
-        rocksdb::DB::Open(options, db_path, cf_descriptors, &handles, &db_);
+    rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db_);
     if (!status.ok()) {
         throw std::runtime_error("Failed to open RocksDB: " +
                                  status.ToString());
-    }
-
-    // Map column family handles to names
-    for (size_t i = 0; i < cf_descriptors.size(); ++i) {
-        cf_handles_[cf_descriptors[i].name] = handles[i];
     }
 }
 
 RocksDBWrapper::~RocksDBWrapper() { Close(); }
 
-void RocksDBWrapper::Close() {
-    for (const auto& cf : cf_handles_) {
-        db_->DestroyColumnFamilyHandle(cf.second);
-    }
-    delete db_;
-}
-
-rocksdb::ColumnFamilyHandle* RocksDBWrapper::GetColumnFamilyHandle(
-    const std::string& cf_name) {
-    auto it = cf_handles_.find(cf_name);
-    if (it == cf_handles_.end()) {
-        throw std::runtime_error("Column Family not found: " + cf_name);
-    }
-    return it->second;
-}
+void RocksDBWrapper::Close() { delete db_; }
 
 bool RocksDBWrapper::Put(const std::string& key, const std::string& value) {
     rocksdb::Status status = db_->Put(rocksdb::WriteOptions(), key, value);
     return status.ok();
 }
 
-bool RocksDBWrapper::Put(const std::string& cf_name, const std::string& key,
-                         const std::string& value) {
-    auto* handle = GetColumnFamilyHandle(cf_name);
-    rocksdb::Status status =
-        db_->Put(rocksdb::WriteOptions(), handle, key, value);
-    return status.ok();
-}
-
 bool RocksDBWrapper::Get(const std::string& key, std::string& value) {
     rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &value);
-    return status.ok();
-}
-
-bool RocksDBWrapper::Get(const std::string& cf_name, const std::string& key,
-                         std::string& value) {
-    auto* handle = GetColumnFamilyHandle(cf_name);
-    rocksdb::Status status =
-        db_->Get(rocksdb::ReadOptions(), handle, key, &value);
     return status.ok();
 }
 
@@ -164,49 +113,19 @@ RocksDBWrapper::ReadTable(const std::string& table_name) {
     return result;
 }
 
-std::vector<std::pair<std::string, std::string>> RocksDBWrapper::GetAllKV(
-    const std::string& cf_name) {
-    std::vector<std::pair<std::string, std::string>> kv_pairs;
-
-    // Get the column family handle
-    auto* handle = GetColumnFamilyHandle(cf_name);
-
-    // Create an iterator for the column family
-    rocksdb::ReadOptions read_options;
-    std::unique_ptr<rocksdb::Iterator> it(
-        db_->NewIterator(read_options, handle));
-
-    // Iterate through all key-value pairs
-    for (it->SeekToFirst(); it->Valid(); it->Next()) {
-        kv_pairs.emplace_back(it->key().ToString(), it->value().ToString());
-    }
-
-    // Check for any errors during iteration
-    if (!it->status().ok()) {
-        throw std::runtime_error("Error during iteration: " +
-                                 it->status().ToString());
-    }
-
-    return kv_pairs;
-}
-
 bool RocksDBWrapper::Delete(const std::string& key) {
     rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
     return status.ok();
 }
 
 void RocksDBWrapper::PrintAllKV() {
-    for (const auto& cf : cf_handles_) {
-        std::cout << "Column Family: " << cf.first << std::endl;
-
-        rocksdb::ReadOptions read_options;
-        rocksdb::Iterator* it = db_->NewIterator(read_options, cf.second);
-        for (it->SeekToFirst(); it->Valid(); it->Next()) {
-            std::cout << "\tKey: " << it->key().ToString()
-                      << ", Value: " << it->value().ToString() << std::endl;
-        }
-        delete it;
+    rocksdb::ReadOptions read_options;
+    rocksdb::Iterator* it = db_->NewIterator(read_options);
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::cout << "\tKey: " << it->key().ToString()
+                  << ", Value: " << it->value().ToString() << std::endl;
     }
+    delete it;
 }
 
 void RocksDBWrapper::WriteRow(
@@ -218,11 +137,6 @@ void RocksDBWrapper::WriteRow(
             absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
         this->Put(key, values[i]);
     }
-}
-
-void RocksDBWrapper::WriteRowWire(
-    const std::shared_ptr<small::schema::Table>& table,
-    const std::vector<std::string>& values) {
 }
 
 }  // namespace small::rocks

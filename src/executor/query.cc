@@ -140,7 +140,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         return absl::Status(absl::StatusCode::kInternal,
                             "failed to get server info");
     std::string db_path = info.value()->db_path;
-    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
+    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path);
     auto rows = db->ReadTable(table_name);
 
     // init builders

@@ -124,7 +124,7 @@ CatalogManager::CatalogManager() {
         return;
     }
     std::string db_path = info.value()->db_path;
-    this->db = small::rocks::RocksDBWrapper::GetInstance(db_path, {});
+    this->db = small::rocks::RocksDBWrapper::GetInstance(db_path);
 }
 
 std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
