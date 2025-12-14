@@ -138,7 +138,6 @@ void InfoStore::update(const std::string& key, const Entry& entry) {
 }
 
 void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
-    SPDLOG_INFO("gossip: adding node {}", node);
     std::lock_guard<std::mutex> lock(this->store.mutex);
 
     auto key = fmt::format("node:{}", node.id);

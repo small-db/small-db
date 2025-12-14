@@ -43,8 +43,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/insert/insert.h"
-#include "src/query/query.h"
-#include "src/schema/schema.h"
+#include "src/executor/query.h"
 #include "src/semantics/check.h"
 #include "src/type/type.h"
 
@@ -232,6 +231,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
             return query::query(stmt->select_stmt);
+            break;
+        }
+        case PG_QUERY__NODE__NODE_UPDATE_STMT: {
+            // return query::query(stmt->update_stmt);
             break;
         }
         case PG_QUERY__NODE__NODE_INSERT_STMT: {

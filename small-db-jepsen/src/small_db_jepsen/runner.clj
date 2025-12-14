@@ -11,6 +11,7 @@
    jepsen.generator
    jepsen.os.debian
    jepsen.tests
+   [jepsen.tests.bank :as bank]
    [pg.core]))
 
 ;; file location inside VM
@@ -108,6 +109,22 @@
         (info (:node this) "System partitions:" result)
         (assoc op :type :ok, :value result))
 
+      :read
+      (let [results (pg.core/query (:conn this) "SELECT id, balance FROM users;")]
+        (assoc op :type :ok, :value (into {} (map (fn [row] [(:id row) (:balance row)]) results))))
+
+      :transfer
+      (let [{:keys [from to amount]} (:value op)]
+        (try
+          (pg.core/query (:conn this) "BEGIN;")
+          (pg.core/query (:conn this) (str "UPDATE users SET balance = balance - " amount " WHERE id = " from ";"))
+          (pg.core/query (:conn this) (str "UPDATE users SET balance = balance + " amount " WHERE id = " to ";"))
+          (pg.core/query (:conn this) "COMMIT;")
+          (assoc op :type :ok)
+          (catch Exception e
+            (pg.core/query (:conn this) "ROLLBACK;")
+            (assoc op :type :fail, :error (.getMessage e)))))
+
       (assoc op :type :fail, :error :unknown-operation)))
 
   (teardown! [this test])
@@ -151,8 +168,8 @@
           (jepsen.control/upload [tool] remote-tool)
           (jepsen.control/exec :chmod :+x remote-tool)))
 
-      ;; Copy dynamic libraries to VM
-      (copy-dynamic-libs host-binary)
+      ;; ;; Copy dynamic libraries to VM
+      ;; (copy-dynamic-libs host-binary)
 
       ;; Start the server with configuration based on node
       (let [[region join-server]
@@ -203,18 +220,24 @@
                        (jepsen.generator/each-thread
                         {:type :invoke, :f :query-system-partitions})))}))
 
-(defn second-test
-  "a placeholder for a second test."
+(defn bank-test
+  "Bank test: transfers between accounts."
   [opts]
   (merge jepsen.tests/noop-test
          opts
-         {:name "second-test"
+         {:name "bank-test"
           :os jepsen.os.debian/os
           :db (small-db)
-          :client (Client. nil)}))
+          :client (Client. nil)
+          :accounts [1 2 3 4 5]
+          :total-amount 10000
+          :max-transfer 100
+          :generator (jepsen.generator/clients
+                      (jepsen.generator/limit 1 bank/diff-transfer))
+          :checker (bank/checker {:negative-balances? false})}))
 
 (defn -main
   [& args]
   (jepsen.cli/run! (jepsen.cli/test-all-cmd {:tests-fn (fn [opts]
-                                                         [(query-test opts)])})
+                                                         [(bank-test opts)])})
                    args))
