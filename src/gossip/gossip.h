@@ -133,8 +133,7 @@ class GossipServer {
 
     small::server_info::ImmutableInfo self_info;
 
-    // Returns all known nodes in the cluster, regardless of their current
-    // availability or health status.
+    // Returns all known nodes in the cluster.
     std::vector<small::server_info::ImmutableInfo> get_nodes();
 
     // singleton instance - init api

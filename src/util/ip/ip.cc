@@ -17,6 +17,7 @@
 // =====================================================================
 
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 
@@ -25,9 +26,14 @@
 // =====================================================================
 
 #include <cstring>
-#include <iostream>
 #include <stdexcept>
 #include <string>
+
+// =====================================================================
+// third-party libraries
+// =====================================================================
+
+#include "spdlog/spdlog.h"
 
 // =====================================================================
 // self header
@@ -38,7 +44,7 @@
 namespace small::util::ip {
 
 sockaddr_in str_to_sockaddr(const std::string& sql_addr) {
-    struct sockaddr_in addr;
+    struct sockaddr_in addr{};
     std::memset(&addr, 0, sizeof(addr));  // Zero out the structure
 
     // Find the position of the colon (:) separating the IP and port
@@ -48,8 +54,7 @@ sockaddr_in str_to_sockaddr(const std::string& sql_addr) {
             "Invalid address format. Expected ip:port.");
     }
 
-    // Extract the IP and port as strings
-    std::string ip = sql_addr.substr(0, colon_pos);
+    // Extract the port as string
     std::string port_str = sql_addr.substr(colon_pos + 1);
 
     // Convert the port to an integer
@@ -58,14 +63,11 @@ sockaddr_in str_to_sockaddr(const std::string& sql_addr) {
         throw std::out_of_range("Port number out of range (1-65535).");
     }
 
-    // Fill the sockaddr_in structure
-    addr.sin_family = AF_INET;    // IPv4
-    addr.sin_port = htons(port);  // Convert port to network byte order
-
-    // Convert the IP address to binary form
-    if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
-        throw std::invalid_argument("Invalid IP address format.");
-    }
+    addr.sin_family = AF_INET;
+    // Set to accept connections from any IP address since the resolved IP is
+    // local loopback (127.0.2.1) in vagrant environment.
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
 
     return addr;
 }

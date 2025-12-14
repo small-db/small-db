@@ -85,12 +85,9 @@ class CatalogManager {
     // singleton instance - init api
     static void InitInstance();
 
+    // Create a new table on all servers in the cluster.
     absl::Status CreateTable(const std::string& table_name,
                              const std::vector<small::schema::Column>& columns);
-
-    absl::Status CreateTableLocal(
-        const std::string& table_name,
-        const std::vector<small::schema::Column>& columns);
 
     /*
      * Update the table metadata, create new table if not exists. If broadcast

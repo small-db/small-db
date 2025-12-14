@@ -168,8 +168,8 @@
           :chdir workDir
           :env {:LD_LIBRARY_PATH libDir}}
          binary
-         :--sql-port sql-port
-         :--grpc-port grpc-port
+         :--sql-addr (str node ":" sql-port)
+         :--grpc-addr (str node ":" grpc-port)
          :--data-dir data-dir
          :--region region
          :--join join-server)

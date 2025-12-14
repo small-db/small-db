@@ -214,12 +214,12 @@ class SSLRequest : ReaderWriter {
     }
 };
 
-void handle_query(std::string& query, int sockfd) {
-    SPDLOG_INFO("query: {}", query);
+void handle_command(std::string& command, int sockfd) {
+    SPDLOG_INFO("command: {}", command);
 
     PgQueryParseResult result;
 
-    result = pg_query_parse(query.c_str());
+    result = pg_query_parse(command.c_str());
     if (result.error != nullptr) {
         SPDLOG_ERROR("error parsing query: {}", result.error->message);
         small::pg_wire::send_error(sockfd, result.error->message);
@@ -229,7 +229,7 @@ void handle_query(std::string& query, int sockfd) {
     pg_query_free_parse_result(result);
 
     PgQueryProtobufParseResult pgquery_pbparse_result =
-        pg_query_parse_protobuf_opts(query.c_str(), PG_QUERY_PARSE_DEFAULT);
+        pg_query_parse_protobuf_opts(command.c_str(), PG_QUERY_PARSE_DEFAULT);
 
     auto unpacked = pg_query__parse_result__unpack(
         NULL, pgquery_pbparse_result.parse_tree.len,
@@ -272,9 +272,9 @@ void start_grpc_server(
 
     auto server = builder.BuildAndStart();
     std::thread([server = std::move(server), addr, services]() mutable {
-        SPDLOG_INFO("server started, address: {}", addr);
+        SPDLOG_INFO("grpc server started, listening address: {}", addr);
         server->Wait();
-        SPDLOG_INFO("server stopped, address: {}", addr);
+        SPDLOG_INFO("grpc server stopped, listening address: {}", addr);
     }).detach();
 }
 
@@ -331,7 +331,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     if (listen(sock_listen_fd, BACKLOG) < 0) {
         SPDLOG_ERROR("error listening: {}", strerror(errno));
     }
-    SPDLOG_INFO("server listening on addr: {}", args.sql_addr);
+    SPDLOG_INFO("sql server listening on addr: {}", args.sql_addr);
 
     struct epoll_event ev, events[MAX_EVENTS];
     int new_events, sock_conn_fd, epollfd;
@@ -447,16 +447,16 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                         char message_type = message[0];
                         switch (message_type) {
                             case 'Q': {
-                                // Query
+                                // Query (DDL/DML Command)
 
                                 // read length of the query
                                 int32_t query_len =
                                     read_int32_chars(message.data() + 1);
 
                                 // read the query
-                                std::string query(message.data() + 5,
-                                                  query_len - 4);
-                                handle_query(query, newsockfd);
+                                std::string command(message.data() + 5,
+                                                    query_len - 4);
+                                handle_command(command, newsockfd);
                                 break;
                             }
 

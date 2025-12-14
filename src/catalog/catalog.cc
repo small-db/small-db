@@ -140,19 +140,6 @@ std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
 absl::Status CatalogManager::CreateTable(
     const std::string& table_name,
     const std::vector<small::schema::Column>& columns) {
-    // update local catalog
-    auto status = CreateTableLocal(table_name, columns);
-    if (!status.ok()) {
-        SPDLOG_ERROR("create table failed: {}", status.ToString());
-        return status;
-    }
-
-    return absl::OkStatus();
-}
-
-absl::Status CatalogManager::CreateTableLocal(
-    const std::string& table_name,
-    const std::vector<small::schema::Column>& columns) {
     if (GetTable(table_name).has_value()) {
         return absl::AlreadyExistsError("Table already exists");
     }
@@ -223,7 +210,7 @@ absl::Status CatalogManager::UpdateTable(
     // update other servers
     auto nodes = small::gossip::get_nodes(std::nullopt);
     if (nodes.size() != 3) {
-        return absl::InternalError("not enough nodes");
+        return absl::InternalError("no enough nodes");
     }
 
     for (const auto& [_, server] : nodes) {
@@ -231,6 +218,8 @@ absl::Status CatalogManager::UpdateTable(
             gossip::GossipServer::get_instance()->self_info.grpc_addr) {
             continue;
         }
+
+        SPDLOG_INFO("broadcast table update to node: {}", server.grpc_addr);
 
         auto channel = grpc::CreateChannel(server.grpc_addr,
                                            grpc::InsecureChannelCredentials());

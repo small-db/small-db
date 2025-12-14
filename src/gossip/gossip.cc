@@ -156,11 +156,9 @@ void GossipServer::add_node(const small::server_info::ImmutableInfo& node) {
 }
 
 std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
-    // std::lock_guard<std::mutex> lock(this->store.mutex);
-
     std::unique_lock<std::mutex> lock(this->store.mutex, std::try_to_lock);
     if (!lock.owns_lock()) {
-        SPDLOG_WARN(
+        SPDLOG_ERROR(
             "gossip: get_nodes failed to acquire lock, returning empty "
             "nodes list");
         return {};
@@ -173,6 +171,7 @@ std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
             nlohmann::json j = nlohmann::json::parse(entry.value());
             auto node_info = j.get<small::server_info::ImmutableInfo>();
             nodes.push_back(node_info);
+            SPDLOG_INFO("[GossipServer::get_nodes] node: {}", node_info);
         }
     }
 
@@ -187,8 +186,6 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
 
     std::thread([this, seed_peer]() {
         while (true) {
-            SPDLOG_INFO("gossip: starting a new round");
-
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
             // Select the peer to communicate with in this round.
@@ -215,8 +212,6 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                     peer_addr = other_nodes[dis(gen)].grpc_addr;
                 }
             }
-
-            SPDLOG_INFO("gossip: selected peer {}", peer_addr);
 
             if (peer_addr.empty()) {
                 // No peer available, wait passively
@@ -322,6 +317,15 @@ small::gossip::Entries GossipServer::update(
         } else {
             // If the key doesn't exist in the peer, add it to self_newer
             self_newer.mutable_entries()->insert({key, self_entry});
+        }
+    }
+
+    // debug for nodes list
+    for (const auto& [key, entry] : this->store.entries.entries()) {
+        if (key.starts_with(KEY_PREFIX_NODE)) {
+            nlohmann::json j = nlohmann::json::parse(entry.value());
+            auto node_info = j.get<small::server_info::ImmutableInfo>();
+            SPDLOG_INFO("[GossipServer::update] node: {}", node_info);
         }
     }
 

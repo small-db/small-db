@@ -40,15 +40,11 @@ int main(int argc, char *argv[]) {
 
     CLI::App app{"small-db"};
 
-    int sql_port = 0;
-    app.add_option("--sql-port", sql_port, "SQL port number")
-        ->required()
-        ->check(CLI::Range(0, 65535));
+    std::string sql_addr;
+    app.add_option("--sql-addr", sql_addr, "SQL address");
 
-    int grpc_port = 0;
-    app.add_option("--grpc-port", grpc_port, "gRPC port number")
-        ->required()
-        ->check(CLI::Range(0, 65535));
+    std::string grpc_addr;
+    app.add_option("--grpc-addr", grpc_addr, "gRPC address");
 
     std::string data_dir;
     app.add_option("--data-dir", data_dir, "Data directory")->required();
@@ -64,9 +60,6 @@ int main(int argc, char *argv[]) {
     } catch (const CLI::ParseError &e) {
         return app.exit(e);
     }
-
-    std::string sql_addr = fmt::format("0.0.0.0:{}", sql_port);
-    std::string grpc_addr = fmt::format("0.0.0.0:{}", grpc_port);
 
     return small::server::RunServer(small::server_info::ImmutableInfo(
         sql_addr, grpc_addr, data_dir, region, join));
