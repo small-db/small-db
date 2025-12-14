@@ -171,7 +171,6 @@ std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
             nlohmann::json j = nlohmann::json::parse(entry.value());
             auto node_info = j.get<small::server_info::ImmutableInfo>();
             nodes.push_back(node_info);
-            SPDLOG_INFO("[GossipServer::get_nodes] node: {}", node_info);
         }
     }
 
@@ -317,15 +316,6 @@ small::gossip::Entries GossipServer::update(
         } else {
             // If the key doesn't exist in the peer, add it to self_newer
             self_newer.mutable_entries()->insert({key, self_entry});
-        }
-    }
-
-    // debug for nodes list
-    for (const auto& [key, entry] : this->store.entries.entries()) {
-        if (key.starts_with(KEY_PREFIX_NODE)) {
-            nlohmann::json j = nlohmann::json::parse(entry.value());
-            auto node_info = j.get<small::server_info::ImmutableInfo>();
-            SPDLOG_INFO("[GossipServer::update] node: {}", node_info);
         }
     }
 
