@@ -196,13 +196,14 @@
           :os jepsen.os.debian/os
           :db (small-db)
           :client (Client. nil)
-          :generator (jepsen.generator/phases
-                      (jepsen.generator/log "Querying system.tables")
-                      (jepsen.generator/once
-                       {:type :invoke, :f :query-system-tables})
-                      (jepsen.generator/log "Querying system.partitions")
-                      (jepsen.generator/once
-                       {:type :invoke, :f :query-system-partitions}))}))
+          :generator (jepsen.generator/clients
+                      (jepsen.generator/phases
+                       (jepsen.generator/log "Querying system.tables")
+                       (jepsen.generator/once
+                        {:type :invoke, :f :query-system-tables})
+                       (jepsen.generator/log "Querying system.partitions")
+                       (jepsen.generator/once
+                        {:type :invoke, :f :query-system-partitions})))}))
 
 (defn second-test
   "a placeholder for a second test."
