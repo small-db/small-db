@@ -6,10 +6,12 @@ add_library(small_rocks
 target_link_libraries(small_rocks
     PUBLIC
     rocksdb
-    spdlog
     absl::status
-    small::type
     small::schema
+    PRIVATE
+    spdlog
+    small::type
+    small::server_info
 )
 
 add_library(small::rocks ALIAS small_rocks)

@@ -35,6 +35,9 @@ namespace query {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     PgQuery__UpdateStmt* update_stmt) {
+
+    // db->WriteRow(table, pk, values);
+
     return absl::Status(absl::StatusCode::kInternal,
                         "unimplemented update executor");
 }

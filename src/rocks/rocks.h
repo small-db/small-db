@@ -21,13 +21,13 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 // =====================================================================
 // third-party libraries
 // =====================================================================
 
+#include "absl/status/statusor.h"
 #include "rocksdb/db.h"
 
 // =====================================================================
@@ -45,17 +45,11 @@ class RocksDBWrapper {
     ~RocksDBWrapper();
 
    public:
-    static RocksDBWrapper* GetInstance(const std::string& db_path) {
-        static std::unordered_map<std::string, RocksDBWrapper*> instances;
-        auto it = instances.find(db_path);
-        if (it != instances.end()) {
-            return it->second;
-        }
+    // Get db instance of the current server process.
+    static absl::StatusOr<RocksDBWrapper*> GetInstance();
 
-        // Create a new instance if it doesn't exist
-        instances[db_path] = new RocksDBWrapper(db_path);
-        return instances[db_path];
-    }
+    // Get db instance of the specified path.
+    static RocksDBWrapper* GetInstance(const std::string& db_path);
 
     // copy blocker
     RocksDBWrapper(const RocksDBWrapper&) = delete;

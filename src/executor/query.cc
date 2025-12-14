@@ -135,12 +135,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
     // read kv pairs from rocksdb
-    auto info = small::server_info::get_info();
-    if (!info.ok())
-        return absl::Status(absl::StatusCode::kInternal,
-                            "failed to get server info");
-    std::string db_path = info.value()->db_path;
-    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path);
+    auto db = small::rocks::RocksDBWrapper::GetInstance().value();
     auto rows = db->ReadTable(table_name);
 
     // init builders

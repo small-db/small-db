@@ -22,6 +22,7 @@ target_link_libraries(small_server
     libpg_query_lib
     ssl
     crypto
+    magic_enum
     absl::status
 )
 

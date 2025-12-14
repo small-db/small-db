@@ -177,19 +177,14 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
                                        small::insert::InsertReply* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
-    auto info = small::server_info::get_info();
-    if (!info.ok())
-        return {grpc::StatusCode::INTERNAL, "failed to get server info"};
-    std::string db_path = info.value()->db_path;
-    auto db = small::rocks::RocksDBWrapper::GetInstance(db_path);
+    auto db = small::rocks::RocksDBWrapper::GetInstance().value();
 
     // get the table
     auto result = small::catalog::CatalogManager::GetInstance()->GetTable(
         request->table_name());
     if (!result) {
         return {grpc::StatusCode::NOT_FOUND,
-                fmt::format("table {} not found, server: {}",
-                            request->table_name(), db_path)};
+                fmt::format("table {} not found", request->table_name())};
     }
     const auto& table = result.value();
 

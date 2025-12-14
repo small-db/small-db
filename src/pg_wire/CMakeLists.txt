@@ -4,10 +4,11 @@ add_library(small_pg_wire
 )
 
 target_link_libraries(small_pg_wire
+    PUBLIC
+    arrow_lib
     PRIVATE
     small::type
     spdlog::spdlog
-    arrow_lib
 )
 
 add_library(small::pg_wire ALIAS small_pg_wire)

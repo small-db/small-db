@@ -33,7 +33,6 @@
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/options.h"
 #include "rocksdb/slice_transform.h"
-#include "rocksdb/table.h"
 
 // absl
 #include "absl/strings/str_format.h"
@@ -42,7 +41,7 @@
 // local libraries
 // =====================================================================
 
-#include "src/type/type.h"
+#include "src/server_info/info.h"
 
 // =====================================================================
 // self header
@@ -51,6 +50,25 @@
 #include "src/rocks/rocks.h"
 
 namespace small::rocks {
+
+absl::StatusOr<RocksDBWrapper*> RocksDBWrapper::GetInstance() {
+    auto info = small::server_info::get_info();
+    if (!info.ok()) return absl::InternalError("failed to get server info");
+    std::string db_path = info.value()->db_path;
+    return small::rocks::RocksDBWrapper::GetInstance(db_path);
+}
+
+RocksDBWrapper* RocksDBWrapper::GetInstance(const std::string& db_path) {
+    static std::unordered_map<std::string, RocksDBWrapper*> instances;
+    auto it = instances.find(db_path);
+    if (it != instances.end()) {
+        return it->second;
+    }
+
+    // Create a new instance if it doesn't exist
+    instances[db_path] = new RocksDBWrapper(db_path);
+    return instances[db_path];
+}
 
 RocksDBWrapper::RocksDBWrapper(const std::string& db_path) {
     bool _ = std::filesystem::create_directories(db_path);

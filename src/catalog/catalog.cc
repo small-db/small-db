@@ -118,13 +118,7 @@ CatalogManager::CatalogManager() {
         column->set_type(small::type::Type::STRING);
     }
 
-    auto info = small::server_info::get_info();
-    if (!info.ok()) {
-        SPDLOG_ERROR("failed to get server info");
-        return;
-    }
-    std::string db_path = info.value()->db_path;
-    this->db = small::rocks::RocksDBWrapper::GetInstance(db_path);
+    this->db = small::rocks::RocksDBWrapper::GetInstance().value();
 }
 
 std::optional<std::shared_ptr<small::schema::Table>> CatalogManager::GetTable(
