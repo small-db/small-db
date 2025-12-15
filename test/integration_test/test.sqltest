@@ -57,3 +57,20 @@ INSERT INTO users (id, name, balance, country) VALUES
 (4, 'David', 3000, 'China'),
 (5, 'Eve', 2500, 'Japan');
 
+statement ok
+UPDATE users SET balance = balance - 59 WHERE id = 2;
+
+query TT
+SELECT id, balance FROM users WHERE id = 2;
+----
+ id | balance
+----+---------
+  2 | 1941
+
+query TTTT
+SELECT * FROM users WHERE id = 2;
+----
+ id | name | balance | country
+----+------+---------+---------
+  2 | Bob  |    1941 | USA
+

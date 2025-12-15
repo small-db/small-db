@@ -157,4 +157,11 @@ void RocksDBWrapper::WriteRow(
     }
 }
 
+void RocksDBWrapper::WriteCell(
+    const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
+    const std::string& column_name, const std::string& value) {
+    auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, column_name);
+    this->Put(key, value);
+}
+
 }  // namespace small::rocks

@@ -52,6 +52,7 @@
 
 #include "src/insert/insert.grpc.pb.h"
 #include "src/insert/insert.pb.h"
+#include "src/type/type.h"
 
 // =====================================================================
 // self header

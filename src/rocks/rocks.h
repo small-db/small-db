@@ -80,6 +80,10 @@ class RocksDBWrapper {
                   const std::string& pk,
                   const std::vector<std::string>& values);
 
+    void WriteCell(const std::shared_ptr<small::schema::Table>& table,
+                   const std::string& pk, const std::string& column_name,
+                   const std::string& value);
+
    private:
     rocksdb::DB* db_ = nullptr;
 
