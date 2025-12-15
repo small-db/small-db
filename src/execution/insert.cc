@@ -154,7 +154,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                 server.grpc_addr, grpc::InsecureChannelCredentials());
             auto stub = small::execution::Insert::NewStub(channel);
             grpc::ClientContext context;
-            small::execution::InsertReply result;
+            small::execution::UpsertResponse result;
             grpc::Status status = stub->Insert(&context, request, &result);
             if (!status.ok()) {
                 return absl::InternalError(
@@ -173,9 +173,9 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     }
 }
 
-grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
-                                       const small::execution::Row* request,
-                                       small::execution::InsertReply* response) {
+grpc::Status InsertServiceImpl::Insert(
+    grpc::ServerContext* context, const small::execution::Row* request,
+    small::execution::UpsertResponse* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
@@ -198,6 +198,9 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
     auto pk = values[small::schema::get_pk_index(*table)];
 
     db->WriteRow(table, pk, values);
+
+    // TODO: set affected_rows in response
+
     return grpc::Status::OK;
 }
 

@@ -39,7 +39,7 @@ class InsertServiceImpl final : public small::execution::Insert::Service {
    public:
     grpc::Status Insert(grpc::ServerContext* context,
                         const small::execution::Row* request,
-                        small::execution::InsertReply* response) final;
+                        small::execution::UpsertResponse* response) final;
 };
 
 }  // namespace small::execution

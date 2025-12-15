@@ -3,7 +3,7 @@ syntax = "proto3";
 package small.schema;
 
 // =====================================================================
-// small-db protobuf types
+// small-db protobuf
 // =====================================================================
 import "src/type/type.proto";
 
