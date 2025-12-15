@@ -42,9 +42,9 @@
 // =====================================================================
 
 #include "src/catalog/catalog.h"
-#include "src/insert/insert.h"
-#include "src/executor/query.h"
-#include "src/executor/update.h"
+#include "src/execution/insert.h"
+#include "src/execution/query.h"
+#include "src/execution/update.h"
 #include "src/semantics/check.h"
 #include "src/type/type.h"
 
@@ -240,7 +240,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
         }
         case PG_QUERY__NODE__NODE_INSERT_STMT: {
             return WrapEmptyStatus(
-                [&]() { return small::insert::insert(stmt->insert_stmt); });
+                [&]() { return small::execution::insert(stmt->insert_stmt); });
             break;
         }
         default:

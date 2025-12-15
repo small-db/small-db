@@ -10,14 +10,13 @@ target_link_libraries(small_server
     small::server_info
     PRIVATE
     small::schema
-    small::insert_proto
+    small::execution_proto
     small::catalog
     small::gossip
     small::semantics
     small::util::ip
     small::pg_wire
-    small::insert
-    small::query
+    small::execution
     spdlog::spdlog
     libpg_query_lib
     ssl

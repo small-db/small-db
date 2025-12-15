@@ -1,17 +1,23 @@
-add_library(small_insert
+add_library(small_execution
+    query.cc
+    query.h
+    update.cc
+    update.h
     insert.cc
     insert.h
 )
 
-target_link_libraries(small_insert
+target_link_libraries(small_execution
     PUBLIC
-    small::insert_proto
+    small::execution_proto
     PRIVATE
     small::rocks
     small::schema
+    small::server_info
     small::semantics
     small::catalog
     small::gossip
+    small::type
     spdlog
     absl::status
     libpg_query_lib
@@ -19,13 +25,13 @@ target_link_libraries(small_insert
     magic_enum
 )
 
-add_library(small::insert ALIAS small_insert)
+add_library(small::execution ALIAS small_execution)
 
 # ======================================================================== #
 # protobuf target
 # ======================================================================== #
 
 small_proto_target(
-    TARGET insert_proto 
-    SOURCES insert.proto
+    TARGET execution_proto
+    SOURCES execution.proto
 )

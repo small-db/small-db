@@ -1,9 +1,13 @@
 syntax = "proto3";
 
-package small.insert;
+package small.execution;
 
 service Insert {
   rpc Insert(Row) returns (InsertReply) {}
+}
+
+service Update {
+  rpc Update(Row) returns (InsertReply) {}
 }
 
 message Row {

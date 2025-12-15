@@ -28,18 +28,18 @@
 // protobuf generated files
 // =====================================================================
 
-#include "src/insert/insert.grpc.pb.h"
-#include "src/insert/insert.pb.h"
+#include "src/execution/execution.grpc.pb.h"
+#include "src/execution/execution.pb.h"
 
-namespace small::insert {
+namespace small::execution {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt);
 
-class InsertServiceImpl final : public small::insert::Insert::Service {
+class InsertServiceImpl final : public small::execution::Insert::Service {
    public:
     grpc::Status Insert(grpc::ServerContext* context,
-                        const small::insert::Row* request,
-                        small::insert::InsertReply* response) final;
+                        const small::execution::Row* request,
+                        small::execution::InsertReply* response) final;
 };
 
-}  // namespace small::insert
+}  // namespace small::execution

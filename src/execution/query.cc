@@ -55,7 +55,7 @@
 // self header
 // =====================================================================
 
-#include "src/executor/query.h"
+#include "src/execution/query.h"
 
 namespace query {
 

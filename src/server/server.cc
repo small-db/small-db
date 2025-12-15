@@ -57,7 +57,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/gossip/gossip.h"
-#include "src/insert/insert.h"
+#include "src/execution/insert.h"
 // #include "src/peers/server_registry.h"
 #include "src/pg_wire/pg_wire.h"
 #include "src/server/stmt_handler.h"
@@ -299,7 +299,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     start_grpc_server(
         args.grpc_addr,
         {
-            std::make_shared<small::insert::InsertServiceImpl>(),
+            std::make_shared<small::execution::InsertServiceImpl>(),
             std::make_shared<small::gossip::GossipServiceImpl>(),
             std::make_shared<small::catalog::CatalogServiceImpl>(),
         });

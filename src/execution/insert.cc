@@ -50,17 +50,17 @@
 // protobuf generated files
 // =====================================================================
 
-#include "src/insert/insert.grpc.pb.h"
-#include "src/insert/insert.pb.h"
+#include "src/execution/execution.grpc.pb.h"
+#include "src/execution/execution.pb.h"
 #include "src/type/type.h"
 
 // =====================================================================
 // self header
 // =====================================================================
 
-#include "src/insert/insert.h"
+#include "src/execution/insert.h"
 
-namespace small::insert {
+namespace small::execution {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
     auto table_name = insert_stmt->relation->relname;
@@ -134,7 +134,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
             // insert the row into the server
             auto server = servers.begin()->second;
 
-            small::insert::Row request;
+            small::execution::Row request;
             for (int i = 0; i < insert_stmt->n_cols; i++) {
                 auto column_name = insert_stmt->cols[i]->res_target->name;
                 auto datum = small::semantics::extract_const(
@@ -152,9 +152,9 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
 
             auto channel = grpc::CreateChannel(
                 server.grpc_addr, grpc::InsecureChannelCredentials());
-            auto stub = small::insert::Insert::NewStub(channel);
+            auto stub = small::execution::Insert::NewStub(channel);
             grpc::ClientContext context;
-            small::insert::InsertReply result;
+            small::execution::InsertReply result;
             grpc::Status status = stub->Insert(&context, request, &result);
             if (!status.ok()) {
                 return absl::InternalError(
@@ -174,8 +174,8 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
 }
 
 grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
-                                       const small::insert::Row* request,
-                                       small::insert::InsertReply* response) {
+                                       const small::execution::Row* request,
+                                       small::execution::InsertReply* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
@@ -201,4 +201,4 @@ grpc::Status InsertServiceImpl::Insert(grpc::ServerContext* context,
     return grpc::Status::OK;
 }
 
-}  // namespace small::insert
+}  // namespace small::execution
