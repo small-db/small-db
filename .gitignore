@@ -44,13 +44,13 @@ __pycache__
 # ============================================================================ #
 
 # build directory
-build/
+./build/
 
 # cmake libraries' source
-cmake/libs_source/
+./cmake/libs_source/
 
 # cmake libraries' install directory
-cmake/libs_install/
+./cmake/libs_install/
 
 # ============================================================================ #
 # book
