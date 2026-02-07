@@ -111,8 +111,19 @@ class ToolList:
 
 
 def check_env():
-    cxc_toolkit.exec.run_command('apt list --installed | grep "libstd"')
-    cxc_toolkit.exec.run_command('apt list --installed | grep "libc++"')
+    cxc_toolkit.exec.run_command(
+        'apt list --installed | grep "libstd"', ignore_failure=True
+    )
+    cxc_toolkit.exec.run_command(
+        'apt list --installed | grep "libc++"', ignore_failure=True
+    )
+    cxc_toolkit.exec.run_command("dpkg -l | grep libstdc++", ignore_failure=True)
+    cxc_toolkit.exec.run_command("dpkg -l | grep libc++", ignore_failure=True)
+    cxc_toolkit.exec.run_command('dpkg -l | grep -E "clang|llvm"', ignore_failure=True)
+    cxc_toolkit.exec.run_command("clang++-18 -print-search-dirs", ignore_failure=True)
+    cxc_toolkit.exec.run_command(
+        'ldconfig -p | grep -E "libstdc\+\+|libc\+\+"', ignore_failure=True
+    )
 
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")

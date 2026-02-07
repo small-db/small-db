@@ -14,8 +14,8 @@
                 "CMAKE_C_COMPILER": "/usr/bin/clang-18",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++-18",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_PREFIX_PATH": "./cmake/libs_install",
-                "CMAKE_INSTALL_PREFIX": "./cmake/libs_install"
+                "CMAKE_PREFIX_PATH": "${sourceDir}/cmake/libs_install",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/cmake/libs_install"
             }
         },
         {

@@ -1,6 +1,29 @@
 # ============================================================================== #
+# debug
+# ============================================================================== #
+cmake_minimum_required(VERSION 3.28)
+
+# set(CMAKE_GENERATOR "Ninja")
+
+# set(CMAKE_C_COMPILER "/usr/bin/clang-18")
+# set(CMAKE_CXX_COMPILER "/usr/bin/clang++-18")
+set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+set(CMAKE_PREFIX_PATH "./cmake/libs_install")
+set(CMAKE_INSTALL_PREFIX "./cmake/libs_install")
+set(CMAKE_BUILD_TYPE "Debug")
+
+project(project_test_deps LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/recipes/external")
+include(grpc)
+return()
+
+# ============================================================================== #
 # base configuration
 # ============================================================================== #
+
 cmake_minimum_required(VERSION 3.28)
 project(small-db LANGUAGES CXX)
 
@@ -14,9 +37,9 @@ set(CMAKE_CXX_STANDARD 20)
 # runtime search path
 # ======================================================================== #
 
-# # tell the binary to search $ORIGIN/../lib for .so at runtime
-# set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-# set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+# tell the binary to search $ORIGIN/../lib for .so at runtime
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
 # ======================================================================== #
 # helper functions

@@ -1,3 +1,9 @@
+# ============================================================================== #
+# base configuration
+# ============================================================================== #
+cmake_minimum_required(VERSION 3.28)
+project(project_backtracking LANGUAGES CXX)
+
 include(FetchContent)
 
 FetchContent_Declare(backward
