@@ -104,6 +104,17 @@ class ToolList:
 
 
 def check_env():
+    result = subprocess.run(
+        'apt list --installed | grep "libstd"',
+        shell=True,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    print(result.stdout or "")
+    if result.stderr:
+        print(result.stderr)
+
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")
     build_tools.add_tool("cmake", "3.15", r"cmake\s+version\s+([0-9.]+)")
@@ -113,7 +124,6 @@ def check_env():
     build_tools.add_system_library("build-essential", "12.4")
     print("Tools Required for Building:")
     build_tools.display()
-    pass
 
 
 if __name__ == "__main__":

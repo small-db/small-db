@@ -10,6 +10,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Check Environment
+        run: ./scripts/build/check-env.py
       - name: Lint
         run: ./scripts/format/lint.sh
       - name: Install Dependencies

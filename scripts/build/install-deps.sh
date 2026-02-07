@@ -41,7 +41,7 @@ CXX_COMPILER="/usr/bin/clang++-18"
 
 pushd "$LIBS_SOURCE_DIR"
 
-# fetach grpc
+# fetch grpc
 if [ ! -d "grpc" ]; then
     git clone \
         --recurse-submodules \
