@@ -1,10 +1,17 @@
-#!/usr/bin/env python
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "cxc-toolkit>=1.1.0",
+#     "tabulate>=0.9.0",
+# ]
+# ///
 
 import re
 import shutil
 import subprocess
 
 from tabulate import tabulate
+import cxc_toolkit
 
 
 class CLITool:
@@ -104,16 +111,7 @@ class ToolList:
 
 
 def check_env():
-    result = subprocess.run(
-        'apt list --installed | grep "libstd"',
-        shell=True,
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-    print(result.stdout or "")
-    if result.stderr:
-        print(result.stderr)
+    cxc_toolkit.exec.run_command('apt list --installed | grep "libstd"')
 
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")
