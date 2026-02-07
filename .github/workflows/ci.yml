@@ -13,7 +13,7 @@ jobs:
       - name: Install uv
         run: wget -qO- https://astral.sh/uv/install.sh | sh
       - name: Check Environment
-        run: ./scripts/build/check-env.py
+        run: uv run ./scripts/build/check-env.py
       - name: Lint
         run: ./scripts/format/lint.sh
       - name: Install Dependencies
