@@ -99,8 +99,8 @@ def check_env():
     build_tools.add_tool("cmake", "3.15", r"cmake\s+version\s+([0-9.]+)")
     build_tools.add_tool("ninja", "1.10", r"([0-9.]+)")
     build_tools.add_tool("clang-18", "18.0", r"clang version\s+([0-9.]+)")
-    build_tools.add_system_library("libsystemd-dev", "233")
     build_tools.add_system_library("clang-tools-18", "18.0")
+    build_tools.add_system_library("libboost-all-dev", "1.81")
 
     print("Tools Required for Building:")
     build_tools.display()
