@@ -131,7 +131,7 @@ def check_env():
         'dpkg -l | grep "clang-scan"', ignore_failure=True
     )
     cxc_toolkit.exec.run_command(
-        'l /usr/bin/clang-scan-deps*', ignore_failure=True
+        'ls -al /usr/bin/clang-scan-deps*', ignore_failure=True
     )
 
     build_tools = ToolList()
