@@ -20,6 +20,7 @@
 ```bash
 # clone
 git clone https://github.com/small-db/small-db.git
+cd small-db
 
 # install dependencies
 ./scripts/build/install-deps.sh
