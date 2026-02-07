@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "cxc-toolkit>=1.1.0",
+#     "cxc-toolkit>=1.1.1",
 #     "tabulate>=0.9.0",
 # ]
 # ///
@@ -112,6 +112,7 @@ class ToolList:
 
 def check_env():
     cxc_toolkit.exec.run_command('apt list --installed | grep "libstd"')
+    cxc_toolkit.exec.run_command('apt list --installed | grep "libc++"')
 
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")
