@@ -43,13 +43,13 @@ __pycache__
 # cmake build artifacts
 # ============================================================================ #
 
-# build directory
-/build/
+# build directory (at any level)
+build/
 
-# cmake libraries' source
+# cmake libraries' source (at the root level)
 /cmake/libs_source/
 
-# cmake libraries' install directory
+# cmake libraries' install directory (at the root level)
 /cmake/libs_install/
 
 # ============================================================================ #
