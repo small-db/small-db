@@ -1,15 +1,15 @@
-# ============================================================================== #
-# debug
-# ============================================================================== #
-cmake_minimum_required(VERSION 3.28)
+# # ============================================================================== #
+# # debug
+# # ============================================================================== #
+# cmake_minimum_required(VERSION 3.28)
 
-project(project_test_deps LANGUAGES CXX)
+# project(project_test_deps LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/recipes/external")
-include(grpc)
-return()
+# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/recipes/external")
+# include(grpc)
+# return()
 
 # ============================================================================== #
 # base configuration

@@ -8,7 +8,6 @@
 
 import re
 import shutil
-import subprocess
 
 from tabulate import tabulate
 import cxc_toolkit
@@ -21,20 +20,9 @@ class CLITool:
         self.version_regex = version_regex
 
     def get_installed_version(self):
-        try:
-            result = subprocess.run(
-                [self.name, "--version"],
-                check=False,
-                text=True,
-                capture_output=True,
-            )
-        except FileNotFoundError:
-            return "not found"
-
-        output = (result.stdout or "") + (result.stderr or "")
-        output = output.strip()
-        if not output or not self.version_regex:
-            return "unknown"
+        output, _ = cxc_toolkit.exec.run_command(
+            [self.name, "--version"], ignore_failure=True
+        )
 
         match = re.search(self.version_regex, output)
         return match.group(1) if match else "unknown"
@@ -51,20 +39,11 @@ class SystemLibrary:
         self.version_regex = version_regex or r"^Version:\s*(\S+)"
 
     def get_installed_version(self):
-        try:
-            result = subprocess.run(
-                ["apt", "show", self.name],
-                check=False,
-                text=True,
-                capture_output=True,
-            )
-        except FileNotFoundError:
-            return "not found"
-
-        output = (result.stdout or "") + (result.stderr or "")
-        output = output.strip()
-        if not output:
-            return "unknown"
+        # Caution: use "dpkg -s" instead of "apt show" since the latter also
+        # shows the information of uninstalled packages.
+        output, _ = cxc_toolkit.exec.run_command(
+            "dpkg -s {}".format(self.name), ignore_failure=True
+        )
 
         match = re.search(self.version_regex, output, flags=re.MULTILINE)
         return match.group(1) if match else "unknown"
@@ -127,11 +106,9 @@ def check_env():
     cxc_toolkit.exec.run_command(
         'apt list --installed | grep "clang-scan"', ignore_failure=True
     )
+    cxc_toolkit.exec.run_command('dpkg -l | grep "clang-scan"', ignore_failure=True)
     cxc_toolkit.exec.run_command(
-        'dpkg -l | grep "clang-scan"', ignore_failure=True
-    )
-    cxc_toolkit.exec.run_command(
-        'ls -al /usr/bin/clang-scan-deps*', ignore_failure=True
+        "ls -al /usr/bin/clang-scan-deps*", ignore_failure=True
     )
 
     build_tools = ToolList()
@@ -140,7 +117,8 @@ def check_env():
     build_tools.add_tool("ninja", "1.10", r"([0-9.]+)")
     build_tools.add_tool("clang-18", "18.0", r"clang version\s+([0-9.]+)")
     build_tools.add_system_library("libsystemd-dev", "233")
-    build_tools.add_system_library("build-essential", "12.4")
+    build_tools.add_system_library("clang-tools-18", "18.0")
+
     print("Tools Required for Building:")
     build_tools.display()
 
