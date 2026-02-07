@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "cxc-toolkit>=1.1.1",
+#     "cxc-toolkit>=1.1.2",
 #     "tabulate>=0.9.0",
 # ]
 # ///
@@ -21,7 +21,9 @@ class CLITool:
 
     def get_installed_version(self):
         output, _ = cxc_toolkit.exec.run_command(
-            [self.name, "--version"], ignore_failure=True
+            f"{self.name} --version",
+            ignore_failure=True,
+            slient=True,
         )
 
         match = re.search(self.version_regex, output)
@@ -42,7 +44,9 @@ class SystemLibrary:
         # Caution: use "dpkg -s" instead of "apt show" since the latter also
         # shows the information of uninstalled packages.
         output, _ = cxc_toolkit.exec.run_command(
-            "dpkg -s {}".format(self.name), ignore_failure=True
+            f"dpkg -s {self.name}",
+            ignore_failure=True,
+            slient=True,
         )
 
         match = re.search(self.version_regex, output, flags=re.MULTILINE)
@@ -90,27 +94,6 @@ class ToolList:
 
 
 def check_env():
-    cxc_toolkit.exec.run_command(
-        'apt list --installed | grep "libstd"', ignore_failure=True
-    )
-    cxc_toolkit.exec.run_command(
-        'apt list --installed | grep "libc++"', ignore_failure=True
-    )
-    cxc_toolkit.exec.run_command("dpkg -l | grep libstdc++", ignore_failure=True)
-    cxc_toolkit.exec.run_command("dpkg -l | grep libc++", ignore_failure=True)
-    cxc_toolkit.exec.run_command('dpkg -l | grep -E "clang|llvm"', ignore_failure=True)
-    cxc_toolkit.exec.run_command("clang++-18 -print-search-dirs", ignore_failure=True)
-    cxc_toolkit.exec.run_command(
-        'ldconfig -p | grep -E "libstdc\+\+|libc\+\+"', ignore_failure=True
-    )
-    cxc_toolkit.exec.run_command(
-        'apt list --installed | grep "clang-scan"', ignore_failure=True
-    )
-    cxc_toolkit.exec.run_command('dpkg -l | grep "clang-scan"', ignore_failure=True)
-    cxc_toolkit.exec.run_command(
-        "ls -al /usr/bin/clang-scan-deps*", ignore_failure=True
-    )
-
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")
     build_tools.add_tool("cmake", "3.15", r"cmake\s+version\s+([0-9.]+)")
