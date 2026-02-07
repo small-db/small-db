@@ -124,6 +124,15 @@ def check_env():
     cxc_toolkit.exec.run_command(
         'ldconfig -p | grep -E "libstdc\+\+|libc\+\+"', ignore_failure=True
     )
+    cxc_toolkit.exec.run_command(
+        'apt list --installed | grep "clang-scan"', ignore_failure=True
+    )
+    cxc_toolkit.exec.run_command(
+        'dpkg -l | grep "clang-scan"', ignore_failure=True
+    )
+    cxc_toolkit.exec.run_command(
+        'l /usr/bin/clang-scan-deps*', ignore_failure=True
+    )
 
     build_tools = ToolList()
     build_tools.add_tool("make", "4.0", r"GNU Make\s+([0-9.]+)")

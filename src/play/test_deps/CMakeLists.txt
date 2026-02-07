@@ -3,7 +3,7 @@
 # ============================================================================== #
 cmake_minimum_required(VERSION 3.28)
 
-project(project_test_deps LANGUAGES C CXX)
+project(project_test_deps LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 

@@ -3,16 +3,7 @@
 # ============================================================================== #
 cmake_minimum_required(VERSION 3.28)
 
-# set(CMAKE_GENERATOR "Ninja")
-
-# set(CMAKE_C_COMPILER "/usr/bin/clang-18")
-# set(CMAKE_CXX_COMPILER "/usr/bin/clang++-18")
-set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
-set(CMAKE_PREFIX_PATH "./cmake/libs_install")
-set(CMAKE_INSTALL_PREFIX "./cmake/libs_install")
-set(CMAKE_BUILD_TYPE "Debug")
-
-project(project_test_deps LANGUAGES C CXX)
+project(project_test_deps LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
