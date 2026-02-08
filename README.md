@@ -4,16 +4,9 @@
 
 ## Development
 
-### Environment
+### Operating System
 
 - Ubuntu 24.04 LTS (or newer version)
-- CMake 3.21.3 (or newer version)
-
-### Check Environment
-
-```bash
-uv run ./scripts/build/check-env.py
-```
 
 ### Build From Source
 
@@ -24,6 +17,9 @@ cd small-db
 
 # install dependencies
 ./scripts/setup/install-deps.sh
+
+# (optional) check environment
+uv run ./scripts/setup/check-env.py
 
 # build
 ./scripts/setup/build.sh
