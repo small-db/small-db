@@ -57,7 +57,7 @@
 
 #include "src/execution/query.h"
 
-namespace query {
+namespace small::execution {
 
 // parse key from rocksdb, the format is:
 // /<table_name>/<pk>
@@ -331,4 +331,4 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     return result;
 }
 
-}  // namespace query
+}  // namespace small::execution

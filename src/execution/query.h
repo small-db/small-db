@@ -27,9 +27,9 @@
 // arrow
 #include "arrow/api.h"
 
-namespace query {
+namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     PgQuery__SelectStmt* select_stmt);
 
-}
+}  // namespace small::execution
