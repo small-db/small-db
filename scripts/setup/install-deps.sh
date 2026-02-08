@@ -12,9 +12,7 @@ sudo apt-get update -y
 sudo apt-get install -y \
     libpq-dev \
     libpqxx-dev \
-    uuid-dev \
-    libdw-dev \
-    binutils-dev
+    uuid-dev
 
 # ======================================================================== #
 # install uv for Python scripts
