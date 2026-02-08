@@ -53,6 +53,8 @@ absl::StatusOr<Type> from_pgwire_oid(pqxx::oid oid);
 
 gandiva::DataTypePtr get_gandiva_type(Type type);
 
+absl::StatusOr<Type> from_arrow_type(const gandiva::DataTypePtr& arrow_type);
+
 int16_t get_pgwire_size(Type type);
 
 std::string encode(const Datum& datum);

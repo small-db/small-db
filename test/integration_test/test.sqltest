@@ -60,14 +60,14 @@ INSERT INTO users (id, name, balance, country) VALUES
 statement ok
 UPDATE users SET balance = balance - 59 WHERE id = 2;
 
-query TT
+query II
 SELECT id, balance FROM users WHERE id = 2;
 ----
  id | balance
 ----+---------
   2 | 1941
 
-query TTTT
+query ITIT
 SELECT * FROM users WHERE id = 2;
 ----
  id | name | balance | country

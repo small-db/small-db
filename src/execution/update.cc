@@ -74,14 +74,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     }
     const auto& table = table_optional.value();
 
-    auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name);
-
-    // print rows
-    for (const auto& [pk, columns] : rows) {
-        SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
-    }
-
     if (dispatch) {
         auto servers = small::gossip::get_nodes(std::nullopt);
         for (auto& [id, server] : servers) {
@@ -92,6 +84,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
             pg_query__update_stmt__pack(update_stmt, buf);
 
             request.set_packed_node(buf, len);
+            free(buf);
 
             auto channel = grpc::CreateChannel(
                 server.grpc_addr, grpc::InsecureChannelCredentials());
@@ -105,7 +98,14 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                                 server.grpc_addr, status.error_message()));
             }
         }
+
+        auto schema = arrow::schema({});
+        return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
     }
+
+    // Local execution (dispatch=false)
+    auto db = small::rocks::RocksDBWrapper::GetInstance().value();
+    auto rows = db->ReadTable(table_name);
 
     // filter (based on where clause)
     std::map<std::string, std::map<std::string, std::string>> filtered_rows;
@@ -117,22 +117,82 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                             .value();
     auto encoded_filter_value = small::type::encode(filter_value);
     for (const auto& [pk, columns] : rows) {
-        auto val = columns.at(filter_column);
-        if (val == encoded_filter_value) {
-            filtered_rows[pk][filter_column] = val;
+        if (columns.count(filter_column) &&
+            columns.at(filter_column) == encoded_filter_value) {
+            filtered_rows[pk] = columns;
         }
     }
 
-    // print filtered rows
+    // apply SET clause to filtered rows
     for (const auto& [pk, columns] : filtered_rows) {
-        SPDLOG_INFO("filtered pk: {}, columns: {}", pk,
-                    nlohmann::json(columns).dump());
+        for (size_t i = 0; i < update_stmt->n_target_list; i++) {
+            auto res_target = update_stmt->target_list[i]->res_target;
+            auto column_name = std::string(res_target->name);
+            auto val_node = res_target->val;
+
+            std::string new_encoded_value;
+
+            if (val_node->node_case == PG_QUERY__NODE__NODE_A_EXPR) {
+                auto expr = val_node->a_expr;
+                auto op = std::string(expr->name[0]->string->sval);
+
+                // get current value of the referenced column
+                auto ref_column = std::string(
+                    expr->lexpr->column_ref->fields[0]->string->sval);
+                auto current_encoded = columns.at(ref_column);
+
+                // find column type
+                small::type::Type col_type = small::type::Type::STRING;
+                for (const auto& col : table->columns()) {
+                    if (col.name() == column_name) {
+                        col_type = col.type();
+                        break;
+                    }
+                }
+
+                auto current_datum =
+                    small::type::decode(current_encoded, col_type);
+                auto const_datum = small::semantics::extract_const(
+                                       expr->rexpr->a_const)
+                                       .value();
+
+                if (col_type == small::type::Type::INT64) {
+                    int64_t current_val = current_datum.int64_value();
+                    int64_t const_val = const_datum.int64_value();
+                    int64_t result;
+                    if (op == "-") {
+                        result = current_val - const_val;
+                    } else if (op == "+") {
+                        result = current_val + const_val;
+                    } else if (op == "*") {
+                        result = current_val * const_val;
+                    } else {
+                        return absl::InternalError(
+                            fmt::format("unsupported operator: {}", op));
+                    }
+                    auto result_datum = small::type::Datum();
+                    result_datum.set_int64_value(result);
+                    new_encoded_value = small::type::encode(result_datum);
+                } else {
+                    return absl::InternalError(fmt::format(
+                        "unsupported type for arithmetic: {}",
+                        small::type::to_string(col_type)));
+                }
+            } else if (val_node->node_case == PG_QUERY__NODE__NODE_A_CONST) {
+                auto datum =
+                    small::semantics::extract_const(val_node->a_const).value();
+                new_encoded_value = small::type::encode(datum);
+            } else {
+                return absl::InternalError(
+                    "unsupported SET value expression");
+            }
+
+            db->WriteCell(table, pk, column_name, new_encoded_value);
+        }
     }
 
-    // db->WriteCell(table, pk, column_name, value);
-
-    return absl::Status(absl::StatusCode::kInternal,
-                        "unimplemented update executor");
+    auto schema = arrow::schema({});
+    return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
 }
 
 grpc::Status UpdateServiceImpl::Update(
@@ -143,6 +203,14 @@ grpc::Status UpdateServiceImpl::Update(
     PgQuery__UpdateStmt* node = pg_query__update_stmt__unpack(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
+
+    auto result = update(node, false);
+    pg_query__update_stmt__free_unpacked(node, nullptr);
+
+    if (!result.ok()) {
+        return {grpc::StatusCode::INTERNAL,
+                std::string(result.status().message())};
+    }
 
     return grpc::Status::OK;
 }

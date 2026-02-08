@@ -111,6 +111,18 @@ gandiva::DataTypePtr get_gandiva_type(Type type) {
     }
 }
 
+absl::StatusOr<Type> from_arrow_type(const gandiva::DataTypePtr& arrow_type) {
+    switch (arrow_type->id()) {
+        case arrow::Type::INT64:
+            return Type::INT64;
+        case arrow::Type::STRING:
+            return Type::STRING;
+        default:
+            return absl::InternalError("unsupported arrow type: " +
+                                       arrow_type->ToString());
+    }
+}
+
 // > For a fixed-size type, typlen is the number of bytes in the internal
 // > representation of the type. But for a variable-length type, typlen is
 // > negative. -1 indicates a “varlena” type (one that has a length word), -2

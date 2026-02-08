@@ -149,8 +149,7 @@ class RowDescriptionResponse : public ServerMessage {
             const auto& field = schema->field(i);
 
             auto data_type =
-                small::type::from_ast_string(field->type()->ToString().c_str())
-                    .value();
+                small::type::from_arrow_type(field->type()).value();
 
             // The field name.
             append_cstring(buffer, field->name());
@@ -203,10 +202,17 @@ class DataRowResponse : public ServerMessage {
             append_int16(buffer, batch->num_columns());
 
             for (int j = 0; j < batch->num_columns(); ++j) {
-                auto string_column =
-                    std::static_pointer_cast<arrow::StringArray>(
-                        batch->column(j));
-                auto cell = string_column->GetString(i);
+                std::string cell;
+                auto col = batch->column(j);
+                if (col->type_id() == arrow::Type::STRING) {
+                    auto string_column =
+                        std::static_pointer_cast<arrow::StringArray>(col);
+                    cell = string_column->GetString(i);
+                } else if (col->type_id() == arrow::Type::INT64) {
+                    auto int_column =
+                        std::static_pointer_cast<arrow::Int64Array>(col);
+                    cell = std::to_string(int_column->Value(i));
+                }
                 append_int32(buffer, cell.size());
                 buffer.insert(buffer.end(), cell.data(),
                               cell.data() + cell.size());
