@@ -12,7 +12,7 @@
 ### Check Environment
 
 ```bash
-./scripts/build/check-env.py
+uv run ./scripts/build/check-env.py
 ```
 
 ### Build From Source
@@ -23,16 +23,16 @@ git clone https://github.com/small-db/small-db.git
 cd small-db
 
 # install dependencies
-./scripts/build/install-deps.sh
+./scripts/setup/install-deps.sh
 
 # build
-./scripts/build/build.sh
+./scripts/setup/build.sh
 ```
 
 ### Run Tests
 
 ```bash
-# run all tests
+# run integration tests
 ./scripts/test/test.sh
 ```
 

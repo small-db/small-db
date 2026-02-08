@@ -56,8 +56,8 @@
 // =====================================================================
 
 #include "src/catalog/catalog.h"
-#include "src/gossip/gossip.h"
 #include "src/execution/insert.h"
+#include "src/gossip/gossip.h"
 #include "src/pg_wire/pg_wire.h"
 #include "src/server/stmt_handler.h"
 #include "src/server_info/info.h"
@@ -231,7 +231,7 @@ void handle_command(std::string& command, int sockfd) {
         pg_query_parse_protobuf_opts(command.c_str(), PG_QUERY_PARSE_DEFAULT);
 
     auto unpacked = pg_query__parse_result__unpack(
-        NULL, pgquery_pbparse_result.parse_tree.len,
+        nullptr, pgquery_pbparse_result.parse_tree.len,
         (const uint8_t*)pgquery_pbparse_result.parse_tree.data);
 
     auto node_case = unpacked->stmts[0]->stmt->node_case;
@@ -303,7 +303,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
             std::make_shared<small::catalog::CatalogServiceImpl>(),
         });
 
-    struct sockaddr_in client_addr{};
+    struct sockaddr_in client_addr {};
     socklen_t client_len = sizeof(client_addr);
 
     char buffer[MAX_MESSAGE_LEN];

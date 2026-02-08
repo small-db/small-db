@@ -27,9 +27,23 @@
 // arrow
 #include "arrow/api.h"
 
-namespace query {
+// =====================================================================
+// small-db libraries (protobuf generated)
+// =====================================================================
+
+#include "src/execution/execution.grpc.pb.h"
+#include "src/execution/execution.pb.h"
+
+namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     PgQuery__UpdateStmt* update_stmt, bool dispatch);
 
-}
+class UpdateServiceImpl final : public small::execution::Update::Service {
+   public:
+    grpc::Status Update(grpc::ServerContext* context,
+                        const small::execution::RawNode* request,
+                        small::execution::WriteResponse* response) final;
+};
+
+}  // namespace small::execution

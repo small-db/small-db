@@ -152,7 +152,7 @@ class GossipServer {
 // Get the nodes that satisfy the constraints. If constraints is nullopt, return
 // all nodes.
 //
-// Return nodes in form of [node_ip -> server_info].
+// Return nodes in form of [node_id -> server_info].
 std::unordered_map<std::string, small::server_info::ImmutableInfo> get_nodes(
     const std::optional<google::protobuf::Map<std::string, std::string>>&
         constraints);

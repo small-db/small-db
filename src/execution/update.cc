@@ -61,7 +61,7 @@
 
 #include "src/execution/update.h"
 
-namespace query {
+namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     PgQuery__UpdateStmt* update_stmt, bool dispatch) {
@@ -84,7 +84,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
 
     if (dispatch) {
         auto servers = small::gossip::get_nodes(std::nullopt);
-        for (auto& [ip, server] : servers) {
+        for (auto& [id, server] : servers) {
             small::execution::RawNode request;
 
             size_t len = pg_query__update_stmt__get_packed_size(update_stmt);
@@ -135,4 +135,16 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                         "unimplemented update executor");
 }
 
-}  // namespace query
+grpc::Status UpdateServiceImpl::Update(
+    grpc::ServerContext* context, const small::execution::RawNode* request,
+    small::execution::WriteResponse* response) {
+    SPDLOG_INFO("update request: {}", request->DebugString());
+
+    PgQuery__UpdateStmt* node = pg_query__update_stmt__unpack(
+        nullptr, request->packed_node().size(),
+        reinterpret_cast<const uint8_t*>(request->packed_node().data()));
+
+    return grpc::Status::OK;
+}
+
+}  // namespace small::execution
