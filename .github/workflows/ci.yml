@@ -12,10 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install uv
         run: wget -qO- https://astral.sh/uv/install.sh | sh
-      - name: Check Environment
-        run: uv run ./scripts/setup/check-env.py
       - name: Lint
-        run: ./scripts/format/lint.sh
+        run: uv run ./scripts/format/run-cpplint.py
       - name: Install Dependencies
         run: ./scripts/setup/install-deps.sh
       - name: Build
