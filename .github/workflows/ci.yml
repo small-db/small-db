@@ -10,10 +10,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install uv
+      - name: Install uv for Python Scripts
         run: wget -qO- https://astral.sh/uv/install.sh | sh
       - name: Lint
-        run: uv run ./scripts/format/run-cpplint.py
+        run: ./scripts/format/lint.sh
       - name: Install Dependencies
         run: ./scripts/setup/install-deps.sh
       - name: Build
