@@ -42,6 +42,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/gossip/gossip.h"
+#include "src/schema/const.h"
 #include "src/schema/partition.h"
 #include "src/semantics/extract.h"
 #include "src/server_info/info.h"
@@ -63,7 +64,8 @@
 namespace small::execution {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
-    auto table_name = insert_stmt->relation->relname;
+    auto table_name =
+        small::schema::resolve_table_name(insert_stmt->relation);
     auto result =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!result) {

@@ -36,18 +36,18 @@ ALTER TABLE users_asia ADD CONSTRAINT check_region CHECK (region = 'asia');
 query TT
 SELECT * FROM system.tables;
 ----
- table_name | columns
-------------+--------
- users      | id:int(PK), name:str, balance:int, country:str
+ table_name             | columns
+------------------------+--------
+ default_schema.users   | id:int(PK), name:str, balance:int, country:str
 
 query TTTTT
-SELECT * FROM system.partitions WHERE table_name = 'users';
+SELECT * FROM system.partitions WHERE table_name = 'default_schema.users';
 ----
-table_name | partition_name | constraint        | column_name  | partition_value
------------+----------------+-------------------+--------------+---------------------------------
-users      | users_asia     | {"region":"asia"} | country      | ["China","Japan","Korea"]
-users      | users_eu       | {"region":"eu"}   | country      | ["Germany","France","Italy"]
-users      | users_us       | {"region":"us"}   | country      | ["USA","Canada"]
+table_name             | partition_name | constraint        | column_name  | partition_value
+-----------------------+----------------+-------------------+--------------+---------------------------------
+default_schema.users   | users_asia     | {"region":"asia"} | country      | ["China","Japan","Korea"]
+default_schema.users   | users_eu       | {"region":"eu"}   | country      | ["Germany","France","Italy"]
+default_schema.users   | users_us       | {"region":"us"}   | country      | ["USA","Canada"]
 
 statement ok
 INSERT INTO users (id, name, balance, country) VALUES

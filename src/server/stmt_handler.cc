@@ -45,6 +45,7 @@
 #include "src/execution/insert.h"
 #include "src/execution/query.h"
 #include "src/execution/update.h"
+#include "src/schema/const.h"
 #include "src/semantics/check.h"
 #include "src/type/type.h"
 
@@ -57,7 +58,8 @@
 namespace small::stmt_handler {
 
 absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
-    std::string table_name = create_stmt->relation->relname;
+    std::string table_name =
+        small::schema::resolve_table_name(create_stmt->relation);
     std::vector<small::schema::Column> columns;
 
     for (int i = 0; i < create_stmt->n_table_elts; i++) {
@@ -149,12 +151,15 @@ absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
 }
 
 absl::Status handle_drop_table(PgQuery__DropStmt* drop_stmt) {
-    auto table_name = drop_stmt->objects[0]->list->items[0]->string->sval;
+    auto relname = drop_stmt->objects[0]->list->items[0]->string->sval;
+    auto table_name =
+        std::string(small::schema::DEFAULT_SCHEMA) + "." + std::string(relname);
     return small::catalog::CatalogManager::GetInstance()->DropTable(table_name);
 }
 
 absl::Status handle_add_partition(PgQuery__CreateStmt* create_stmt) {
-    auto table_name = create_stmt->inh_relations[0]->range_var->relname;
+    auto table_name = small::schema::resolve_table_name(
+        create_stmt->inh_relations[0]->range_var);
     auto partition_name = create_stmt->relation->relname;
 
     std::vector<std::string> values;

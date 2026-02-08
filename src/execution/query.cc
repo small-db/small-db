@@ -49,6 +49,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/rocks/rocks.h"
+#include "src/schema/const.h"
 #include "src/semantics/extract.h"
 #include "src/server_info/info.h"
 #include "src/type/type.h"
@@ -120,15 +121,8 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     PgQuery__SelectStmt* select_stmt) {
-    auto schemaname = select_stmt->from_clause[0]->range_var->schemaname;
-    auto relname = select_stmt->from_clause[0]->range_var->relname;
-
-    std::string table_name;
-    if (schemaname != nullptr && schemaname[0] != '\0') {
-        table_name = std::string(schemaname) + "." + std::string(relname);
-    } else {
-        table_name = std::string(relname);
-    }
+    auto table_name = small::schema::resolve_table_name(
+        select_stmt->from_clause[0]->range_var);
 
     // get the input schema
     auto table =

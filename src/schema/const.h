@@ -14,4 +14,30 @@
 
 #pragma once
 
-namespace small::schema {}  // namespace small::schema
+// =====================================================================
+// c++ std
+// =====================================================================
+
+#include <string>
+
+// =====================================================================
+// third-party libraries
+// =====================================================================
+
+// pg_query
+#include "pg_query.pb-c.h"
+
+namespace small::schema {
+
+constexpr const char* DEFAULT_SCHEMA = "default_schema";
+
+inline std::string resolve_table_name(PgQuery__RangeVar* relation) {
+    auto schemaname = relation->schemaname;
+    auto relname = relation->relname;
+    if (schemaname != nullptr && schemaname[0] != '\0') {
+        return std::string(schemaname) + "." + std::string(relname);
+    }
+    return std::string(DEFAULT_SCHEMA) + "." + std::string(relname);
+}
+
+}  // namespace small::schema

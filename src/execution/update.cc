@@ -52,6 +52,7 @@
 #include "src/execution/execution.pb.h"
 #include "src/gossip/gossip.h"
 #include "src/rocks/rocks.h"
+#include "src/schema/const.h"
 #include "src/semantics/extract.h"
 #include "src/type/type.h"
 
@@ -65,7 +66,7 @@ namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     PgQuery__UpdateStmt* update_stmt, bool dispatch) {
-    auto table_name = update_stmt->relation->relname;
+    auto table_name = small::schema::resolve_table_name(update_stmt->relation);
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!table_optional) {
