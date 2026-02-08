@@ -101,6 +101,11 @@ def check_env():
     build_tools.add_tool("clang-18", "18.0", r"clang version\s+([0-9.]+)")
     build_tools.add_system_library("clang-tools-18", "18.0")
     build_tools.add_system_library("libboost-all-dev", "1.81")
+    build_tools.add_system_library("libpq-dev", "14")
+    build_tools.add_system_library("libpqxx-dev", "7.6.0")
+    build_tools.add_system_library("uuid-dev", "2.36.0")
+    build_tools.add_system_library("libdw-dev", "0.1.3")
+    build_tools.add_system_library("binutils-dev", "2.40")
 
     print("Tools Required for Building:")
     build_tools.display()
