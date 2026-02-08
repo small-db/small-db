@@ -30,6 +30,6 @@
 namespace query {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt);
+    PgQuery__UpdateStmt* update_stmt, bool dispatch);
 
 }

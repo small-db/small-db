@@ -37,7 +37,7 @@
 #include "grpcpp/create_channel.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/catalog/catalog.h"
@@ -47,7 +47,7 @@
 #include "src/server_info/info.h"
 
 // =====================================================================
-// protobuf generated files
+// small-db libraries (protobuf generated)
 // =====================================================================
 
 #include "src/execution/execution.grpc.pb.h"
@@ -154,7 +154,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                 server.grpc_addr, grpc::InsecureChannelCredentials());
             auto stub = small::execution::Insert::NewStub(channel);
             grpc::ClientContext context;
-            small::execution::UpsertResponse result;
+            small::execution::WriteResponse result;
             grpc::Status status = stub->Insert(&context, request, &result);
             if (!status.ok()) {
                 return absl::InternalError(
@@ -175,19 +175,20 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
 
 grpc::Status InsertServiceImpl::Insert(
     grpc::ServerContext* context, const small::execution::Row* request,
-    small::execution::UpsertResponse* response) {
+    small::execution::WriteResponse* response) {
     SPDLOG_INFO("insert request: {}", request->DebugString());
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
 
     // get the table
-    auto result = small::catalog::CatalogManager::GetInstance()->GetTable(
-        request->table_name());
-    if (!result) {
+    auto table_optional =
+        small::catalog::CatalogManager::GetInstance()->GetTable(
+            request->table_name());
+    if (!table_optional) {
         return {grpc::StatusCode::NOT_FOUND,
                 fmt::format("table {} not found", request->table_name())};
     }
-    const auto& table = result.value();
+    const auto& table = table_optional.value();
 
     const auto& column_values = request->column_values();
     std::vector<std::string> values;

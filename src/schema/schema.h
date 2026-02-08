@@ -22,7 +22,7 @@
 #include "nlohmann/json_fwd.hpp"
 
 // =====================================================================
-// protobuf generated files
+// small-db libraries (protobuf generated)
 // =====================================================================
 
 #include "src/schema/schema.pb.h"

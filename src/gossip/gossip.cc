@@ -32,14 +32,14 @@
 #include "grpcpp/create_channel.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/schema/schema.pb.h"
 #include "src/server_info/info.h"
 
 // =====================================================================
-// protobuf generated files
+// small-db libraries (protobuf generated)
 // =====================================================================
 
 #include "src/gossip/gossip.grpc.pb.h"

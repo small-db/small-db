@@ -32,7 +32,7 @@
 #include "magic_enum/magic_enum.hpp"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/type/type.pb.h"

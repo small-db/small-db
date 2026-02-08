@@ -32,14 +32,14 @@
 #include "pg_query.pb-c.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/rocks/rocks.h"
 #include "src/schema/schema.h"
 
 // =====================================================================
-// protobuf generated files
+// small-db libraries (protobuf generated)
 // =====================================================================
 
 #include "catalog.grpc.pb.h"

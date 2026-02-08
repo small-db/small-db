@@ -36,7 +36,7 @@
 #include "grpcpp/create_channel.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/gossip/gossip.h"

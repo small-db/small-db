@@ -25,7 +25,7 @@
 #include "absl/status/status.h"
 
 // =====================================================================
-// protobuf generated files
+// small-db libraries (protobuf generated)
 // =====================================================================
 
 #include "src/execution/execution.grpc.pb.h"
@@ -39,7 +39,7 @@ class InsertServiceImpl final : public small::execution::Insert::Service {
    public:
     grpc::Status Insert(grpc::ServerContext* context,
                         const small::execution::Row* request,
-                        small::execution::UpsertResponse* response) final;
+                        small::execution::WriteResponse* response) final;
 };
 
 }  // namespace small::execution

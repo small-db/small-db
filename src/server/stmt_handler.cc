@@ -38,7 +38,7 @@
 #include "absl/status/status.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/catalog/catalog.h"

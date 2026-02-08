@@ -8,11 +8,11 @@ package small.execution;
 import "src/type/type.proto";
 
 service Insert {
-  rpc Insert(Row) returns (UpsertResponse) {}
+  rpc Insert(Row) returns (WriteResponse) {}
 }
 
 service Update {
-  rpc Update(UpdateStmt) returns (UpsertResponse) {}
+  rpc Update(RawNode) returns (WriteResponse) {}
 }
 
 message Row {
@@ -21,46 +21,10 @@ message Row {
   repeated string column_values = 3;
 }
 
-message UpsertResponse {
+message RawNode {
+  bytes packed_node = 1;
+}
+
+message WriteResponse {
   int64 affected_rows = 1;
-}
-
-// =====================================================================
-// definition of sql AST, we don't use the proto buf along with pg_query
-// since it will import pg_query.h and leads to error.
-// (path: build/debug/_deps/libpg_query-src/protobuf/pg_query.proto)
-// =====================================================================
-
-message UpdateStmt {
-  string table_name = 1;
-  repeated SetClause set_clauses = 2;
-  repeated Condition where_clauses = 3;
-}
-
-message SetClause {
-  string column_name = 1;
-  Expr target = 2;
-}
-
-message Expr {
-  oneof expr {
-    ColumnRef column_ref = 1;
-    small.type.Datum literal = 2;
-    MinusExpr minus_expr = 3;
-  }
-}
-
-message ColumnRef {
-  string column_name = 1;
-}
-
-message MinusExpr {
-  Expr v1 = 1;
-  Expr v2 = 2;
-}
-
-// Assume the condition is always equality for simplicity.
-message Condition {
-  string column_name = 1;
-  Expr value = 2;
 }

@@ -38,7 +38,7 @@
 #include "absl/strings/str_format.h"
 
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/server_info/info.h"

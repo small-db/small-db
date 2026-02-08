@@ -17,6 +17,7 @@
 // =====================================================================
 
 #include <map>
+#include <optional>
 #include <string>
 
 // =====================================================================
@@ -24,6 +25,7 @@
 // =====================================================================
 
 // pg_query
+#include "pg_query.h"
 #include "pg_query.pb-c.h"
 
 // absl
@@ -38,11 +40,17 @@
 // nlohmann/json
 #include "nlohmann/json.hpp"
 
+// grpc
+#include "grpcpp/create_channel.h"
+
 // =====================================================================
-// local libraries
+// small-db libraries
 // =====================================================================
 
 #include "src/catalog/catalog.h"
+#include "src/execution/execution.grpc.pb.h"
+#include "src/execution/execution.pb.h"
+#include "src/gossip/gossip.h"
 #include "src/rocks/rocks.h"
 #include "src/semantics/extract.h"
 #include "src/type/type.h"
@@ -56,15 +64,15 @@
 namespace query {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt) {
+    PgQuery__UpdateStmt* update_stmt, bool dispatch) {
     auto table_name = update_stmt->relation->relname;
-    auto result =
+    auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
-    if (!result) {
+    if (!table_optional) {
         return absl::InternalError(
             fmt::format("table {} not found", table_name));
     }
-    const auto& table = result.value();
+    const auto& table = table_optional.value();
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
     auto rows = db->ReadTable(table_name);
@@ -72,6 +80,31 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     // print rows
     for (const auto& [pk, columns] : rows) {
         SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
+    }
+
+    if (dispatch) {
+        auto servers = small::gossip::get_nodes(std::nullopt);
+        for (auto& [ip, server] : servers) {
+            small::execution::RawNode request;
+
+            size_t len = pg_query__update_stmt__get_packed_size(update_stmt);
+            auto buf = static_cast<uint8_t*>(malloc(len));
+            pg_query__update_stmt__pack(update_stmt, buf);
+
+            request.set_packed_node(buf, len);
+
+            auto channel = grpc::CreateChannel(
+                server.grpc_addr, grpc::InsecureChannelCredentials());
+            auto stub = small::execution::Update::NewStub(channel);
+            grpc::ClientContext context;
+            small::execution::WriteResponse result;
+            grpc::Status status = stub->Update(&context, request, &result);
+            if (!status.ok()) {
+                return absl::InternalError(
+                    fmt::format("failed to update into server {}: {}",
+                                server.grpc_addr, status.error_message()));
+            }
+        }
     }
 
     // filter (based on where clause)
