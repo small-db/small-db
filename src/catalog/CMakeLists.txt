@@ -51,3 +51,5 @@ protobuf_generate(
 )
 
 add_library(small::catalog_proto ALIAS small_catalog_proto)
+
+add_dependencies(small_catalog small_catalog_proto)

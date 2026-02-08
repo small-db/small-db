@@ -35,3 +35,5 @@ small_proto_target(
     TARGET execution_proto
     SOURCES execution.proto
 )
+
+add_dependencies(small_execution small_execution_proto)

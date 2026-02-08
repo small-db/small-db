@@ -31,3 +31,5 @@ small_proto_target(
     SOURCES schema.proto
     DEPS type_proto
 )
+
+add_dependencies(small_schema small_schema_proto)

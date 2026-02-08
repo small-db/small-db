@@ -25,3 +25,5 @@ small_proto_target(
     TARGET type_proto
     SOURCES type.proto
 )
+
+add_dependencies(small_type small_type_proto)

@@ -21,3 +21,5 @@ small_proto_target(
   TARGET gossip_proto
   SOURCES gossip.proto
 )
+
+add_dependencies(small_gossip small_gossip_proto)
