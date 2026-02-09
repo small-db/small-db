@@ -71,6 +71,35 @@ PostgreSQL client → pg_wire/ (wire protocol) → server/stmt_handler (routing)
 - clang-tidy enabled with 100+ checks (bugprone, cert, modernize, etc.)
 - Config files: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`
 
+## Jepsen Testing
+
+Jepsen tests verify distributed correctness by running the database across 3 Vagrant VMs (america, europe, asia) and checking invariants like balance conservation.
+
+**Prerequisites:** Vagrant, VirtualBox, hostctl, Leiningen (lein), and VirtualBox kernel modules loaded.
+
+**Running:**
+```bash
+# 1. Build the server binary first
+./scripts/setup/build.sh
+
+# 2. Run Jepsen test (starts VMs, copies binary, runs tests)
+python scripts/test/jepsen-test.py
+```
+
+The script handles: `vagrant up` → hostctl DNS setup → `lein run test-all` with SSH key auth. It copies the built binary from `build/debug/src/server/server` and its dynamic libraries into each VM.
+
+**Available tests** (defined in `small-db-jepsen/src/small_db_jepsen/runner.clj`):
+- `bank-test` — Transfers between accounts, checks total balance is conserved
+- `query-test` — Runs system table queries on all nodes
+
+**Debugging failures:** Test results are stored in `small-db-jepsen/store/<test-name>/<timestamp>/`:
+- `jepsen.log` — Full Jepsen framework log (test orchestration, assertions, checker results)
+- `<node>/server.log` — Per-node small-db server log (america, europe, asia)
+- `history.edn` / `history.txt` — Operation history
+- `results.edn` — Checker output (pass/fail with details)
+
+**VM details:** 3 nodes with private IPs (america=192.168.56.130, europe=192.168.56.120, asia=192.168.56.110). SSH: `ssh -i ~/.vagrant.d/insecure_private_key vagrant@<node>`. VMs managed from `small-db-jepsen/vagrant/`.
+
 ## Test Format
 
 Tests use `.sqltest` files with this format:
