@@ -9,8 +9,8 @@
 import re
 import shutil
 
-from tabulate import tabulate
 import cxc_toolkit
+from tabulate import tabulate
 
 
 class CLITool:
@@ -99,9 +99,7 @@ def check_env():
         "cmake", "build-system generator", "3.15", r"cmake\s+version\s+([0-9.]+)"
     )
     build_tools.add_cli_tool("ninja", "primary build-system", "1.10", r"([0-9.]+)")
-    build_tools.add_cli_tool(
-        "make", "build-system", "4.0", r"GNU Make\s+([0-9.]+)"
-    )
+    build_tools.add_cli_tool("make", "build-system", "4.0", r"GNU Make\s+([0-9.]+)")
     build_tools.add_cli_tool(
         "clang-18", "C++ compiler", "18.0", r"clang version\s+([0-9.]+)"
     )
@@ -112,11 +110,39 @@ def check_env():
         "libpqxx-dev", "PostgreSQL client C++ library", "7.6.0"
     )
     build_tools.add_system_library("uuid-dev", "UUID library", "2.36.0")
-    # build_tools.add_system_library("libdw-dev", "...", "0.1.3")
-    # build_tools.add_system_library("binutils-dev", "...", "2.40")
 
     print("Tools Required for Building:")
     build_tools.display()
+
+    jepsend_tools = ToolList()
+    jepsend_tools.add_cli_tool(
+        "vagrant", "virtual machine manager", "2.2.0", r"Vagrant\s+([0-9.]+)"
+    )
+    jepsend_tools.add_system_library("virtualbox", "virtual machine provider", "7.0")
+    print("\nTools Required for Jepsen Testing:")
+    jepsend_tools.display()
+
+    print("\nKernel Modules Required by Vagrant:")
+    output, _ = cxc_toolkit.exec.run_command("lsmod", slient=True)
+    loaded_modules = {line.split()[0] for line in output.splitlines()}
+    required_status = [
+        ("kvm_amd", "KVM module for AMD CPUs", False),
+        ("vboxdrv", "VirtualBox kernel module", True),
+        ("vboxnetflt", "VirtualBox network filter module", True),
+        ("vboxnetadp", "VirtualBox network adapter module", True),
+    ]
+    for module, description, should_be_loaded in required_status:
+        is_loaded = module in loaded_modules
+        status = "loaded" if is_loaded else "not loaded"
+        is_ok = should_be_loaded == is_loaded
+        mark = "✓" if is_ok else "✗"
+
+        message = f"- {mark} {module}: {description} - {status}"
+        if should_be_loaded:
+            message += " (should be loaded)"
+        else:
+            message += " (should be disabled)"
+        print(message)
 
 
 if __name__ == "__main__":

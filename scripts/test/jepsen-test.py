@@ -5,9 +5,6 @@ import cxc_toolkit
 
 
 def main():
-    # disable the KVM kernel extension
-    cxc_toolkit.exec.run_command("sudo modprobe -r kvm_amd", start_new_session=False)
-
     cxc_toolkit.exec.run_command("vagrant up", work_dir="small-db-jepsen/vagrant")
 
     # update dns resolution
