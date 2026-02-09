@@ -75,6 +75,8 @@ PostgreSQL client → pg_wire/ (wire protocol) → server/stmt_handler (routing)
 
 Jepsen tests verify distributed correctness by running the database across 3 Vagrant VMs (america, europe, asia) and checking invariants like balance conservation.
 
+Jepsen framework source is at `/home/xiaochen/code/jepsen` (external to this repo).
+
 **Prerequisites:** Vagrant, VirtualBox, hostctl, Leiningen (lein), and VirtualBox kernel modules loaded.
 
 **Running:**
