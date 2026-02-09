@@ -119,6 +119,15 @@ def check_env():
         "vagrant", "virtual machine manager", "2.2.0", r"Vagrant\s+([0-9.]+)"
     )
     jepsend_tools.add_system_library("virtualbox", "virtual machine provider", "7.0")
+
+    # install: go install github.com/guumaster/hostctl/cmd/hostctl@v1.1.4
+    jepsend_tools.add_cli_tool(
+        "hostctl", "manage /etc/hosts entries", "1.1.4", r"hostctl version (\S+)"
+    )
+    jepsend_tools.add_cli_tool(
+        "lein", "build tool for Jepsen", "2.9.1", r"Leiningen\s+(\S+)"
+    )
+
     print("\nTools Required for Jepsen Testing:")
     jepsend_tools.display()
 
