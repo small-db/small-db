@@ -127,6 +127,9 @@ def check_env():
     jepsend_tools.add_cli_tool(
         "lein", "build tool for Jepsen", "2.9.1", r"Leiningen\s+(\S+)"
     )
+    jepsend_tools.add_cli_tool(
+        "gnuplot", "plotting tool for Jepsen results", "6.0", r"gnuplot\s+([0-9.]+)"
+    )
 
     print("\nTools Required for Jepsen Testing:")
     jepsend_tools.display()
@@ -152,6 +155,13 @@ def check_env():
         else:
             message += " (should be disabled)"
         print(message)
+
+    debug_tools = ToolList()
+    debug_tools.add_cli_tool(
+        "psql", "PostgreSQL command-line client", "14.0", r"psql\s+\(PostgreSQL\)\s+([0-9.]+)"
+    )
+    print("\nTools Required for Debugging:")
+    debug_tools.display()
 
 
 if __name__ == "__main__":

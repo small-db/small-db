@@ -84,11 +84,14 @@ Jepsen framework source is at `/home/xiaochen/code/jepsen` (external to this rep
 # 1. Build the server binary first
 ./scripts/setup/build.sh
 
-# 2. Run Jepsen test (starts VMs, copies binary, runs tests)
+# 2. Full setup (requires sudo for hostctl — run manually in terminal)
 python scripts/test/jepsen-test.py
+
+# 3. Day-to-day runs (VMs already up, no sudo needed — use this from Claude Code)
+cd small-db-jepsen && lein run test-all --node america --node europe --node asia --ssh-private-key ~/.vagrant.d/insecure_private_key --username vagrant
 ```
 
-The script handles: `vagrant up` → hostctl DNS setup → `lein run test-all` with SSH key auth. It copies the built binary from `build/debug/src/server/server` and its dynamic libraries into each VM.
+The full script (`jepsen-test.py`) handles `vagrant up` → hostctl DNS setup → `lein run`, but requires sudo for the hostctl step. Claude Code cannot provide sudo passwords, so use the raw `lein run` command directly when VMs are already up. The test copies the built binary from `build/debug/src/server/server` and its dynamic libraries into each VM.
 
 **Available tests** (defined in `small-db-jepsen/src/small_db_jepsen/runner.clj`):
 - `bank-test` — Transfers between accounts, checks total balance is conserved

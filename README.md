@@ -41,10 +41,19 @@ uv run ./scripts/setup/check-env.py
 ## Jepsen Test
 
 ```bash
+# run jepsen test
 ./scripts/test/jepsen-test.py
+
+# ssh into the test machine
+ssh -i ~/.vagrant.d/insecure_private_key vagrant@asia
+
+# connect to database via psql client
+TODO
 ```
 
-- Don't use `libvirt` as provider, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
+- Don't use `libvirt` as provider, use `virtualbox` instead, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
+
+## C/C++ Memory Sefety
 
 ## Book Writing
 
