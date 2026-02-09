@@ -19,6 +19,7 @@
 // =====================================================================
 
 #include <memory>
+#include <optional>
 #include <string>
 
 // =====================================================================
@@ -39,13 +40,20 @@ void send_empty_result(int sockfd);
 
 void send_error(int sockfd, const std::string& error_message);
 
+// Reads raw bytes from the socket. Returns empty string if the client
+// disconnected (recv returns 0). Throws std::runtime_error on recv failure.
 std::string read_bytes(int sockfd);
 
-enum class ClientMessageType {
+enum class StartupPacketType {
     SSLRequest,
     StartupMessage,
 };
 
-ClientMessageType read_client_message(int sockfd);
+// Reads and classifies the initial startup packet from a PostgreSQL client.
+// During the handshake phase, clients send either an SSLRequest (to negotiate
+// encryption) or a StartupMessage (with protocol version and connection
+// parameters). Returns nullopt if the client disconnected. Throws
+// std::runtime_error on recv failure.
+std::optional<StartupPacketType> read_startup_packet(int sockfd);
 
 }  // namespace small::pg_wire

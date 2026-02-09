@@ -473,6 +473,7 @@ uint32_t read_int32_chars(char* buffer) {
     return value;
 }
 
+// Returns the raw message bytes. Return empty string on client disconnect.
 std::string read_bytes(int sockfd) {
     char buffer[MAX_MESSAGE_LEN];
     ssize_t bytes_received = recv(sockfd, buffer, MAX_MESSAGE_LEN, 0);
@@ -522,11 +523,16 @@ int32_t read_int32(std::string& message, int offset) {
     return value;
 }
 
-ClientMessageType read_client_message(int sockfd) {
+std::optional<StartupPacketType> read_startup_packet(int sockfd) {
     std::string message = read_bytes(sockfd);
+    if (message.size() < 8) {
+        SPDLOG_INFO("startup packet too short: {} bytes (fd={})",
+                     message.size(), sockfd);
+        return std::nullopt;
+    }
 
     if (message.size() == 8 && read_int32(message, 4) == SSL_MAGIC_CODE) {
-        return ClientMessageType::SSLRequest;
+        return StartupPacketType::SSLRequest;
     } else {
         // the first 4 bytes is length
 
@@ -563,7 +569,7 @@ ClientMessageType read_client_message(int sockfd) {
             SPDLOG_DEBUG("recv_param: {}={}", kv.first, kv.second);
         }
 
-        return ClientMessageType::StartupMessage;
+        return StartupPacketType::StartupMessage;
     }
 }
 

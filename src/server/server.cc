@@ -260,6 +260,82 @@ void handle_command(std::string& command, int sockfd) {
     }
 }
 
+// Handles a single client event. Returns false if the connection should be
+// closed (client disconnected, sent terminate, or sent invalid data).
+bool handle_client_event(int sockfd) {
+    auto state = SocketsManager::get_socket_state(sockfd);
+    switch (state) {
+        case SocketsManager::SocketState::StartUp: {
+            auto packet_type =
+                small::pg_wire::read_startup_packet(sockfd);
+            if (!packet_type.has_value()) return false;
+
+            switch (packet_type.value()) {
+                case small::pg_wire::StartupPacketType::SSLRequest:
+                    small::pg_wire::send_no_ssl_support(sockfd);
+                    SocketsManager::set_socket_state(
+                        sockfd,
+                        SocketsManager::SocketState::NoSSLAcknowledged);
+                    return true;
+                case small::pg_wire::StartupPacketType::StartupMessage:
+                    small::pg_wire::send_ready(sockfd);
+                    SocketsManager::set_socket_state(
+                        sockfd,
+                        SocketsManager::SocketState::ReadyForQuery);
+                    return true;
+                default:
+                    SPDLOG_ERROR("unknown startup packet type: {}",
+                                 static_cast<int>(packet_type.value()));
+                    return false;
+            }
+        }
+
+        case SocketsManager::SocketState::NoSSLAcknowledged: {
+            auto packet_type =
+                small::pg_wire::read_startup_packet(sockfd);
+            if (!packet_type.has_value()) return false;
+
+            switch (packet_type.value()) {
+                case small::pg_wire::StartupPacketType::StartupMessage:
+                    small::pg_wire::send_ready(sockfd);
+                    SocketsManager::set_socket_state(
+                        sockfd,
+                        SocketsManager::SocketState::ReadyForQuery);
+                    return true;
+                default:
+                    SPDLOG_ERROR("unknown startup packet type: {}",
+                                 static_cast<int>(packet_type.value()));
+                    return false;
+            }
+        }
+
+        case SocketsManager::SocketState::ReadyForQuery: {
+            std::string message = small::pg_wire::read_bytes(sockfd);
+            if (message.empty()) return false;
+
+            switch (message[0]) {
+                case 'Q': {
+                    int32_t query_len =
+                        read_int32_chars(message.data() + 1);
+                    std::string command(message.data() + 5, query_len - 4);
+                    handle_command(command, sockfd);
+                    return true;
+                }
+                case 'X':
+                    return false;
+                default:
+                    SPDLOG_ERROR("unknown message type: {}", message[0]);
+                    return false;
+            }
+        }
+
+        default:
+            SPDLOG_ERROR("unknown socket state: {}",
+                         SocketsManager::format(state));
+            return false;
+    }
+}
+
 void start_grpc_server(
     const std::string& addr,
     const std::vector<std::shared_ptr<grpc::Service>>& services) {
@@ -348,6 +424,13 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         SPDLOG_ERROR("SPDLOG_ERROR adding new listeding socket to epoll..\n");
     }
 
+    auto close_connection = [&epollfd](int fd, const std::string& reason) {
+        SPDLOG_INFO("{} (fd={})", reason, fd);
+        epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, nullptr);
+        SocketsManager::remove_socket_state(fd);
+        close(fd);
+    };
+
     while (true) {
         if (stopSignal.load()) {
             SPDLOG_INFO("stop signal received, stopping the server");
@@ -379,110 +462,13 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
                     SPDLOG_ERROR("SPDLOG_ERROR adding new event to epoll..\n");
                 }
             } else {
-                int newsockfd = events[i].data.fd;
-
-                auto state = SocketsManager::get_socket_state(newsockfd);
-                switch (state) {
-                    case SocketsManager::SocketState::StartUp: {
-                        auto message_type =
-                            small::pg_wire::read_client_message(newsockfd);
-
-                        switch (message_type) {
-                            case small::pg_wire::ClientMessageType::
-                                SSLRequest: {
-                                // sent on initialization by:
-                                // - c++ libpqxx client
-                                // - psql CLI client
-                                small::pg_wire::send_no_ssl_support(newsockfd);
-                                SocketsManager::set_socket_state(
-                                    newsockfd, SocketsManager::SocketState::
-                                                   NoSSLAcknowledged);
-                                break;
-                            }
-                            case small::pg_wire::ClientMessageType::
-                                StartupMessage: {
-                                // sent on initialization by:
-                                // - clojure pg2 client
-                                small::pg_wire::send_ready(newsockfd);
-                                SocketsManager::set_socket_state(
-                                    newsockfd,
-                                    SocketsManager::SocketState::ReadyForQuery);
-                                break;
-                            }
-                            default: {
-                                SPDLOG_ERROR("unknown client message type: {}",
-                                             static_cast<int>(message_type));
-                                exit(EXIT_FAILURE);
-                                break;
-                            }
-                        }
-                        break;
+                int fd = events[i].data.fd;
+                try {
+                    if (!handle_client_event(fd)) {
+                        close_connection(fd, "client disconnected");
                     }
-
-                    case SocketsManager::SocketState::NoSSLAcknowledged: {
-                        auto message_type =
-                            small::pg_wire::read_client_message(newsockfd);
-
-                        switch (message_type) {
-                            case small::pg_wire::ClientMessageType::
-                                StartupMessage: {
-                                small::pg_wire::send_ready(newsockfd);
-                                SocketsManager::set_socket_state(
-                                    newsockfd,
-                                    SocketsManager::SocketState::ReadyForQuery);
-                                break;
-                            }
-                            default: {
-                                SPDLOG_ERROR("unknown client message type: {}",
-                                             static_cast<int>(message_type));
-                                exit(EXIT_FAILURE);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-
-                    case SocketsManager::SocketState::ReadyForQuery: {
-                        std::string message =
-                            small::pg_wire::read_bytes(newsockfd);
-                        char message_type = message[0];
-                        switch (message_type) {
-                            case 'Q': {
-                                // Query (DDL/DML Command)
-
-                                // read length of the query
-                                int32_t query_len =
-                                    read_int32_chars(message.data() + 1);
-
-                                // read the query
-                                std::string command(message.data() + 5,
-                                                    query_len - 4);
-                                handle_command(command, newsockfd);
-                                break;
-                            }
-
-                            case 'X': {
-                                // Terminate
-                                SPDLOG_INFO("terminate connection");
-                                close(newsockfd);
-                                SocketsManager::remove_socket_state(newsockfd);
-                                break;
-                            }
-
-                            default:
-                                SPDLOG_ERROR("unknown message type: {}",
-                                             message_type);
-                                exit(EXIT_FAILURE);
-                                break;
-                        }
-                        break;
-                    }
-
-                    default:
-                        SPDLOG_ERROR("unknown socket state: {}",
-                                     SocketsManager::format(state));
-                        exit(EXIT_FAILURE);
-                        break;
+                } catch (const std::exception& e) {
+                    close_connection(fd, e.what());
                 }
             }
         }

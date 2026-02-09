@@ -16,6 +16,8 @@
 // c++ std
 // =====================================================================
 
+#include <csignal>
+#include <cstdlib>
 #include <string>
 
 // =====================================================================
@@ -34,7 +36,16 @@
 
 #include "src/server/server.h"
 
+void shutdown_handler(int signum) {
+    spdlog::info("server shutting down (signal: {})", signum);
+    std::exit(signum);
+}
+
 int main(int argc, char *argv[]) {
+    std::signal(SIGINT, shutdown_handler);
+    std::signal(SIGTERM, shutdown_handler);
+    std::atexit([] { spdlog::info("server exiting"); });
+
     spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%@] %v");
 

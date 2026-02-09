@@ -3,14 +3,16 @@
    [clojure.java.shell :refer [sh]]
    [clojure.string :as str]
    [clojure.tools.logging :refer [info]]
-   jepsen.cli
-   jepsen.client
-   jepsen.control
+   [jepsen [checker :as checker]
+    cli
+    client
+    control
+    db
+    generator
+    tests]
+   [jepsen.checker.timeline :as timeline]
    jepsen.control.util
-   jepsen.db
-   jepsen.generator
    jepsen.os.debian
-   jepsen.tests
    [jepsen.tests.bank :as bank]
    [pg.core]))
 
@@ -127,9 +129,13 @@
 
       (assoc op :type :fail, :error :unknown-operation)))
 
-  (teardown! [this test])
+  (teardown! [this test]
+    (info "tearing down client which connected to" (:node this)))
 
-  (close! [_ test]))
+  (close! [this test]
+    (info "closing client which connected to" (:node this))
+    (when (:conn this)
+      (pg.core/close (:conn this)))))
 
 (defn copy-dynamic-libs
   "Get dynamic libraries and copy them to /tmp/lib/ on VM"
@@ -143,13 +149,13 @@
                      path (second parts)
                      path-only (first (str/split path #"\s"))]
                  {:name name :path path-only}))
-        remote-lib-dir libDir]
-    (jepsen.control/exec :mkdir :-p remote-lib-dir)
-    (doseq [lib libs]
-      (when (and (:path lib) (not= (:path lib) "not found"))
-        (jepsen.control/upload [(:path lib)] (str remote-lib-dir "/" (:name lib)))
-        (info "Copied" (:name lib))))
-    (info "Copied" (count libs) "libraries to" remote-lib-dir)))
+        vm-lib-dir libDir]
+    (jepsen.control/exec :mkdir :-p vm-lib-dir)
+    (doseq [host-lib libs]
+      (when (and (:path host-lib) (not= (:path host-lib) "not found"))
+        (jepsen.control/upload [(:path host-lib)] (str vm-lib-dir "/" (:name host-lib)))
+        (info "Copied" (:name host-lib))))
+    (info "Copied" (count libs) "libraries to" vm-lib-dir)))
 
 (defn small-db
   "Small DB"
@@ -157,6 +163,11 @@
   (reify jepsen.db/DB
     (setup! [_ test node]
       (info node "installing small db")
+      ;; Stop any existing server on sql-port and grpc-port
+      (try (jepsen.control/exec :fuser :-k (str sql-port "/tcp"))
+           (catch Exception _))
+      (try (jepsen.control/exec :fuser :-k (str grpc-port "/tcp"))
+           (catch Exception _))
       ;; Copy server binary to VM
       (jepsen.control/exec :mkdir :-p workDir)
       (jepsen.control/upload [host-binary] binary)
@@ -197,8 +208,9 @@
 
     (teardown! [_ test node]
       (info node "tearing down small db")
-      (jepsen.control.util/stop-daemon! pidfile)
-      (jepsen.control/exec :rm :-rf workDir))
+      ;; (jepsen.control.util/stop-daemon! pidfile)
+      ;; (jepsen.control/exec :rm :-rf workDir)
+      )
 
     jepsen.db/LogFiles
     (log-files [_ test node]
@@ -233,11 +245,16 @@
           :total-amount 10000
           :max-transfer 100
           :generator (jepsen.generator/clients
-                      (jepsen.generator/limit 1 bank/diff-transfer))
-          :checker (bank/checker {:negative-balances? false})}))
+                      (jepsen.generator/limit 100
+                                              (jepsen.generator/mix [bank/diff-transfer bank/read])))
+          :checker (checker/compose
+                    {:bank     (bank/checker {:negative-balances? false})
+                     :perf     (checker/perf)
+                     :timeline (timeline/html)})}))
 
 (defn -main
   [& args]
-  (jepsen.cli/run! (jepsen.cli/test-all-cmd {:tests-fn (fn [opts]
-                                                         [(bank-test opts)])})
+  (jepsen.cli/run! (merge (jepsen.cli/test-all-cmd {:tests-fn (fn [opts]
+                                                                [(bank-test opts)])})
+                          (jepsen.cli/serve-cmd))
                    args))
