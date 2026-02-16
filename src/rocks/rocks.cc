@@ -16,10 +16,13 @@
 // c++ std
 // =====================================================================
 
+#include <chrono>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -36,6 +39,9 @@
 
 // absl
 #include "absl/strings/str_format.h"
+
+// nlohmann/json
+#include "nlohmann/json.hpp"
 
 // =====================================================================
 // small-db libraries
@@ -115,16 +121,16 @@ RocksDBWrapper::ReadTable(const std::string& table_name) {
         std::string key = it->key().ToString();
         std::string value = it->value().ToString();
 
-        // Parse key format: "/{table_name}/{pk}/{column_name}"
-        // Skip the leading "/" and table_name + "/"
+        // Parse key format: "/{table_name}/{pk}/{timestamp}"
         size_t start_pos = scan_prefix.length();
         size_t pk_end = key.find('/', start_pos);
         if (pk_end != std::string::npos) {
             std::string pk = key.substr(start_pos, pk_end - start_pos);
-            std::string column_name = key.substr(pk_end + 1);
 
-            // Add to result structure
-            result[pk][column_name] = value;
+            // Lexicographic order on zero-padded timestamps means the last
+            // value we see for a given pk is the most recent version.
+            auto columns = nlohmann::json::parse(value);
+            result[pk] = columns.get<std::map<std::string, std::string>>();
         }
     }
 
@@ -149,19 +155,22 @@ void RocksDBWrapper::PrintAllKV() {
 void RocksDBWrapper::WriteRow(
     const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
     const std::vector<std::string>& values) {
+    // Build JSON object from columns
+    nlohmann::json obj;
     for (int i = 0; i < table->columns().size(); ++i) {
-        const auto& column = table->columns()[i];
-        auto key =
-            absl::StrFormat("/%s/%s/%s", table->name(), pk, column.name());
-        this->Put(key, values[i]);
+        obj[table->columns()[i].name()] = values[i];
     }
-}
 
-void RocksDBWrapper::WriteCell(
-    const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
-    const std::string& column_name, const std::string& value) {
-    auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, column_name);
-    this->Put(key, value);
+    // Generate zero-padded 20-digit millisecond timestamp
+    auto now = std::chrono::system_clock::now();
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      now.time_since_epoch())
+                      .count();
+    std::ostringstream ts;
+    ts << std::setw(20) << std::setfill('0') << millis;
+
+    auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, ts.str());
+    this->Put(key, obj.dump());
 }
 
 }  // namespace small::rocks

@@ -10,6 +10,7 @@ target_link_libraries(small_rocks
     small::schema
     PRIVATE
     spdlog
+    nlohmann_json::nlohmann_json
     small::type
     small::server_info
 )

@@ -19,7 +19,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 // =====================================================================
@@ -61,26 +60,6 @@
 #include "src/execution/query.h"
 
 namespace small::execution {
-
-// parse key from rocksdb, the format is:
-// /<table_name>/<pk>
-std::tuple<std::string_view, std::string_view> parse_key(
-    const std::string& key) {
-    size_t first_slash = key.find('/');
-    if (first_slash == std::string::npos) {
-        throw std::invalid_argument("Invalid key format: missing first slash");
-    }
-
-    size_t second_slash = key.find('/', first_slash + 1);
-    if (second_slash == std::string::npos) {
-        throw std::invalid_argument("Invalid key format: missing second slash");
-    }
-
-    std::string_view table_name = std::string_view(key).substr(
-        first_slash + 1, second_slash - first_slash - 1);
-    std::string_view pk = std::string_view(key).substr(second_slash + 1);
-    return {table_name, pk};
-}
 
 std::shared_ptr<arrow::Schema> get_input_schema(
     const small::schema::Table& table) {

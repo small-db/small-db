@@ -126,6 +126,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
 
     // apply SET clause to filtered rows
     for (const auto& [pk, columns] : filtered_rows) {
+        // Start with a mutable copy of the current row
+        auto updated = columns;
+
         for (size_t i = 0; i < update_stmt->n_target_list; i++) {
             auto res_target = update_stmt->target_list[i]->res_target;
             auto column_name = std::string(res_target->name);
@@ -140,7 +143,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                 // get current value of the referenced column
                 auto ref_column = std::string(
                     expr->lexpr->column_ref->fields[0]->string->sval);
-                auto current_encoded = columns.at(ref_column);
+                auto current_encoded = updated.at(ref_column);
 
                 // find column type
                 small::type::Type col_type = small::type::Type::STRING;
@@ -188,8 +191,15 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                     "unsupported SET value expression");
             }
 
-            db->WriteCell(table, pk, column_name, new_encoded_value);
+            updated[column_name] = new_encoded_value;
         }
+
+        // Convert updated column map to values vector in schema column order
+        std::vector<std::string> values;
+        for (const auto& col : table->columns()) {
+            values.push_back(updated.at(col.name()));
+        }
+        db->WriteRow(table, pk, values);
     }
 
     auto schema = arrow::schema({});
