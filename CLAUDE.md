@@ -45,13 +45,13 @@ PostgreSQL client → pg_wire/ (wire protocol) → server/stmt_handler (routing)
 - `execution/` — Query (SELECT), Insert, Update execution engines; uses Arrow for columnar results
 - `schema/` — Table schema definitions and LIST partition management
 - `catalog/` — Schema update coordination via gRPC
-- `rocks/` — RocksDB wrapper; keys are `/<table>/<primary_key>/<column>`
+- `rocks/` — RocksDB wrapper; keys are `/<schema.table>/<primary_key>/<timestamp>`
 - `gossip/` — Gossip protocol for cross-region replication via gRPC
 - `type/` — Data type system (INT64, STRING) with PG OID mapping
 - `server_info/` — Server configuration (ports, region, data dir, join address)
 - `id/` — Snowflake-like unique ID generator
 
-**Storage format:** Each row is stored as multiple RocksDB key-value pairs: `/<table_name>/<primary_key_hex>/<column_name> → value`. This enables prefix scanning for row/table retrieval and selective column reads.
+**Storage format:** Each row version is stored as a single RocksDB key-value pair: `/<schema.table_name>/<primary_key>/<written_timestamp> → JSON`. This enables MVCC (multi-version concurrency control) and prefix scanning for row/table retrieval.
 
 **Inter-server communication:** gRPC for catalog updates, insert/update forwarding to partition owners, and gossip replication. Protobuf definitions live alongside their modules (e.g., `src/gossip/gossip.proto`).
 

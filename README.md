@@ -46,15 +46,12 @@ uv run ./scripts/setup/check-env.py
 
 ```bash
 # print the underlying key-value pairs of a table
-./build/debug/src/rocks/rocks_scan
+./build/debug/src/rocks/rocks_scan --data-path ./data
 
 # output example:
-# [2026-02-16 10:43:21.142] [info] [rocks_scan.cc:115] scan data dir: ./data
-# [2026-02-16 10:43:21.142] [info] [rocks_scan.cc:115] scan data dir: ./data/us
-#         Key: /default_schema.users/2/balance, Value: 1941
-#         Key: /default_schema.users/2/country, Value: USA
-#         Key: /default_schema.users/2/id, Value: 2
-#         Key: /default_schema.users/2/name, Value: Bob
+# [2026-02-16 11:39:38.683] [info] [rocks_scan.cc:115] scan data dir: ./data/us
+#     Key: /default_schema.users/2/00000001771270774149, Value: {"balance":"2000","country":"USA","id":"2","name":"Bob"}
+#     Key: /default_schema.users/2/00000001771270774168, Value: {"balance":"1941","country":"USA","id":"2","name":"Bob"}
 ```
 
 #### Jepsen Test

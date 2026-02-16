@@ -1,33 +1,22 @@
 # Summary
 
-# Draft
+[Introduction](./introduction.md)
 
-## Introduction
+- [Getting Started](./getting_started.md)
+- [Architecture](./architecture.md)
 
-- [Overview](./intorduction/overview.md)
-- [How to Read This Book](./intorduction/how_to_read_this_book.md)
-- [Environment Setup](./intorduction/environment_setup.md)
-- [Observability](./intorduction/observability.md)
+# Storage
 
-## Build a Single-Server Database
+- [Storage Format](./storage/storage_format.md)
 
-- [Store Data](./single_server/store_data.md)
+# Distributed Database
 
-## Build a Multi-Server (Distributed) Database
+- [Jepsen Testing](./distributed_database/jepsen.md)
+- [Observability](./distributed_database/observability.md)
 
-- [Jepsen](./distributed_database/jepsen.md)
-
-## Work with Faults
-
-## Partitioning & Sharding
-- [Partition Failure](./faults/partition_failure.md)
-- [Network Failure](./faults/network_failure.md)
-- [Network Latency](./faults/network_latency.md)
-
-## Partitioning & Sharding
-
-## Appendix
+# Appendix
 
 - [Test File Format](./appendix/test_file_format.md)
-- [Choice of Programming Language](./appendix/programming_language.md)
-- [Choice of Build System](./appendix/build_system.md)
+- [Bazel vs CMake](./appendix/bazel_vs_cmake.md)
+- [Code Style](./appendix/code_style.md)
+- [Build System Details](./appendix/build_system_details.md)
