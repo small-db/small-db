@@ -158,10 +158,26 @@ def check_env():
 
     debug_tools = ToolList()
     debug_tools.add_cli_tool(
-        "psql", "PostgreSQL command-line client", "14.0", r"psql\s+\(PostgreSQL\)\s+([0-9.]+)"
+        "psql",
+        "PostgreSQL command-line client",
+        "14.0",
+        r"psql\s+\(PostgreSQL\)\s+([0-9.]+)",
     )
     print("\nTools Required for Debugging:")
     debug_tools.display()
+
+    book_tools = ToolList()
+    book_tools.add_cli_tool(
+        "cargo", "Rust build tool (for mdbook)", "1.70", r"cargo\s+([0-9.]+)"
+    )
+    book_tools.add_cli_tool(
+        "mdbook",
+        "tool for building the book",
+        "0.4.0",
+        r"mdbook\s+v([0-9.]+)",
+    )
+    print("\nTools Required for Building the Book:")
+    book_tools.display()
 
 
 if __name__ == "__main__":
