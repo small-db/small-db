@@ -2,13 +2,15 @@
 
 [![build](https://github.com/small-db/small-db/actions/workflows/ci.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/ci.yml)
 
-## Development
+## Deveopment
 
-### Operating System
+### Essential Commands & Environment
+
+#### Operating System
 
 - Ubuntu 24.04 LTS (or newer version)
 
-### Build From Source
+#### Build From Source
 
 ```bash
 # clone
@@ -25,20 +27,37 @@ uv run ./scripts/setup/check-env.py
 ./scripts/setup/build.sh
 ```
 
-### Run Tests
+#### Run Tests
 
 ```bash
 # run integration tests
 ./scripts/test/test.sh
 ```
 
-### Start Server
+#### Start Server
 
 ```shell
 ./build/debug/src/server/server --sql-port 5001 --grpc-port 50001 --data-dir /tmp/us --region us --join ""
 ```
 
-## Jepsen Test
+### Advanced Tools
+
+#### Print Physical Storage Layout
+
+```bash
+# print the underlying key-value pairs of a table
+./build/debug/src/rocks/rocks_scan
+
+# output example:
+# [2026-02-16 10:43:21.142] [info] [rocks_scan.cc:115] scan data dir: ./data
+# [2026-02-16 10:43:21.142] [info] [rocks_scan.cc:115] scan data dir: ./data/us
+#         Key: /default_schema.users/2/balance, Value: 1941
+#         Key: /default_schema.users/2/country, Value: USA
+#         Key: /default_schema.users/2/id, Value: 2
+#         Key: /default_schema.users/2/name, Value: Bob
+```
+
+#### Jepsen Test
 
 ```bash
 # run jepsen test
@@ -53,9 +72,9 @@ psql --host=localhost --port=5001
 
 - Don't use `libvirt` as provider, use `virtualbox` instead, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
 
-## C/C++ Memory Sefety
+#### C/C++ Memory Sefety
 
-## Book Writing
+## The Book
 
 ### Local Writing
 
