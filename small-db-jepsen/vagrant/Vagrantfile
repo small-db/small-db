@@ -42,6 +42,9 @@ Vagrant.configure("2") do |config|
 
         # ifconfig
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y net-tools
+
+        # psql
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client
       SHELL
 
       # set timezone to PST so its log's timestamp align with the host machine

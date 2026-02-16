@@ -44,11 +44,11 @@ uv run ./scripts/setup/check-env.py
 # run jepsen test
 ./scripts/test/jepsen-test.py
 
-# ssh into the test machine
+# ssh into the vm
 ssh -i ~/.vagrant.d/insecure_private_key vagrant@asia
 
-# connect to database via psql client
-TODO
+# connect to database via psql client (inside the vm)
+psql --host=localhost --port=5001
 ```
 
 - Don't use `libvirt` as provider, use `virtualbox` instead, [vagrant-libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) is not well maintained.
