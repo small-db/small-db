@@ -104,14 +104,13 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         select_stmt->from_clause[0]->range_var);
 
     // get the input schema
-    auto table =
+    auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
-    if (!table) {
-        SPDLOG_ERROR("table not found: {}", table_name);
+    if (!table_optional) {
         return absl::Status(absl::StatusCode::kNotFound,
                             "table not found: " + table_name);
     }
-    auto input_schema = get_input_schema(*table.value());
+    auto input_schema = get_input_schema(*table_optional.value());
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
     // read kv pairs from rocksdb
@@ -121,11 +120,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     // filter rows based on WHERE clause
     if (select_stmt->where_clause != nullptr) {
         auto expr = select_stmt->where_clause->a_expr;
-        auto filter_column = std::string(
-            expr->lexpr->column_ref->fields[0]->string->sval);
-        auto filter_value = small::semantics::extract_const(
-                                expr->rexpr->a_const)
-                                .value();
+        auto filter_column =
+            std::string(expr->lexpr->column_ref->fields[0]->string->sval);
+        auto filter_value =
+            small::semantics::extract_const(expr->rexpr->a_const).value();
         auto encoded_filter_value = small::type::encode(filter_value);
 
         std::map<std::string, std::map<std::string, std::string>> filtered;
@@ -139,17 +137,17 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     }
 
     // init builders
-    auto builders = get_builders(table.value());
+    auto builders = get_builders(table_optional.value());
 
     for (const auto& [pk, columns] : rows) {
         SPDLOG_INFO("pk: {}, columns: {}", pk, nlohmann::json(columns).dump());
 
-        for (const auto& column : table.value()->columns()) {
+        for (const auto& column : table_optional.value()->columns()) {
             SPDLOG_INFO("column: {}", column.name());
         }
 
-        for (int i = 0; i < table.value()->columns().size(); i++) {
-            const auto& column = table.value()->columns()[i];
+        for (int i = 0; i < table_optional.value()->columns().size(); i++) {
+            const auto& column = table_optional.value()->columns()[i];
             const auto& builder = builders[i];
 
             if (!columns.contains(column.name())) {
@@ -285,25 +283,22 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 switch (field->node_case) {
                     case PG_QUERY__NODE__NODE_A_STAR:
                         for (auto f : input_schema->fields()) {
-                            auto node =
-                                gandiva::TreeExprBuilder::MakeField(f);
+                            auto node = gandiva::TreeExprBuilder::MakeField(f);
                             auto expression =
-                                gandiva::TreeExprBuilder::MakeExpression(
-                                    node, f);
+                                gandiva::TreeExprBuilder::MakeExpression(node,
+                                                                         f);
                             expressions.push_back(expression);
                             output_fields.push_back(f);
                         }
                         break;
                     case PG_QUERY__NODE__NODE_STRING: {
-                        auto col_name =
-                            std::string(field->string->sval);
+                        auto col_name = std::string(field->string->sval);
                         auto f = input_schema->GetFieldByName(col_name);
                         if (f) {
-                            auto node =
-                                gandiva::TreeExprBuilder::MakeField(f);
+                            auto node = gandiva::TreeExprBuilder::MakeField(f);
                             auto expression =
-                                gandiva::TreeExprBuilder::MakeExpression(
-                                    node, f);
+                                gandiva::TreeExprBuilder::MakeExpression(node,
+                                                                         f);
                             expressions.push_back(expression);
                             output_fields.push_back(f);
                         }
@@ -314,8 +309,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         return absl::Status(
                             absl::StatusCode::kInvalidArgument,
                             "unsupported field type: " +
-                                std::string(magic_enum::enum_name(
-                                    field->node_case)));
+                                std::string(
+                                    magic_enum::enum_name(field->node_case)));
                 }
             }
         }

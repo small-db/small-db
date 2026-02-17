@@ -163,26 +163,30 @@
   (reify jepsen.db/DB
     (setup! [_ test node]
       (info node "installing small db")
-      ;; Stop any existing server on sql-port and grpc-port
+      ;; clean up - stop any existing server on sql-port and grpc-port
       (try (jepsen.control/exec :fuser :-k (str sql-port "/tcp"))
            (catch Exception _))
       (try (jepsen.control/exec :fuser :-k (str grpc-port "/tcp"))
            (catch Exception _))
-      ;; Copy server binary to VM
+
+      ;; clean up - clear data files
+      (jepsen.control/exec :rm :-rf workDir)
+
+      ;; copy server binary to VM
       (jepsen.control/exec :mkdir :-p workDir)
       (jepsen.control/upload [host-binary] binary)
       (jepsen.control/exec :chmod :+x binary)
 
-      ;; Copy tools binary to VM
+      ;; copy tools binary to VM
       (doseq [tool tools-binary]
         (let [remote-tool (str workDir "/" (last (str/split tool #"/")))]
           (jepsen.control/upload [tool] remote-tool)
           (jepsen.control/exec :chmod :+x remote-tool)))
 
-      ;; Copy dynamic libraries to VM
+      ;; copy dynamic libraries to VM
       (copy-dynamic-libs host-binary)
 
-      ;; Start the server with configuration based on node
+      ;; start the server with configuration based on node
       (let [[region join-server]
             (cond
               (= node "asia") ["asia" "america:50001"]
@@ -208,8 +212,8 @@
 
     (teardown! [_ test node]
       (info node "tearing down small db")
-      ;; (jepsen.control.util/stop-daemon! pidfile)
-      ;; (jepsen.control/exec :rm :-rf workDir)
+      ;; keep the db process and data files to faciliate debugging, the clean up
+      ;; is done at the setup phase
       )
 
     jepsen.db/LogFiles

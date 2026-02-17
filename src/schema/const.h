@@ -31,6 +31,7 @@ namespace small::schema {
 
 constexpr const char* DEFAULT_SCHEMA = "default_schema";
 
+// Normazlie the table name to the format of <schema_name>.<table_name>.
 inline std::string resolve_table_name(PgQuery__RangeVar* relation) {
     auto schemaname = relation->schemaname;
     auto relname = relation->relname;

@@ -42,6 +42,12 @@ uv run ./scripts/setup/check-env.py
 
 ### Advanced Tools
 
+#### Code Lint
+
+```bash
+./scripts/format/lint.sh
+```
+
 #### Print Physical Storage Layout
 
 ```bash
