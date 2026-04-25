@@ -16,6 +16,7 @@
       "Bash(curl:*)",
       "Bash(echo:*)",
       "Bash(find:*)",
+      "Bash(for:*)",
       "Bash(git add:*)",
       "Bash(git commit *)",
       "Bash(git diff:*)",

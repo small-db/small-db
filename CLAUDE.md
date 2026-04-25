@@ -107,7 +107,7 @@ The full script (`jepsen-test.py`) handles `vagrant up` → hostctl DNS setup �
 - `bank-test` — Transfers between accounts, checks total balance is conserved
 - `query-test` — Runs system table queries on all nodes
 
-**Debugging failures:** Test results are stored in `small-db-jepsen/store/<test-name>/<timestamp>/`:
+**Debugging failures:** Test results are stored in `small-db-jepsen/store/<test-name>/<timestamp>/`. Jepsen also maintains `small-db-jepsen/store/latest` (and `store/current`) as symlinks to the most recent run — reference those instead of computing the latest timestamped dir via `ls -td`. Files:
 - `jepsen.log` — Full Jepsen framework log (test orchestration, assertions, checker results)
 - `<node>/server.log` — Per-node small-db server log (america, europe, asia)
 - `history.edn` / `history.txt` — Operation history

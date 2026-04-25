@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -214,20 +215,27 @@ static int64_t now_millis() {
         .count();
 }
 
-// COMMIT: pick one commit_ts and dispatch every buffered UPDATE under that
-// timestamp. All resulting row-version keys share the same ts, so a snapshot
-// reader either sees all of them or none.
-//
-// Note: this is "eventual atomic visibility per node" — within one node, all
-// writes for the txn appear at the same ts; across nodes they share the ts
-// but not the wall-clock instant of application. A reader pinned at
-// snapshot_ts < commit_ts sees pre-state on every node; at >= commit_ts it
-// sees the committed state on every node that has already applied. There is
-// a small in-flight window between commit dispatch and last-leaf-applied
-// where a read at >= commit_ts can be torn; closing that window is the next
-// step (intents / commit-wait) and is intentionally out of scope here.
+// Commit-wait buffer (ms). commit_ts is picked at now()+kCommitWaitMs and the
+// COMMIT call doesn't return until wall-clock has passed commit_ts. This
+// closes the in-flight window where some leaves had applied a transaction's
+// writes and others hadn't: any read picking read_ts=now() during that window
+// chooses read_ts < commit_ts and so the snapshot filter excludes the
+// commit's writes everywhere — a clean pre-state read. Once COMMIT returns,
+// all subsequent readers pick read_ts >= commit_ts and see the post-state
+// everywhere because every leaf has applied. Conceptually identical to
+// Spanner's commit-wait, just with NTP/chrony-bounded skew instead of
+// TrueTime. Set conservatively here; a smaller value works if clock skew is
+// known small.
+static constexpr int64_t kCommitWaitMs = 100;
+
+// COMMIT: pick one commit_ts in the near future, dispatch every buffered
+// UPDATE under that timestamp, then wait out the commit-wait window before
+// returning. All resulting row-version keys share the same ts, so a snapshot
+// reader either sees all of them or none — atomically and across all nodes.
 static absl::Status commit_transaction(TxnState& txn) {
-    int64_t commit_ts = now_millis();
+    int64_t commit_ts = now_millis() + kCommitWaitMs;
+    SPDLOG_INFO("commit_transaction: {} writes at commit_ts={}",
+                txn.writes.size(), commit_ts);
     for (auto& packed : txn.writes) {
         PgQuery__UpdateStmt* node = pg_query__update_stmt__unpack(
             nullptr, packed.size(), packed.data());
@@ -242,6 +250,18 @@ static absl::Status commit_transaction(TxnState& txn) {
             return status.status();
         }
     }
+
+    // Commit-wait: don't return OK to the client until real time has passed
+    // commit_ts. Any concurrent reader's read_ts (= now()) is therefore
+    // strictly less than commit_ts and the snapshot filter excludes our
+    // writes on every leaf. After we return, new reads pick read_ts >=
+    // commit_ts and our writes are already on every leaf.
+    int64_t now = now_millis();
+    if (now < commit_ts) {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(commit_ts - now));
+    }
+
     txn.active = false;
     txn.read_ts = 0;
     txn.writes.clear();
@@ -322,8 +342,11 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
                 std::vector<uint8_t> buf(len);
                 pg_query__update_stmt__pack(stmt->update_stmt, buf.data());
                 session.txn.writes.push_back(std::move(buf));
+                SPDLOG_INFO("buffered update; txn now has {} writes",
+                            session.txn.writes.size());
                 return EmptyBatch();
             }
+            SPDLOG_INFO("update outside txn (auto-commit dispatch)");
             return small::execution::update(stmt->update_stmt, true);
             break;
         }
