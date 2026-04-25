@@ -19,6 +19,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 // =====================================================================
@@ -26,6 +27,7 @@
 // =====================================================================
 
 // pg_query
+#include "pg_query.h"
 #include "pg_query.pb-c.h"
 
 // spdlog
@@ -33,7 +35,11 @@
 
 // arrow
 #include "arrow/api.h"
+#include "arrow/io/memory.h"
+#include "arrow/ipc/reader.h"
+#include "arrow/ipc/writer.h"
 #include "arrow/status.h"
+#include "arrow/table.h"
 
 // arrow gandiva
 #include "gandiva/projector.h"
@@ -42,11 +48,15 @@
 // magic_enum
 #include "magic_enum/magic_enum.hpp"
 
+// grpc
+#include "grpcpp/create_channel.h"
+
 // =====================================================================
 // small-db libraries
 // =====================================================================
 
 #include "src/catalog/catalog.h"
+#include "src/gossip/gossip.h"
 #include "src/rocks/rocks.h"
 #include "src/schema/const.h"
 #include "src/semantics/extract.h"
@@ -99,7 +109,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
 }
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
-    PgQuery__SelectStmt* select_stmt) {
+    PgQuery__SelectStmt* select_stmt, bool dispatch) {
     auto table_name = small::schema::resolve_table_name(
         select_stmt->from_clause[0]->range_var);
 
@@ -110,6 +120,92 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         return absl::Status(absl::StatusCode::kNotFound,
                             "table not found: " + table_name);
     }
+
+    // Fan out for partitioned tables so the caller sees every partition, not
+    // just the rows owned by this node. System / non-partitioned tables are
+    // replicated identically on every node, so fall through to local execution.
+    if (dispatch && table_optional.value()->partition().has_list_partition()) {
+        size_t packed_len =
+            pg_query__select_stmt__get_packed_size(select_stmt);
+        std::vector<uint8_t> packed(packed_len);
+        pg_query__select_stmt__pack(select_stmt, packed.data());
+
+        auto servers = small::gossip::get_nodes(std::nullopt);
+        std::vector<std::shared_ptr<arrow::RecordBatch>> remote_batches;
+        remote_batches.reserve(servers.size());
+
+        for (auto& [id, server] : servers) {
+            small::execution::RawNode request;
+            request.set_packed_node(packed.data(), packed_len);
+
+            auto channel = grpc::CreateChannel(
+                server.grpc_addr, grpc::InsecureChannelCredentials());
+            auto stub = small::execution::Query::NewStub(channel);
+            grpc::ClientContext context;
+            small::execution::QueryResponse response;
+            auto status = stub->Query(&context, request, &response);
+            if (!status.ok()) {
+                return absl::InternalError(fmt::format(
+                    "failed to query server {}: {}", server.grpc_addr,
+                    status.error_message()));
+            }
+
+            // Move the IPC bytes into an owning Buffer; otherwise the
+            // zero-copy arrays in the deserialized RecordBatch would point
+            // back into `response.ipc_bytes()` and dangle once `response`
+            // is destroyed at end-of-iteration.
+            auto buf = arrow::Buffer::FromString(
+                std::move(*response.mutable_ipc_bytes()));
+            auto reader_input = std::make_shared<arrow::io::BufferReader>(buf);
+            auto reader_result =
+                arrow::ipc::RecordBatchStreamReader::Open(reader_input);
+            if (!reader_result.ok()) {
+                return absl::InternalError(
+                    fmt::format("failed to open IPC reader from {}: {}",
+                                server.grpc_addr,
+                                reader_result.status().ToString()));
+            }
+            auto reader = reader_result.ValueOrDie();
+            std::shared_ptr<arrow::RecordBatch> batch;
+            auto read_status = reader->ReadNext(&batch);
+            if (!read_status.ok()) {
+                return absl::InternalError(
+                    fmt::format("failed to read IPC batch from {}: {}",
+                                server.grpc_addr, read_status.ToString()));
+            }
+            if (batch) {
+                remote_batches.push_back(batch);
+            }
+        }
+
+        if (remote_batches.empty()) {
+            return absl::InternalError(
+                "fan-out returned no batches from any server");
+        }
+
+        auto output_schema = remote_batches[0]->schema();
+        int64_t total_rows = 0;
+        for (const auto& b : remote_batches) {
+            total_rows += b->num_rows();
+        }
+        std::vector<std::shared_ptr<arrow::Array>> combined_columns;
+        for (int c = 0; c < output_schema->num_fields(); ++c) {
+            std::vector<std::shared_ptr<arrow::Array>> chunks;
+            chunks.reserve(remote_batches.size());
+            for (const auto& b : remote_batches) {
+                chunks.push_back(b->column(c));
+            }
+            auto concat = arrow::Concatenate(chunks);
+            if (!concat.ok()) {
+                return absl::InternalError(fmt::format(
+                    "column concat failed: {}", concat.status().ToString()));
+            }
+            combined_columns.push_back(concat.ValueOrDie());
+        }
+        return arrow::RecordBatch::Make(output_schema, total_rows,
+                                        combined_columns);
+    }
+
     auto input_schema = get_input_schema(*table_optional.value());
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
@@ -319,6 +415,23 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     gandiva::SchemaPtr output_schema = arrow::schema(output_fields);
     SPDLOG_INFO("output schema: {}", output_schema->ToString());
 
+    // Gandiva's projector rejects zero-row batches with "RecordBatch must be
+    // non-empty". An empty input trivially maps to an empty output under
+    // projection, so short-circuit by reusing the already-empty input arrays.
+    if (num_records == 0) {
+        arrow::ArrayVector empty_outputs;
+        empty_outputs.reserve(output_fields.size());
+        for (const auto& f : output_fields) {
+            int idx = input_schema->GetFieldIndex(f->name());
+            if (idx < 0) {
+                return absl::InternalError(fmt::format(
+                    "output field {} not in input schema", f->name()));
+            }
+            empty_outputs.push_back(columns[idx]);
+        }
+        return arrow::RecordBatch::Make(output_schema, 0, empty_outputs);
+    }
+
     std::shared_ptr<gandiva::Projector> projector;
     arrow::Status status;
     status = gandiva::Projector::Make(input_schema, expressions, &projector);
@@ -347,6 +460,55 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     SPDLOG_INFO("project result: {}", result->ToString());
 
     return result;
+}
+
+grpc::Status QueryServiceImpl::Query(
+    grpc::ServerContext* context, const small::execution::RawNode* request,
+    small::execution::QueryResponse* response) {
+    SPDLOG_INFO("query request: {} bytes", request->packed_node().size());
+
+    PgQuery__SelectStmt* node = pg_query__select_stmt__unpack(
+        nullptr, request->packed_node().size(),
+        reinterpret_cast<const uint8_t*>(request->packed_node().data()));
+
+    auto result = query(node, /*dispatch=*/false);
+    pg_query__select_stmt__free_unpacked(node, nullptr);
+
+    if (!result.ok()) {
+        return {grpc::StatusCode::INTERNAL,
+                std::string(result.status().message())};
+    }
+    auto batch = result.value();
+
+    auto sink_result = arrow::io::BufferOutputStream::Create();
+    if (!sink_result.ok()) {
+        return {grpc::StatusCode::INTERNAL,
+                sink_result.status().ToString()};
+    }
+    auto sink = sink_result.ValueOrDie();
+    auto writer_result = arrow::ipc::MakeStreamWriter(sink, batch->schema());
+    if (!writer_result.ok()) {
+        return {grpc::StatusCode::INTERNAL,
+                writer_result.status().ToString()};
+    }
+    auto writer = writer_result.ValueOrDie();
+    auto write_status = writer->WriteRecordBatch(*batch);
+    if (!write_status.ok()) {
+        return {grpc::StatusCode::INTERNAL, write_status.ToString()};
+    }
+    auto close_status = writer->Close();
+    if (!close_status.ok()) {
+        return {grpc::StatusCode::INTERNAL, close_status.ToString()};
+    }
+
+    auto buffer_result = sink->Finish();
+    if (!buffer_result.ok()) {
+        return {grpc::StatusCode::INTERNAL,
+                buffer_result.status().ToString()};
+    }
+    auto buffer = buffer_result.ValueOrDie();
+    response->set_ipc_bytes(buffer->data(), buffer->size());
+    return grpc::Status::OK;
 }
 
 }  // namespace small::execution

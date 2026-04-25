@@ -6,11 +6,17 @@
 # ]
 # ///
 
+import os
 import re
 import shutil
 
 import cxc_toolkit
 from tabulate import tabulate
+
+VAGRANT_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "small-db-jepsen", "vagrant")
+)
+VAGRANT_VMS = ["america", "europe", "asia"]
 
 
 class CLITool:
@@ -138,12 +144,12 @@ def check_env():
     output, _ = cxc_toolkit.exec.run_command("lsmod", slient=True)
     loaded_modules = {line.split()[0] for line in output.splitlines()}
     required_status = [
-        ("kvm_amd", "KVM module for AMD CPUs", False),
-        ("vboxdrv", "VirtualBox kernel module", True),
-        ("vboxnetflt", "VirtualBox network filter module", True),
-        ("vboxnetadp", "VirtualBox network adapter module", True),
+        ("kvm_amd", "KVM module for AMD CPUs", False, "sudo modprobe -r kvm_amd"),
+        ("vboxdrv", "VirtualBox kernel module", True, "sudo modprobe vboxdrv"),
+        ("vboxnetflt", "VirtualBox network filter module", True, "sudo modprobe vboxnetflt"),
+        ("vboxnetadp", "VirtualBox network adapter module", True, "sudo modprobe vboxnetadp"),
     ]
-    for module, description, should_be_loaded in required_status:
+    for module, description, should_be_loaded, fix_cmd in required_status:
         is_loaded = module in loaded_modules
         status = "loaded" if is_loaded else "not loaded"
         is_ok = should_be_loaded == is_loaded
@@ -155,6 +161,28 @@ def check_env():
         else:
             message += " (should be disabled)"
         print(message)
+        if not is_ok:
+            print(f"    fix: {fix_cmd}")
+
+    print("\nVagrant VM Status:")
+    output, _ = cxc_toolkit.exec.run_command(
+        "vagrant status --machine-readable",
+        work_dir=VAGRANT_DIR,
+        ignore_failure=True,
+        slient=True,
+    )
+    vm_state = {}
+    for line in output.splitlines():
+        parts = line.split(",")
+        if len(parts) >= 4 and parts[2] == "state":
+            vm_state[parts[1]] = parts[3]
+    for vm in VAGRANT_VMS:
+        state = vm_state.get(vm, "unknown")
+        is_ok = state == "running"
+        mark = "✓" if is_ok else "✗"
+        print(f"- {mark} {vm}: {state} (should be running)")
+        if not is_ok:
+            print(f"    fix: (cd {VAGRANT_DIR} && vagrant up {vm})")
 
     debug_tools = ToolList()
     debug_tools.add_cli_tool(

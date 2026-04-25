@@ -17,6 +17,7 @@
 // =====================================================================
 
 #include <csignal>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -24,6 +25,7 @@
 #include <memory>
 #include <string>
 #include <typeinfo>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -221,7 +223,9 @@ absl::Status run_sql_test(const std::string& sqltest_file) {
                 }
             }
 
-            // check data
+            // check data (order-independent: SQL guarantees no ordering
+            // without ORDER BY, and fan-out across partitions concatenates
+            // batches in non-deterministic node-iteration order)
             {
                 // check row count
                 if (r.size() != query->expected_output.size()) {
@@ -230,17 +234,26 @@ absl::Status run_sql_test(const std::string& sqltest_file) {
                         query->expected_output.size(), r.size()));
                 }
 
-                // check data
+                std::vector<std::vector<std::string>> actual_rows;
+                actual_rows.reserve(r.size());
                 for (int i = 0; i < r.size(); ++i) {
+                    std::vector<std::string> row;
+                    row.reserve(r.columns());
                     for (int j = 0; j < r.columns(); ++j) {
-                        if (r[i][j].c_str() != query->expected_output[i][j]) {
-                            return absl::InternalError(absl::StrFormat(
-                                "data mismatch at row %d, column %d: "
-                                "expected %s, got %s",
-                                i, j, query->expected_output[i][j],
-                                r[i][j].c_str()));
-                        }
+                        row.emplace_back(r[i][j].c_str());
                     }
+                    actual_rows.push_back(std::move(row));
+                }
+
+                std::vector<std::vector<std::string>> expected_rows =
+                    query->expected_output;
+
+                std::sort(actual_rows.begin(), actual_rows.end());
+                std::sort(expected_rows.begin(), expected_rows.end());
+
+                if (actual_rows != expected_rows) {
+                    return absl::InternalError(
+                        "row content mismatch (order-independent compare)");
                 }
             }
 

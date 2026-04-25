@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./build/debug/src/rocks/rocks_scan:*)",
+      "Bash(./scripts/format/lint.sh:*)",
+      "Bash(./scripts/setup/build.sh:*)",
+      "Bash(./scripts/test/test.sh:*)",
+      "Bash(awk:*)",
+      "Bash(cmake:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(hostctl list:*)",
+      "Bash(lein run:*)",
+      "Bash(ls:*)",
+      "Bash(lsmod)",
+      "Bash(mdbook build:*)",
+      "Bash(mdbook serve:*)",
+      "Bash(python3 -c:*)",
+      "Bash(sort:*)",
+      "Bash(uv run:*)",
+      "Bash(vagrant status:*)",
+      "Bash(vagrant up:*)",
+      "Bash(wc:*)",
+      "Bash(xargs:*)"
+    ]
+  }
+}

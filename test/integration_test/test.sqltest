@@ -61,16 +61,20 @@ statement ok
 UPDATE users SET balance = balance - 59 WHERE id = 2;
 
 query II
-SELECT id, balance FROM users WHERE id = 2;
+SELECT id, balance FROM users WHERE id = 1;
 ----
  id | balance
 ----+---------
-  2 | 1941
+  1 |    1000
 
-query ITIT
-SELECT * FROM users WHERE id = 2;
+query II
+SELECT id, balance FROM users;
 ----
- id | name | balance | country
-----+------+---------+---------
-  2 | Bob  |    1941 | USA
+ id | balance
+----+---------
+  1 |    1000
+  2 |    1941
+  3 |    1500
+  4 |    3000
+  5 |    2500
 

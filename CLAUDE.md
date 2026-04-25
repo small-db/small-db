@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 small-db is a distributed SQL database written in C++20. It supports PostgreSQL wire protocol, LIST-based partitioning across regions, gossip-based replication, and uses RocksDB for storage.
 
+## Environment Check
+
+Before building or running tests, verify toolchain, kernel modules, and versions with:
+
+```bash
+uv run ./scripts/setup/check-env.py
+```
+
+This is the authoritative source for required tools and their minimum versions (build, Jepsen, debugging, book). It also flags kernel-module conflicts (e.g. `kvm_amd` blocking VirtualBox). Run it first whenever something looks wrong with the environment.
+
 ## Build Commands
 
 ```bash

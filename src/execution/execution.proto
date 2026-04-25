@@ -15,6 +15,10 @@ service Update {
   rpc Update(RawNode) returns (WriteResponse) {}
 }
 
+service Query {
+  rpc Query(RawNode) returns (QueryResponse) {}
+}
+
 message Row {
   string table_name = 1;
   repeated string column_names = 2;
@@ -27,4 +31,9 @@ message RawNode {
 
 message WriteResponse {
   int64 affected_rows = 1;
+}
+
+message QueryResponse {
+  // Arrow IPC stream bytes for a single RecordBatch (schema + data).
+  bytes ipc_bytes = 1;
 }

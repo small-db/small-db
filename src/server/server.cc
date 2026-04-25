@@ -57,6 +57,7 @@
 
 #include "src/catalog/catalog.h"
 #include "src/execution/insert.h"
+#include "src/execution/query.h"
 #include "src/execution/update.h"
 #include "src/gossip/gossip.h"
 #include "src/pg_wire/pg_wire.h"
@@ -377,6 +378,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         {
             std::make_shared<small::execution::InsertServiceImpl>(),
             std::make_shared<small::execution::UpdateServiceImpl>(),
+            std::make_shared<small::execution::QueryServiceImpl>(),
             std::make_shared<small::gossip::GossipServiceImpl>(),
             std::make_shared<small::catalog::CatalogServiceImpl>(),
         });

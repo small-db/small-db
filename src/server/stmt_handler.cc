@@ -236,7 +236,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
-            return small::execution::query(stmt->select_stmt);
+            return small::execution::query(stmt->select_stmt, true);
             break;
         }
         case PG_QUERY__NODE__NODE_UPDATE_STMT: {
