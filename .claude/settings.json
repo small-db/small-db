@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
       "Bash(./build/debug/src/rocks/rocks_scan:*)",
       "Bash(./scripts/format/lint.sh:*)",
       "Bash(./scripts/setup/build.sh:*)",
@@ -11,6 +12,7 @@
       "Bash(echo:*)",
       "Bash(find:*)",
       "Bash(git add:*)",
+      "Bash(git commit *)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git status:*)",
