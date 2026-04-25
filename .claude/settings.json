@@ -1,12 +1,17 @@
 {
   "permissions": {
+    "additionalDirectories": [
+      "../cockroach"
+    ],
     "allow": [
       "Edit",
+      "Read(../cockroach/**)",
       "Bash(./build/debug/src/rocks/rocks_scan:*)",
       "Bash(./scripts/format/lint.sh:*)",
       "Bash(./scripts/setup/build.sh:*)",
       "Bash(./scripts/test/test.sh:*)",
       "Bash(awk:*)",
+      "Bash(cat:*)",
       "Bash(cmake:*)",
       "Bash(curl:*)",
       "Bash(echo:*)",

@@ -105,7 +105,8 @@ bool RocksDBWrapper::Get(const std::string& key, std::string& value) {
 }
 
 std::map<std::string, std::map<std::string, std::string>>
-RocksDBWrapper::ReadTable(const std::string& table_name) {
+RocksDBWrapper::ReadTable(const std::string& table_name,
+                          int64_t snapshot_ts_millis) {
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
 
@@ -124,14 +125,32 @@ RocksDBWrapper::ReadTable(const std::string& table_name) {
         // Parse key format: "/{table_name}/{pk}/{timestamp}"
         size_t start_pos = scan_prefix.length();
         size_t pk_end = key.find('/', start_pos);
-        if (pk_end != std::string::npos) {
-            std::string pk = key.substr(start_pos, pk_end - start_pos);
-
-            // Lexicographic order on zero-padded timestamps means the last
-            // value we see for a given pk is the most recent version.
-            auto columns = nlohmann::json::parse(value);
-            result[pk] = columns.get<std::map<std::string, std::string>>();
+        if (pk_end == std::string::npos) {
+            continue;
         }
+        std::string pk = key.substr(start_pos, pk_end - start_pos);
+
+        // Snapshot filter: skip versions written after snapshot_ts. The
+        // 20-digit zero-padded ms timestamp is the substring after the
+        // last '/'. snapshot_ts_millis == 0 means "no filter".
+        if (snapshot_ts_millis > 0) {
+            std::string ts_str = key.substr(pk_end + 1);
+            try {
+                int64_t row_ts = std::stoll(ts_str);
+                if (row_ts > snapshot_ts_millis) {
+                    continue;
+                }
+            } catch (const std::exception&) {
+                // unparseable ts; skip defensively
+                continue;
+            }
+        }
+
+        // Lexicographic order on zero-padded timestamps means the last
+        // value we see for a given pk (within the snapshot) is the most
+        // recent visible version.
+        auto columns = nlohmann::json::parse(value);
+        result[pk] = columns.get<std::map<std::string, std::string>>();
     }
 
     return result;
@@ -154,18 +173,20 @@ void RocksDBWrapper::PrintAllKV() {
 
 void RocksDBWrapper::WriteRow(
     const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
-    const std::vector<std::string>& values) {
+    const std::vector<std::string>& values, int64_t commit_ts_millis) {
     // Build JSON object from columns
     nlohmann::json obj;
     for (int i = 0; i < table->columns().size(); ++i) {
         obj[table->columns()[i].name()] = values[i];
     }
 
-    // Generate zero-padded 20-digit millisecond timestamp
-    auto now = std::chrono::system_clock::now();
-    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      now.time_since_epoch())
-                      .count();
+    int64_t millis = commit_ts_millis;
+    if (millis == 0) {
+        auto now = std::chrono::system_clock::now();
+        millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+                     now.time_since_epoch())
+                     .count();
+    }
     std::ostringstream ts;
     ts << std::setw(20) << std::setfill('0') << millis;
 

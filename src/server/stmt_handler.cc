@@ -16,6 +16,8 @@
 // c++ std
 // =====================================================================
 
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -206,8 +208,54 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> WrapEmptyStatus(
     }
 }
 
+static int64_t now_millis() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}
+
+// COMMIT: pick one commit_ts and dispatch every buffered UPDATE under that
+// timestamp. All resulting row-version keys share the same ts, so a snapshot
+// reader either sees all of them or none.
+//
+// Note: this is "eventual atomic visibility per node" — within one node, all
+// writes for the txn appear at the same ts; across nodes they share the ts
+// but not the wall-clock instant of application. A reader pinned at
+// snapshot_ts < commit_ts sees pre-state on every node; at >= commit_ts it
+// sees the committed state on every node that has already applied. There is
+// a small in-flight window between commit dispatch and last-leaf-applied
+// where a read at >= commit_ts can be torn; closing that window is the next
+// step (intents / commit-wait) and is intentionally out of scope here.
+static absl::Status commit_transaction(TxnState& txn) {
+    int64_t commit_ts = now_millis();
+    for (auto& packed : txn.writes) {
+        PgQuery__UpdateStmt* node = pg_query__update_stmt__unpack(
+            nullptr, packed.size(), packed.data());
+        if (node == nullptr) {
+            return absl::InternalError(
+                "failed to unpack buffered update at commit");
+        }
+        auto status = small::execution::update(node, /*dispatch=*/true,
+                                               commit_ts);
+        pg_query__update_stmt__free_unpacked(node, nullptr);
+        if (!status.ok()) {
+            return status.status();
+        }
+    }
+    txn.active = false;
+    txn.read_ts = 0;
+    txn.writes.clear();
+    return absl::OkStatus();
+}
+
+static void rollback_transaction(TxnState& txn) {
+    txn.active = false;
+    txn.read_ts = 0;
+    txn.writes.clear();
+}
+
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
-    PgQuery__Node* stmt) {
+    PgQuery__Node* stmt, SessionState& session) {
     switch (stmt->node_case) {
         case PG_QUERY__NODE__NODE_CREATE_STMT: {
             auto create_stmt = stmt->create_stmt;
@@ -226,8 +274,28 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_TRANSACTION_STMT: {
-            SPDLOG_INFO("transaction statement");
-            break;
+            auto kind = stmt->transaction_stmt->kind;
+            switch (kind) {
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN:
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_START:
+                    session.txn.active = true;
+                    session.txn.read_ts = now_millis();
+                    session.txn.writes.clear();
+                    return EmptyBatch();
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_COMMIT:
+                    if (session.txn.active) {
+                        return WrapEmptyStatus(
+                            [&]() { return commit_transaction(session.txn); });
+                    }
+                    return EmptyBatch();
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_ROLLBACK:
+                    rollback_transaction(session.txn);
+                    return EmptyBatch();
+                default:
+                    SPDLOG_INFO("unhandled transaction kind: {}",
+                                static_cast<int>(kind));
+                    return EmptyBatch();
+            }
         }
         case PG_QUERY__NODE__NODE_ALTER_TABLE_STMT: {
             return WrapEmptyStatus([&]() {
@@ -236,10 +304,26 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
-            return small::execution::query(stmt->select_stmt, true);
+            // Inside a txn, read at the snapshot pinned at BEGIN so writes
+            // committed mid-txn (by us or anyone else) don't appear.
+            // Outside a txn, read_ts=0 lets the dispatcher pin "now()" itself
+            // so all leaves agree on one snapshot for this single read.
+            int64_t read_ts =
+                session.txn.active ? session.txn.read_ts : 0;
+            return small::execution::query(stmt->select_stmt, true, read_ts);
             break;
         }
         case PG_QUERY__NODE__NODE_UPDATE_STMT: {
+            // Inside a txn: buffer the packed UpdateStmt; the writes will
+            // be replayed at COMMIT under one shared commit_ts.
+            if (session.txn.active) {
+                size_t len = pg_query__update_stmt__get_packed_size(
+                    stmt->update_stmt);
+                std::vector<uint8_t> buf(len);
+                pg_query__update_stmt__pack(stmt->update_stmt, buf.data());
+                session.txn.writes.push_back(std::move(buf));
+                return EmptyBatch();
+            }
             return small::execution::update(stmt->update_stmt, true);
             break;
         }

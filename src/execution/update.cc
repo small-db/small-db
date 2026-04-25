@@ -66,7 +66,7 @@
 namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt, bool dispatch) {
+    PgQuery__UpdateStmt* update_stmt, bool dispatch, int64_t commit_ts_millis) {
     auto table_name = small::schema::resolve_table_name(update_stmt->relation);
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
@@ -86,6 +86,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
             pg_query__update_stmt__pack(update_stmt, buf);
 
             request.set_packed_node(buf, len);
+            request.set_ts(commit_ts_millis);
             free(buf);
 
             auto channel = grpc::CreateChannel(
@@ -200,7 +201,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
         for (const auto& col : table->columns()) {
             values.push_back(updated.at(col.name()));
         }
-        db->WriteRow(table, pk, values);
+        db->WriteRow(table, pk, values, commit_ts_millis);
     }
 
     auto schema = arrow::schema({});
@@ -216,7 +217,7 @@ grpc::Status UpdateServiceImpl::Update(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result = update(node, false);
+    auto result = update(node, /*dispatch=*/false, request->ts());
     pg_query__update_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {

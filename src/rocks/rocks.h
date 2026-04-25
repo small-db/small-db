@@ -62,13 +62,18 @@ class RocksDBWrapper {
     bool Get(const std::string& key, std::string& value);
 
     /**
-     * @brief Retrieves all rows from a table
+     * @brief Retrieves all rows from a table at a snapshot.
      *
      * @param table_name Name of the table to read
+     * @param snapshot_ts_millis Snapshot timestamp in milliseconds. 0 means
+     *        "no filter" — return the latest version per pk regardless of ts
+     *        (equivalent to a "read latest" query). Non-zero filters out
+     *        versions written after the snapshot, so the result is the
+     *        latest version per pk with version_ts <= snapshot_ts.
      * @return Map structure: {primary_key -> {column_name -> value}}
      */
     std::map<std::string, std::map<std::string, std::string>> ReadTable(
-        const std::string& table_name);
+        const std::string& table_name, int64_t snapshot_ts_millis = 0);
 
     std::vector<std::pair<std::string, std::string>> GetAllKV();
 
@@ -76,9 +81,19 @@ class RocksDBWrapper {
 
     void PrintAllKV();
 
+    /**
+     * @brief Writes a row version.
+     *
+     * @param commit_ts_millis Commit timestamp in milliseconds. 0 means
+     *        "use now()" — used for auto-commit writes outside of any
+     *        explicit transaction. Non-zero stamps the version with the
+     *        given timestamp so all writes from a single transaction can
+     *        share one commit_ts and become visible atomically.
+     */
     void WriteRow(const std::shared_ptr<small::schema::Table>& table,
                   const std::string& pk,
-                  const std::vector<std::string>& values);
+                  const std::vector<std::string>& values,
+                  int64_t commit_ts_millis = 0);
 
    private:
     rocksdb::DB* db_ = nullptr;

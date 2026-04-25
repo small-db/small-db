@@ -15,6 +15,13 @@
 #pragma once
 
 // =====================================================================
+// c++ std
+// =====================================================================
+
+#include <cstdint>
+#include <vector>
+
+// =====================================================================
 // third-party libraries
 // =====================================================================
 
@@ -29,7 +36,28 @@
 
 namespace small::stmt_handler {
 
+// Per-session transaction state. One instance per connection, owned by the
+// connection-tracking layer (see SocketsManager in server.cc).
+//
+// Lifecycle:
+//   - constructed inactive when the connection is established
+//   - BEGIN: active=true, read_ts pinned to now()
+//   - UPDATE while active: append the packed UpdateStmt bytes to writes
+//     instead of dispatching immediately
+//   - COMMIT: pick commit_ts, dispatch each buffered write with that ts
+//     (so all writes from this txn share one timestamp), reset state
+//   - ROLLBACK / connection close: reset state, discard writes
+struct TxnState {
+    bool active = false;
+    int64_t read_ts = 0;
+    std::vector<std::vector<uint8_t>> writes;
+};
+
+struct SessionState {
+    TxnState txn;
+};
+
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
-    PgQuery__Node* stmt);
+    PgQuery__Node* stmt, SessionState& session);
 
 }  // namespace small::stmt_handler

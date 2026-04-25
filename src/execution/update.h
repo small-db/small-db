@@ -36,8 +36,17 @@
 
 namespace small::execution {
 
+// Apply an UPDATE statement.
+//
+// dispatch=true:  fan out the statement to every node via gRPC; each node
+//                 runs locally with the provided commit_ts.
+// dispatch=false: run locally, writing each affected row at commit_ts.
+//
+// commit_ts_millis = 0 falls back to "use now()" — the auto-commit case
+// for UPDATEs issued outside an explicit BEGIN/COMMIT block.
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt, bool dispatch);
+    PgQuery__UpdateStmt* update_stmt, bool dispatch,
+    int64_t commit_ts_millis = 0);
 
 class UpdateServiceImpl final : public small::execution::Update::Service {
    public:
