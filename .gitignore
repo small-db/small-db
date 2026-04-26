@@ -89,3 +89,10 @@ small-db-jepsen/store/
 
 # VSCode extension "Calva"
 .calva/
+
+# ============================================================================ #
+# claude code
+# ============================================================================ #
+
+# lock files for background jobs
+.claude/*.lock
