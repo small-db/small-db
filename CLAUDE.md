@@ -91,21 +91,27 @@ Jepsen framework source is at `/home/xiaochen/code/jepsen` (external to this rep
 
 **Running:**
 ```bash
-# 1. Build the server binary first
+# 1. Verify environment — VMs running, /etc/hosts entries present, all tools installed
+uv run ./scripts/setup/check-env.py
+
+# 2. Build the server binary
 ./scripts/setup/build.sh
 
-# 2. Full setup (requires sudo for hostctl — run manually in terminal)
-python scripts/test/jepsen-test.py
-
-# 3. Day-to-day runs (VMs already up, no sudo needed — use this from Claude Code)
+# 3. Run the Jepsen test directly via lein
 cd small-db-jepsen && lein run test-all --node america --node europe --node asia --ssh-private-key ~/.vagrant.d/insecure_private_key --username vagrant
 ```
 
-The full script (`jepsen-test.py`) handles `vagrant up` → hostctl DNS setup → `lein run`, but requires sudo for the hostctl step. Claude Code cannot provide sudo passwords, so use the raw `lein run` command directly when VMs are already up. The test copies the built binary from `build/debug/src/server/server` and its dynamic libraries into each VM.
+`check-env.py` verifies VM state and hostname resolution (america/europe/asia → the IPs in `small-db-jepsen/vagrant/nodes`); fix any ✗ before running the test. The `scripts/test/jepsen-test.py` wrapper exists for first-time setup (it runs `vagrant up` and `sudo hostctl add ...`), but day-to-day runs should use the `lein run` command above directly — `check-env.py` already covers what the wrapper would set up. The test copies the built binary from `build/debug/src/server/server` and its dynamic libraries into each VM.
 
 **Available tests** (defined in `small-db-jepsen/src/small_db_jepsen/runner.clj`):
 - `bank-test` — Transfers between accounts, checks total balance is conserved
 - `query-test` — Runs system table queries on all nodes
+
+**Web UI for results:** "Start the Jepsen server" means the test-results web UI:
+```bash
+cd small-db-jepsen && lein run serve
+```
+Listens on http://localhost:8080/ and browses `small-db-jepsen/store/`. This is `jepsen.cli/serve-cmd`, not a small-db server and not the test runner.
 
 **Debugging failures:** Test results are stored in `small-db-jepsen/store/<test-name>/<timestamp>/`. Jepsen also maintains `small-db-jepsen/store/latest` (and `store/current`) as symlinks to the most recent run — reference those instead of computing the latest timestamped dir via `ls -td`. Files:
 - `jepsen.log` — Full Jepsen framework log (test orchestration, assertions, checker results)

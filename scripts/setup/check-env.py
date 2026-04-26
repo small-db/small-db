@@ -9,6 +9,7 @@
 import os
 import re
 import shutil
+import socket
 
 import cxc_toolkit
 from tabulate import tabulate
@@ -17,6 +18,7 @@ VAGRANT_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "small-db-jepsen", "vagrant")
 )
 VAGRANT_VMS = ["america", "europe", "asia"]
+NODES_FILE = os.path.join(VAGRANT_DIR, "nodes")
 
 
 class CLITool:
@@ -183,6 +185,30 @@ def check_env():
         print(f"- {mark} {vm}: {state} (should be running)")
         if not is_ok:
             print(f"    fix: (cd {VAGRANT_DIR} && vagrant up {vm})")
+
+    print("\nVagrant Hostname Resolution (/etc/hosts via hostctl):")
+    expected = {}
+    if os.path.exists(NODES_FILE):
+        with open(NODES_FILE) as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    ip, name = parts
+                    expected[name] = ip
+    for vm in VAGRANT_VMS:
+        want = expected.get(vm)
+        try:
+            got = socket.gethostbyname(vm)
+        except OSError:
+            got = None
+        is_ok = want is not None and got == want
+        mark = "✓" if is_ok else "✗"
+        detail = f"{got or 'unresolved'}" + (f" (expected {want})" if want and got != want else "")
+        print(f"- {mark} {vm}: {detail}")
+        if not is_ok:
+            print(
+                f"    fix: (cd {VAGRANT_DIR} && sudo $(go env GOPATH)/bin/hostctl add small-db-jepsen --from ./nodes)"
+            )
 
     debug_tools = ToolList()
     debug_tools.add_cli_tool(
