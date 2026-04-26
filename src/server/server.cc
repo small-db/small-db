@@ -121,7 +121,6 @@ class SocketsManager {
 
    private:
     std::unordered_map<int, SocketState> socket_states;
-    std::unordered_map<int, small::stmt_handler::SessionState> sessions;
 
     // Static pointer to the Singleton instance.
     static SocketsManager* instancePtr;
@@ -175,12 +174,6 @@ class SocketsManager {
     static void remove_socket_state(int sockfd) {
         auto instance = getInstance();
         instance->socket_states.erase(sockfd);
-        instance->sessions.erase(sockfd);
-    }
-
-    static small::stmt_handler::SessionState& get_session(int sockfd) {
-        auto instance = getInstance();
-        return instance->sessions[sockfd];
     }
 };
 
@@ -245,10 +238,9 @@ void handle_command(std::string& command, int sockfd) {
 
     auto node_case = unpacked->stmts[0]->stmt->node_case;
 
-    auto& session = SocketsManager::get_session(sockfd);
     for (int i = 0; i < unpacked->n_stmts; i++) {
         auto result =
-            small::stmt_handler::handle_stmt(unpacked->stmts[i]->stmt, session);
+            small::stmt_handler::handle_stmt(unpacked->stmts[i]->stmt);
         if (!result.ok()) {
             SPDLOG_ERROR("error handling statement: {}",
                          result.status().ToString());

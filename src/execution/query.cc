@@ -16,7 +16,6 @@
 // c++ std
 // =====================================================================
 
-#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
@@ -110,7 +109,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
 }
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
-    PgQuery__SelectStmt* select_stmt, bool dispatch, int64_t read_ts_millis) {
+    PgQuery__SelectStmt* select_stmt, bool dispatch) {
     auto table_name = small::schema::resolve_table_name(
         select_stmt->from_clause[0]->range_var);
 
@@ -126,17 +125,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     // just the rows owned by this node. System / non-partitioned tables are
     // replicated identically on every node, so fall through to local execution.
     if (dispatch && table_optional.value()->partition().has_list_partition()) {
-        // If the caller didn't pin a snapshot, pin one here at the dispatcher
-        // and propagate the same value to every leaf. Without this, two leaves
-        // could each call now() at different instants and disagree on whether
-        // a freshly-committed row is visible — torn read.
-        if (read_ts_millis == 0) {
-            read_ts_millis =
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    std::chrono::system_clock::now().time_since_epoch())
-                    .count();
-        }
-
         size_t packed_len =
             pg_query__select_stmt__get_packed_size(select_stmt);
         std::vector<uint8_t> packed(packed_len);
@@ -149,7 +137,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         for (auto& [id, server] : servers) {
             small::execution::RawNode request;
             request.set_packed_node(packed.data(), packed_len);
-            request.set_ts(read_ts_millis);
 
             auto channel = grpc::CreateChannel(
                 server.grpc_addr, grpc::InsecureChannelCredentials());
@@ -222,9 +209,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto input_schema = get_input_schema(*table_optional.value());
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
-    // read kv pairs from rocksdb at the snapshot
+    // read kv pairs from rocksdb
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name, read_ts_millis);
+    auto rows = db->ReadTable(table_name);
 
     // filter rows based on WHERE clause
     if (select_stmt->where_clause != nullptr) {
@@ -484,7 +471,7 @@ grpc::Status QueryServiceImpl::Query(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result = query(node, /*dispatch=*/false, request->ts());
+    auto result = query(node, /*dispatch=*/false);
     pg_query__select_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {

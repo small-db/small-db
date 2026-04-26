@@ -16,11 +16,8 @@
 // c++ std
 // =====================================================================
 
-#include <chrono>
-#include <cstdint>
 #include <memory>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -209,73 +206,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> WrapEmptyStatus(
     }
 }
 
-static int64_t now_millis() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-        .count();
-}
-
-// Commit-wait buffer (ms). commit_ts is picked at now()+kCommitWaitMs and the
-// COMMIT call doesn't return until wall-clock has passed commit_ts. This
-// closes the in-flight window where some leaves had applied a transaction's
-// writes and others hadn't: any read picking read_ts=now() during that window
-// chooses read_ts < commit_ts and so the snapshot filter excludes the
-// commit's writes everywhere — a clean pre-state read. Once COMMIT returns,
-// all subsequent readers pick read_ts >= commit_ts and see the post-state
-// everywhere because every leaf has applied. Conceptually identical to
-// Spanner's commit-wait, just with NTP/chrony-bounded skew instead of
-// TrueTime. Set conservatively here; a smaller value works if clock skew is
-// known small.
-static constexpr int64_t kCommitWaitMs = 100;
-
-// COMMIT: pick one commit_ts in the near future, dispatch every buffered
-// UPDATE under that timestamp, then wait out the commit-wait window before
-// returning. All resulting row-version keys share the same ts, so a snapshot
-// reader either sees all of them or none — atomically and across all nodes.
-static absl::Status commit_transaction(TxnState& txn) {
-    int64_t commit_ts = now_millis() + kCommitWaitMs;
-    SPDLOG_INFO("commit_transaction: {} writes at commit_ts={}",
-                txn.writes.size(), commit_ts);
-    for (auto& packed : txn.writes) {
-        PgQuery__UpdateStmt* node = pg_query__update_stmt__unpack(
-            nullptr, packed.size(), packed.data());
-        if (node == nullptr) {
-            return absl::InternalError(
-                "failed to unpack buffered update at commit");
-        }
-        auto status = small::execution::update(node, /*dispatch=*/true,
-                                               commit_ts);
-        pg_query__update_stmt__free_unpacked(node, nullptr);
-        if (!status.ok()) {
-            return status.status();
-        }
-    }
-
-    // Commit-wait: don't return OK to the client until real time has passed
-    // commit_ts. Any concurrent reader's read_ts (= now()) is therefore
-    // strictly less than commit_ts and the snapshot filter excludes our
-    // writes on every leaf. After we return, new reads pick read_ts >=
-    // commit_ts and our writes are already on every leaf.
-    int64_t now = now_millis();
-    if (now < commit_ts) {
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(commit_ts - now));
-    }
-
-    txn.active = false;
-    txn.read_ts = 0;
-    txn.writes.clear();
-    return absl::OkStatus();
-}
-
-static void rollback_transaction(TxnState& txn) {
-    txn.active = false;
-    txn.read_ts = 0;
-    txn.writes.clear();
-}
-
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
-    PgQuery__Node* stmt, SessionState& session) {
+    PgQuery__Node* stmt) {
     switch (stmt->node_case) {
         case PG_QUERY__NODE__NODE_CREATE_STMT: {
             auto create_stmt = stmt->create_stmt;
@@ -294,28 +226,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_TRANSACTION_STMT: {
-            auto kind = stmt->transaction_stmt->kind;
-            switch (kind) {
-                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN:
-                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_START:
-                    session.txn.active = true;
-                    session.txn.read_ts = now_millis();
-                    session.txn.writes.clear();
-                    return EmptyBatch();
-                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_COMMIT:
-                    if (session.txn.active) {
-                        return WrapEmptyStatus(
-                            [&]() { return commit_transaction(session.txn); });
-                    }
-                    return EmptyBatch();
-                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_ROLLBACK:
-                    rollback_transaction(session.txn);
-                    return EmptyBatch();
-                default:
-                    SPDLOG_INFO("unhandled transaction kind: {}",
-                                static_cast<int>(kind));
-                    return EmptyBatch();
-            }
+            SPDLOG_INFO("transaction statement");
+            break;
         }
         case PG_QUERY__NODE__NODE_ALTER_TABLE_STMT: {
             return WrapEmptyStatus([&]() {
@@ -324,29 +236,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
-            // Inside a txn, read at the snapshot pinned at BEGIN so writes
-            // committed mid-txn (by us or anyone else) don't appear.
-            // Outside a txn, read_ts=0 lets the dispatcher pin "now()" itself
-            // so all leaves agree on one snapshot for this single read.
-            int64_t read_ts =
-                session.txn.active ? session.txn.read_ts : 0;
-            return small::execution::query(stmt->select_stmt, true, read_ts);
+            return small::execution::query(stmt->select_stmt, true);
             break;
         }
         case PG_QUERY__NODE__NODE_UPDATE_STMT: {
-            // Inside a txn: buffer the packed UpdateStmt; the writes will
-            // be replayed at COMMIT under one shared commit_ts.
-            if (session.txn.active) {
-                size_t len = pg_query__update_stmt__get_packed_size(
-                    stmt->update_stmt);
-                std::vector<uint8_t> buf(len);
-                pg_query__update_stmt__pack(stmt->update_stmt, buf.data());
-                session.txn.writes.push_back(std::move(buf));
-                SPDLOG_INFO("buffered update; txn now has {} writes",
-                            session.txn.writes.size());
-                return EmptyBatch();
-            }
-            SPDLOG_INFO("update outside txn (auto-commit dispatch)");
             return small::execution::update(stmt->update_stmt, true);
             break;
         }

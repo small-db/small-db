@@ -36,18 +36,8 @@
 
 namespace small::execution {
 
-// Run a SELECT.
-//
-// dispatch=true:  fan out to every node, each running with the provided
-//                 read_ts as its snapshot, then concatenate results.
-// dispatch=false: run locally with read_ts as the snapshot ts.
-//
-// read_ts_millis = 0 falls back to "use now()" — i.e., observe the latest
-// committed state. Pass an explicit value to read at a snapshot, e.g. so
-// reads inside a transaction don't see writes committed after BEGIN.
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
-    PgQuery__SelectStmt* select_stmt, bool dispatch,
-    int64_t read_ts_millis = 0);
+    PgQuery__SelectStmt* select_stmt, bool dispatch);
 
 class QueryServiceImpl final : public small::execution::Query::Service {
    public:

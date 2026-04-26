@@ -27,9 +27,6 @@ message Row {
 
 message RawNode {
   bytes packed_node = 1;
-  // For Update RPC: commit_ts (ms). For Query RPC: read_ts (ms).
-  // 0 means "use the receiving server's now()" (auto-commit / non-snapshot read).
-  int64 ts = 2;
 }
 
 message WriteResponse {
