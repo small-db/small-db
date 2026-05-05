@@ -1,10 +1,34 @@
 # Read Skew, and Why MVCC Fixes It
 
-## The Problem
+## The Anomaly
 
-The standard name for this anomaly in the database literature is **read skew** (Berenson et al., *A Critique of ANSI SQL Isolation Levels*, 1995; also chapter 7 of *Designing Data-Intensive Applications*). Informally: a transaction reads row `A`, another transaction modifies both `A` and `B`, and then the first transaction reads `B`. The reader has now observed `A` from before the writer and `B` from after the writer -- a state that no point in time ever actually held.
+**Behavior.** A `SELECT` returns a snapshot that no point in time ever actually held: some rows are observed before a concurrent writer's effect, others after. Invariants the writer was supposed to preserve appear violated to the reader, even though the writer committed atomically from its own point of view.
 
-The Jepsen bank test issues two kinds of operations against the cluster: `transfer` and `read`. A transfer is the two-statement sequence
+**Root cause.** Reading multiple rows is a non-atomic compound operation. The `SELECT` visits each row independently; a concurrent writer that touches more than one of those rows can commit *between* the reader's visits, so the read sees part of the writer's effect and not the rest.
+
+**Does this happen in single-server databases?** Yes. Read skew is a concurrency anomaly, not a distribution anomaly. A single-server SQL database with no isolation control will exhibit it whenever two clients run concurrently: client A's `SELECT` is mid-scan when client B's `UPDATE` commits, and A reads some rows from before B and others from after. Berenson et al. catalogued it as anomaly A5A in 1995, well before partitioning was mainstream. Distribution makes the window longer (each row visit is a network round-trip rather than a memory read) and makes pessimistic fixes more expensive (locks have to coordinate across nodes), but the anomaly itself is fundamental to concurrency, not to distribution.
+
+**Typical solutions.**
+
+- **2PL with shared locks.** The `SELECT` takes a shared lock on every row it visits (plus gap locks for predicate `WHERE` clauses), held until commit. Concurrent writers block on those locks. Standard in pre-MVCC systems; MySQL InnoDB at `SERIALIZABLE` works this way. Correct, but reads block writes and vice versa.
+- **MVCC with snapshot reads.** The `SELECT` pins a timestamp at the start; every row visit ignores versions written after that timestamp. Concurrent writes neither block the read nor affect it. Postgres (`REPEATABLE READ` and `SERIALIZABLE`), Oracle (default since forever), CockroachDB, Spanner, YugabyteDB, MySQL InnoDB at `REPEATABLE READ` -- the dominant approach in modern databases. **This is what the rest of this page implements.**
+- **Live with it.** Postgres's default `READ COMMITTED` permits read skew openly; users who care wrap their reads in `BEGIN ... COMMIT` at a stronger isolation level. Pragmatic; pushes the burden up to the application.
+
+For partitioned systems, MVCC has a structural advantage over locking: the snapshot timestamp is a single number that the coordinator can ship to every peer with no further coordination, and each peer answers independently. Spanner reinforces this with TrueTime to bound clock uncertainty across nodes for externally-consistent cross-node snapshots; CockroachDB and YugabyteDB use Hybrid Logical Clocks for the same goal. A lock-based equivalent would need a distributed lock manager, which is the cost (7) on the [lost-updates page](./lost_update.md) is paying.
+
+## The Problem (in this system)
+
+The Jepsen bank test from the [previous chapter](./bank_test.md) immediately failed when pointed at the MVP cluster. The first error in the recorded history came from a `SELECT id, balance FROM users` whose returned snapshot summed to `9916` rather than the expected `10,000` -- short by `84`.
+
+Looking at the on-disk write timeline for that failure:
+
+```
+13:28:33.426  initial state (Eve = 2500, Charlie = 1500)   -- INSERT
+13:28:33.474  Eve     = 2416    (T1 debit:  2500 - 84, on asia)
+13:28:33.489  Charlie = 1584    (T1 credit: 1500 + 84, on europe)
+```
+
+T1 is the transfer `(from = 5, to = 3, amount = 84)` -- Eve in Japan paying Charlie in France. The Jepsen client wraps both legs of every transfer in a single transaction:
 
 ```sql
 BEGIN;
@@ -13,15 +37,9 @@ UPDATE users SET balance = balance + amount WHERE id = to;
 COMMIT;
 ```
 
-and a read is
+But the two `UPDATE`s land on *different nodes* (Eve's row lives on asia, Charlie's on europe), and they execute as two separate gRPC calls dispatched in sequence. The 15-millisecond gap between `.474` and `.489` is a real interval during which the cluster's state contains Eve's debit but not Charlie's credit -- a state that no point in time should ever have held atomically.
 
-```sql
-SELECT id, balance FROM users;
-```
-
-The bank checker walks every read in the recorded history and asserts that the balances sum to `10,000`. Because every transfer subtracts `amount` from one account and adds it to another, the sum is invariant *as long as each transfer is observed atomically* -- a reader must either see both legs or neither.
-
-Today's read path cannot promise that. `ReadTable` (`src/rocks/rocks.cc`) returns "the latest version per primary key" with no notion of "as of time T":
+A `SELECT` whose execution lands in that gap reads each peer's *current* latest version. The pre-MVCC read path, in `src/rocks/rocks.cc`:
 
 ```cpp
 for (it->Seek(scan_prefix); ...; it->Next()) {
@@ -31,9 +49,22 @@ for (it->Seek(scan_prefix); ...; it->Next()) {
 return result;
 ```
 
-If a `SELECT` runs concurrently with a transfer, the iterator can visit `from`'s post-debit version and `to`'s pre-credit version. The returned snapshot is missing `amount` from one side, the sum is `10,000 - amount`, and the bank checker fails. This is read skew in its textbook form: row `from` is observed at a later point in time than row `to`.
+Asia returns Eve at `2416` (the post-debit version). Europe returns Charlie at `1500` (the credit hasn't been applied there yet). The coordinator concatenates the partition results:
 
-The cross-node case is worse. A transfer between Alice (Germany / `eu`) and Bob (USA / `america`) writes one half on each node's RocksDB. The scatter-gather `SELECT` queries both nodes; one peer can have applied its half while the other hasn't, and the assembled result is skewed even if each individual peer was consistent in isolation. The fix has to span both partitions.
+```
+{1: 1000, 3: 1500, 4: 3000, 5: 2416, 2: 2000}   -- sums to 9916
+```
+
+The bank checker compares against the invariant (`10,000`) and records a violation.
+
+This is the textbook **read skew** anomaly (Berenson et al., *A Critique of ANSI SQL Isolation Levels*, 1995, anomaly A5A; also chapter 7 of *Designing Data-Intensive Applications*). Informally: a transaction reads row `A`, another transaction modifies both `A` and `B`, and then the first transaction reads `B`. The reader has observed `A` from before the writer and `B` from after the writer -- a state that no point in time ever actually held.
+
+Two structural facts make this guaranteed to happen in our system, not just possible:
+
+1. `ReadTable` returns "the latest version per primary key" with no notion of "as of time T." Each peer in a scatter-gather answers independently, using whatever happens to be on disk when its iterator runs.
+2. The transfer's two halves are written by two separate `UPDATE` gRPCs to two separate partition owners. There is no atomic moment when both halves appear together; the gap between them is a real, observable interval.
+
+The fix has to address both at once -- give the read path a notion of "as of time T," and give that T enough meaning that every peer in the scatter-gather agrees on which writes are visible.
 
 ## Why MVCC
 

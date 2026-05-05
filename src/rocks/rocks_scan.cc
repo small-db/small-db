@@ -16,8 +16,6 @@
 // c++ std
 // =====================================================================
 
-#include <sys/wait.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -32,15 +30,18 @@
 #include <utility>
 #include <vector>
 
+#include <sys/wait.h>
+
 // =====================================================================
 // third-party libraries
 // =====================================================================
 
-#include "CLI/CLI.hpp"
-#include "nlohmann/json.hpp"
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "spdlog/spdlog.h"
+
+#include "CLI/CLI.hpp"
+#include "nlohmann/json.hpp"
 
 namespace fs = std::filesystem;
 
@@ -64,12 +65,12 @@ const std::vector<std::string> kLocalDataPathCandidates = {
 // Mirrors small-db-jepsen/src/small_db_jepsen/runner.clj. Hostnames assume
 // /etc/hosts entries (america/europe/asia) created by `hostctl add` per
 // CLAUDE.md.
-constexpr const char* kSshUser = "vagrant";
+constexpr const char* kSSHUser = "vagrant";
 // Resolved as $HOME + this suffix.
-constexpr const char* kSshKeyRel = "/.vagrant.d/insecure_private_key";
+constexpr const char* kSSHKeyRel = "/.vagrant.d/insecure_private_key";
 constexpr const char* kRemoteBinary = "/opt/small-db/rocks_scan";
 constexpr const char* kRemoteLibDir = "/opt/small-db/lib";
-constexpr int kSshConnectTimeoutSec = 5;
+constexpr int kSSHConnectTimeoutSec = 5;
 
 }  // namespace config
 
@@ -225,9 +226,9 @@ struct ScanOptions {
 void PrintScan(const std::vector<std::pair<std::string, std::string>>& kvs,
                const ScanOptions& opt) {
     // Group: table -> pk -> [(ts_raw, value)]
-    std::map<std::string,
-             std::map<std::string,
-                      std::vector<std::pair<std::string, std::string>>>>
+    std::map<
+        std::string,
+        std::map<std::string, std::vector<std::pair<std::string, std::string>>>>
         grouped;
     std::vector<std::pair<std::string, std::string>> unparseable;
 
@@ -250,9 +251,9 @@ void PrintScan(const std::vector<std::pair<std::string, std::string>>& kvs,
             std::cout << "    pk=" << pk << "  (" << versions.size()
                       << " version" << (versions.size() == 1 ? "" : "s")
                       << ")\n";
-            size_t start =
-                (opt.latest_only && versions.size() > 1) ? versions.size() - 1
-                                                         : 0;
+            size_t start = (opt.latest_only && versions.size() > 1)
+                               ? versions.size() - 1
+                               : 0;
             for (size_t i = start; i < versions.size(); ++i) {
                 const auto& [ts, val] = versions[i];
                 bool is_latest = (i + 1 == versions.size());
@@ -314,10 +315,10 @@ int RunRemoteScan(const std::string& host, const std::string& ssh_key,
 
     std::ostringstream cmd;
     cmd << "ssh -o StrictHostKeyChecking=no -o BatchMode=yes "
-        << "-o ConnectTimeout=" << config::kSshConnectTimeoutSec
+        << "-o ConnectTimeout=" << config::kSSHConnectTimeoutSec
         << " -o LogLevel=ERROR -i " << ShellQuote(ssh_key) << " "
-        << config::kSshUser << "@" << host << " "
-        << ShellQuote(remote.str()) << " 2>&1";
+        << config::kSSHUser << "@" << host << " " << ShellQuote(remote.str())
+        << " 2>&1";
 
     PrintHeader("vm:" + host);
     FILE* p = popen(cmd.str().c_str(), "r");
@@ -331,8 +332,9 @@ int RunRemoteScan(const std::string& host, const std::string& ssh_key,
     }
     int rc = pclose(p);
     if (rc != 0) {
-        std::cerr << "  ssh to " << host << " exited rc="
-                  << (WIFEXITED(rc) ? WEXITSTATUS(rc) : -1) << "\n";
+        std::cerr << "  ssh to " << host
+                  << " exited rc=" << (WIFEXITED(rc) ? WEXITSTATUS(rc) : -1)
+                  << "\n";
     }
     return rc;
 }
@@ -391,7 +393,7 @@ int main(int argc, char** argv) {
     //      are running this binary inside one of the VMs themselves) ----
     const char* home = std::getenv("HOME");
     std::string ssh_key =
-        (home ? std::string(home) : std::string()) + config::kSshKeyRel;
+        (home ? std::string(home) : std::string()) + config::kSSHKeyRel;
     if (!fs::exists(ssh_key)) {
         return 0;
     }
