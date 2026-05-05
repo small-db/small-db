@@ -177,4 +177,94 @@ Reading the matrix:
 - **Solves more than asked** is the third axis. (6) and (7) fix problems we haven't surfaced yet. Adopting them now is paying for capacity we don't currently use.
 - **Cross-node**, in our model, is a non-question for this failure mode. Each row has exactly one owner; "concurrent writers to the same row" is necessarily a same-node phenomenon. (7)'s only real value is multi-row writes that span partitions, which we don't have.
 
-The next page commits to one of these and walks through what the implementation actually looks like.
+## Implementing Per-Row 2PL
+
+We pick option (2): per-row pessimistic locking. The reasoning, briefly: it fixes the failure with no client-visible aborts, leaves snapshot reads alone (MVCC keeps doing what it does), uses a fully local mechanism on each partition owner, and is small enough to land in one commit. (1) is the bluntest version of the same idea; (3)-(5) push the same problem onto an abort-and-retry path the bank test isn't structured to handle; (6) and (7) solve more than we're asking.
+
+The implementation has three pieces: a lock manager, a tweak to the `update()` flow that takes the lock and reads "latest" instead of "at snapshot," and a small rule that keeps the on-disk version order monotonic per row.
+
+### The Lock Manager
+
+A new module at `src/lock/lock_manager.{h,cc}`. Process-wide singleton, keyed by `(table_name, pk_string)`:
+
+```cpp
+class LockManager {
+   public:
+    static LockManager* GetInstance();
+
+    // RAII handle: acquires on construction, releases on destruction.
+    class Lock {
+        ...
+    };
+    Lock Acquire(const std::string& table, const std::string& pk);
+
+   private:
+    std::mutex map_mu_;
+    std::unordered_map<std::string, std::shared_ptr<std::mutex>> locks_;
+};
+```
+
+`Acquire` looks up (or creates) the per-row mutex under `map_mu_`, then locks the per-row mutex itself outside `map_mu_` so the map's mutex is held only briefly. Exclusive locks only -- there is no shared-lock variant; readers go through MVCC and don't touch the lock manager. Map entries live forever for now; a real workload would eventually need a refcounted GC, but the bank test has 5 keys and that doesn't matter yet.
+
+### The Updated `update()` Flow
+
+In `src/execution/update.cc`, the local-execution path (`dispatch=false`, the receiver-side handler) becomes:
+
+```
+1. Parse the WHERE clause to extract the target pk.
+   (Bank test always has WHERE id = X. Anything else asserts and crashes.)
+2. Acquire LockManager::Acquire(table, pk).        ← RAII; held to end of scope
+3. Read the latest committed version of pk
+   (NOT a snapshot read; ignore the coordinator's ts).
+4. Compute the new column values in memory.
+5. Write the new version at version_ts =
+       max(coordinator_ts, latest_version_ts_for_pk + 1).
+6. Lock released automatically as the RAII handle goes out of scope.
+```
+
+The lock is held across the read-modify-write, so two concurrent UPDATEs to the same pk cannot interleave their reads and writes. The second to acquire sees the first's just-committed version in step 3.
+
+### Read-Latest, Not Read-at-Snapshot
+
+The pre-image read inside the lock deliberately does *not* go through `ReadTable(table, snapshot_ts)`. Reason: the lock prevents two UPDATEs from interleaving, but if the second to arrive uses an older `snapshot_ts` than the first's committed version, MVCC's filter (`version_ts > snapshot_ts → skip`) will skip the just-committed version and read a stale pre-image -- the lost update returns under a different costume.
+
+Inside the lock the writer wants the *truly current* state of the row. We add a sibling helper for this:
+
+```cpp
+// rocks/rocks.h
+std::optional<std::map<std::string, std::string>> ReadLatest(
+    const std::string& table_name, const std::string& pk);
+```
+
+`ReadLatest` does a prefix scan on `/{table}/{pk}/`, returns the lex-largest version's columns, and ignores any timestamp filter. This is what step 3 calls. It's the same pattern Postgres and MySQL InnoDB follow: an UPDATE's pre-image is read at "now" under the row lock, not at the transaction's snapshot.
+
+The cost of this design choice -- discussed earlier on the page -- is that an UPDATE statement does not respect `snapshot_ts`. SELECTs still do. The cluster has two read modes: snapshot reads for SELECT, read-latest for UPDATE. Documenting this honestly is more important than hiding it.
+
+### The version_ts Bump Rule
+
+Step 5 writes the new version at `max(coordinator_ts, latest_version_ts_for_pk + 1)`, not at `coordinator_ts` directly. The reason: coordinator timestamps from different nodes can arrive in non-ts order. If T_b (coordinator ts=105) commits its write first and T_a (coordinator ts=100) acquires the lock second, T_a's write at version_ts=100 would lex-sort *before* T_b's at 105 and be silently shadowed -- the same lost-update shape, now hidden inside a system that thought it was protected.
+
+Bumping the version_ts ensures the on-disk order matches the commit order on each row. Reads at any future `snapshot_ts >= bumped_ts` see T_a's write as the latest. Reads at `snapshot_ts` between T_b's commit and T_a's commit see T_b's value -- which is correct, because at that snapshot, T_a hadn't committed.
+
+The bump rule lives in `WriteRow`: before writing, scan the pk for the largest existing version_ts and bump if the caller-supplied `ts` doesn't exceed it.
+
+### Scope Decisions
+
+A few choices we make explicit so future-us doesn't have to reverse-engineer them:
+
+- **Single-pk UPDATE only.** `WHERE id = X` style. `WHERE balance > 100` (predicate WHERE that resolves to multiple rows) asserts and crashes -- not because it's hard to support, but because supporting it correctly requires (a) lock-ordering rules to avoid deadlock, (b) deciding whether the lock list is acquired before or during the predicate scan. The bank test never issues such an UPDATE; we'll cross that bridge if a workload arrives that does.
+- **Locks are statement-scoped, not transaction-scoped.** The bank test's `BEGIN; UPDATE ...; UPDATE ...; COMMIT` releases the first UPDATE's lock before the second UPDATE starts. This is fine for failure mode 1 (lost updates on a single row); it does *not* prevent a SELECT from observing the state between the two UPDATEs of one transfer (failure mode 2, read skew across statements). That is not the problem this page solves.
+- **Catalog DDL bypasses the lock manager.** `CatalogManager::UpdateTable` writes directly through `WriteRow`. DDL is not concurrent with itself in any current path, and routing it through the lock manager would mean serializing every CREATE TABLE behind the same map mutex.
+- **The dispatch fan-out side acquires the lock unconditionally.** UPDATEs broadcast to all three peers; two of them have no row matching the WHERE and do a no-op. They still acquire and release the lock briefly. Cheaper to keep the path uniform than to special-case it.
+
+### What This Buys (and What It Doesn't)
+
+**Buys.** Failure mode 1 disappears. Two concurrent transfers touching the same balance now serialize on that row's lock; the second sees the first's commit; both effects survive on disk. The bank test's "total > 10,000" failures (where money was created from thin air) should not appear in subsequent runs. By extension, "total < 10,000" failures whose root cause was a lost update -- as opposed to read skew within a single SELECT, which MVCC already addressed -- also disappear.
+
+**Doesn't.** Three things explicitly remain:
+
+- **Read skew across the two UPDATEs of one transfer.** The bank test's transfer is `BEGIN; UPDATE; UPDATE; COMMIT`, which our system runs as two independent statements at two independent coordinator ts values. A SELECT whose `snapshot_ts` falls between those two ts values still sees the debit without the credit. Locking the rows during one UPDATE doesn't help; the gap is between UPDATEs, not within one. Fixing this is the multi-statement transactions story -- a different page.
+- **Write skew.** Two transactions read overlapping data, write disjoint rows, the combined effect violates an invariant. Postgres needed SSI to catch this; the bank test doesn't exercise it.
+- **Multi-row UPDATE.** Asserts. Not in scope.
+
+A passing bank test is not the goal of this change -- a passing bank test requires both this *and* the read-skew-across-statements fix from the next page. What this change does deliver is "the on-disk state never gains or loses money," even if a transient SELECT can still observe a torn intermediate.
