@@ -188,6 +188,16 @@ The implementation has three pieces: a lock manager, a tweak to the `update()` f
 A new module at `src/lock/lock_manager.{h,cc}`. Process-wide singleton, keyed by `(table_name, pk_string)`:
 
 ```cpp
+using RowKey = std::tuple<std::string, std::string>;  // (table, pk)
+
+struct RowKeyHash {
+    size_t operator()(const RowKey& k) const {
+        size_t h1 = std::hash<std::string>{}(std::get<0>(k));
+        size_t h2 = std::hash<std::string>{}(std::get<1>(k));
+        return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    }
+};
+
 class LockManager {
    public:
     static LockManager* GetInstance();
@@ -200,9 +210,11 @@ class LockManager {
 
    private:
     std::mutex map_mu_;
-    std::unordered_map<std::string, std::shared_ptr<std::mutex>> locks_;
+    std::unordered_map<RowKey, std::shared_ptr<std::mutex>, RowKeyHash> locks_;
 };
 ```
+
+Using a `tuple<string, string>` instead of a composed `"table\0pk"` string says directly what the key *is*: the pair `(table, pk)`. The `RowKeyHash` is a small custom hasher because the standard library doesn't ship `std::hash<std::tuple<...>>` out of the box; the constant `0x9e3779b9` is the standard hash-combine multiplier (the reciprocal of the golden ratio in 32-bit fixed point), the same one Boost uses.
 
 `Acquire` looks up (or creates) the per-row mutex under `map_mu_`, then locks the per-row mutex itself outside `map_mu_` so the map's mutex is held only briefly. Exclusive locks only -- there is no shared-lock variant; readers go through MVCC and don't touch the lock manager. Map entries live forever for now; a real workload would eventually need a refcounted GC, but the bank test has 5 keys and that doesn't matter yet.
 
