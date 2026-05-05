@@ -16,6 +16,8 @@
 // c++ std
 // =====================================================================
 
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -152,6 +154,13 @@ absl::Status CatalogManager::UpdateTable(
     // write to in-memory cache
     tables[table->name()] = table;
 
+    // DDL is not threaded through a transaction coordinator; CREATE TABLE
+    // and friends are not concurrent with themselves and the system
+    // tables aren't read at user-supplied snapshots. Just stamp with now.
+    int64_t ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+                     std::chrono::system_clock::now().time_since_epoch())
+                     .count();
+
     // write to disk
     {
         std::vector<std::string> values;
@@ -162,7 +171,7 @@ absl::Status CatalogManager::UpdateTable(
         // columns
         values.push_back(nlohmann::json(table->columns()).dump());
 
-        db->WriteRow(this->system_tables, table->name(), values);
+        db->WriteRow(this->system_tables, table->name(), values, ts);
 
         // partition
         if (table->has_partition()) {
@@ -191,7 +200,7 @@ absl::Status CatalogManager::UpdateTable(
                         nlohmann::json(partition_item.values()).dump());
 
                     db->WriteRow(this->system_partitions, partition_name,
-                                 values);
+                                 values, ts);
                 }
             }
         }

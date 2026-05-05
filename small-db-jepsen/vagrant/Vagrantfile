@@ -56,6 +56,15 @@ Vagrant.configure("2") do |config|
       node.vm.provision "shell", inline: <<-SHELL
         sudo DEBIAN_FRONTEND=noninteractive apt-get -y install chrony
       SHELL
+
+      # Provision /opt/small-db as the persistent workdir for the server,
+      # tools binary, dynamic libs, data, log, and pidfile. /tmp is wiped on
+      # boot by systemd-tmpfiles (D /tmp), but /opt is not. After this, only
+      # Jepsen's setup! (which empties this dir's contents) clears artifacts.
+      node.vm.provision "shell", inline: <<-SHELL
+        sudo mkdir -p /opt/small-db/lib
+        sudo chown -R vagrant:vagrant /opt/small-db
+      SHELL
     end
   end
 end

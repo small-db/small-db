@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // =====================================================================
 // third-party libraries
 // =====================================================================
@@ -33,7 +35,7 @@
 
 namespace small::execution {
 
-absl::Status insert(PgQuery__InsertStmt* insert_stmt);
+absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts);
 
 class InsertServiceImpl final : public small::execution::Insert::Service {
    public:

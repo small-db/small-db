@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // =====================================================================
 // third-party libraries
 // =====================================================================
@@ -37,7 +39,7 @@
 namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
-    PgQuery__SelectStmt* select_stmt, bool dispatch);
+    PgQuery__SelectStmt* select_stmt, bool dispatch, int64_t snapshot_ts);
 
 class QueryServiceImpl final : public small::execution::Query::Service {
    public:

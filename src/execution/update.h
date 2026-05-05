@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // =====================================================================
 // third-party libraries
 // =====================================================================
@@ -37,7 +39,7 @@
 namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt, bool dispatch);
+    PgQuery__UpdateStmt* update_stmt, bool dispatch, int64_t ts);
 
 class UpdateServiceImpl final : public small::execution::Update::Service {
    public:

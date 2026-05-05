@@ -11,8 +11,14 @@
 
 # Distributed Database
 
-- [Jepsen Testing](./distributed_database/jepsen.md)
-- [Observability](./distributed_database/observability.md)
+- [From Single-Node to Distributed (MVP)](./distributed_database/from_single_node.md)
+- [Testing the MVP: The Bank Test](./distributed_database/bank_test.md)
+- [Read Skew, and Why MVCC Fixes It](./distributed_database/read_skew.md)
+
+# Clutter
+
+- [Jepsen Testing](./clutter/jepsen.md)
+- [Observability](./clutter/observability.md)
 
 # Appendix
 
@@ -20,3 +26,5 @@
 - [Bazel vs CMake](./appendix/bazel_vs_cmake.md)
 - [Code Style](./appendix/code_style.md)
 - [Build System Details](./appendix/build_system_details.md)
+- [AI-Coding-Era Narrative Styles](./appendix/ai_coding_narrative.md)
+- [Testing Techniques: PBT vs. Fuzzing](./appendix/testing_techniques.md)

@@ -16,6 +16,8 @@
 // c++ std
 // =====================================================================
 
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -208,6 +210,15 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> WrapEmptyStatus(
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
     PgQuery__Node* stmt) {
+    // The node that received the request is the transaction coordinator.
+    // Pick one ts here and use it for the whole statement -- writes stamp
+    // every new version with it; reads use it as the snapshot.
+    auto pick_ts = []() -> int64_t {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    };
+
     switch (stmt->node_case) {
         case PG_QUERY__NODE__NODE_CREATE_STMT: {
             auto create_stmt = stmt->create_stmt;
@@ -236,16 +247,18 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
-            return small::execution::query(stmt->select_stmt, true);
+            return small::execution::query(stmt->select_stmt, true, pick_ts());
             break;
         }
         case PG_QUERY__NODE__NODE_UPDATE_STMT: {
-            return small::execution::update(stmt->update_stmt, true);
+            return small::execution::update(stmt->update_stmt, true, pick_ts());
             break;
         }
         case PG_QUERY__NODE__NODE_INSERT_STMT: {
-            return WrapEmptyStatus(
-                [&]() { return small::execution::insert(stmt->insert_stmt); });
+            int64_t ts = pick_ts();
+            return WrapEmptyStatus([&]() {
+                return small::execution::insert(stmt->insert_stmt, ts);
+            });
             break;
         }
         default:

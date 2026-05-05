@@ -63,7 +63,7 @@
 
 namespace small::execution {
 
-absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
+absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
     auto table_name =
         small::schema::resolve_table_name(insert_stmt->relation);
     auto result =
@@ -150,6 +150,7 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt) {
                 request.add_column_values(type::encode(datum.value()));
             }
             request.set_table_name(table_name);
+            request.set_ts(ts);
             SPDLOG_INFO("insert row: {}", request.DebugString());
 
             auto channel = grpc::CreateChannel(
@@ -200,7 +201,7 @@ grpc::Status InsertServiceImpl::Insert(
 
     auto pk = values[small::schema::get_pk_index(*table)];
 
-    db->WriteRow(table, pk, values);
+    db->WriteRow(table, pk, values, request->ts());
 
     // TODO: set affected_rows in response
 

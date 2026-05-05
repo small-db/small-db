@@ -109,7 +109,7 @@ std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
 }
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
-    PgQuery__SelectStmt* select_stmt, bool dispatch) {
+    PgQuery__SelectStmt* select_stmt, bool dispatch, int64_t snapshot_ts) {
     auto table_name = small::schema::resolve_table_name(
         select_stmt->from_clause[0]->range_var);
 
@@ -137,6 +137,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         for (auto& [id, server] : servers) {
             small::execution::RawNode request;
             request.set_packed_node(packed.data(), packed_len);
+            request.set_ts(snapshot_ts);
 
             auto channel = grpc::CreateChannel(
                 server.grpc_addr, grpc::InsecureChannelCredentials());
@@ -211,7 +212,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
     // read kv pairs from rocksdb
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name);
+    auto rows = db->ReadTable(table_name, snapshot_ts);
 
     // filter rows based on WHERE clause
     if (select_stmt->where_clause != nullptr) {
@@ -471,7 +472,7 @@ grpc::Status QueryServiceImpl::Query(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result = query(node, /*dispatch=*/false);
+    auto result = query(node, /*dispatch=*/false, request->ts());
     pg_query__select_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {

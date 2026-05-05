@@ -66,7 +66,7 @@
 namespace small::execution {
 
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt, bool dispatch) {
+    PgQuery__UpdateStmt* update_stmt, bool dispatch, int64_t ts) {
     auto table_name = small::schema::resolve_table_name(update_stmt->relation);
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
@@ -86,6 +86,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
             pg_query__update_stmt__pack(update_stmt, buf);
 
             request.set_packed_node(buf, len);
+            request.set_ts(ts);
             free(buf);
 
             auto channel = grpc::CreateChannel(
@@ -105,9 +106,11 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
         return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
     }
 
-    // Local execution (dispatch=false)
+    // Local execution (dispatch=false). Use the same ts both for the
+    // pre-image read and for every new version we write, so the entire
+    // statement sits at one MVCC timestamp.
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name);
+    auto rows = db->ReadTable(table_name, ts);
 
     // filter (based on where clause)
     std::map<std::string, std::map<std::string, std::string>> filtered_rows;
@@ -200,7 +203,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
         for (const auto& col : table->columns()) {
             values.push_back(updated.at(col.name()));
         }
-        db->WriteRow(table, pk, values);
+        db->WriteRow(table, pk, values, ts);
     }
 
     auto schema = arrow::schema({});
@@ -216,7 +219,7 @@ grpc::Status UpdateServiceImpl::Update(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result = update(node, false);
+    auto result = update(node, false, request->ts());
     pg_query__update_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {

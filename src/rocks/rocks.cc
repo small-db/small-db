@@ -16,7 +16,7 @@
 // c++ std
 // =====================================================================
 
-#include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
@@ -94,18 +94,8 @@ RocksDBWrapper::~RocksDBWrapper() { Close(); }
 
 void RocksDBWrapper::Close() { delete db_; }
 
-bool RocksDBWrapper::Put(const std::string& key, const std::string& value) {
-    rocksdb::Status status = db_->Put(rocksdb::WriteOptions(), key, value);
-    return status.ok();
-}
-
-bool RocksDBWrapper::Get(const std::string& key, std::string& value) {
-    rocksdb::Status status = db_->Get(rocksdb::ReadOptions(), key, &value);
-    return status.ok();
-}
-
 std::map<std::string, std::map<std::string, std::string>>
-RocksDBWrapper::ReadTable(const std::string& table_name) {
+RocksDBWrapper::ReadTable(const std::string& table_name, int64_t snapshot_ts) {
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
 
@@ -124,14 +114,25 @@ RocksDBWrapper::ReadTable(const std::string& table_name) {
         // Parse key format: "/{table_name}/{pk}/{timestamp}"
         size_t start_pos = scan_prefix.length();
         size_t pk_end = key.find('/', start_pos);
-        if (pk_end != std::string::npos) {
-            std::string pk = key.substr(start_pos, pk_end - start_pos);
-
-            // Lexicographic order on zero-padded timestamps means the last
-            // value we see for a given pk is the most recent version.
-            auto columns = nlohmann::json::parse(value);
-            result[pk] = columns.get<std::map<std::string, std::string>>();
+        if (pk_end == std::string::npos) {
+            continue;
         }
+        std::string pk = key.substr(start_pos, pk_end - start_pos);
+
+        // The third segment is the 20-digit zero-padded ms timestamp.
+        std::string ts_str = key.substr(pk_end + 1);
+        int64_t version_ts = std::stoll(ts_str);
+
+        // Skip versions that are not yet visible at the requested snapshot.
+        if (version_ts > snapshot_ts) {
+            continue;
+        }
+
+        // Lexicographic order on zero-padded timestamps means the last
+        // visible value we see for a given pk is the most recent version
+        // at or before snapshot_ts.
+        auto columns = nlohmann::json::parse(value);
+        result[pk] = columns.get<std::map<std::string, std::string>>();
     }
 
     return result;
@@ -154,23 +155,21 @@ void RocksDBWrapper::PrintAllKV() {
 
 void RocksDBWrapper::WriteRow(
     const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
-    const std::vector<std::string>& values) {
+    const std::vector<std::string>& values, int64_t ts) {
     // Build JSON object from columns
     nlohmann::json obj;
     for (int i = 0; i < table->columns().size(); ++i) {
         obj[table->columns()[i].name()] = values[i];
     }
 
-    // Generate zero-padded 20-digit millisecond timestamp
-    auto now = std::chrono::system_clock::now();
-    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      now.time_since_epoch())
-                      .count();
-    std::ostringstream ts;
-    ts << std::setw(20) << std::setfill('0') << millis;
+    // Caller-supplied transaction timestamp, formatted as a zero-padded
+    // 20-digit string so that lex order on the key suffix matches
+    // chronological order.
+    std::ostringstream ts_str;
+    ts_str << std::setw(20) << std::setfill('0') << ts;
 
-    auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, ts.str());
-    this->Put(key, obj.dump());
+    auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, ts_str.str());
+    db_->Put(rocksdb::WriteOptions(), key, obj.dump());
 }
 
 }  // namespace small::rocks

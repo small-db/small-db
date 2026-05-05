@@ -16,13 +16,16 @@
    [jepsen.tests.bank :as bank]
    [pg.core]))
 
-;; file location inside VM
-(def workDir     "/tmp/small-db")
+;; File locations inside the VM. Anchored under /opt/small-db so artifacts
+;; survive `vagrant halt`/reboot (systemd-tmpfiles wipes /tmp on boot, but
+;; not /opt). The directory is provisioned by Vagrantfile as vagrant-owned;
+;; only Jepsen's setup! step clears its contents (see :find -delete below).
+(def workDir     "/opt/small-db")
 (def binary  (str workDir "/server"))
 (def data-dir (str workDir "/data"))
 (def logfile (str workDir "/server.log"))
 (def pidfile (str workDir "/server.pid"))
-(def libDir  "/tmp/lib")
+(def libDir  (str workDir "/lib"))
 
 ;; runtime ports
 (def sql-port 5001)
@@ -138,7 +141,7 @@
       (pg.core/close (:conn this)))))
 
 (defn copy-dynamic-libs
-  "Get dynamic libraries and copy them to /tmp/lib/ on VM"
+  "Resolve the binary's dynamic-library deps via ldd and upload them to libDir."
   [binary-path]
   (let [result (clojure.java.shell/sh "ldd" binary-path)
         lines (str/split-lines (:out result))
@@ -169,11 +172,13 @@
       (try (jepsen.control/exec :fuser :-k (str grpc-port "/tcp"))
            (catch Exception _))
 
-      ;; clean up - clear data files
-      (jepsen.control/exec :rm :-rf workDir)
+      ;; clean up - clear contents of workDir but keep the directory itself
+      ;; (its ownership is set up by Vagrant provisioning). `find -mindepth 1`
+      ;; excludes workDir itself from deletion.
+      (jepsen.control/exec :mkdir :-p workDir)
+      (jepsen.control/exec :find workDir :-mindepth 1 :-delete)
 
       ;; copy server binary to VM
-      (jepsen.control/exec :mkdir :-p workDir)
       (jepsen.control/upload [host-binary] binary)
       (jepsen.control/exec :chmod :+x binary)
 
