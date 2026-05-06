@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Style
+
+**When a bug or test failure shows up, discuss before patching.** Don't jump straight to writing a fix. Explain what's happening, propose candidate fixes with trade-offs, and wait for direction. The cost of a paused conversation is small; the cost of committing to the wrong fix is rewriting it. Even when the cause looks obvious, surface the diagnosis first so the user can redirect or confirm.
+
+**Implement only the core idea of each book post.** When implementing what a book chapter / page describes, code only the central mechanism the page is teaching. Do not add safeguards, refinements, or non-trivial extensions on your own initiative -- even when the page itself mentions them as caveats or "subtleties." Non-trivial logic (bump rules, retry loops, phase-1 prepares, fallback paths, defensive checks beyond the bare requirement) only goes in when the user explicitly asks for it. If you think an extension is needed, surface it as a question, not a commit.
+
 ## Project Overview
 
 small-db is a distributed SQL database written in C++20. It supports PostgreSQL wire protocol, LIST-based partitioning across regions, gossip-based replication, and uses RocksDB for storage.
