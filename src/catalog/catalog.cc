@@ -210,12 +210,10 @@ absl::Status CatalogManager::UpdateTable(
         return absl::OkStatus();
     }
 
-    // update other servers
+    // Broadcast DDL to every other peer gossip knows about. A single-
+    // node deployment (e.g. an in-process unit test) sees only itself
+    // here and skips the loop, which is what we want.
     auto nodes = small::gossip::get_nodes(std::nullopt);
-    if (nodes.size() != 3) {
-        return absl::InternalError("no enough nodes");
-    }
-
     for (const auto& [_, server] : nodes) {
         if (server.grpc_addr ==
             gossip::GossipServer::get_instance()->self_info.grpc_addr) {

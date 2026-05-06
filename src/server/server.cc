@@ -61,8 +61,8 @@
 #include "src/execution/update.h"
 #include "src/gossip/gossip.h"
 #include "src/pg_wire/pg_wire.h"
-#include "src/server/stmt_handler.h"
 #include "src/server_info/info.h"
+#include "src/txn/handle.h"
 #include "src/txn/txn.h"
 #include "src/util/ip/ip.h"
 
@@ -122,7 +122,7 @@ class SocketsManager {
 
    private:
     std::unordered_map<int, SocketState> socket_states;
-    std::unordered_map<int, small::stmt_handler::TxnState> txn_states;
+    std::unordered_map<int, small::txn::Txn> txn_states;
 
     // Static pointer to the Singleton instance.
     static SocketsManager* instancePtr;
@@ -183,7 +183,7 @@ class SocketsManager {
     // entry is default-constructed (inactive, no buffered writes) on
     // first access, so `auto& txn = get_txn_state(fd)` is safe even if
     // the connection has never run BEGIN before.
-    static small::stmt_handler::TxnState& get_txn_state(int sockfd) {
+    static small::txn::Txn& get_txn_state(int sockfd) {
         auto instance = getInstance();
         return instance->txn_states[sockfd];
     }
@@ -252,8 +252,7 @@ void handle_command(std::string& command, int sockfd) {
 
     auto& txn = SocketsManager::get_txn_state(sockfd);
     for (int i = 0; i < unpacked->n_stmts; i++) {
-        auto result =
-            small::stmt_handler::handle_stmt(unpacked->stmts[i]->stmt, txn);
+        auto result = txn.ExecuteNode(unpacked->stmts[i]->stmt);
         if (!result.ok()) {
             SPDLOG_ERROR("error handling statement: {}",
                          result.status().ToString());

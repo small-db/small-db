@@ -13,8 +13,18 @@
 // limitations under the License.
 
 // =====================================================================
+// c++ std
+// =====================================================================
+
+#include <string>
+
+// =====================================================================
 // third-party libraries
 // =====================================================================
+
+// absl
+#include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 
 // magic_enum
 #include "magic_enum/magic_enum.hpp"
@@ -57,6 +67,19 @@ std::optional<small::type::Datum> extract_const(PgQuery__AConst* node) {
                          magic_enum::enum_name(node->val_case));
             return std::nullopt;
         }
+    }
+}
+
+absl::StatusOr<std::string> a_const_to_string(PgQuery__AConst* c) {
+    switch (c->val_case) {
+        case PG_QUERY__A__CONST__VAL_IVAL:
+            return std::to_string(c->ival->ival);
+        case PG_QUERY__A__CONST__VAL_SVAL:
+            return std::string(c->sval->sval);
+        default:
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "unsupported A_Const value kind: %s",
+                magic_enum::enum_name(c->val_case)));
     }
 }
 

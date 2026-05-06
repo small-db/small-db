@@ -1,8 +1,6 @@
 add_library(small_server
     server.cc
     server.h
-    stmt_handler.cc
-    stmt_handler.h
 )
 
 target_link_libraries(small_server
@@ -14,6 +12,7 @@ target_link_libraries(small_server
     small::catalog
     small::gossip
     small::txn
+    small::txn_handle
     small::id
     small::rocks
     small::semantics

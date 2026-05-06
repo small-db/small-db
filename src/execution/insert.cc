@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 // =====================================================================
@@ -100,8 +101,10 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
             // get the partition value
             auto row =
                 insert_stmt->select_stmt->select_stmt->values_lists[row_id];
-            auto partition_value =
-                row->list->items[partition_column_id]->a_const->sval->sval;
+            auto pv_or = small::semantics::a_const_to_string(
+                row->list->items[partition_column_id]->a_const);
+            if (!pv_or.ok()) return pv_or.status();
+            std::string partition_value = std::move(pv_or.value());
             SPDLOG_INFO("partition value: {}", partition_value);
 
             // get the partition
