@@ -1,0 +1,162 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Bank-Test Actual Failure" id="bank-test-actual">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Bank-test failure: clocks are synced; the inversion comes from network paths. T2 commits 3 ms after T1 (real time) but reaches Charlie's owner first."
+                style="text;html=1;align=center;fontSize=14;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1120" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t0lbl" value="&lt;b&gt;t = 0&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1lbl" value="&lt;b&gt;t = 1&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="240" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2lbl" value="&lt;b&gt;t = 2&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="540" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3lbl" value="&lt;b&gt;t = 3&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="900" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="timeAxis" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="92" as="sourcePoint"/>
+            <mxPoint x="1140" y="92" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="tickT0" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="95" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT1" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="275" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT2" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="575" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT3" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="935" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="userBand" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=20" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="1120" height="130" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="userBandLabel" value="&lt;b&gt;What the apps see (user perspective)&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="400" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appAlabel" value="&lt;b&gt;App A&lt;/b&gt;" style="text;html=1;align=right;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBlabel" value="&lt;b&gt;App B&lt;/b&gt;" style="text;html=1;align=right;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="50" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appAt1" value="send &lt;b&gt;T1&lt;/b&gt;: transfer 2 → 3, $14"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="145" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="appAt2" value="&lt;b style='color:#82b366'&gt;OK&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="525" y="145" width="100" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appBt1" value="send &lt;b&gt;T2&lt;/b&gt;: transfer 3 → 1, $61"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="195" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBt2" value="&lt;b style='color:#82b366'&gt;OK&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="525" y="195" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBt3" value="SELECT → &lt;b style='color:#b85450'&gt;Charlie = 1439&lt;/b&gt;&lt;br&gt;⚠ expected 1453"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="880" y="180" width="180" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="internalBand" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=20" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="1120" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="internalBandLabel" value="&lt;b&gt;Inside the database (clocks across nodes are synced)&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="50" y="265" width="600" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="amerLabel" value="&lt;b&gt;america&lt;/b&gt;" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="20" y="300" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="euroLabel" value="&lt;b&gt;europe&lt;/b&gt;" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="20" y="350" width="70" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="storageLabel" value="&lt;b&gt;Charlie's&lt;br&gt;chain (europe)&lt;/b&gt;" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="0" y="425" width="90" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="amerEvent" value="commit T1, &lt;b&gt;commit_ts = 870&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="295" width="180" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="euroEvent" value="commit T2, &lt;b&gt;commit_ts = 873&lt;/b&gt;&lt;br&gt;&lt;font size='1'&gt;(real time, 3 ms after T1)&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=10"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="345" width="180" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pT2arrive" value="&lt;b&gt;T2 lands first&lt;/b&gt; (local hop)&lt;br&gt;ReadLatest=1500&lt;br&gt;write &lt;font face='monospace'&gt;/users/3/...873 = 1439&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="430" y="415" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="pT1arrive" value="&lt;b&gt;T1 lands second&lt;/b&gt; (cross-network)&lt;br&gt;ReadLatest=1439, compute &lt;b&gt;1453&lt;/b&gt; ✓&lt;br&gt;write &lt;font face='monospace'&gt;/users/3/...870 = 1453&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="700" y="415" width="220" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="msgC2toP" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366" edge="1" parent="1" source="euroEvent" target="pT2arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgC1toP" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;dashed=1" edge="1" parent="1" source="amerEvent" target="pT1arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgC2lbl" value="local, fast" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="395" y="385" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgC1lbl" value="across the network, slower" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="500" y="320" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="diskAndRead" value="&lt;b&gt;Charlie's chain on disk (sorted lex by version_ts), and what SELECT returns:&lt;/b&gt;&lt;br&gt;&lt;font face='monospace'&gt;/users/3/&amp;lt;init&amp;gt;  → 1500&lt;br&gt;/users/3/...870  → &lt;font color='#b85450'&gt;1453&lt;/font&gt;  &lt;font color='#b85450'&gt;★ T1 — correct, lex-smaller, SHADOWED&lt;/font&gt;&lt;br&gt;/users/3/...873  → &lt;font color='#82b366'&gt;1439&lt;/font&gt;  &lt;font color='#82b366'&gt;★ T2 — lex-largest, MVCC visible&lt;/font&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Read returns &lt;b style='color:#b85450'&gt;1439&lt;/b&gt;. T1's correct 1453 is at /users/3/...870, on disk but invisible."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="525" width="1080" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="anomaly" value="&lt;b&gt;The anomaly:&lt;/b&gt; clocks are synced. T2's commit_ts (873) is greater than T1's (870) only because T2 committed 3 ms later in real time. Yet T2 reaches Charlie's owner &lt;i&gt;first&lt;/i&gt; (local hop), while T1 reaches it &lt;i&gt;second&lt;/i&gt; (network hop from america). T1 reads T2's value, computes the right composite balance (1453), and writes it — but at its own smaller commit_ts. MVCC's lex-largest rule picks 1439, and the correct 1453 disappears from view. Both apps got OK; T1's $14 credit silently vanishes.&lt;br&gt;&lt;br&gt;This is &lt;b&gt;not&lt;/b&gt; explainable as &quot;last writer wins.&quot; T1 is chronologically the later writer at the storage layer, and even read T2's value before composing on top of it — by every user-facing measure T1 was the most recent. The cluster's notion of recency (numeric version_ts) disagrees with reality."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="665" width="1080" height="140" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

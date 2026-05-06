@@ -1,0 +1,183 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Anomaly: User vs Internal" id="anomaly-user-vs-internal">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Two atomic transactions on a single counter R. Both return OK. The increments do not compose. T1's effect is silently lost despite being on disk."
+                style="text;html=1;align=center;fontSize=15;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1120" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t0lbl" value="&lt;b&gt;t = 0&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1lbl" value="&lt;b&gt;t = 1&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="240" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2lbl" value="&lt;b&gt;t = 2&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="540" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3lbl" value="&lt;b&gt;t = 3&lt;/b&gt;" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="900" y="65" width="80" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="timeAxis" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="92" as="sourcePoint"/>
+            <mxPoint x="1140" y="92" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="tickT0" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="95" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT1" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="275" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT2" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="575" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="tickT3" value="" style="ellipse;fillColor=#444444;strokeColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="935" y="86" width="10" height="10" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="userBand" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=20" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="1120" height="170" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="userBandLabel" value="&lt;b&gt;What the apps see (user perspective)&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="400" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appAlabel" value="&lt;b&gt;App A&lt;/b&gt;" style="text;html=1;align=right;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="155" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBlabel" value="&lt;b&gt;App B&lt;/b&gt;" style="text;html=1;align=right;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="50" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appAt1" value="send&lt;br&gt;&lt;b&gt;T1: R += 5&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="145" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="appAt2" value="receive&lt;br&gt;&lt;b style='color:#82b366'&gt;OK&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="525" y="145" width="110" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="appBt1" value="send&lt;br&gt;&lt;b&gt;T2: R += 3&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="210" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBt2" value="receive&lt;br&gt;&lt;b style='color:#82b366'&gt;OK&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="525" y="210" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="appBt3" value="read R&lt;br&gt;&lt;b style='color:#b85450'&gt;103&lt;/b&gt;&lt;br&gt;⚠ expected 108"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="880" y="200" width="120" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="userExpect" value="Apps started with R = 100. Both atomic increments returned OK. Expected R = 100 + 5 + 3 = &lt;b&gt;108&lt;/b&gt;."
+                style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="50" y="260" width="900" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="internalBand" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=20" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="1120" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="internalBandLabel" value="&lt;b&gt;What's happening inside the database (the app cannot see this)&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="50" y="305" width="600" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c1label" value="&lt;b&gt;C1&lt;/b&gt;&lt;br&gt;&lt;font size='1'&gt;coord of T1&lt;/font&gt;"
+                style="text;html=1;align=right;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="20" y="335" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="c2label" value="&lt;b&gt;C2&lt;/b&gt;&lt;br&gt;&lt;font size='1'&gt;coord of T2&lt;/font&gt;"
+                style="text;html=1;align=right;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="20" y="395" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="plabel" value="&lt;b&gt;P&lt;/b&gt;&lt;br&gt;&lt;font size='1'&gt;owner of R&lt;/font&gt;"
+                style="text;html=1;align=right;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="20" y="475" width="70" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c1event" value="picks &lt;b&gt;commit_ts = 10&lt;/b&gt;&lt;br&gt;send write to P"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="335" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c2event" value="picks &lt;b&gt;commit_ts = 13&lt;/b&gt;&lt;br&gt;send write to P"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="225" y="395" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="pT2arrive" value="&lt;b&gt;T2 arrives first&lt;/b&gt; (faster network)&lt;br&gt;ReadLatest = 100; compute 103&lt;br&gt;write &lt;font face='monospace'&gt;/R/13 = 103&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="430" y="465" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="pT1arrive" value="&lt;b&gt;T1 arrives second&lt;/b&gt;&lt;br&gt;ReadLatest = 103 (T2's value)&lt;br&gt;compute &lt;b&gt;108&lt;/b&gt;  ← correct!&lt;br&gt;write &lt;font face='monospace'&gt;/R/10 = 108&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="680" y="465" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="msgC2toP" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366" edge="1" parent="1" source="c2event" target="pT2arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgC1toP" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;dashed=1" edge="1" parent="1" source="c1event" target="pT1arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="msgC2lbl" value="fast"
+                style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="395" y="430" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgC1lbl" value="slow / reordered"
+                style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="450" y="370" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="diskState" value="&lt;b&gt;Final disk state of R (sorted lex)&lt;/b&gt;&lt;br&gt;&lt;font face='monospace'&gt;/R/&amp;lt;init&amp;gt;  → 100&lt;br&gt;/R/10        → &lt;font color='#b85450'&gt;108&lt;/font&gt;  &lt;font color='#b85450'&gt;★ T1 — correct, but lex-smaller&lt;/font&gt;&lt;br&gt;/R/13        → &lt;font color='#82b366'&gt;103&lt;/font&gt;  &lt;font color='#82b366'&gt;★ T2 — lex-largest, MVCC visible&lt;/font&gt;&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="100" y="610" width="500" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="readResolution" value="&lt;b&gt;App's read at t = 3&lt;/b&gt; resolves to lex-largest version_ts.&lt;br&gt;&lt;b&gt;Returns 103.&lt;/b&gt; T1's correct value &lt;b&gt;108&lt;/b&gt; is sitting at /R/10 — but invisible."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="620" y="610" width="500" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="anomaly" value="&lt;b&gt;The anomaly:&lt;/b&gt; the apps did everything right. Both transactions were atomic, both returned OK, and the value T1 was supposed to produce (108) was actually computed correctly internally — it's right there at /R/10. The math the apps expected is &lt;i&gt;literally on disk&lt;/i&gt;. But MVCC compares version_ts numerically and picks the lex-largest, which happens to be T2's smaller increment. T1's effect is silently dropped. The apps cannot detect this; they just see the read return 103 instead of 108.&lt;br&gt;&lt;br&gt;This is &lt;b&gt;not&lt;/b&gt; explainable as &quot;last writer wins&quot;: T1 chronologically arrived &lt;i&gt;after&lt;/i&gt; T2 at storage and even read T2's value before computing on top of it. By any user-facing notion of &quot;most recent,&quot; T1 won. The cluster's notion of &quot;most recent&quot; (lex-largest version_ts) disagrees with both real-time order and the apps' expectations."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="730" width="1080" height="150" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
