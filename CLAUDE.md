@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **When a bug or test failure shows up, discuss before patching.** Don't jump straight to writing a fix. Explain what's happening, propose candidate fixes with trade-offs, and wait for direction. The cost of a paused conversation is small; the cost of committing to the wrong fix is rewriting it. Even when the cause looks obvious, surface the diagnosis first so the user can redirect or confirm.
 
+**Gather concrete evidence before discussion or fix.** When something fails, do not stop at hypotheses. Read the relevant logs, scan the actual on-disk state, trace the failing operation in the recorded history -- whatever it takes to ground the discussion in observed facts rather than guesses. Two hypotheses with the same client-visible symptom usually have different signatures in the storage layer or the logs; the right next step is to look, not to argue. Bring the evidence first, then we discuss. "I think it's X" is not an answer; "I scanned the VMs and Bob's version_ts is Y while Alice's is Z, so it's X" is.
+
 **Implement only the core idea of each book post.** When implementing what a book chapter / page describes, code only the central mechanism the page is teaching. Do not add safeguards, refinements, or non-trivial extensions on your own initiative -- even when the page itself mentions them as caveats or "subtleties." Non-trivial logic (bump rules, retry loops, phase-1 prepares, fallback paths, defensive checks beyond the bare requirement) only goes in when the user explicitly asks for it. If you think an extension is needed, surface it as a question, not a commit.
 
 ## Project Overview
