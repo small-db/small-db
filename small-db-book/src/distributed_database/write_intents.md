@@ -56,7 +56,15 @@ A read at `snapshot_ts` over `(table, pk)` prefix-scans `/(table)/(pk)/` and may
   - `ABORTED`: skip the intent.
   - `PENDING`: simplest first cut -- the reader waits briefly, then errors back to the client. The client retries. Production systems push the writer, queue the reader, or build a wait-for graph; we defer that.
 
-A reader that finds a `COMMITTED` intent may rewrite it as `/<table>/<pk>/<commit_ts> → value` and delete the INTENT key (lazy promotion). The system is correct without that cleanup; we defer it to a later page.
+### Promotion
+
+When a reader resolves an intent to `COMMITTED`, it persists the resolution as a numeric MVCC version: `Put /<table>/<pk>/<commit_ts> = value`. **It does not delete the INTENT key.** Call this *half-promotion*.
+
+Why not also delete? The reader has no row lock, and `/<table>/<pk>/INTENT` is a *slot* whose contents change as transactions come and go. Between a reader's `Get(/INTENT)` and a hypothetical `Delete(/INTENT)`, a writer can take `lock(R)`, replace the slot's contents with its own freshly-laid intent, and release the lock. The reader's path-addressed Delete then nukes the writer's brand-new intent, silently losing that write. The Put on `/<commit_ts>` is *content-addressed* (the key is derived from the txn's permanent `commit_ts`) and idempotent across all races; the Delete is not. Half-promote keeps the safe half.
+
+A writer, by contrast, holds `lock(R)` and is the only party that can mutate the slot. When a writer encounters a prior `COMMITTED` intent under its lock it does *full-promotion*: a single atomic write batch of `Put /<commit_ts>` + `Delete /INTENT`. After that the row's chain has the prior commit as a numeric version and the slot is empty for the writer's own intent.
+
+What half-promotion buys: the resolved value survives any future GC of the txn record, and the next writer's full-promote degenerates to just a `Delete`. What it does *not* buy: every reader on a row whose intent has not yet been full-promoted by a writer still pays one resolve-RPC. On rows with frequent writes this is amortized away; on cold rows the intent lingers. Async cleanup -- a sweeper that takes the row lock and full-promotes orphaned intents -- closes that gap and deserves its own chapter.
 
 ## Why It Fixes Shadowed Writes
 
@@ -156,7 +164,11 @@ db->AppendTxnIntentKey(txn.txn_id, intent_key);  // one Put on coordinator
 txn.held_locks.push_back(std::move(lock));
 ```
 
-`LatestVersionTs` becomes intent-aware. Its prefix scan over `/<table>/<pk>/` may encounter an `INTENT` key for a transaction that has already finished but whose intent hasn't been promoted to a numeric `version_ts` yet. When it sees one, it resolves the intent via `ResolveIntent` and treats the resolved `commit_ts` as a candidate for "latest" if the status is `COMMITTED`. `ABORTED` and `UNKNOWN` are skipped. `ACTIVE` cannot appear here -- we hold `lock(R)` and the LIST-partitioning model has at most one writer per row across the cluster, so any pre-existing intent on R must belong to a transaction that has already finished.
+`LatestVersionTs` becomes intent-aware. Its prefix scan over `/<table>/<pk>/` may encounter an `INTENT` key for a prior transaction. It resolves via `ResolveIntent` and acts on the result:
+
+- `COMMITTED`: full-promote (atomic `Put /<commit_ts>` + `Delete /INTENT` -- safe because we hold `lock(R)`) and use `commit_ts` as the candidate for "latest." The slot is now empty for the writer's own intent.
+- `ABORTED` / `UNKNOWN`: skip; the writer's own `WriteIntent` will overwrite the slot.
+- `ACTIVE`: abort the current transaction with a retryable error. In the steady state this should not happen -- the row lock plus single-owner-per-row partitioning means any intent on `R` belongs to a transaction that has released its lock, and a transaction that has released its lock has flipped its status. The case still has to be handled, because a coordinator that crashed between writing intents and flipping its txn record leaves a stale `ACTIVE` record behind. Pushing the other transaction or queueing a waiter is deferred to a later page.
 
 ### 4. `COMMIT` / `ROLLBACK` Flip the Txn Record
 

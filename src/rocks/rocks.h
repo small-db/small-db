@@ -265,6 +265,33 @@ class RocksDBWrapper {
             const IntentRow&)>;
 
     /**
+     * @brief Reader-side intent promotion: persist a resolved
+     *        COMMITTED intent's value as a numeric MVCC version.
+     *
+     * Writes only `/<table>/<pk>/<commit_ts>` -- the intent slot is
+     * left in place. Lock-free and idempotent: any number of readers
+     * may race this Put against each other or against a writer's
+     * `FullPromoteIntent` and the result is identical (same key, same
+     * value derived from the txn's permanent commit_ts).
+     */
+    void HalfPromoteIntent(const std::string& table_name,
+                           const std::string& pk, int64_t commit_ts,
+                           const std::map<std::string, std::string>& values);
+
+    /**
+     * @brief Writer-side intent promotion: persist the value as a
+     *        numeric MVCC version AND delete the intent slot in one
+     *        atomic write batch.
+     *
+     * Caller MUST hold `lock(table, pk)`. The Delete is path-addressed
+     * (`/<table>/<pk>/INTENT`) and would race with a concurrent slot
+     * mutation if no lock were held.
+     */
+    void FullPromoteIntent(const std::string& table_name,
+                           const std::string& pk, int64_t commit_ts,
+                           const std::map<std::string, std::string>& values);
+
+    /**
      * @brief Variant of ReadTable that surfaces COMMITTED intents whose
      *        commit_ts is <= snapshot_ts.
      *

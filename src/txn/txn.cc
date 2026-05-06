@@ -124,23 +124,30 @@ absl::StatusOr<int64_t> latest_committed_version_ts(
     const auto& resp = resp_or.value();
 
     switch (resp.status()) {
-        case ResolveIntentResponse::COMMITTED:
-            if (resp.commit_ts() > latest) latest = resp.commit_ts();
+        case ResolveIntentResponse::COMMITTED: {
+            // Caller holds lock(table, pk) -- safe to do the full
+            // promotion (numeric Put + intent Delete). Cleans up the
+            // slot before the caller writes its own intent.
+            int64_t commit_ts = resp.commit_ts();
+            db->FullPromoteIntent(table_name, pk, commit_ts, intent->values);
+            if (commit_ts > latest) latest = commit_ts;
             break;
+        }
         case ResolveIntentResponse::ABORTED:
         case ResolveIntentResponse::UNKNOWN:
-            // Intent is dead; skip.
+            // Intent is dead; the caller's WriteIntent will overwrite
+            // the slot.
             break;
         case ResolveIntentResponse::ACTIVE:
-            // Should not happen: the caller holds lock(table, pk), and
-            // the LIST-partitioning model has exactly one writer per row
-            // across the cluster. A pre-existing intent on this row
-            // must belong to a transaction that has already finished.
-            SPDLOG_WARN(
-                "latest_committed_version_ts: unexpected ACTIVE intent "
-                "txn_id={} on {}/{}",
-                intent->txn_id, table_name, pk);
-            break;
+            // The intent's coordinator is still in flight. Could happen
+            // after a coordinator crash leaves a stale ACTIVE record,
+            // or before the cleanup of an in-progress txn. The current
+            // writer aborts and lets the client retry; pushing the
+            // other transaction or queueing a waiter is deferred to a
+            // later page.
+            return absl::AbortedError(absl::StrFormat(
+                "active intent on %s/%s for txn_id=%d; retry",
+                table_name, pk, intent->txn_id));
         default:
             SPDLOG_ERROR(
                 "latest_committed_version_ts: unknown ResolveIntent "
