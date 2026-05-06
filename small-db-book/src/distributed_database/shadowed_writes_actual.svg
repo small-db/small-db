@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 760" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="760" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="540" y="26" text-anchor="middle" font-size="14" font-weight="bold">Bank-test failure: clocks are synced. The inversion comes from message paths — T2 commits 3 ms after T1 but reaches Charlie's owner first.</text>
+
+  <!-- Time axis -->
+  <line x1="60" y1="68" x2="1020" y2="68" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <circle cx="100" cy="68" r="4" fill="#444"/>
+  <circle cx="280" cy="68" r="4" fill="#444"/>
+  <circle cx="580" cy="68" r="4" fill="#444"/>
+  <circle cx="900" cy="68" r="4" fill="#444"/>
+  <text x="100" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 0</text>
+  <text x="280" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 1</text>
+  <text x="580" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 2</text>
+  <text x="900" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 3</text>
+
+  <!-- User band -->
+  <rect x="40" y="86" width="1000" height="160" fill="#dae8fc" fill-opacity="0.35" stroke="#6c8ebf"/>
+  <text x="56" y="106" font-weight="bold" fill="#444">What the apps see (Jepsen bank-test perspective)</text>
+
+  <!-- App A -->
+  <text x="86" y="142" text-anchor="end" font-weight="bold">App A</text>
+  <rect x="190" y="124" width="220" height="36" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="300" y="148" text-anchor="middle">send <tspan font-weight="bold">T1</tspan>: transfer 2 → 3, $14</text>
+  <rect x="520" y="124" width="100" height="36" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="570" y="148" text-anchor="middle" font-weight="bold" fill="#82b366">OK</text>
+
+  <!-- App B -->
+  <text x="86" y="194" text-anchor="end" font-weight="bold">App B</text>
+  <rect x="190" y="176" width="220" height="36" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="300" y="200" text-anchor="middle">send <tspan font-weight="bold">T2</tspan>: transfer 3 → 1, $61</text>
+  <rect x="520" y="176" width="100" height="36" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="570" y="200" text-anchor="middle" font-weight="bold" fill="#82b366">OK</text>
+  <rect x="820" y="170" width="200" height="56" fill="#f8cecc" stroke="#b85450"/>
+  <text x="920" y="190" text-anchor="middle">SELECT returns</text>
+  <text x="920" y="208" text-anchor="middle" font-weight="bold" fill="#b85450" font-size="15">Charlie = 1439</text>
+  <text x="920" y="222" text-anchor="middle" font-size="11">⚠ expected 1453</text>
+
+  <!-- Internal band -->
+  <rect x="40" y="260" width="1000" height="280" fill="#fff2cc" fill-opacity="0.35" stroke="#d6b656"/>
+  <text x="56" y="280" font-weight="bold" fill="#444">Inside the database (clocks across nodes are synced)</text>
+
+  <!-- america -->
+  <text x="86" y="320" text-anchor="end" font-weight="bold">america</text>
+  <text x="86" y="334" text-anchor="end" font-size="10" fill="#666">coord of T1</text>
+  <rect x="200" y="304" width="200" height="46" fill="#ffffff" stroke="#d6b656"/>
+  <text x="300" y="324" text-anchor="middle">commit T1, <tspan font-weight="bold">commit_ts = 870</tspan></text>
+  <text x="300" y="341" text-anchor="middle">dispatch UPDATE to europe</text>
+
+  <!-- europe -->
+  <text x="86" y="386" text-anchor="end" font-weight="bold">europe</text>
+  <text x="86" y="400" text-anchor="end" font-size="10" fill="#666">coord of T2 + Charlie's owner</text>
+  <rect x="200" y="370" width="200" height="46" fill="#ffffff" stroke="#d6b656"/>
+  <text x="300" y="390" text-anchor="middle">commit T2, <tspan font-weight="bold">commit_ts = 873</tspan></text>
+  <text x="300" y="407" text-anchor="middle" font-size="11">(real time, 3 ms after T1)</text>
+
+  <!-- Charlie chain (europe storage) -->
+  <text x="86" y="478" text-anchor="end" font-weight="bold">Charlie's chain</text>
+  <text x="86" y="492" text-anchor="end" font-size="10" fill="#666">on europe (RocksDB)</text>
+
+  <!-- T2 lands first -->
+  <rect x="430" y="450" width="240" height="80" fill="#ffffff" stroke="#d6b656"/>
+  <text x="550" y="470" text-anchor="middle" font-weight="bold">T2 lands first (local hop)</text>
+  <text x="550" y="488" text-anchor="middle">acquire lock(Charlie); ReadLatest=1500</text>
+  <text x="550" y="506" text-anchor="middle">compute 1500 − 61 = 1439</text>
+  <text x="550" y="524" text-anchor="middle">write <tspan font-family="monospace">/users/3/...873 = 1439</tspan></text>
+
+  <!-- T1 lands second -->
+  <rect x="710" y="450" width="270" height="80" fill="#ffffff" stroke="#b85450"/>
+  <text x="845" y="470" text-anchor="middle" font-weight="bold">T1 lands second (cross-network)</text>
+  <text x="845" y="488" text-anchor="middle">ReadLatest=1439 (T2's value)</text>
+  <text x="845" y="506" text-anchor="middle">compute 1439 + 14 = <tspan font-weight="bold">1453</tspan> ✓</text>
+  <text x="845" y="524" text-anchor="middle">write <tspan font-family="monospace">/users/3/...870 = 1453</tspan></text>
+
+  <!-- Arrow europe -> T2 lands first (local, fast, green solid) -->
+  <line x1="400" y1="392" x2="430" y2="478" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="402" y="420" font-size="11" font-style="italic" fill="#82b366">local, fast</text>
+
+  <!-- Arrow america -> T1 lands second (cross-network, slow, blue dashed) -->
+  <line x1="400" y1="326" x2="710" y2="478" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text x="525" y="358" font-size="11" font-style="italic" fill="#6c8ebf">across the network, slower</text>
+
+  <!-- Disk state -->
+  <rect x="60" y="560" width="500" height="100" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="80" y="580" font-weight="bold">Charlie's chain on disk (sorted lex):</text>
+  <text x="80" y="602" font-family="monospace">/users/3/&lt;init&gt;  →  1500</text>
+  <text x="80" y="622" font-family="monospace">/users/3/...870  →  <tspan fill="#b85450" font-weight="bold">1453</tspan>   <tspan font-family="Helvetica" fill="#b85450">★ T1 — correct, SHADOWED</tspan></text>
+  <text x="80" y="642" font-family="monospace">/users/3/...873  →  <tspan fill="#82b366" font-weight="bold">1439</tspan>   <tspan font-family="Helvetica" fill="#82b366">★ T2 — lex-largest, visible</tspan></text>
+
+  <!-- Read resolution -->
+  <rect x="580" y="560" width="440" height="100" fill="#f8cecc" stroke="#b85450"/>
+  <text x="600" y="580" font-weight="bold">SELECT at any snapshot_ts ≥ 873</text>
+  <text x="600" y="600">scans in lex order, last visible wins.</text>
+  <text x="600" y="622"><tspan font-weight="bold" font-size="14">Charlie = 1439</tspan></text>
+  <text x="600" y="642">T1's correct 1453 is on disk but never observable.</text>
+
+  <!-- Footer summary -->
+  <rect x="60" y="678" width="960" height="68" fill="#f8cecc" stroke="#b85450"/>
+  <text x="80" y="698"><tspan font-weight="bold">What every layer beneath MVCC delivered correctly:</tspan> both transactions held one commit_ts each (multi-stmt-txn plumbing); the lock</text>
+  <text x="80" y="716">manager serialized the two RMWs on Charlie; T1's read-latest under the lock saw T2's value; T1's arithmetic computed 1453.</text>
+  <text x="80" y="734"><tspan font-weight="bold">What MVCC's read path delivered incorrectly:</tspan> it returned T2's 1439, declaring T2 "current" because its version_ts is lex-larger.</text>
+</svg>

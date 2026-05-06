@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 760" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="760" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="540" y="28" text-anchor="middle" font-size="15" font-weight="bold">Two atomic increments on a single counter R. Both return OK. Their effects do not compose.</text>
+
+  <!-- Time axis -->
+  <line x1="60" y1="68" x2="1020" y2="68" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <circle cx="100" cy="68" r="4" fill="#444"/>
+  <circle cx="280" cy="68" r="4" fill="#444"/>
+  <circle cx="580" cy="68" r="4" fill="#444"/>
+  <circle cx="900" cy="68" r="4" fill="#444"/>
+  <text x="100" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 0</text>
+  <text x="280" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 1</text>
+  <text x="580" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 2</text>
+  <text x="900" y="56" text-anchor="middle" font-weight="bold" fill="#444" font-size="12">t = 3</text>
+
+  <!-- User band -->
+  <rect x="40" y="86" width="1000" height="180" fill="#dae8fc" fill-opacity="0.35" stroke="#6c8ebf"/>
+  <text x="56" y="106" font-weight="bold" fill="#444">What the apps see (user perspective)</text>
+
+  <!-- App A -->
+  <text x="86" y="148" text-anchor="end" font-weight="bold">App A</text>
+  <rect x="220" y="128" width="120" height="40" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="280" y="146" text-anchor="middle">send</text>
+  <text x="280" y="161" text-anchor="middle" font-weight="bold">T1: R += 5</text>
+  <rect x="520" y="128" width="120" height="40" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="580" y="146" text-anchor="middle">receive</text>
+  <text x="580" y="161" text-anchor="middle" font-weight="bold" fill="#82b366">OK</text>
+
+  <!-- App B -->
+  <text x="86" y="208" text-anchor="end" font-weight="bold">App B</text>
+  <rect x="220" y="188" width="120" height="40" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="280" y="206" text-anchor="middle">send</text>
+  <text x="280" y="221" text-anchor="middle" font-weight="bold">T2: R += 3</text>
+  <rect x="520" y="188" width="120" height="40" fill="#ffffff" stroke="#6c8ebf"/>
+  <text x="580" y="206" text-anchor="middle">receive</text>
+  <text x="580" y="221" text-anchor="middle" font-weight="bold" fill="#82b366">OK</text>
+  <rect x="840" y="180" width="160" height="56" fill="#f8cecc" stroke="#b85450"/>
+  <text x="920" y="200" text-anchor="middle">read R returns</text>
+  <text x="920" y="218" text-anchor="middle" font-weight="bold" fill="#b85450" font-size="16">103</text>
+  <text x="920" y="232" text-anchor="middle" font-size="11">⚠ expected 108</text>
+
+  <!-- Expected -->
+  <text x="56" y="256" font-style="italic" fill="#444" font-size="12">R starts at 100. Both atomic increments returned OK. Apps expect R = 100 + 5 + 3 = 108.</text>
+
+  <!-- Internal band -->
+  <rect x="40" y="280" width="1000" height="280" fill="#fff2cc" fill-opacity="0.35" stroke="#d6b656"/>
+  <text x="56" y="300" font-weight="bold" fill="#444">Inside the database (apps cannot see this)</text>
+
+  <!-- C1 -->
+  <text x="86" y="340" text-anchor="end" font-weight="bold">C1</text>
+  <text x="86" y="354" text-anchor="end" font-size="10" fill="#666">coord of T1</text>
+  <rect x="220" y="324" width="170" height="46" fill="#ffffff" stroke="#d6b656"/>
+  <text x="305" y="343" text-anchor="middle">picks <tspan font-weight="bold">commit_ts = 10</tspan></text>
+  <text x="305" y="360" text-anchor="middle">send write to P</text>
+
+  <!-- C2 -->
+  <text x="86" y="406" text-anchor="end" font-weight="bold">C2</text>
+  <text x="86" y="420" text-anchor="end" font-size="10" fill="#666">coord of T2</text>
+  <rect x="220" y="390" width="170" height="46" fill="#ffffff" stroke="#d6b656"/>
+  <text x="305" y="409" text-anchor="middle">picks <tspan font-weight="bold">commit_ts = 13</tspan></text>
+  <text x="305" y="426" text-anchor="middle">send write to P</text>
+
+  <!-- P -->
+  <text x="86" y="486" text-anchor="end" font-weight="bold">P</text>
+  <text x="86" y="500" text-anchor="end" font-size="10" fill="#666">owner of R</text>
+
+  <!-- T2 arrives first -->
+  <rect x="420" y="464" width="240" height="76" fill="#ffffff" stroke="#d6b656"/>
+  <text x="540" y="484" text-anchor="middle" font-weight="bold">T2 arrives first (fast)</text>
+  <text x="540" y="502" text-anchor="middle">ReadLatest = 100; compute 103</text>
+  <text x="540" y="520" text-anchor="middle">write <tspan font-family="monospace">/R/13 = 103</tspan></text>
+  <text x="540" y="535" text-anchor="middle" font-size="11" font-style="italic" fill="#666">release lock; T1 was waiting</text>
+
+  <!-- T1 arrives second -->
+  <rect x="700" y="464" width="280" height="76" fill="#ffffff" stroke="#b85450"/>
+  <text x="840" y="484" text-anchor="middle" font-weight="bold">T1 arrives second</text>
+  <text x="840" y="502" text-anchor="middle">ReadLatest = 103 (T2's value); compute <tspan font-weight="bold">108</tspan> ✓</text>
+  <text x="840" y="520" text-anchor="middle">write <tspan font-family="monospace">/R/10 = 108</tspan></text>
+  <text x="840" y="535" text-anchor="middle" font-size="11" font-style="italic" fill="#b85450">smaller version_ts than T2's</text>
+
+  <!-- Arrow C2 → T2arrive (fast, solid green) -->
+  <line x1="395" y1="412" x2="420" y2="488" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="397" y="438" font-size="11" font-style="italic" fill="#82b366">fast</text>
+
+  <!-- Arrow C1 → T1arrive (slow, dashed blue) -->
+  <line x1="395" y1="346" x2="700" y2="488" stroke="#6c8ebf" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text x="500" y="378" font-size="11" font-style="italic" fill="#6c8ebf">slow / reordered</text>
+
+  <!-- Disk state -->
+  <rect x="60" y="582" width="500" height="100" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="80" y="602" font-weight="bold">Final disk state of R (sorted lex):</text>
+  <text x="80" y="624" font-family="monospace">/R/&lt;init&gt;  →  100</text>
+  <text x="80" y="644" font-family="monospace">/R/10        →  <tspan fill="#b85450" font-weight="bold">108</tspan>   <tspan font-family="Helvetica" fill="#b85450">★ T1 — correct, lex-smaller, SHADOWED</tspan></text>
+  <text x="80" y="664" font-family="monospace">/R/13        →  <tspan fill="#82b366" font-weight="bold">103</tspan>   <tspan font-family="Helvetica" fill="#82b366">★ T2 — lex-largest, MVCC visible</tspan></text>
+
+  <!-- Read resolution -->
+  <rect x="580" y="582" width="440" height="100" fill="#f8cecc" stroke="#b85450"/>
+  <text x="600" y="602" font-weight="bold">App's read at t = 3</text>
+  <text x="600" y="622">MVCC resolves to lex-largest version_ts.</text>
+  <text x="600" y="644"><tspan font-weight="bold" font-size="14">Returns 103.</tspan></text>
+  <text x="600" y="664">T1's correct value 108 sits at /R/10 — on disk but invisible.</text>
+
+  <!-- Anomaly summary -->
+  <rect x="60" y="700" width="960" height="50" fill="#f8cecc" stroke="#b85450"/>
+  <text x="80" y="720"><tspan font-weight="bold">The anomaly:</tspan> both transactions returned OK; T1 even read T2's value before computing 108. The math is on disk at /R/10. MVCC's</text>
+  <text x="80" y="738">lex-largest rule picks T2's smaller increment, so T1's effect is silently dropped — even though T1 stored later than T2.</text>
+</svg>

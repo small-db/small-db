@@ -4,6 +4,8 @@
 
 **Behavior.** A transaction successfully commits a write, the new row version lands on disk, the transaction reports `:ok` to its client -- and yet a subsequent `SELECT` returns a value as if the transaction never happened. The new version is on disk; it just isn't the one MVCC declares "current." The application sees the cluster's invariants drift even though every individual transaction was correctly computed and successfully persisted.
 
+<p><img src="./shadowed_writes_simplified.svg" alt="Two atomic increments on a counter R; both return OK but their effects do not compose." style="max-width:100%;height:auto"/></p>
+
 **Root cause.** MVCC selects the visible version of a row by **lex-largest `version_ts`**. The system stamps each write with its coordinator's `commit_ts`, which is the coordinator's wall clock at the moment of commit. With multiple coordinators on different machines and even slightly skewed wall clocks, two concurrent commits to the same row can produce `commit_ts` values whose lex order does not match their commit order. The chronologically-later write, if it picked a smaller `commit_ts` than an earlier-committing one, lands at a smaller key than its predecessor and is invisible to all future MVCC reads. The earlier write's value is now "the current state" forever -- as if the later one never happened.
 
 **Does this happen in single-server databases?** No. A single server has exactly one wall clock; every `commit_ts` it issues is monotonic, so chronologically-later commits always have larger `commit_ts` values, and lex order on disk per row matches commit order automatically. The anomaly is unique to multi-coordinator MVCC systems where commits can be timestamped by different clocks. It does not appear in MySQL InnoDB or Postgres at any isolation level on a single node, because there's no second clock to disagree with.
@@ -30,36 +32,7 @@ Walking T1 vs T2 from server logs (Charlie's case, simpler than Bob's; the same 
 
 Both UPDATEs dispatched to europe (Charlie's owner). T2's gRPC was local to europe and arrived first; T1's gRPC traversed the network from america and arrived second.
 
-```
-                              europe (Charlie's owner)
-                           ┌──────────────────────────────────────┐
-                           │  Charlie chain on disk (RocksDB)     │
-                           │                                      │
-  T2 (commit_ts=…873)      │  /users/3/<initial>      = 1500      │
-   ──arrives first──►      │  acquire lock(Charlie)               │
-                           │  ReadLatest → 1500                   │
-                           │  compute 1500 − 61 = 1439            │
-                           │  WriteRow at version_ts=…873  ──►    │
-                           │  release lock                        │
-                           │  /users/3/00…873         = 1439      │
-                           │                                      │
-  T1 (commit_ts=…870)      │  acquire lock(Charlie)               │
-   ──arrives second──►     │  ReadLatest → 1439  ✓ correct        │
-   (network delay from     │  compute 1439 + 14 = 1453            │
-    america)               │  WriteRow at version_ts=…870  ──►    │
-                           │  release lock                        │
-                           │  /users/3/00…870         = 1453      │
-                           │                                      │
-                           │  Sorted lex on disk:                 │
-                           │  /users/3/<initial>      = 1500      │
-                           │  /users/3/00…870         = 1453  ◄ T1 (shadowed)
-                           │  /users/3/00…873         = 1439  ◄ T2 (lex-largest)
-                           └──────────────────────────────────────┘
-
-  MVCC read at any snapshot_ts ≥ …873:
-    scan in lex order, last visible wins  →  Charlie = 1439
-  T1's correct value 1453 is on disk but never observable.
-```
+<p><img src="./shadowed_writes_actual.svg" alt="Bank-test failure: T2 commits 3 ms after T1 but reaches Charlie's owner first; T1's correct 1453 lands at a smaller version_ts and is shadowed by T2's 1439." style="max-width:100%;height:auto"/></p>
 
 What every layer beneath MVCC delivered correctly:
 

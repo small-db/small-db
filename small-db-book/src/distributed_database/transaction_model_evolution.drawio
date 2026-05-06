@@ -1,0 +1,144 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Transaction Model Evolution" id="txn-model-evolution">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Evolution of small-db's transaction model: each stage solves the previous stage's blocker"
+                style="text;html=1;align=center;fontSize=16;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1120" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="stage0" value="&lt;b&gt;Stage 0 — Distributed KV without concurrency control&lt;/b&gt;&lt;br&gt;Writes hit storage immediately at wall-clock ts. No isolation, no MVCC.&lt;br&gt;&lt;font color='#b85450'&gt;Anomalies: lost updates, torn reads, read-write contention everywhere.&lt;/font&gt;"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="200" y="70" width="800" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t01prob" value="&lt;b&gt;Problem:&lt;/b&gt; readers must wait for writers; concurrent writes overwrite each other."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t01ins" value="&lt;b&gt;Insight:&lt;/b&gt; readers don't need the &quot;newest&quot; value — a coherent past snapshot is enough. Let writes create new versions instead of overwriting."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="710" y="170" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr01" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="150" as="sourcePoint"/>
+            <mxPoint x="600" y="225" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stage1" value="&lt;b&gt;Stage 1 — MVCC: multiple versions per row, snapshot reads&lt;/b&gt;&lt;br&gt;Each write produces a new version tagged with ts. Reads filter by snapshot_ts.&lt;br&gt;&lt;font color='#82b366'&gt;✓ Readers never block writers and see consistent point-in-time views (per-row).&lt;/font&gt;"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="200" y="225" width="800" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t12prob" value="&lt;b&gt;Problem:&lt;/b&gt; concurrent writers to the same row both read the pre-image, both write — one's effect is silently lost."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="325" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t12ins" value="&lt;b&gt;Insight:&lt;/b&gt; writers to the same row must serialize so the second one sees the first's commit before computing."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="710" y="325" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr12" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="305" as="sourcePoint"/>
+            <mxPoint x="600" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stage2" value="&lt;b&gt;Stage 2 — Per-row exclusive lock + read-latest under the lock&lt;/b&gt;&lt;br&gt;A writer locks the row, reads the latest committed value, computes, writes, releases.&lt;br&gt;&lt;font color='#82b366'&gt;✓ Concurrent writers can't lose updates within a single statement.&lt;/font&gt;"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="200" y="380" width="800" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t23prob" value="&lt;b&gt;Problem:&lt;/b&gt; a transfer is BEGIN/UPDATE/UPDATE/COMMIT — two writes at two different ts. A reader can land between them."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t23ins" value="&lt;b&gt;Insight:&lt;/b&gt; all writes of one transaction must share a single commit_ts so a snapshot either sees them all or none."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="710" y="480" width="430" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr23" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="460" as="sourcePoint"/>
+            <mxPoint x="600" y="535" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stage3" value="&lt;b&gt;Stage 3 — Multi-statement transactions with a shared commit_ts&lt;/b&gt;&lt;br&gt;BEGIN buffers writes; COMMIT picks one ts and dispatches every buffered write at that ts.&lt;br&gt;&lt;font color='#82b366'&gt;✓ A snapshot at any ts sees every row of one transaction together (or none).&lt;/font&gt;"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="200" y="535" width="800" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t34prob" value="&lt;b&gt;Problem:&lt;/b&gt; two concurrent commits from different coordinators arrive at the same row out of order. The chronologically-later writer's commit_ts can be smaller. Its write is lex-shadowed and silently dropped from view."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="635" width="430" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="t34ins" value="&lt;b&gt;Insight:&lt;/b&gt; observing a value should advance the observer's timestamp past it. The shadowed write happened only because T1 didn't increment its commit_ts after seeing T2's value."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="710" y="635" width="430" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr34" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="615" as="sourcePoint"/>
+            <mxPoint x="600" y="710" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stage4" value="&lt;b&gt;Stage 4 — A tension we cannot escape with per-row mechanisms&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Need (a):&lt;/b&gt; commit_ts must exceed every prior version_ts on every row this txn touches  &lt;font color='#999999'&gt;(closes shadowing)&lt;/font&gt;&lt;br&gt;&lt;b&gt;Need (b):&lt;/b&gt; all of one txn's writes must land at the same commit_ts  &lt;font color='#999999'&gt;(keeps multi-row atomicity)&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Naive options that don't compose:&lt;/b&gt;&lt;br&gt;• Bump version_ts per row independently → satisfies (a) but breaks (b).&lt;br&gt;• Pre-bump commit_ts at COMMIT, then dispatch — works, but changing the commit_ts late forces &lt;b&gt;rewriting all of the txn's writes&lt;/b&gt; (O(N) at commit)."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="180" y="710" width="840" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t45prob" value="&lt;b&gt;Tension:&lt;/b&gt; we want one commit_ts per txn, that may need to be raised at commit time, but rewriting N rows is too expensive on the hot path."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="910" width="430" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="t45ins" value="&lt;b&gt;Insight:&lt;/b&gt; decouple &quot;the value sitting on this row&quot; from &quot;is this committed, and if so, at what ts.&quot; Make the second piece live in one shared place that the rows point to."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="710" y="910" width="430" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr45" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="890" as="sourcePoint"/>
+            <mxPoint x="600" y="985" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="stage5" value="&lt;b&gt;Stage 5 — Intents + txn record (the destination)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Each write lays down an &lt;b&gt;intent&lt;/b&gt; on the row: &lt;font face='monospace'&gt;{value, txn_id}&lt;/font&gt;. The intent is the row's MVCC entry, just with a forwarding pointer instead of a final ts.&lt;br&gt;&lt;br&gt;A separate &lt;b&gt;txn record&lt;/b&gt;, keyed by txn_id, holds &lt;font face='monospace'&gt;{status, commit_ts}&lt;/font&gt;. This is the single source of truth for &quot;is the txn committed, and at what ts.&quot;&lt;br&gt;&lt;br&gt;&lt;b&gt;COMMIT = one update of the txn record&lt;/b&gt; (O(1)). All N intents flip to visible together. Push = same one update. Lazy resolution rewrites intents to canonical version entries in the background.&lt;br&gt;&lt;br&gt;&lt;font color='#82b366'&gt;✓ Single commit_ts per txn (atomicity). ✓ Push past existing versions without rewriting any rows. ✓ Conflict signal lasts from first write to commit (vs. our row lock that releases at end of statement).&lt;/font&gt;"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="180" y="985" width="840" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="footer" value="&lt;b&gt;Read this top-to-bottom:&lt;/b&gt; each blue stage is a model we actually adopted; each red callout is the failure that drove us to the next; each yellow callout is the principle that picked the next design. The green stage at the bottom is where the chain of reasoning lands."
+                style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#444444"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="1240" width="1080" height="40" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
