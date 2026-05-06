@@ -63,6 +63,7 @@
 #include "src/pg_wire/pg_wire.h"
 #include "src/server/stmt_handler.h"
 #include "src/server_info/info.h"
+#include "src/txn/txn.h"
 #include "src/util/ip/ip.h"
 
 // =====================================================================
@@ -393,6 +394,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
             std::make_shared<small::execution::QueryServiceImpl>(),
             std::make_shared<small::gossip::GossipServiceImpl>(),
             std::make_shared<small::catalog::CatalogServiceImpl>(),
+            std::make_shared<small::txn::TxnServiceImpl>(),
         });
 
     struct sockaddr_in client_addr {};

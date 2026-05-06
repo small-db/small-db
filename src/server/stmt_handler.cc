@@ -47,8 +47,11 @@
 #include "src/execution/insert.h"
 #include "src/execution/query.h"
 #include "src/execution/update.h"
+#include "src/id/generator.h"
+#include "src/rocks/rocks.h"
 #include "src/schema/const.h"
 #include "src/semantics/check.h"
+#include "src/server_info/info.h"
 #include "src/type/type.h"
 
 // =====================================================================
@@ -216,73 +219,84 @@ static int64_t now_ms() {
         .count();
 }
 
-// Flush every buffered UPDATE in `txn` at the same `commit_ts` so all of
-// the transaction's writes share one MVCC version. After this returns,
-// `txn` is reset to inactive regardless of success or failure.
+// Begin a new transaction on this connection. Generates a fresh txn_id,
+// stamps start_ts, persists /_txn/<txn_id> with status = ACTIVE on the
+// coordinator's RocksDB so readers resolving this txn's intents (and a
+// future recovery path) have an on-disk anchor.
+static absl::Status begin_txn(TxnState& txn) {
+    if (txn.active) {
+        return absl::FailedPreconditionError("nested BEGIN is not supported");
+    }
+    txn.active = true;
+    txn.txn_id = id::generate_id();
+    txn.start_ts = now_ms();
+    txn.commit_ts = txn.start_ts;
+
+    auto db = small::rocks::RocksDBWrapper::GetInstance();
+    if (!db.ok()) return db.status();
+    db.value()->WriteTxnRecord(
+        txn.txn_id,
+        small::rocks::TxnRecord{small::rocks::TxnStatus::ACTIVE, txn.start_ts,
+                                txn.commit_ts, {}});
+    SPDLOG_INFO("begin_txn: txn_id={} start_ts={}", txn.txn_id, txn.start_ts);
+    return absl::OkStatus();
+}
+
+// Flip /_txn/<txn_id> to COMMITTED. The single Put is the atomicity
+// boundary -- every reader that subsequently resolves any of this txn's
+// intents observes the new status. Resets `txn` to inactive.
 static absl::Status commit_txn(TxnState& txn) {
     if (!txn.active) {
         return absl::FailedPreconditionError("COMMIT outside of BEGIN");
     }
-
-    int64_t commit_ts = now_ms();
-    if (commit_ts < txn.start_ts) commit_ts = txn.start_ts;
-
-    SPDLOG_INFO("commit_txn: start_ts={} commit_ts={} pending_updates={}",
-                txn.start_ts, commit_ts, txn.pending_updates.size());
-
-    // Reset state up-front so a partial-failure path doesn't leave the
-    // connection holding zombie buffered writes.
-    auto buffered = std::move(txn.pending_updates);
+    SPDLOG_INFO("commit_txn: txn_id={} start_ts={} commit_ts={}", txn.txn_id,
+                txn.start_ts, txn.commit_ts);
+    auto db = small::rocks::RocksDBWrapper::GetInstance();
+    if (!db.ok()) return db.status();
+    db.value()->SetTxnStatus(txn.txn_id, small::rocks::TxnStatus::COMMITTED,
+                             txn.commit_ts);
     txn.active = false;
+    txn.txn_id = 0;
     txn.start_ts = 0;
-    txn.pending_updates.clear();
-
-    for (const auto& packed : buffered) {
-        PgQuery__UpdateStmt* stmt = pg_query__update_stmt__unpack(
-            nullptr, packed.size(),
-            reinterpret_cast<const uint8_t*>(packed.data()));
-        if (stmt == nullptr) {
-            return absl::InternalError("failed to unpack buffered UPDATE");
-        }
-        auto result =
-            small::execution::update(stmt, /*dispatch=*/true, commit_ts);
-        pg_query__update_stmt__free_unpacked(stmt, nullptr);
-        if (!result.ok()) {
-            return result.status();
-        }
-    }
+    txn.commit_ts = 0;
     return absl::OkStatus();
 }
 
-// Drop buffered writes without dispatching. Resets `txn` to inactive.
+// Flip /_txn/<txn_id> to ABORTED. Intents on disk stay (no active
+// cleanup); readers resolving them will skip per the chapter's design.
+// Resets `txn` to inactive.
 static absl::Status rollback_txn(TxnState& txn) {
     if (!txn.active) {
         return absl::FailedPreconditionError("ROLLBACK outside of BEGIN");
     }
+    SPDLOG_INFO("rollback_txn: txn_id={}", txn.txn_id);
+    auto db = small::rocks::RocksDBWrapper::GetInstance();
+    if (!db.ok()) return db.status();
+    db.value()->SetTxnStatus(txn.txn_id, small::rocks::TxnStatus::ABORTED, 0);
     txn.active = false;
+    txn.txn_id = 0;
     txn.start_ts = 0;
-    txn.pending_updates.clear();
+    txn.commit_ts = 0;
     return absl::OkStatus();
 }
 
-// Run `body` inside a transaction. If no transaction is active on entry,
-// implicitly begin one before `body` and commit after; otherwise just
-// run `body` and let the explicit BEGIN/COMMIT control the boundary.
-// `body` always runs with `txn.active == true` and `txn.start_ts` set,
-// so handlers don't need to branch on transaction state.
+// Run `body` inside a transaction. If none is active on entry, begin
+// an implicit one before `body` and commit after; otherwise just run
+// `body` and let the explicit BEGIN/COMMIT control the boundary. The
+// chapter's "every statement runs inside a transaction" rule.
 template <typename F>
 static absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> run_with_txn(
     TxnState& txn, F&& body) {
     bool implicit = !txn.active;
     if (implicit) {
-        txn.active = true;
-        txn.start_ts = now_ms();
-        txn.pending_updates.clear();
+        auto status = begin_txn(txn);
+        if (!status.ok()) return status;
     }
     auto result = body();
     if (implicit) {
-        auto status = commit_txn(txn);
-        if (!status.ok()) return status;
+        auto commit_status =
+            result.ok() ? commit_txn(txn) : rollback_txn(txn);
+        if (!commit_status.ok()) return commit_status;
     }
     return result;
 }
@@ -311,14 +325,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             switch (kind) {
                 case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN:
                 case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_START: {
-                    if (txn.active) {
-                        return absl::FailedPreconditionError(
-                            "nested BEGIN is not supported");
-                    }
-                    txn.active = true;
-                    txn.start_ts = now_ms();
-                    txn.pending_updates.clear();
-                    return EmptyBatch();
+                    return WrapEmptyStatus([&]() { return begin_txn(txn); });
                 }
                 case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_COMMIT: {
                     return WrapEmptyStatus([&]() { return commit_txn(txn); });
@@ -351,15 +358,21 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             return run_with_txn(
                 txn,
                 [&]() -> absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> {
-                    // Always buffer; if this is an implicit txn, the
-                    // wrapper will commit immediately after the lambda.
-                    size_t len = pg_query__update_stmt__get_packed_size(
-                        stmt->update_stmt);
-                    std::string packed(len, '\0');
-                    pg_query__update_stmt__pack(
-                        stmt->update_stmt,
-                        reinterpret_cast<uint8_t*>(packed.data()));
-                    txn.pending_updates.push_back(std::move(packed));
+                    auto info = small::server_info::get_info();
+                    if (!info.ok()) return info.status();
+                    auto db = small::rocks::RocksDBWrapper::GetInstance();
+                    if (!db.ok()) return db.status();
+                    auto result = small::execution::update(
+                        stmt->update_stmt, /*dispatch=*/true, txn.commit_ts,
+                        txn.txn_id, info.value()->grpc_addr);
+                    if (!result.ok()) return result.status();
+                    if (result->final_commit_ts > txn.commit_ts) {
+                        txn.commit_ts = result->final_commit_ts;
+                        db.value()->UpdateTxnCommitTs(txn.txn_id,
+                                                      txn.commit_ts);
+                    }
+                    db.value()->AppendTxnIntentKey(txn.txn_id,
+                                                   result->intent_key);
                     return EmptyBatch();
                 });
             break;

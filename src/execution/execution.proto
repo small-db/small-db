@@ -31,14 +31,28 @@ message Row {
 
 message RawNode {
   bytes packed_node = 1;
-  // Transaction timestamp (ms since epoch). For writes (UPDATE) every
-  // row written under this AST uses ts. For reads (SELECT) ts is the
-  // snapshot at which to evaluate the query.
+  // Transaction timestamp (ms since epoch). For writes (UPDATE) ts is
+  // the *current* commit_ts the coordinator believes; the row owner
+  // may push it upward (see WriteResponse.final_commit_ts). For reads
+  // (SELECT) ts is the snapshot at which to evaluate the query.
   int64 ts = 2;
+  // Identifier of the writing transaction. Embedded in the on-disk
+  // intent so readers know which /_txn/<txn_id> record to resolve.
+  // Zero for reads.
+  int64 txn_id = 3;
+  // gRPC endpoint of the coordinator that owns this txn's record.
+  // Embedded in the intent. Empty for reads.
+  string coordinator_addr = 4;
 }
 
 message WriteResponse {
   int64 affected_rows = 1;
+  // The commit_ts the row owner used when writing the intent. Equals
+  // the request's `ts` unless the row's latest committed version was
+  // already >= request `ts`, in which case the owner pushed it upward
+  // to `latest + 1`. The coordinator takes max across all peers'
+  // responses and updates the txn record on disk + in memory.
+  int64 final_commit_ts = 2;
 }
 
 message QueryResponse {

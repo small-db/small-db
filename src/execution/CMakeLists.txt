@@ -18,6 +18,7 @@ target_link_libraries(small_execution
     small::semantics
     small::catalog
     small::gossip
+    small::txn
     small::type
     spdlog
     absl::status

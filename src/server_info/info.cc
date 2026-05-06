@@ -93,6 +93,7 @@ absl::Status ServerInfo::Init(const ImmutableInfo& args) {
     if (instance == nullptr) {
         instance = new ServerInfo();
         instance->db_path = args.data_dir;
+        instance->grpc_addr = args.grpc_addr;
         return absl::OkStatus();
     }
     SPDLOG_ERROR("ServerInfo instance is already initialized");

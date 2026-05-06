@@ -17,6 +17,7 @@
 // =====================================================================
 
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -57,6 +58,7 @@
 #include "src/schema/const.h"
 #include "src/schema/schema.h"
 #include "src/semantics/extract.h"
+#include "src/txn/txn.h"
 #include "src/type/type.h"
 
 // =====================================================================
@@ -67,8 +69,107 @@
 
 namespace small::execution {
 
-absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
-    PgQuery__UpdateStmt* update_stmt, bool dispatch, int64_t ts) {
+// Pull the WHERE primary-key value out of an UPDATE AST. Only
+// `WHERE <pk_col> = <literal>` is supported; anything else (predicate
+// WHERE, non-pk column) is rejected because the lock manager and intent
+// path are scoped to single rows.
+static absl::StatusOr<std::string> extract_pk(
+    PgQuery__UpdateStmt* update_stmt,
+    const std::shared_ptr<small::schema::Table>& table) {
+    std::string filter_column =
+        update_stmt->where_clause->a_expr->lexpr->column_ref->fields[0]
+            ->string->sval;
+    int pk_index = small::schema::get_pk_index(*table);
+    if (pk_index < 0 || table->columns()[pk_index].name() != filter_column) {
+        return absl::UnimplementedError(fmt::format(
+            "UPDATE WHERE column must be the primary key (got '{}'); "
+            "multi-row UPDATE is not supported yet",
+            filter_column));
+    }
+    auto filter_value = small::semantics::extract_const(
+                            update_stmt->where_clause->a_expr->rexpr->a_const)
+                            .value();
+    return small::type::encode(filter_value);
+}
+
+// Apply the SET clause to a single row's column map and produce the
+// resulting (column-order) values vector ready for an intent write.
+static absl::StatusOr<std::vector<std::string>> apply_set_clause(
+    PgQuery__UpdateStmt* update_stmt,
+    const std::shared_ptr<small::schema::Table>& table,
+    std::map<std::string, std::string> updated) {
+    for (size_t i = 0; i < update_stmt->n_target_list; i++) {
+        auto res_target = update_stmt->target_list[i]->res_target;
+        auto column_name = std::string(res_target->name);
+        auto val_node = res_target->val;
+
+        std::string new_encoded_value;
+
+        if (val_node->node_case == PG_QUERY__NODE__NODE_A_EXPR) {
+            auto expr = val_node->a_expr;
+            auto op = std::string(expr->name[0]->string->sval);
+
+            auto ref_column = std::string(
+                expr->lexpr->column_ref->fields[0]->string->sval);
+            auto current_encoded = updated.at(ref_column);
+
+            small::type::Type col_type = small::type::Type::STRING;
+            for (const auto& col : table->columns()) {
+                if (col.name() == column_name) {
+                    col_type = col.type();
+                    break;
+                }
+            }
+
+            auto current_datum =
+                small::type::decode(current_encoded, col_type);
+            auto const_datum =
+                small::semantics::extract_const(expr->rexpr->a_const).value();
+
+            if (col_type == small::type::Type::INT64) {
+                int64_t current_val = current_datum.int64_value();
+                int64_t const_val = const_datum.int64_value();
+                int64_t result;
+                if (op == "-") {
+                    result = current_val - const_val;
+                } else if (op == "+") {
+                    result = current_val + const_val;
+                } else if (op == "*") {
+                    result = current_val * const_val;
+                } else {
+                    return absl::InternalError(
+                        fmt::format("unsupported operator: {}", op));
+                }
+                auto result_datum = small::type::Datum();
+                result_datum.set_int64_value(result);
+                new_encoded_value = small::type::encode(result_datum);
+            } else {
+                return absl::InternalError(
+                    fmt::format("unsupported type for arithmetic: {}",
+                                small::type::to_string(col_type)));
+            }
+        } else if (val_node->node_case == PG_QUERY__NODE__NODE_A_CONST) {
+            auto datum =
+                small::semantics::extract_const(val_node->a_const).value();
+            new_encoded_value = small::type::encode(datum);
+        } else {
+            return absl::InternalError("unsupported SET value expression");
+        }
+
+        updated[column_name] = new_encoded_value;
+    }
+
+    std::vector<std::string> values;
+    for (const auto& col : table->columns()) {
+        values.push_back(updated.at(col.name()));
+    }
+    return values;
+}
+
+absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
+                                    bool dispatch, int64_t commit_ts,
+                                    int64_t txn_id,
+                                    const std::string& coordinator_addr) {
     auto table_name = small::schema::resolve_table_name(update_stmt->relation);
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
@@ -78,7 +179,18 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
     }
     const auto& table = table_optional.value();
 
+    auto pk_or = extract_pk(update_stmt, table);
+    if (!pk_or.ok()) return pk_or.status();
+    const std::string pk = pk_or.value();
+    UpdateResult out;
+    out.final_commit_ts = commit_ts;
+    out.intent_key = absl::StrFormat("/%s/%s/INTENT", table_name, pk);
+
     if (dispatch) {
+        // Coordinator side: fan out to every peer with the txn fields.
+        // Only the row's owner does anything visible; non-owners return
+        // their input commit_ts unchanged. We collect the max across
+        // all responses so a push reported by the owner propagates back.
         auto servers = small::gossip::get_nodes(std::nullopt);
         for (auto& [id, server] : servers) {
             small::execution::RawNode request;
@@ -88,7 +200,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
             pg_query__update_stmt__pack(update_stmt, buf);
 
             request.set_packed_node(buf, len);
-            request.set_ts(ts);
+            request.set_ts(commit_ts);
+            request.set_txn_id(txn_id);
+            request.set_coordinator_addr(coordinator_addr);
             free(buf);
 
             auto channel = grpc::CreateChannel(
@@ -102,131 +216,46 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
                     fmt::format("failed to update into server {}: {}",
                                 server.grpc_addr, status.error_message()));
             }
+            if (result.final_commit_ts() > out.final_commit_ts) {
+                out.final_commit_ts = result.final_commit_ts();
+            }
         }
-
-        auto schema = arrow::schema({});
-        return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
+        return out;
     }
 
-    // Local execution (dispatch=false). The per-row lock + read-latest
-    // pattern prevents lost updates from concurrent UPDATEs to the same
-    // row. See small-db-book/distributed_database/lost_update.md.
+    // Peer side (dispatch=false). Acquire the row lock, read the
+    // intent-aware latest committed version_ts, push if needed, and
+    // write the intent.
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
 
-    // Extract the WHERE pk. Only `WHERE <pk_col> = <literal>` is
-    // supported; anything else (predicate WHERE, non-pk column) is a
-    // multi-row UPDATE which the lock manager doesn't yet handle safely.
-    std::string filter_column =
-        update_stmt->where_clause->a_expr->lexpr->column_ref->fields[0]
-            ->string->sval;
-    int pk_index = small::schema::get_pk_index(*table);
-    if (pk_index < 0 ||
-        table->columns()[pk_index].name() != filter_column) {
-        return absl::UnimplementedError(fmt::format(
-            "UPDATE WHERE column must be the primary key (got '{}'); "
-            "multi-row UPDATE is not supported yet",
-            filter_column));
-    }
-    auto filter_value = small::semantics::extract_const(
-                            update_stmt->where_clause->a_expr->rexpr->a_const)
-                            .value();
-    auto pk = small::type::encode(filter_value);
-
-    // Acquire the per-row exclusive lock. Held across the read + compute
-    // + write below; released by RAII at end of scope.
     auto row_lock =
         small::lock::LockManager::GetInstance()->Acquire(table_name, pk);
 
-    // Inside the lock, read the absolutely-latest committed version --
-    // not a snapshot read. The lock guarantees no concurrent writer is
-    // in flight for this pk, so "latest" is the truly current state.
-    auto current = db->ReadLatest(table_name, pk);
+    // No row on this node => not the partition owner (or the row
+    // doesn't exist anywhere). Return commit_ts unchanged.
+    //
+    // Use the intent-aware variant so a prior committed-but-unpromoted
+    // intent on this row contributes its value as the pre-image for
+    // the SET clause computation.
+    auto current = small::txn::read_latest_with_intents(table_name, pk);
     if (!current.has_value()) {
-        // No row exists for this pk on this node. Common case: dispatch
-        // fan-out to a peer that doesn't own this partition.
-        auto schema = arrow::schema({});
-        return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
+        return out;
     }
 
-    {
-        // Apply SET clause to the row.
-        auto updated = current.value();
-
-        for (size_t i = 0; i < update_stmt->n_target_list; i++) {
-            auto res_target = update_stmt->target_list[i]->res_target;
-            auto column_name = std::string(res_target->name);
-            auto val_node = res_target->val;
-
-            std::string new_encoded_value;
-
-            if (val_node->node_case == PG_QUERY__NODE__NODE_A_EXPR) {
-                auto expr = val_node->a_expr;
-                auto op = std::string(expr->name[0]->string->sval);
-
-                // get current value of the referenced column
-                auto ref_column = std::string(
-                    expr->lexpr->column_ref->fields[0]->string->sval);
-                auto current_encoded = updated.at(ref_column);
-
-                // find column type
-                small::type::Type col_type = small::type::Type::STRING;
-                for (const auto& col : table->columns()) {
-                    if (col.name() == column_name) {
-                        col_type = col.type();
-                        break;
-                    }
-                }
-
-                auto current_datum =
-                    small::type::decode(current_encoded, col_type);
-                auto const_datum = small::semantics::extract_const(
-                                       expr->rexpr->a_const)
-                                       .value();
-
-                if (col_type == small::type::Type::INT64) {
-                    int64_t current_val = current_datum.int64_value();
-                    int64_t const_val = const_datum.int64_value();
-                    int64_t result;
-                    if (op == "-") {
-                        result = current_val - const_val;
-                    } else if (op == "+") {
-                        result = current_val + const_val;
-                    } else if (op == "*") {
-                        result = current_val * const_val;
-                    } else {
-                        return absl::InternalError(
-                            fmt::format("unsupported operator: {}", op));
-                    }
-                    auto result_datum = small::type::Datum();
-                    result_datum.set_int64_value(result);
-                    new_encoded_value = small::type::encode(result_datum);
-                } else {
-                    return absl::InternalError(fmt::format(
-                        "unsupported type for arithmetic: {}",
-                        small::type::to_string(col_type)));
-                }
-            } else if (val_node->node_case == PG_QUERY__NODE__NODE_A_CONST) {
-                auto datum =
-                    small::semantics::extract_const(val_node->a_const).value();
-                new_encoded_value = small::type::encode(datum);
-            } else {
-                return absl::InternalError(
-                    "unsupported SET value expression");
-            }
-
-            updated[column_name] = new_encoded_value;
-        }
-
-        // Convert updated column map to values vector in schema column order
-        std::vector<std::string> values;
-        for (const auto& col : table->columns()) {
-            values.push_back(updated.at(col.name()));
-        }
-        db->WriteRow(table, pk, values, ts);
+    auto latest_or = small::txn::latest_committed_version_ts(table_name, pk);
+    if (!latest_or.ok()) return latest_or.status();
+    int64_t latest = latest_or.value();
+    if (latest >= out.final_commit_ts) {
+        out.final_commit_ts = latest + 1;
+        SPDLOG_INFO("update push: txn_id={} {}/{} commit_ts {}->{}", txn_id,
+                    table_name, pk, commit_ts, out.final_commit_ts);
     }
 
-    auto schema = arrow::schema({});
-    return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
+    auto values_or = apply_set_clause(update_stmt, table, current.value());
+    if (!values_or.ok()) return values_or.status();
+    db->WriteIntent(table, pk, values_or.value(), txn_id, coordinator_addr);
+
+    return out;
 }
 
 grpc::Status UpdateServiceImpl::Update(
@@ -238,14 +267,16 @@ grpc::Status UpdateServiceImpl::Update(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result = update(node, false, request->ts());
+    auto result =
+        update(node, /*dispatch=*/false, request->ts(), request->txn_id(),
+               request->coordinator_addr());
     pg_query__update_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {
         return {grpc::StatusCode::INTERNAL,
                 std::string(result.status().message())};
     }
-
+    response->set_final_commit_ts(result->final_commit_ts);
     return grpc::Status::OK;
 }
 

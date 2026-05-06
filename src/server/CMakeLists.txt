@@ -13,6 +13,9 @@ target_link_libraries(small_server
     small::execution_proto
     small::catalog
     small::gossip
+    small::txn
+    small::id
+    small::rocks
     small::semantics
     small::util::ip
     small::pg_wire

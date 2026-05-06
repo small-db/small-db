@@ -25,6 +25,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // =====================================================================
@@ -59,6 +60,67 @@
 #include "src/rocks/rocks.h"
 
 namespace small::rocks {
+
+// ---------------------------------------------------------------------
+// JSON serialization for TxnStatus, TxnRecord, IntentRow.
+// ---------------------------------------------------------------------
+
+void to_json(nlohmann::json& j, const TxnStatus& s) {
+    switch (s) {
+        case TxnStatus::ACTIVE:
+            j = "ACTIVE";
+            break;
+        case TxnStatus::COMMITTED:
+            j = "COMMITTED";
+            break;
+        case TxnStatus::ABORTED:
+            j = "ABORTED";
+            break;
+    }
+}
+
+void from_json(const nlohmann::json& j, TxnStatus& s) {
+    auto str = j.get<std::string>();
+    if (str == "ACTIVE") {
+        s = TxnStatus::ACTIVE;
+    } else if (str == "COMMITTED") {
+        s = TxnStatus::COMMITTED;
+    } else if (str == "ABORTED") {
+        s = TxnStatus::ABORTED;
+    } else {
+        throw std::runtime_error("unknown TxnStatus: " + str);
+    }
+}
+
+void to_json(nlohmann::json& j, const TxnRecord& r) {
+    j = nlohmann::json{
+        {"status", r.status},
+        {"start_ts", r.start_ts},
+        {"commit_ts", r.commit_ts},
+        {"intent_keys", r.intent_keys},
+    };
+}
+
+void from_json(const nlohmann::json& j, TxnRecord& r) {
+    j.at("status").get_to(r.status);
+    j.at("start_ts").get_to(r.start_ts);
+    j.at("commit_ts").get_to(r.commit_ts);
+    j.at("intent_keys").get_to(r.intent_keys);
+}
+
+void to_json(nlohmann::json& j, const IntentRow& r) {
+    j = nlohmann::json{
+        {"values", r.values},
+        {"txn_id", r.txn_id},
+        {"coordinator_addr", r.coordinator_addr},
+    };
+}
+
+void from_json(const nlohmann::json& j, IntentRow& r) {
+    j.at("values").get_to(r.values);
+    j.at("txn_id").get_to(r.txn_id);
+    j.at("coordinator_addr").get_to(r.coordinator_addr);
+}
 
 absl::StatusOr<RocksDBWrapper*> RocksDBWrapper::GetInstance() {
     auto info = small::server_info::get_info();
@@ -122,9 +184,18 @@ RocksDBWrapper::ReadTable(const std::string& table_name, int64_t snapshot_ts) {
         }
         std::string pk = key.substr(start_pos, pk_end - start_pos);
 
-        // The third segment is the 20-digit zero-padded ms timestamp.
+        // Third segment is either a 20-digit zero-padded ms timestamp
+        // or the literal "INTENT" suffix. Skip intents at this layer;
+        // the intent-aware variant lives in src/txn/.
         std::string ts_str = key.substr(pk_end + 1);
-        int64_t version_ts = std::stoll(ts_str);
+        if (ts_str == "INTENT") continue;
+        int64_t version_ts;
+        try {
+            version_ts = std::stoll(ts_str);
+        } catch (const std::exception&) {
+            SPDLOG_WARN("ReadTable: skipping unparseable suffix {}", ts_str);
+            continue;
+        }
 
         // Skip versions that are not yet visible at the requested snapshot.
         if (version_ts > snapshot_ts) {
@@ -149,16 +220,29 @@ std::optional<std::map<std::string, std::string>> RocksDBWrapper::ReadLatest(
     read_options.prefix_same_as_start = true;
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
 
-    // Walk the (table, pk) prefix; the lex-largest entry is the latest
-    // version. We don't filter by any snapshot.
+    // Walk the (table, pk) prefix and remember the latest numeric
+    // version_ts and its value. INTENT keys are skipped here; the
+    // intent-aware variant lives in src/txn/.
+    int64_t latest_ts = -1;
     std::string latest_value;
-    bool found = false;
     for (it->Seek(scan_prefix);
          it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
-        latest_value = it->value().ToString();
-        found = true;
+        std::string suffix =
+            it->key().ToString().substr(scan_prefix.length());
+        if (suffix == "INTENT") continue;
+        int64_t version_ts;
+        try {
+            version_ts = std::stoll(suffix);
+        } catch (const std::exception&) {
+            SPDLOG_WARN("ReadLatest: skipping unparseable suffix {}", suffix);
+            continue;
+        }
+        if (version_ts > latest_ts) {
+            latest_ts = version_ts;
+            latest_value = it->value().ToString();
+        }
     }
-    if (!found) {
+    if (latest_ts < 0) {
         return std::nullopt;
     }
     auto columns = nlohmann::json::parse(latest_value);
@@ -197,6 +281,265 @@ void RocksDBWrapper::WriteRow(
     auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, ts_str.str());
     SPDLOG_INFO("WriteRow: key={}", key);
     db_->Put(rocksdb::WriteOptions(), key, obj.dump());
+}
+
+// ---------------------------------------------------------------------
+// Intents and transaction records.
+// ---------------------------------------------------------------------
+
+// All numeric version_ts values are 20-digit zero-padded strings, which
+// lex-sort below the literal "INTENT" suffix. So a prefix scan over
+// /<table>/<pk>/ surfaces committed versions first and the intent (if
+// any) last.
+static constexpr const char* kIntentSuffix = "INTENT";
+
+static std::string intent_key(const std::string& table_name,
+                              const std::string& pk) {
+    return absl::StrFormat("/%s/%s/%s", table_name, pk, kIntentSuffix);
+}
+
+static std::string txn_key(int64_t txn_id) {
+    return absl::StrFormat("/_txn/%d", txn_id);
+}
+
+int64_t RocksDBWrapper::LatestVersionTs(const std::string& table_name,
+                                        const std::string& pk) {
+    auto scan_prefix = "/" + table_name + "/" + pk + "/";
+
+    rocksdb::ReadOptions read_options;
+    read_options.prefix_same_as_start = true;
+    std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
+
+    // Walk numeric version_ts entries; ignore the INTENT key (resolution
+    // for that lives in src/txn/).
+    int64_t latest = 0;
+    for (it->Seek(scan_prefix);
+         it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string suffix = key.substr(scan_prefix.length());
+        if (suffix == kIntentSuffix) continue;
+        // Numeric suffix.
+        try {
+            int64_t ts = std::stoll(suffix);
+            if (ts > latest) latest = ts;
+        } catch (const std::exception&) {
+            SPDLOG_WARN("LatestVersionTs: skipping unparseable suffix {}",
+                        suffix);
+        }
+    }
+    return latest;
+}
+
+void RocksDBWrapper::WriteIntent(
+    const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
+    const std::vector<std::string>& values, int64_t txn_id,
+    const std::string& coordinator_addr) {
+    IntentRow intent;
+    for (int i = 0; i < table->columns().size(); ++i) {
+        intent.values[table->columns()[i].name()] = values[i];
+    }
+    intent.txn_id = txn_id;
+    intent.coordinator_addr = coordinator_addr;
+
+    auto key = intent_key(table->name(), pk);
+    nlohmann::json j = intent;
+    SPDLOG_INFO("WriteIntent: key={} txn_id={} coordinator={}", key, txn_id,
+                coordinator_addr);
+    db_->Put(rocksdb::WriteOptions(), key, j.dump());
+}
+
+std::optional<IntentRow> RocksDBWrapper::ReadIntent(
+    const std::string& table_name, const std::string& pk) {
+    auto key = intent_key(table_name, pk);
+    std::string value;
+    auto status = db_->Get(rocksdb::ReadOptions(), key, &value);
+    if (status.IsNotFound()) return std::nullopt;
+    if (!status.ok()) {
+        SPDLOG_ERROR("ReadIntent({}): {}", key, status.ToString());
+        return std::nullopt;
+    }
+    auto j = nlohmann::json::parse(value);
+    return j.get<IntentRow>();
+}
+
+bool RocksDBWrapper::DeleteIntent(const std::string& table_name,
+                                  const std::string& pk) {
+    auto key = intent_key(table_name, pk);
+    auto status = db_->Delete(rocksdb::WriteOptions(), key);
+    return status.ok();
+}
+
+void RocksDBWrapper::WriteTxnRecord(int64_t txn_id, const TxnRecord& record) {
+    auto key = txn_key(txn_id);
+    nlohmann::json j = record;
+    SPDLOG_INFO("WriteTxnRecord: key={} status={} commit_ts={}", key,
+                static_cast<int>(record.status), record.commit_ts);
+    db_->Put(rocksdb::WriteOptions(), key, j.dump());
+}
+
+std::optional<TxnRecord> RocksDBWrapper::ReadTxnRecord(int64_t txn_id) {
+    auto key = txn_key(txn_id);
+    std::string value;
+    auto status = db_->Get(rocksdb::ReadOptions(), key, &value);
+    if (status.IsNotFound()) return std::nullopt;
+    if (!status.ok()) {
+        SPDLOG_ERROR("ReadTxnRecord({}): {}", key, status.ToString());
+        return std::nullopt;
+    }
+    auto j = nlohmann::json::parse(value);
+    return j.get<TxnRecord>();
+}
+
+void RocksDBWrapper::UpdateTxnCommitTs(int64_t txn_id, int64_t commit_ts) {
+    auto record = ReadTxnRecord(txn_id);
+    if (!record.has_value()) {
+        SPDLOG_ERROR("UpdateTxnCommitTs: no record for txn_id={}", txn_id);
+        return;
+    }
+    record->commit_ts = commit_ts;
+    WriteTxnRecord(txn_id, record.value());
+}
+
+void RocksDBWrapper::AppendTxnIntentKey(int64_t txn_id,
+                                        const std::string& intent_key) {
+    auto record = ReadTxnRecord(txn_id);
+    if (!record.has_value()) {
+        SPDLOG_ERROR("AppendTxnIntentKey: no record for txn_id={}", txn_id);
+        return;
+    }
+    record->intent_keys.push_back(intent_key);
+    WriteTxnRecord(txn_id, record.value());
+}
+
+void RocksDBWrapper::SetTxnStatus(int64_t txn_id, TxnStatus status,
+                                  int64_t commit_ts) {
+    auto record = ReadTxnRecord(txn_id);
+    if (!record.has_value()) {
+        SPDLOG_ERROR("SetTxnStatus: no record for txn_id={}", txn_id);
+        return;
+    }
+    record->status = status;
+    if (status == TxnStatus::COMMITTED) record->commit_ts = commit_ts;
+    WriteTxnRecord(txn_id, record.value());
+}
+
+std::map<std::string, std::map<std::string, std::string>>
+RocksDBWrapper::ReadTableWithResolver(const std::string& table_name,
+                                      int64_t snapshot_ts,
+                                      const IntentResolver& resolver) {
+    auto scan_prefix = "/" + table_name + "/";
+
+    rocksdb::ReadOptions read_options;
+    read_options.prefix_same_as_start = true;
+    std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
+
+    // Per pk, remember the largest visible version_ts we've seen and
+    // the columns it points to. A pk's slot only advances when a
+    // new candidate beats `entry.first`.
+    std::map<std::string,
+             std::pair<int64_t, std::map<std::string, std::string>>>
+        best;
+
+    for (it->Seek(scan_prefix);
+         it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
+        std::string key = it->key().ToString();
+        std::string value = it->value().ToString();
+
+        size_t start_pos = scan_prefix.length();
+        size_t pk_end = key.find('/', start_pos);
+        if (pk_end == std::string::npos) continue;
+        std::string pk = key.substr(start_pos, pk_end - start_pos);
+        std::string suffix = key.substr(pk_end + 1);
+
+        if (suffix == kIntentSuffix) {
+            auto intent = nlohmann::json::parse(value).get<IntentRow>();
+            auto resolved = resolver(intent);
+            if (!resolved.ok()) continue;
+            auto pair = resolved.value();
+            if (!pair.first) continue;
+            int64_t commit_ts = pair.second;
+            if (commit_ts > snapshot_ts) continue;
+            auto& entry = best[pk];
+            if (commit_ts > entry.first) {
+                entry = {commit_ts, intent.values};
+            }
+            continue;
+        }
+
+        int64_t version_ts;
+        try {
+            version_ts = std::stoll(suffix);
+        } catch (const std::exception&) {
+            SPDLOG_WARN("ReadTableWithResolver: skipping unparseable {}",
+                        suffix);
+            continue;
+        }
+        if (version_ts > snapshot_ts) continue;
+        auto& entry = best[pk];
+        if (version_ts > entry.first) {
+            auto cols = nlohmann::json::parse(value)
+                            .get<std::map<std::string, std::string>>();
+            entry = {version_ts, std::move(cols)};
+        }
+    }
+
+    std::map<std::string, std::map<std::string, std::string>> result;
+    for (auto& [pk, pair] : best) {
+        result[pk] = std::move(pair.second);
+    }
+    return result;
+}
+
+std::optional<std::map<std::string, std::string>>
+RocksDBWrapper::ReadLatestWithResolver(const std::string& table_name,
+                                       const std::string& pk,
+                                       const IntentResolver& resolver) {
+    auto scan_prefix = "/" + table_name + "/" + pk + "/";
+
+    rocksdb::ReadOptions read_options;
+    read_options.prefix_same_as_start = true;
+    std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
+
+    int64_t best_ts = -1;
+    std::map<std::string, std::string> best_value;
+
+    for (it->Seek(scan_prefix);
+         it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
+        std::string suffix =
+            it->key().ToString().substr(scan_prefix.length());
+        std::string raw = it->value().ToString();
+
+        if (suffix == kIntentSuffix) {
+            auto intent = nlohmann::json::parse(raw).get<IntentRow>();
+            auto resolved = resolver(intent);
+            if (!resolved.ok()) continue;
+            auto pair = resolved.value();
+            if (!pair.first) continue;
+            int64_t commit_ts = pair.second;
+            if (commit_ts > best_ts) {
+                best_ts = commit_ts;
+                best_value = intent.values;
+            }
+            continue;
+        }
+
+        int64_t version_ts;
+        try {
+            version_ts = std::stoll(suffix);
+        } catch (const std::exception&) {
+            SPDLOG_WARN("ReadLatestWithResolver: skipping unparseable {}",
+                        suffix);
+            continue;
+        }
+        if (version_ts > best_ts) {
+            best_ts = version_ts;
+            best_value = nlohmann::json::parse(raw)
+                             .get<std::map<std::string, std::string>>();
+        }
+    }
+
+    if (best_ts < 0) return std::nullopt;
+    return best_value;
 }
 
 }  // namespace small::rocks

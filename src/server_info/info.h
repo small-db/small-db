@@ -84,6 +84,10 @@ class ServerInfo {
 
     std::string id;
 
+    // gRPC endpoint other servers RPC to reach this one. Embedded into
+    // intents so intent-resolvers can find this server's coordinator.
+    std::string grpc_addr;
+
     static absl::Status Init(const ImmutableInfo& args);
 
     // singleton instance - get instance

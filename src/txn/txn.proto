@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package small.txn;
+
+// TxnService runs on every server. A coordinator's local RocksDB stores
+// /_txn/<txn_id> records for transactions whose coordinator was this
+// server; the same service on a different node has no record and answers
+// UNKNOWN. Callers RPC the address embedded in the intent
+// (coordinator_addr), not an arbitrary peer.
+service TxnService {
+  rpc ResolveIntent(ResolveIntentRequest) returns (ResolveIntentResponse) {}
+}
+
+message ResolveIntentRequest {
+  int64 txn_id = 1;
+}
+
+message ResolveIntentResponse {
+  enum Status {
+    // No record for this txn_id on this server. Reader treats as
+    // ABORTED -- the intent is orphaned.
+    UNKNOWN = 0;
+    // In flight; coordinator has not decided yet.
+    ACTIVE = 1;
+    // Finalized; commit_ts is authoritative for every intent this txn
+    // wrote.
+    COMMITTED = 2;
+    // Coordinator rolled back.
+    ABORTED = 3;
+  }
+  Status status = 1;
+  // Valid iff status == COMMITTED.
+  int64 commit_ts = 2;
+}

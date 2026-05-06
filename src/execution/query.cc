@@ -61,6 +61,7 @@
 #include "src/schema/const.h"
 #include "src/semantics/extract.h"
 #include "src/server_info/info.h"
+#include "src/txn/txn.h"
 #include "src/type/type.h"
 
 // =====================================================================
@@ -213,9 +214,11 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto input_schema = get_input_schema(*table_optional.value());
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
-    // read kv pairs from rocksdb
-    auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name, snapshot_ts);
+    // Read kv pairs at snapshot_ts, surfacing COMMITTED intents whose
+    // commit_ts is <= snapshot_ts. The intent resolver RPCs each
+    // intent's coordinator under the hood.
+    auto rows =
+        small::txn::read_table_at_snapshot(table_name, snapshot_ts);
 
     // filter rows based on WHERE clause
     if (select_stmt->where_clause != nullptr) {

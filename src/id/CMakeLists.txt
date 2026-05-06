@@ -5,6 +5,7 @@ add_library(small_id
 
 target_link_libraries(small_id
     PRIVATE
+    small::server_info
     spdlog
     absl::status
 )
