@@ -142,3 +142,21 @@ query <type_chars>
 <expected tabular output>
 ```
 Type characters: `T` for text columns. The test framework validates column names, types, and row data.
+
+## Adding Claude permission rules
+
+When adding entries to `.claude/settings.json`, avoid these two anti-patterns:
+
+1. **System-wide modification commands.** Don't allowlist commands that change system state outside the project — package managers (`apt`, `pip install`, `flatpak`, `snap`, `dpkg`), kernel/module queries (`lsmod`), VM lifecycle (`vagrant up`), `/etc/hosts` mutators (`hostctl`), `ssh` to non-project hosts. Run those manually when needed; don't grant blanket permission.
+
+2. **Rules with specific args (one-off literals).** Entries like
+
+   ```
+   Bash(python3 /tmp/drawio_to_svg.py path/to/specific.drawio path/to/specific.svg)
+   ```
+
+   are useless — they only match that exact command line and never fire again. Either generalize to a useful prefix (`Bash(python3 -c:*)`, `Bash(./scripts/test/**:*)`) or leave the entry out and accept the single prompt.
+
+Prefer prefix patterns (`Bash(grep:*)`) and path globs (`Bash(./build/debug/**:*)`) that cover a class of commands you'll run repeatedly.
+
+Note: a compound command containing shell variable expansion (`$n`, `${var}`) will still prompt with "Contains simple_expansion" even when every sub-command is allowlisted. The check fires on the variable itself — the static allowlist can't verify what the expansion will resolve to. To skip the prompt, either inline the values (no variable) or move the loop into a script and allowlist the script's path.
