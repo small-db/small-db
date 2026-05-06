@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -86,6 +87,22 @@ class RocksDBWrapper {
         const std::string& table_name, int64_t snapshot_ts);
 
     /**
+     * @brief Reads the most recent committed version of a single row,
+     *        ignoring any snapshot filter.
+     *
+     * Used inside an UPDATE's read-modify-write under the per-row lock,
+     * where the writer must see the absolutely-latest committed value
+     * regardless of the coordinator's snapshot timestamp. SELECT goes
+     * through ReadTable; only the write path uses ReadLatest.
+     *
+     * @param table_name Schema-qualified table name.
+     * @param pk         Primary key.
+     * @return The latest version's columns, or nullopt if no version exists.
+     */
+    std::optional<std::map<std::string, std::string>> ReadLatest(
+        const std::string& table_name, const std::string& pk);
+
+    /**
      * @brief Hard-deletes a single raw key.
      *
      * Removes the underlying RocksDB entry directly; this is not an MVCC
@@ -101,16 +118,15 @@ class RocksDBWrapper {
     /**
      * @brief Writes a new MVCC version of a row at the given timestamp.
      *
-     * Encodes the column values as a JSON object and stores them under
-     * the key "/{table}/{pk}/{ts}", where ts is the caller-supplied
-     * transaction timestamp formatted as a zero-padded 20-digit ms value.
-     * Each call appends a new version; old versions are not overwritten.
+     * Stores the column values JSON-encoded under the key
+     * "/{table}/{pk}/{ts}", where `ts` is formatted as a zero-padded
+     * 20-digit value so lex order on the key suffix matches
+     * chronological order.
      *
-     * @param table  Table schema; supplies the column order and table name.
+     * @param table  Table schema; supplies column order and table name.
      * @param pk     Primary key value, used as the second key segment.
      * @param values Column values in the same order as table->columns().
-     * @param ts     Transaction timestamp (ms since epoch). All rows
-     *               written by the same transaction must share this value.
+     * @param ts     Version timestamp (ms since epoch). Used as-is.
      */
     void WriteRow(const std::shared_ptr<small::schema::Table>& table,
                   const std::string& pk,

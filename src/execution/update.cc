@@ -52,8 +52,10 @@
 #include "src/execution/execution.grpc.pb.h"
 #include "src/execution/execution.pb.h"
 #include "src/gossip/gossip.h"
+#include "src/lock/lock_manager.h"
 #include "src/rocks/rocks.h"
 #include "src/schema/const.h"
+#include "src/schema/schema.h"
 #include "src/semantics/extract.h"
 #include "src/type/type.h"
 
@@ -106,32 +108,49 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> update(
         return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
     }
 
-    // Local execution (dispatch=false). Use the same ts both for the
-    // pre-image read and for every new version we write, so the entire
-    // statement sits at one MVCC timestamp.
+    // Local execution (dispatch=false). The per-row lock + read-latest
+    // pattern prevents lost updates from concurrent UPDATEs to the same
+    // row. See small-db-book/distributed_database/lost_update.md.
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
-    auto rows = db->ReadTable(table_name, ts);
 
-    // filter (based on where clause)
-    std::map<std::string, std::map<std::string, std::string>> filtered_rows;
+    // Extract the WHERE pk. Only `WHERE <pk_col> = <literal>` is
+    // supported; anything else (predicate WHERE, non-pk column) is a
+    // multi-row UPDATE which the lock manager doesn't yet handle safely.
     std::string filter_column =
         update_stmt->where_clause->a_expr->lexpr->column_ref->fields[0]
             ->string->sval;
+    int pk_index = small::schema::get_pk_index(*table);
+    if (pk_index < 0 ||
+        table->columns()[pk_index].name() != filter_column) {
+        return absl::UnimplementedError(fmt::format(
+            "UPDATE WHERE column must be the primary key (got '{}'); "
+            "multi-row UPDATE is not supported yet",
+            filter_column));
+    }
     auto filter_value = small::semantics::extract_const(
                             update_stmt->where_clause->a_expr->rexpr->a_const)
                             .value();
-    auto encoded_filter_value = small::type::encode(filter_value);
-    for (const auto& [pk, columns] : rows) {
-        if (columns.count(filter_column) &&
-            columns.at(filter_column) == encoded_filter_value) {
-            filtered_rows[pk] = columns;
-        }
+    auto pk = small::type::encode(filter_value);
+
+    // Acquire the per-row exclusive lock. Held across the read + compute
+    // + write below; released by RAII at end of scope.
+    auto row_lock =
+        small::lock::LockManager::GetInstance()->Acquire(table_name, pk);
+
+    // Inside the lock, read the absolutely-latest committed version --
+    // not a snapshot read. The lock guarantees no concurrent writer is
+    // in flight for this pk, so "latest" is the truly current state.
+    auto current = db->ReadLatest(table_name, pk);
+    if (!current.has_value()) {
+        // No row exists for this pk on this node. Common case: dispatch
+        // fan-out to a peer that doesn't own this partition.
+        auto schema = arrow::schema({});
+        return arrow::RecordBatch::Make(schema, 0, arrow::ArrayVector{});
     }
 
-    // apply SET clause to filtered rows
-    for (const auto& [pk, columns] : filtered_rows) {
-        // Start with a mutable copy of the current row
-        auto updated = columns;
+    {
+        // Apply SET clause to the row.
+        auto updated = current.value();
 
         for (size_t i = 0; i < update_stmt->n_target_list; i++) {
             auto res_target = update_stmt->target_list[i]->res_target;

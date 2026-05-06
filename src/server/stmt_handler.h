@@ -15,6 +15,14 @@
 #pragma once
 
 // =====================================================================
+// c++ std
+// =====================================================================
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+// =====================================================================
 // third-party libraries
 // =====================================================================
 
@@ -29,7 +37,28 @@
 
 namespace small::stmt_handler {
 
+/**
+ * @brief Per-connection transaction state.
+ *
+ * Each TCP client connection holds one of these. While `active` is true,
+ * the connection is inside a `BEGIN`...`COMMIT` block:
+ *   - SELECTs use `start_ts` as their snapshot timestamp (instead of now).
+ *   - UPDATEs are *buffered* into `pending_updates` rather than executed
+ *     immediately. The actual dispatch happens at `COMMIT` time, with a
+ *     single shared `commit_ts` so all writes appear atomically.
+ * `COMMIT` flushes the buffer; `ROLLBACK` discards it. A new connection
+ * starts with `active = false` (auto-commit per statement).
+ */
+struct TxnState {
+    bool active = false;
+    int64_t start_ts = 0;
+
+    // Each entry is the packed bytes of a PgQuery__UpdateStmt, captured
+    // at UPDATE time so the AST can outlive the parser's allocation.
+    std::vector<std::string> pending_updates;
+};
+
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
-    PgQuery__Node* stmt);
+    PgQuery__Node* stmt, TxnState& txn);
 
 }  // namespace small::stmt_handler

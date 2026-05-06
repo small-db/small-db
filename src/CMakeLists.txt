@@ -1,6 +1,7 @@
 add_subdirectory(util)
 add_subdirectory(server_info)
 add_subdirectory(id)
+add_subdirectory(lock)
 add_subdirectory(type)
 add_subdirectory(execution)
 add_subdirectory(rocks)

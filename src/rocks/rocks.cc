@@ -138,6 +138,30 @@ RocksDBWrapper::ReadTable(const std::string& table_name, int64_t snapshot_ts) {
     return result;
 }
 
+std::optional<std::map<std::string, std::string>> RocksDBWrapper::ReadLatest(
+    const std::string& table_name, const std::string& pk) {
+    auto scan_prefix = "/" + table_name + "/" + pk + "/";
+
+    rocksdb::ReadOptions read_options;
+    read_options.prefix_same_as_start = true;
+    std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
+
+    // Walk the (table, pk) prefix; the lex-largest entry is the latest
+    // version. We don't filter by any snapshot.
+    std::string latest_value;
+    bool found = false;
+    for (it->Seek(scan_prefix);
+         it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
+        latest_value = it->value().ToString();
+        found = true;
+    }
+    if (!found) {
+        return std::nullopt;
+    }
+    auto columns = nlohmann::json::parse(latest_value);
+    return columns.get<std::map<std::string, std::string>>();
+}
+
 bool RocksDBWrapper::Delete(const std::string& key) {
     rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
     return status.ok();
@@ -162,9 +186,8 @@ void RocksDBWrapper::WriteRow(
         obj[table->columns()[i].name()] = values[i];
     }
 
-    // Caller-supplied transaction timestamp, formatted as a zero-padded
-    // 20-digit string so that lex order on the key suffix matches
-    // chronological order.
+    // Format the caller-supplied ts as a zero-padded 20-digit string so
+    // lex order on the key suffix matches chronological order.
     std::ostringstream ts_str;
     ts_str << std::setw(20) << std::setfill('0') << ts;
 

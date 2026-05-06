@@ -208,17 +208,84 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> WrapEmptyStatus(
     }
 }
 
-absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
-    PgQuery__Node* stmt) {
-    // The node that received the request is the transaction coordinator.
-    // Pick one ts here and use it for the whole statement -- writes stamp
-    // every new version with it; reads use it as the snapshot.
-    auto pick_ts = []() -> int64_t {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
-                   std::chrono::system_clock::now().time_since_epoch())
-            .count();
-    };
+// Wall-clock ms since epoch. Used both as snapshot timestamps for
+// reads and as the floor for write commit timestamps.
+static int64_t now_ms() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}
 
+// Flush every buffered UPDATE in `txn` at the same `commit_ts` so all of
+// the transaction's writes share one MVCC version. After this returns,
+// `txn` is reset to inactive regardless of success or failure.
+static absl::Status commit_txn(TxnState& txn) {
+    if (!txn.active) {
+        return absl::FailedPreconditionError("COMMIT outside of BEGIN");
+    }
+
+    int64_t commit_ts = now_ms();
+    if (commit_ts < txn.start_ts) commit_ts = txn.start_ts;
+
+    // Reset state up-front so a partial-failure path doesn't leave the
+    // connection holding zombie buffered writes.
+    auto buffered = std::move(txn.pending_updates);
+    txn.active = false;
+    txn.start_ts = 0;
+    txn.pending_updates.clear();
+
+    for (const auto& packed : buffered) {
+        PgQuery__UpdateStmt* stmt = pg_query__update_stmt__unpack(
+            nullptr, packed.size(),
+            reinterpret_cast<const uint8_t*>(packed.data()));
+        if (stmt == nullptr) {
+            return absl::InternalError("failed to unpack buffered UPDATE");
+        }
+        auto result =
+            small::execution::update(stmt, /*dispatch=*/true, commit_ts);
+        pg_query__update_stmt__free_unpacked(stmt, nullptr);
+        if (!result.ok()) {
+            return result.status();
+        }
+    }
+    return absl::OkStatus();
+}
+
+// Drop buffered writes without dispatching. Resets `txn` to inactive.
+static absl::Status rollback_txn(TxnState& txn) {
+    if (!txn.active) {
+        return absl::FailedPreconditionError("ROLLBACK outside of BEGIN");
+    }
+    txn.active = false;
+    txn.start_ts = 0;
+    txn.pending_updates.clear();
+    return absl::OkStatus();
+}
+
+// Run `body` inside a transaction. If no transaction is active on entry,
+// implicitly begin one before `body` and commit after; otherwise just
+// run `body` and let the explicit BEGIN/COMMIT control the boundary.
+// `body` always runs with `txn.active == true` and `txn.start_ts` set,
+// so handlers don't need to branch on transaction state.
+template <typename F>
+static absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> run_with_txn(
+    TxnState& txn, F&& body) {
+    bool implicit = !txn.active;
+    if (implicit) {
+        txn.active = true;
+        txn.start_ts = now_ms();
+        txn.pending_updates.clear();
+    }
+    auto result = body();
+    if (implicit) {
+        auto status = commit_txn(txn);
+        if (!status.ok()) return status;
+    }
+    return result;
+}
+
+absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
+    PgQuery__Node* stmt, TxnState& txn) {
     switch (stmt->node_case) {
         case PG_QUERY__NODE__NODE_CREATE_STMT: {
             auto create_stmt = stmt->create_stmt;
@@ -237,7 +304,31 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_TRANSACTION_STMT: {
-            SPDLOG_INFO("transaction statement");
+            auto kind = stmt->transaction_stmt->kind;
+            switch (kind) {
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN:
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_START: {
+                    if (txn.active) {
+                        return absl::FailedPreconditionError(
+                            "nested BEGIN is not supported");
+                    }
+                    txn.active = true;
+                    txn.start_ts = now_ms();
+                    txn.pending_updates.clear();
+                    return EmptyBatch();
+                }
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_COMMIT: {
+                    return WrapEmptyStatus([&]() { return commit_txn(txn); });
+                }
+                case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_ROLLBACK: {
+                    return WrapEmptyStatus(
+                        [&]() { return rollback_txn(txn); });
+                }
+                default:
+                    SPDLOG_INFO("ignoring transaction stmt kind: {}",
+                                magic_enum::enum_name(kind));
+                    return EmptyBatch();
+            }
             break;
         }
         case PG_QUERY__NODE__NODE_ALTER_TABLE_STMT: {
@@ -247,18 +338,38 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> handle_stmt(
             break;
         }
         case PG_QUERY__NODE__NODE_SELECT_STMT: {
-            return small::execution::query(stmt->select_stmt, true, pick_ts());
+            return run_with_txn(txn, [&]() {
+                return small::execution::query(stmt->select_stmt, true,
+                                               txn.start_ts);
+            });
             break;
         }
         case PG_QUERY__NODE__NODE_UPDATE_STMT: {
-            return small::execution::update(stmt->update_stmt, true, pick_ts());
+            return run_with_txn(
+                txn,
+                [&]() -> absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> {
+                    // Always buffer; if this is an implicit txn, the
+                    // wrapper will commit immediately after the lambda.
+                    size_t len = pg_query__update_stmt__get_packed_size(
+                        stmt->update_stmt);
+                    std::string packed(len, '\0');
+                    pg_query__update_stmt__pack(
+                        stmt->update_stmt,
+                        reinterpret_cast<uint8_t*>(packed.data()));
+                    txn.pending_updates.push_back(std::move(packed));
+                    return EmptyBatch();
+                });
             break;
         }
         case PG_QUERY__NODE__NODE_INSERT_STMT: {
-            int64_t ts = pick_ts();
-            return WrapEmptyStatus([&]() {
-                return small::execution::insert(stmt->insert_stmt, ts);
-            });
+            return run_with_txn(
+                txn,
+                [&]() -> absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> {
+                    auto status = small::execution::insert(stmt->insert_stmt,
+                                                           txn.start_ts);
+                    if (!status.ok()) return status;
+                    return EmptyBatch();
+                });
             break;
         }
         default:

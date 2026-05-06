@@ -121,6 +121,7 @@ class SocketsManager {
 
    private:
     std::unordered_map<int, SocketState> socket_states;
+    std::unordered_map<int, small::stmt_handler::TxnState> txn_states;
 
     // Static pointer to the Singleton instance.
     static SocketsManager* instancePtr;
@@ -174,6 +175,16 @@ class SocketsManager {
     static void remove_socket_state(int sockfd) {
         auto instance = getInstance();
         instance->socket_states.erase(sockfd);
+        instance->txn_states.erase(sockfd);
+    }
+
+    // Returns a reference to the per-connection transaction state. The
+    // entry is default-constructed (inactive, no buffered writes) on
+    // first access, so `auto& txn = get_txn_state(fd)` is safe even if
+    // the connection has never run BEGIN before.
+    static small::stmt_handler::TxnState& get_txn_state(int sockfd) {
+        auto instance = getInstance();
+        return instance->txn_states[sockfd];
     }
 };
 
@@ -238,9 +249,10 @@ void handle_command(std::string& command, int sockfd) {
 
     auto node_case = unpacked->stmts[0]->stmt->node_case;
 
+    auto& txn = SocketsManager::get_txn_state(sockfd);
     for (int i = 0; i < unpacked->n_stmts; i++) {
         auto result =
-            small::stmt_handler::handle_stmt(unpacked->stmts[i]->stmt);
+            small::stmt_handler::handle_stmt(unpacked->stmts[i]->stmt, txn);
         if (!result.ok()) {
             SPDLOG_ERROR("error handling statement: {}",
                          result.status().ToString());
