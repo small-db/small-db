@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Transaction Model Evolution" id="txn-model-evolution">
-    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1750" math="0" shadow="0">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="2200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -11,205 +11,222 @@
           <mxGeometry x="40" y="20" width="1420" height="40" as="geometry"/>
         </mxCell>
 
-        <mxCell id="subtitle" value="Each decision introduces invariants. Subsequent decisions either build on them or are constrained by them."
-                style="text;html=1;align=center;fontSize=14;fontStyle=2;fontColor=#444444"
+        <mxCell id="subtitle" value="Each arrow has a verb. Each block has a tag. Anomalies drive solutions; solutions establish invariants; new natures emerge and produce new anomalies."
+                style="text;html=1;align=center;fontSize=13;fontStyle=2;fontColor=#444"
                 vertex="1" parent="1">
           <mxGeometry x="40" y="60" width="1420" height="22" as="geometry"/>
         </mxCell>
 
-        <mxCell id="leftHeader" value="DECISIONS"
-                style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#666666"
+        <mxCell id="legend" value="&lt;b&gt;Tag legend:&lt;/b&gt; &amp;nbsp;&amp;nbsp; &lt;span style='background:#dae8fc;padding:2px 6px;border:1px solid #6c8ebf;'&gt;START&lt;/span&gt; &amp;nbsp; &lt;span style='background:#f8cecc;padding:2px 6px;border:1px solid #b85450;border-radius:10px;'&gt;ANOMALY&lt;/span&gt; &amp;nbsp; &lt;span style='background:#dae8fc;padding:2px 6px;border:1px solid #6c8ebf;'&gt;SOLUTION&lt;/span&gt; &amp;nbsp; &lt;span style='background:#d5e8d4;padding:2px 6px;border:1px solid #82b366;'&gt;INVARIANT&lt;/span&gt; &amp;nbsp; &lt;span style='background:#f5f5f5;padding:2px 6px;border:1px solid #999;'&gt;NATURE&lt;/span&gt; &amp;nbsp; &lt;span style='background:#fff2cc;padding:2px 6px;border:1px solid #d6b656;border-radius:10px;'&gt;HINT&lt;/span&gt; &amp;nbsp; &lt;span style='background:#ffe6cc;padding:2px 6px;border:1px solid #d79b00;'&gt;CANDIDATE&lt;/span&gt; &amp;nbsp; &lt;span style='background:#f8cecc;padding:2px 6px;border:1px solid #b85450;'&gt;ISSUE&lt;/span&gt; &amp;nbsp; &lt;span style='background:#d5e8d4;padding:2px 6px;border:2px solid #82b366;'&gt;FINAL SOLUTION&lt;/span&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;align=left;fontSize=11"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="100" width="660" height="20" as="geometry"/>
-        </mxCell>
-        <mxCell id="rightHeader" value="INVARIANTS &amp; REQUIREMENTS"
-                style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#666666"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="100" width="680" height="20" as="geometry"/>
+          <mxGeometry x="60" y="90" width="1380" height="44" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage0" value="&lt;b&gt;Stage 0 — Distributed KV, no concurrency control&lt;/b&gt;&lt;br&gt;&lt;br&gt;Writes hit storage immediately at wall-clock ts.&lt;br&gt;&lt;font color='#b85450'&gt;No invariants. Anomalies everywhere.&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=13"
+        <mxCell id="start" value="&lt;b&gt;[START]&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Distributed KV, no concurrency control&lt;/b&gt;&lt;br&gt;Single value per key; writes overwrite in place. No isolation — a read interleaved with a multi-key update sees a partial state."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="155" width="660" height="95" as="geometry"/>
+          <mxGeometry x="430" y="160" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="t01prob" value="&lt;b&gt;Problem.&lt;/b&gt; Readers must wait for writers; concurrent writes overwrite each other."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+        <mxCell id="anom1" value="&lt;b&gt;[ANOMALY]&lt;/b&gt;&lt;br&gt;&lt;b&gt;A reader sees a partial / mid-write state of the database&lt;/b&gt;&lt;br&gt;Application invariants appear violated even though every write succeeds individually."
+                style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="80" y="266" width="270" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="t01ins" value="&lt;b&gt;Insight.&lt;/b&gt; A coherent past view is enough for readers. Make writes append new versions."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="390" y="266" width="290" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="arr01" style="endArrow=classic;html=1;rounded=0;strokeWidth=2.5;strokeColor=#444444" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="370" y="250" as="sourcePoint"/>
-            <mxPoint x="370" y="335" as="targetPoint"/>
-          </mxGeometry>
+          <mxGeometry x="430" y="280" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage1" value="&lt;b&gt;Stage 1 — MVCC&lt;/b&gt;&lt;br&gt;&lt;br&gt;Each write produces a new version tagged with ts.&lt;br&gt;Reads filter by snapshot_ts and pick the latest visible per row.&lt;br&gt;&lt;br&gt;&lt;b&gt;&lt;font color='#82b366'&gt;introduces I1, I2&lt;/font&gt;&lt;/b&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=13"
-                vertex="1" parent="1">
-          <mxGeometry x="40" y="335" width="660" height="115" as="geometry"/>
+        <mxCell id="arr_start_anom1" value="produces" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="start" target="anom1">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="invI1" value="&lt;b&gt;I1.&lt;/b&gt; Each write produces a new immutable version. Rows are never overwritten.&lt;br&gt;&lt;font size='1' color='#666'&gt;— a per-row append-only chain of versions&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
+        <mxCell id="sol1" value="&lt;b&gt;[SOLUTION]&lt;/b&gt;&lt;br&gt;&lt;b&gt;MVCC: versioned writes, snapshot reads&lt;/b&gt;&lt;br&gt;Each write is a new version tagged with ts. Reads pick the newest version ≤ snapshot_ts per row."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="780" y="335" width="680" height="50" as="geometry"/>
-        </mxCell>
-        <mxCell id="invI2" value="&lt;b&gt;I2.&lt;/b&gt; Read at snapshot_ts returns the largest version_ts ≤ snapshot_ts (per row).&lt;br&gt;&lt;font size='1' color='#666'&gt;— the &quot;lex-largest visible&quot; rule&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="395" width="680" height="50" as="geometry"/>
+          <mxGeometry x="430" y="405" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="t12prob" value="&lt;b&gt;Problem.&lt;/b&gt; Concurrent writers to the same row both read the pre-image; one's effect lost."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="80" y="466" width="270" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="t12ins" value="&lt;b&gt;Insight.&lt;/b&gt; Writers to one row must serialize so the second sees the first's commit."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="390" y="466" width="290" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="arr12" style="endArrow=classic;html=1;rounded=0;strokeWidth=2.5;strokeColor=#444444" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="370" y="450" as="sourcePoint"/>
-            <mxPoint x="370" y="535" as="targetPoint"/>
-          </mxGeometry>
+        <mxCell id="arr_anom1_sol1" value="solved by" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="anom1" target="sol1">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage2" value="&lt;b&gt;Stage 2 — Per-row exclusive lock + read-latest&lt;/b&gt;&lt;br&gt;&lt;br&gt;A writer locks the row, reads the latest committed value, computes, writes.&lt;br&gt;&lt;font color='#666' face='italic'&gt;builds on I1 (chain is well-defined)&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;&lt;font color='#82b366'&gt;introduces I3, I4&lt;/font&gt;&lt;/b&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=13"
+        <mxCell id="inv1" value="&lt;b&gt;[INVARIANT]&lt;/b&gt;&lt;br&gt;Per-row visibility = lex-largest version_ts ≤ snapshot_ts."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="535" width="660" height="115" as="geometry"/>
+          <mxGeometry x="1140" y="415" width="320" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="invI3" value="&lt;b&gt;I3.&lt;/b&gt; At most one writer is in its RMW critical section on a single row at a time.&lt;br&gt;&lt;font size='1' color='#666'&gt;— two concurrent writers serialize&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="535" width="680" height="50" as="geometry"/>
-        </mxCell>
-        <mxCell id="invI4" value="&lt;b&gt;I4.&lt;/b&gt; Inside the lock, the writer reads the latest committed value (not a snapshot view).&lt;br&gt;&lt;font size='1' color='#666'&gt;— RMW always composes on real current state&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="595" width="680" height="50" as="geometry"/>
+        <mxCell id="arr_sol1_inv1" value="establishes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=12;fontStyle=2;fontColor=#557f3f" edge="1" parent="1" source="sol1" target="inv1">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="t23prob" value="&lt;b&gt;Problem.&lt;/b&gt; A transfer is two writes at two ts. A reader can land between them."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+        <mxCell id="anom2" value="&lt;b&gt;[ANOMALY]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Lost update — concurrent RMW on the same row&lt;/b&gt;&lt;br&gt;Two writers read the same pre-image, both compute, both write. One's effect vanishes."
+                style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="80" y="666" width="270" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="t23ins" value="&lt;b&gt;Insight.&lt;/b&gt; One commit_ts must cover all of a transaction's writes."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="390" y="666" width="290" height="56" as="geometry"/>
-        </mxCell>
-        <mxCell id="arr23" style="endArrow=classic;html=1;rounded=0;strokeWidth=2.5;strokeColor=#444444" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="370" y="650" as="sourcePoint"/>
-            <mxPoint x="370" y="735" as="targetPoint"/>
-          </mxGeometry>
+          <mxGeometry x="430" y="525" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage3" value="&lt;b&gt;Stage 3 — Multi-statement transactions, single commit_ts&lt;/b&gt;&lt;br&gt;&lt;br&gt;BEGIN buffers writes; COMMIT picks one ts and dispatches all at that ts.&lt;br&gt;&lt;font color='#666' face='italic'&gt;builds on I1 (ts-addressable versions), I3 (no interleaving with other writers)&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;&lt;font color='#82b366'&gt;introduces I5&lt;/font&gt;&lt;/b&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=13"
-                vertex="1" parent="1">
-          <mxGeometry x="40" y="735" width="660" height="115" as="geometry"/>
+        <mxCell id="arr_sol1_anom2" value="leaves open" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="sol1" target="anom2">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="invI5" value="&lt;b&gt;I5.&lt;/b&gt; Every write of one transaction lands at the same version_ts.&lt;br&gt;&lt;font size='1' color='#666'&gt;— a snapshot at any S either sees all of T's writes or none of them&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
+        <mxCell id="sol2" value="&lt;b&gt;[SOLUTION]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Per-row exclusive lock + read-latest under the lock&lt;/b&gt;&lt;br&gt;A writer locks the row, reads the latest committed value, computes, writes, releases."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="780" y="755" width="680" height="60" as="geometry"/>
+          <mxGeometry x="430" y="650" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="t34prob" value="&lt;b&gt;Problem.&lt;/b&gt; Two concurrent commits on the same row from different coordinators arrive out of order; the later one is lex-shadowed."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="80" y="866" width="270" height="66" as="geometry"/>
-        </mxCell>
-        <mxCell id="t34ins" value="&lt;b&gt;Insight.&lt;/b&gt; Observing a value should advance my timestamp past it. The shadowed write happened because that didn't happen."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="390" y="866" width="290" height="66" as="geometry"/>
-        </mxCell>
-        <mxCell id="arr34" style="endArrow=classic;html=1;rounded=0;strokeWidth=2.5;strokeColor=#444444" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="370" y="850" as="sourcePoint"/>
-            <mxPoint x="370" y="945" as="targetPoint"/>
-          </mxGeometry>
+        <mxCell id="arr_anom2_sol2" value="solved by" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="anom2" target="sol2">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage4" value="&lt;b&gt;Stage 4 — A constraint that fights I5&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;New requirement R1&lt;/b&gt; would close shadowing. But naive enforcement breaks I5:&lt;br&gt;&lt;br&gt;• per-row bumping → each row independently bumped → I5 broken&lt;br&gt;• rewrite all rows on push → preserves I5 → O(N) at commit, hot-path expensive&lt;br&gt;&lt;br&gt;&lt;font color='#666' face='italic'&gt;depends on I5 (must keep), introduces R1 (must add)&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=left;fontSize=13;verticalAlign=top;spacingTop=15"
+        <mxCell id="inv2" value="&lt;b&gt;[INVARIANT]&lt;/b&gt;&lt;br&gt;At most one writer in RMW on a given row at a time."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="945" width="660" height="180" as="geometry"/>
+          <mxGeometry x="1140" y="660" width="320" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="reqR1" value="&lt;b&gt;R1.&lt;/b&gt; Each new commit's version_ts on every row it writes must strictly exceed every prior version_ts on that row.&lt;br&gt;&lt;font size='1' color='#666'&gt;— closes shadowed writes; clashes with I5 if enforced per-row&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="945" width="680" height="65" as="geometry"/>
+        <mxCell id="arr_sol2_inv2" value="establishes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=12;fontStyle=2;fontColor=#557f3f" edge="1" parent="1" source="sol2" target="inv2">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="tensionBox" value="&lt;b&gt;Tension between R1 and I5&lt;/b&gt;&lt;br&gt;&lt;br&gt;Per-row mechanisms can satisfy one but not both.&lt;br&gt;We need a structure that lets a single commit_ts be raised at commit time, &lt;i&gt;without rewriting the rows that already carry the txn's writes.&lt;/i&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+        <mxCell id="anom3" value="&lt;b&gt;[ANOMALY]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Read skew across statements&lt;/b&gt;&lt;br&gt;A transfer is two UPDATEs at two different ts; a SELECT can land between and see one half only."
+                style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="780" y="1030" width="680" height="80" as="geometry"/>
+          <mxGeometry x="430" y="770" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="t45prob" value="&lt;b&gt;Tension.&lt;/b&gt; Need (a) commit_ts &gt; all prior version_ts AND (b) one commit_ts per txn. Per-row mechanisms cannot satisfy both."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="80" y="1141" width="270" height="66" as="geometry"/>
-        </mxCell>
-        <mxCell id="t45ins" value="&lt;b&gt;Insight.&lt;/b&gt; Decouple &quot;the value sitting on this row&quot; from &quot;is this committed, at what ts.&quot; Move the second piece into one shared place."
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="390" y="1141" width="290" height="66" as="geometry"/>
-        </mxCell>
-        <mxCell id="arr45" style="endArrow=classic;html=1;rounded=0;strokeWidth=2.5;strokeColor=#444444" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="370" y="1125" as="sourcePoint"/>
-            <mxPoint x="370" y="1220" as="targetPoint"/>
-          </mxGeometry>
+        <mxCell id="arr_sol2_anom3" value="leaves open" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="sol2" target="anom3">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="stage5" value="&lt;b&gt;Stage 5 — Intents + txn record&lt;/b&gt;&lt;br&gt;&lt;br&gt;Each row write lays down an intent &lt;font face='monospace'&gt;{value, txn_id}&lt;/font&gt;;&lt;br&gt;a separate txn record holds &lt;font face='monospace'&gt;{status, commit_ts}&lt;/font&gt;.&lt;br&gt;&lt;br&gt;&lt;b&gt;COMMIT&lt;/b&gt; = one update of the txn record. All N intents flip together.&lt;br&gt;&lt;b&gt;PUSH&lt;/b&gt; = the same one update at a higher commit_ts.&lt;br&gt;&lt;b&gt;RESOLUTION&lt;/b&gt; = lazy rewrite of intents to canonical version entries.&lt;br&gt;&lt;br&gt;&lt;font color='#666' face='italic'&gt;depends on I5 (preserved), R1 (now satisfied)&lt;/font&gt;&lt;br&gt;&lt;b&gt;&lt;font color='#82b366'&gt;introduces I6, I7&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color='#557f3f'&gt;✓ Single commit_ts per txn (atomicity).  ✓ Push past existing versions without rewriting any rows.&lt;/font&gt;"
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2.5;align=left;fontSize=13;verticalAlign=top;spacingTop=15;spacingLeft=20"
+        <mxCell id="sol3" value="&lt;b&gt;[SOLUTION]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Multi-statement transactions: deferred writes, shared commit_ts&lt;/b&gt;&lt;br&gt;BEGIN buffers writes; COMMIT picks one ts and dispatches all at that ts."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="1220" width="660" height="280" as="geometry"/>
+          <mxGeometry x="430" y="895" width="640" height="80" as="geometry"/>
         </mxCell>
 
-        <mxCell id="invI6" value="&lt;b&gt;I6.&lt;/b&gt; Each row's effective commit_ts and visibility status are determined by a single shared txn record, not by the row entry alone."
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="1220" width="680" height="60" as="geometry"/>
-        </mxCell>
-        <mxCell id="invI7" value="&lt;b&gt;I7.&lt;/b&gt; Commit and push are single atomic updates of the txn record. Intent resolution is lazy and idempotent."
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;fontSize=12"
-                vertex="1" parent="1">
-          <mxGeometry x="780" y="1290" width="680" height="60" as="geometry"/>
+        <mxCell id="arr_anom3_sol3" value="solved by" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="anom3" target="sol3">
+          <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="composeNote" value="&lt;b&gt;How the invariants compose at Stage 5:&lt;/b&gt;&lt;br&gt;• I6 carries I5: all rows of one txn point to one record → one commit_ts. ✓&lt;br&gt;• I7 carries R1: push raises the txn record's commit_ts in O(1), past prior versions. ✓&lt;br&gt;• I3, I4 still hold (intents are still RMW under a row lock)."
-                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f4f4f4;strokeColor=#999999;dashed=1;align=left;fontSize=12"
+        <mxCell id="inv3" value="&lt;b&gt;[INVARIANT]&lt;/b&gt;&lt;br&gt;All writes of one transaction share one commit_ts (atomicity)."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="780" y="1370" width="680" height="100" as="geometry"/>
+          <mxGeometry x="1140" y="905" width="320" height="60" as="geometry"/>
         </mxCell>
 
-        <mxCell id="footer" value="Read top-to-bottom on the left for the decisions; read top-to-bottom on the right for the invariants each decision adds. Every later stage's text says which earlier invariants it relies on."
-                style="text;html=1;align=center;fontSize=13;fontStyle=2;fontColor=#444444"
+        <mxCell id="arr_sol3_inv3" value="establishes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=12;fontStyle=2;fontColor=#557f3f" edge="1" parent="1" source="sol3" target="inv3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nature" value="&lt;b&gt;[NATURE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;commit_ts is picked at the coordinator&lt;/b&gt;&lt;br&gt;It doesn't reflect what the storage layer has observed. A causal dependency at the row owner (read-latest under the lock) does NOT advance the coordinator's commit_ts."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;strokeWidth=2;align=center;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="1530" width="1420" height="40" as="geometry"/>
+          <mxGeometry x="430" y="1020" width="640" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_sol3_nature" value="introduces" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="sol3" target="nature">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="anom4" value="&lt;b&gt;[ANOMALY]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Shadowed write&lt;/b&gt;&lt;br&gt;A chronologically-later commit lands at a smaller version_ts and is invisible to MVCC reads."
+                style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="430" y="1150" width="640" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_nature_anom4" value="produces" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="nature" target="anom4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hint" value="&lt;b&gt;[HINT]&lt;/b&gt;&lt;br&gt;&lt;b&gt;commit_ts must be pushable past observed dependencies&lt;/b&gt;&lt;br&gt;If a write composes on top of a value at ts=X, its commit_ts must end up &gt; X."
+                style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="370" y="1270" width="760" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_anom4_hint" value="implies" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="anom4" target="hint">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="candA" value="&lt;b&gt;[CANDIDATE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Per-row version_ts bump&lt;/b&gt;&lt;br&gt;At write time, raise version_ts to max(caller_ts, latest_for_pk + 1). Per-row, decided by the lock holder."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="160" y="1410" width="380" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_hint_candA" value="candidate" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666;exitX=0.25;exitY=1;exitDx=0;exitDy=0" edge="1" parent="1" source="hint" target="candA">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="issueA" value="&lt;b&gt;[ISSUE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Breaks the atomicity invariant&lt;/b&gt;&lt;br&gt;Per-row bump fires independently per row. Writes of one tx end up at different version_ts."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="160" y="1555" width="380" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_candA_issueA" value="blocked by" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="candA" target="issueA">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="candB" value="&lt;b&gt;[CANDIDATE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Rewrite all rows of the tx on push&lt;/b&gt;&lt;br&gt;Pick a single commit_ts for the whole tx at COMMIT, scan past every touched row's latest, and rewrite each at the new ts."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="960" y="1410" width="380" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_hint_candB" value="candidate" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666;exitX=0.75;exitY=1;exitDx=0;exitDy=0" edge="1" parent="1" source="hint" target="candB">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="issueB" value="&lt;b&gt;[ISSUE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;O(N) rewrites at commit&lt;/b&gt;&lt;br&gt;Every flushed row must be re-Put on push. Commit cost grows with the tx's write set."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="960" y="1555" width="380" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_candB_issueB" value="blocked by" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666" edge="1" parent="1" source="candB" target="issueB">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="finalSol" value="&lt;b&gt;[FINAL SOLUTION]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Intents + txn record&lt;/b&gt;&lt;br&gt;Each row write lays down an intent { value, txn_id } pointing to a shared txn record.&lt;br&gt;The txn record holds { status, commit_ts }; visibility decisions consult it.&lt;br&gt;COMMIT and PUSH are single atomic updates of the txn record. Resolution is lazy."
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2.5;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="370" y="1730" width="760" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_issueA_final" value="motivates" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="issueA" target="finalSol">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_issueB_final" value="motivates" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444;fontSize=12;fontStyle=2;fontColor=#666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0" edge="1" parent="1" source="issueB" target="finalSol">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="finalInv1" value="&lt;b&gt;[INVARIANT]&lt;/b&gt;&lt;br&gt;Visibility decided by a single shared txn record, not by the row entry alone. All N intents flip to visible together via one record write."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="160" y="1895" width="560" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="finalInv2" value="&lt;b&gt;[INVARIANT]&lt;/b&gt;&lt;br&gt;COMMIT and PUSH are O(1) record updates; no row rewriting on the hot path. Atomicity is preserved: all of T's intents share one record."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="780" y="1895" width="560" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_final_inv1" value="establishes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=12;fontStyle=2;fontColor=#557f3f" edge="1" parent="1" source="finalSol" target="finalInv1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arr_final_inv2" value="establishes" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82b366;fontSize=12;fontStyle=2;fontColor=#557f3f" edge="1" parent="1" source="finalSol" target="finalInv2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="footer" value="Read top to bottom. Every arrow has a verb (produces / solved by / establishes / leaves open / introduces / implies / motivates) that names the relationship between blocks. Solutions establish invariants but also introduce new natures, which produce new anomalies. The chain converges only when the final design satisfies every invariant accumulated along the way."
+                style="text;html=1;align=center;fontSize=12;fontStyle=2;fontColor=#444"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="2030" width="1420" height="60" as="geometry"/>
         </mxCell>
 
       </root>

@@ -1,185 +1,319 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1750" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 2200" font-family="Helvetica, Arial, sans-serif">
   <defs>
-    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
-            markerWidth="9" markerHeight="9" orient="auto">
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
     </marker>
+    <style>
+      .tag      { font-size: 10px; font-weight: bold; letter-spacing: 0.05em; }
+      .body     { font-size: 13px; }
+      .smbody   { font-size: 12px; }
+      .verb     { font-size: 12px; font-style: italic; fill: #666; }
+      .title    { font-size: 22px; font-weight: bold; }
+      .subtitle { font-size: 13px; font-style: italic; fill: #444; }
+      .footer   { font-size: 12px; font-style: italic; fill: #444; }
+    </style>
   </defs>
 
-  <!-- Title -->
-  <text x="750" y="40" font-size="22" font-weight="bold" text-anchor="middle">
-    Evolution of small-db's transaction model
-  </text>
-  <text x="750" y="68" font-size="14" text-anchor="middle" fill="#444" font-style="italic">
-    Each decision introduces invariants. Subsequent decisions either build on them or are constrained by them.
+  <!-- ===== Title ===== -->
+  <text x="750" y="38" class="title" text-anchor="middle">Evolution of small-db's transaction model</text>
+  <text x="750" y="62" class="subtitle" text-anchor="middle">
+    Each arrow has a verb. Each block has a tag. Anomalies drive solutions; solutions establish invariants; new natures emerge and produce new anomalies.
   </text>
 
-  <!-- Column headers -->
-  <text x="370" y="110" font-size="14" font-weight="bold" text-anchor="middle" fill="#666">DECISIONS</text>
-  <text x="1170" y="110" font-size="14" font-weight="bold" text-anchor="middle" fill="#666">INVARIANTS &amp; REQUIREMENTS</text>
+  <!-- ===== Legend ===== -->
+  <g>
+    <rect x="60" y="90" width="1380" height="44" rx="4" fill="#fafafa" stroke="#ccc"/>
+    <text x="80" y="118" class="smbody"><tspan font-weight="bold">Tag legend:</tspan></text>
 
-  <!-- Subtle column dividers -->
-  <line x1="40" y1="125" x2="700" y2="125" stroke="#ccc" stroke-width="1"/>
-  <line x1="780" y1="125" x2="1460" y2="125" stroke="#ccc" stroke-width="1"/>
+    <rect x="180" y="100" width="100" height="26" rx="4" fill="#dae8fc" stroke="#6c8ebf"/>
+    <text x="230" y="117" class="tag" text-anchor="middle">START</text>
 
-  <!-- ========================= STAGE 0 ========================= -->
-  <rect x="40" y="155" width="660" height="95" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
-  <text x="370" y="186" font-size="16" font-weight="bold" text-anchor="middle">Stage 0 — Distributed KV, no concurrency control</text>
-  <text x="370" y="213" font-size="13" text-anchor="middle">Writes hit storage immediately at wall-clock ts.</text>
-  <text x="370" y="234" font-size="13" text-anchor="middle" fill="#b85450">No invariants. Anomalies everywhere.</text>
+    <ellipse cx="338" cy="113" rx="50" ry="13" fill="#f8cecc" stroke="#b85450"/>
+    <text x="338" y="117" class="tag" text-anchor="middle">ANOMALY</text>
 
-  <!-- transition 0 -> 1 -->
-  <line x1="370" y1="250" x2="370" y2="335" stroke="#444" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-  <rect x="80" y="266" width="270" height="56" rx="5" fill="#f8cecc" stroke="#b85450"/>
-  <text x="92" y="285" font-size="12"><tspan font-weight="bold">Problem.</tspan> Readers must wait for writers,</text>
-  <text x="92" y="303" font-size="12">concurrent writes overwrite each other.</text>
-  <rect x="390" y="266" width="290" height="56" rx="5" fill="#fff2cc" stroke="#d6b656"/>
-  <text x="404" y="285" font-size="12"><tspan font-weight="bold">Insight.</tspan> A coherent past view is enough</text>
-  <text x="404" y="303" font-size="12">for readers. Make writes append new versions.</text>
+    <rect x="396" y="100" width="100" height="26" rx="4" fill="#dae8fc" stroke="#6c8ebf"/>
+    <text x="446" y="117" class="tag" text-anchor="middle">SOLUTION</text>
 
-  <!-- ========================= STAGE 1 ========================= -->
-  <rect x="40" y="335" width="660" height="115" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
-  <text x="370" y="366" font-size="16" font-weight="bold" text-anchor="middle">Stage 1 — MVCC</text>
-  <text x="370" y="393" font-size="13" text-anchor="middle">Each write produces a new version tagged with ts.</text>
-  <text x="370" y="414" font-size="13" text-anchor="middle">Reads filter by snapshot_ts and pick the latest visible per row.</text>
-  <text x="370" y="438" font-size="12" text-anchor="middle" fill="#82b366" font-weight="bold">introduces I1, I2</text>
+    <rect x="512" y="100" width="100" height="26" rx="0" fill="#d5e8d4" stroke="#82b366"/>
+    <text x="562" y="117" class="tag" text-anchor="middle">INVARIANT</text>
 
-  <!-- Invariants I1, I2 -->
-  <rect x="780" y="335" width="680" height="50" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="358" font-size="13"><tspan font-weight="bold">I1.</tspan> Each write produces a new immutable version. Rows are never overwritten.</text>
-  <text x="800" y="376" font-size="11" fill="#666">— a per-row append-only chain of versions</text>
-  <rect x="780" y="395" width="680" height="50" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="418" font-size="13"><tspan font-weight="bold">I2.</tspan> Read at snapshot_ts returns the largest version_ts ≤ snapshot_ts (per row).</text>
-  <text x="800" y="436" font-size="11" fill="#666">— the &quot;lex-largest visible&quot; rule</text>
+    <rect x="628" y="100" width="100" height="26" rx="0" fill="#f5f5f5" stroke="#999"/>
+    <text x="678" y="117" class="tag" text-anchor="middle">NATURE</text>
 
-  <!-- transition 1 -> 2 -->
-  <line x1="370" y1="450" x2="370" y2="535" stroke="#444" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-  <rect x="80" y="466" width="270" height="56" rx="5" fill="#f8cecc" stroke="#b85450"/>
-  <text x="92" y="485" font-size="12"><tspan font-weight="bold">Problem.</tspan> Concurrent writers to the same</text>
-  <text x="92" y="503" font-size="12">row both read the pre-image; one's effect lost.</text>
-  <rect x="390" y="466" width="290" height="56" rx="5" fill="#fff2cc" stroke="#d6b656"/>
-  <text x="404" y="485" font-size="12"><tspan font-weight="bold">Insight.</tspan> Writers to one row must serialize</text>
-  <text x="404" y="503" font-size="12">so the second sees the first's commit.</text>
+    <ellipse cx="794" cy="113" rx="50" ry="13" fill="#fff2cc" stroke="#d6b656"/>
+    <text x="794" y="117" class="tag" text-anchor="middle">HINT</text>
 
-  <!-- ========================= STAGE 2 ========================= -->
-  <rect x="40" y="535" width="660" height="115" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
-  <text x="370" y="566" font-size="16" font-weight="bold" text-anchor="middle">Stage 2 — Per-row exclusive lock + read-latest</text>
-  <text x="370" y="593" font-size="13" text-anchor="middle">A writer locks the row, reads the latest committed value, computes, writes.</text>
-  <text x="370" y="614" font-size="13" text-anchor="middle" fill="#666" font-style="italic">builds on I1 (chain is well-defined)</text>
-  <text x="370" y="638" font-size="12" text-anchor="middle" fill="#82b366" font-weight="bold">introduces I3, I4</text>
+    <rect x="852" y="100" width="100" height="26" rx="4" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="902" y="117" class="tag" text-anchor="middle">CANDIDATE</text>
 
-  <!-- Invariants I3, I4 -->
-  <rect x="780" y="535" width="680" height="50" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="558" font-size="13"><tspan font-weight="bold">I3.</tspan> At most one writer is in its RMW critical section on a single row at a time.</text>
-  <text x="800" y="576" font-size="11" fill="#666">— two concurrent writers serialize</text>
-  <rect x="780" y="595" width="680" height="50" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="618" font-size="13"><tspan font-weight="bold">I4.</tspan> Inside the lock, the writer reads the latest committed value (not a snapshot view).</text>
-  <text x="800" y="636" font-size="11" fill="#666">— RMW always composes on real current state</text>
+    <rect x="968" y="100" width="100" height="26" rx="0" fill="#f8cecc" stroke="#b85450"/>
+    <text x="1018" y="117" class="tag" text-anchor="middle">ISSUE</text>
 
-  <!-- transition 2 -> 3 -->
-  <line x1="370" y1="650" x2="370" y2="735" stroke="#444" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-  <rect x="80" y="666" width="270" height="56" rx="5" fill="#f8cecc" stroke="#b85450"/>
-  <text x="92" y="685" font-size="12"><tspan font-weight="bold">Problem.</tspan> A transfer is two writes at two ts.</text>
-  <text x="92" y="703" font-size="12">A reader can land between them.</text>
-  <rect x="390" y="666" width="290" height="56" rx="5" fill="#fff2cc" stroke="#d6b656"/>
-  <text x="404" y="685" font-size="12"><tspan font-weight="bold">Insight.</tspan> One commit_ts must cover all of</text>
-  <text x="404" y="703" font-size="12">a transaction's writes.</text>
+    <rect x="1084" y="100" width="120" height="26" rx="4" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+    <text x="1144" y="117" class="tag" text-anchor="middle">FINAL SOLUTION</text>
+  </g>
 
-  <!-- ========================= STAGE 3 ========================= -->
-  <rect x="40" y="735" width="660" height="115" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
-  <text x="370" y="766" font-size="16" font-weight="bold" text-anchor="middle">Stage 3 — Multi-statement transactions, single commit_ts</text>
-  <text x="370" y="793" font-size="13" text-anchor="middle">BEGIN buffers writes; COMMIT picks one ts and dispatches all at that ts.</text>
-  <text x="370" y="814" font-size="13" text-anchor="middle" fill="#666" font-style="italic">builds on I1 (ts-addressable versions), I3 (no interleaving with other writers)</text>
-  <text x="370" y="838" font-size="12" text-anchor="middle" fill="#82b366" font-weight="bold">introduces I5</text>
+  <!-- ============================================================ -->
+  <!-- STAGE 0 — START                                              -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="430" y="160" width="640" height="80" rx="6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="450" y="180" class="tag">START</text>
+    <text x="750" y="200" class="body" text-anchor="middle" font-weight="bold">Distributed KV, no concurrency control</text>
+    <text x="750" y="220" class="smbody" text-anchor="middle">Single value per key; writes overwrite in place. No isolation — a read interleaved with a multi-key update sees a partial state.</text>
+  </g>
 
-  <!-- Invariant I5 -->
-  <rect x="780" y="755" width="680" height="60" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="780" font-size="13"><tspan font-weight="bold">I5.</tspan> Every write of one transaction lands at the same version_ts.</text>
-  <text x="800" y="800" font-size="11" fill="#666">— a snapshot at any S either sees all of T's writes or none of them</text>
+  <line x1="750" y1="240" x2="750" y2="285" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="268" class="verb">produces</text>
 
-  <!-- transition 3 -> 4 -->
-  <line x1="370" y1="850" x2="370" y2="945" stroke="#444" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-  <rect x="80" y="866" width="270" height="66" rx="5" fill="#f8cecc" stroke="#b85450"/>
-  <text x="92" y="885" font-size="12"><tspan font-weight="bold">Problem.</tspan> Two concurrent commits on the</text>
-  <text x="92" y="903" font-size="12">same row from different coordinators arrive</text>
-  <text x="92" y="921" font-size="12">out of order; the later one is lex-shadowed.</text>
-  <rect x="390" y="866" width="290" height="66" rx="5" fill="#fff2cc" stroke="#d6b656"/>
-  <text x="404" y="885" font-size="12"><tspan font-weight="bold">Insight.</tspan> Observing a value should advance</text>
-  <text x="404" y="903" font-size="12">my timestamp past it. The shadowed write</text>
-  <text x="404" y="921" font-size="12">happened because that didn't happen.</text>
+  <!-- ============================================================ -->
+  <!-- ANOMALY 1 — torn / partial reads                             -->
+  <!-- ============================================================ -->
+  <g>
+    <ellipse cx="750" cy="320" rx="320" ry="40" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="450" y="305" class="tag">ANOMALY</text>
+    <text x="750" y="316" class="body" text-anchor="middle" font-weight="bold">A reader sees a partial / mid-write state of the database</text>
+    <text x="750" y="336" class="smbody" text-anchor="middle">Application invariants appear violated even though every write succeeds individually.</text>
+  </g>
 
-  <!-- ========================= STAGE 4 (tension) ========================= -->
-  <rect x="40" y="945" width="660" height="180" rx="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
-  <text x="370" y="976" font-size="16" font-weight="bold" text-anchor="middle">Stage 4 — A constraint that fights I5</text>
-  <text x="60" y="1006" font-size="13"><tspan font-weight="bold">New requirement R1</tspan> would close shadowing.</text>
-  <text x="60" y="1028" font-size="13">But naive enforcement breaks I5:</text>
-  <text x="80" y="1052" font-size="12">• per-row bumping → each row independently bumped → I5 broken</text>
-  <text x="80" y="1072" font-size="12">• rewrite all rows on push → preserves I5 → O(N) at commit, hot-path expensive</text>
-  <text x="370" y="1100" font-size="13" text-anchor="middle" fill="#666" font-style="italic">depends on I5 (must keep), introduces R1 (must add)</text>
+  <line x1="750" y1="360" x2="750" y2="405" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="388" class="verb">solved by</text>
 
-  <!-- Requirement R1 (different color: orange/amber, since it's a NEW constraint that threatens prior invariants) -->
-  <rect x="780" y="945" width="680" height="65" rx="6" fill="#ffe6cc" stroke="#d79b00" stroke-width="1.5"/>
-  <text x="800" y="971" font-size="13"><tspan font-weight="bold">R1.</tspan> Each new commit's version_ts on every row it writes must strictly</text>
-  <text x="800" y="989" font-size="13">exceed every prior version_ts on that row.</text>
-  <text x="800" y="1006" font-size="11" fill="#666">— closes shadowed writes; clashes with I5 if enforced per-row</text>
+  <!-- ============================================================ -->
+  <!-- SOLUTION 1 — MVCC                                            -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="430" y="405" width="640" height="80" rx="6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="450" y="425" class="tag">SOLUTION</text>
+    <text x="750" y="445" class="body" text-anchor="middle" font-weight="bold">MVCC: versioned writes, snapshot reads</text>
+    <text x="750" y="465" class="smbody" text-anchor="middle">Each write is a new version tagged with ts. Reads pick the newest version ≤ snapshot_ts per row.</text>
+  </g>
 
-  <!-- Tension callout -->
-  <rect x="780" y="1030" width="680" height="80" rx="6" fill="#f8cecc" stroke="#b85450" stroke-width="1.5"/>
-  <text x="800" y="1056" font-size="13" font-weight="bold">Tension between R1 and I5</text>
-  <text x="800" y="1076" font-size="12">Per-row mechanisms can satisfy one but not both.</text>
-  <text x="800" y="1094" font-size="12">We need a structure that lets a single commit_ts be raised at commit time,</text>
-  <text x="800" y="1109" font-size="12" font-style="italic" fill="#666">without rewriting the rows that already carry the txn's writes.</text>
+  <line x1="1070" y1="445" x2="1140" y2="445" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1078" y="438" class="verb" fill="#557f3f">establishes</text>
 
-  <!-- transition 4 -> 5 -->
-  <line x1="370" y1="1125" x2="370" y2="1220" stroke="#444" stroke-width="2.5" marker-end="url(#arrowhead)"/>
-  <rect x="80" y="1141" width="270" height="66" rx="5" fill="#f8cecc" stroke="#b85450"/>
-  <text x="92" y="1160" font-size="12"><tspan font-weight="bold">Tension.</tspan> Need (a) commit_ts &gt; all prior</text>
-  <text x="92" y="1178" font-size="12">version_ts AND (b) one commit_ts per txn.</text>
-  <text x="92" y="1196" font-size="12">Per-row mechanisms cannot satisfy both.</text>
-  <rect x="390" y="1141" width="290" height="66" rx="5" fill="#fff2cc" stroke="#d6b656"/>
-  <text x="404" y="1160" font-size="12"><tspan font-weight="bold">Insight.</tspan> Decouple &quot;the value sitting on</text>
-  <text x="404" y="1178" font-size="12">this row&quot; from &quot;is this committed, at what ts.&quot;</text>
-  <text x="404" y="1196" font-size="12">Move the second piece into one shared place.</text>
+  <g>
+    <rect x="1140" y="415" width="320" height="60" rx="0" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+    <text x="1155" y="433" class="tag">INVARIANT</text>
+    <text x="1300" y="450" class="smbody" text-anchor="middle">Per-row visibility = lex-largest</text>
+    <text x="1300" y="465" class="smbody" text-anchor="middle">version_ts ≤ snapshot_ts.</text>
+  </g>
 
-  <!-- ========================= STAGE 5 (the destination) ========================= -->
-  <rect x="40" y="1220" width="660" height="280" rx="8" fill="#d5e8d4" stroke="#82b366" stroke-width="2.5"/>
-  <text x="370" y="1252" font-size="16" font-weight="bold" text-anchor="middle">Stage 5 — Intents + txn record</text>
+  <line x1="750" y1="485" x2="750" y2="530" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="513" class="verb">leaves open</text>
 
-  <text x="60" y="1284" font-size="13">Each row write lays down an intent <tspan font-family="monospace">{value, txn_id}</tspan>;</text>
-  <text x="60" y="1305" font-size="13">a separate txn record holds <tspan font-family="monospace">{status, commit_ts}</tspan>.</text>
+  <!-- ============================================================ -->
+  <!-- ANOMALY 2 — lost update                                      -->
+  <!-- ============================================================ -->
+  <g>
+    <ellipse cx="750" cy="565" rx="320" ry="40" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="450" y="550" class="tag">ANOMALY</text>
+    <text x="750" y="561" class="body" text-anchor="middle" font-weight="bold">Lost update — concurrent RMW on the same row</text>
+    <text x="750" y="581" class="smbody" text-anchor="middle">Two writers read the same pre-image, both compute, both write. One's effect vanishes.</text>
+  </g>
 
-  <text x="60" y="1338" font-size="13"><tspan font-weight="bold">COMMIT</tspan> = one update of the txn record. All N intents flip together.</text>
-  <text x="60" y="1359" font-size="13"><tspan font-weight="bold">PUSH</tspan> = the same one update at a higher commit_ts.</text>
-  <text x="60" y="1380" font-size="13"><tspan font-weight="bold">RESOLUTION</tspan> = lazy rewrite of intents to canonical version entries.</text>
+  <line x1="750" y1="605" x2="750" y2="650" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="633" class="verb">solved by</text>
 
-  <text x="370" y="1420" font-size="13" text-anchor="middle" fill="#666" font-style="italic">depends on I5 (preserved), R1 (now satisfied)</text>
-  <text x="370" y="1444" font-size="12" text-anchor="middle" fill="#82b366" font-weight="bold">introduces I6, I7</text>
+  <!-- ============================================================ -->
+  <!-- SOLUTION 2 — per-row lock + read-latest                      -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="430" y="650" width="640" height="80" rx="6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="450" y="670" class="tag">SOLUTION</text>
+    <text x="750" y="690" class="body" text-anchor="middle" font-weight="bold">Per-row exclusive lock + read-latest under the lock</text>
+    <text x="750" y="710" class="smbody" text-anchor="middle">A writer locks the row, reads the latest committed value, computes, writes, releases.</text>
+  </g>
 
-  <text x="60" y="1480" font-size="12" fill="#557f3f">✓ Single commit_ts per txn (atomicity).  ✓ Push past existing versions without rewriting any rows.</text>
+  <line x1="1070" y1="690" x2="1140" y2="690" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1078" y="683" class="verb" fill="#557f3f">establishes</text>
 
-  <!-- Invariants I6, I7 -->
-  <rect x="780" y="1220" width="680" height="60" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="1245" font-size="13"><tspan font-weight="bold">I6.</tspan> Each row's effective commit_ts and visibility status are determined by</text>
-  <text x="800" y="1263" font-size="13">a single shared txn record, not by the row entry alone.</text>
-  <rect x="780" y="1290" width="680" height="60" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
-  <text x="800" y="1315" font-size="13"><tspan font-weight="bold">I7.</tspan> Commit and push are single atomic updates of the txn record.</text>
-  <text x="800" y="1333" font-size="13">Intent resolution is lazy and idempotent.</text>
+  <g>
+    <rect x="1140" y="660" width="320" height="60" rx="0" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+    <text x="1155" y="678" class="tag">INVARIANT</text>
+    <text x="1300" y="695" class="smbody" text-anchor="middle">At most one writer in RMW</text>
+    <text x="1300" y="710" class="smbody" text-anchor="middle">on a given row at a time.</text>
+  </g>
 
-  <!-- Dependency note -->
-  <rect x="780" y="1370" width="680" height="100" rx="6" fill="#f4f4f4" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>
-  <text x="800" y="1395" font-size="12" font-weight="bold">How the invariants compose at Stage 5:</text>
-  <text x="800" y="1417" font-size="12">• I6 carries I5: all rows of one txn point to one record → one commit_ts. ✓</text>
-  <text x="800" y="1435" font-size="12">• I7 carries R1: push raises the txn record's commit_ts in O(1), past prior versions. ✓</text>
-  <text x="800" y="1453" font-size="12">• I3, I4 still hold (intents are still RMW under a row lock).</text>
-  <text x="800" y="1465" font-size="11" fill="#666" font-style="italic"></text>
+  <line x1="750" y1="730" x2="750" y2="775" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="758" class="verb">leaves open</text>
 
-  <!-- Footer -->
-  <text x="750" y="1530" font-size="13" font-style="italic" text-anchor="middle" fill="#444">
-    Read top-to-bottom on the left for the decisions; read top-to-bottom on the right for the invariants
+  <!-- ============================================================ -->
+  <!-- ANOMALY 3 — read skew across statements                      -->
+  <!-- ============================================================ -->
+  <g>
+    <ellipse cx="750" cy="810" rx="320" ry="40" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="450" y="795" class="tag">ANOMALY</text>
+    <text x="750" y="806" class="body" text-anchor="middle" font-weight="bold">Read skew across statements</text>
+    <text x="750" y="826" class="smbody" text-anchor="middle">A transfer is two UPDATEs at two different ts; a SELECT can land between and see one half only.</text>
+  </g>
+
+  <line x1="750" y1="850" x2="750" y2="895" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="878" class="verb">solved by</text>
+
+  <!-- ============================================================ -->
+  <!-- SOLUTION 3 — multi-statement tx                              -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="430" y="895" width="640" height="80" rx="6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+    <text x="450" y="915" class="tag">SOLUTION</text>
+    <text x="750" y="935" class="body" text-anchor="middle" font-weight="bold">Multi-statement transactions: deferred writes, shared commit_ts</text>
+    <text x="750" y="955" class="smbody" text-anchor="middle">BEGIN buffers writes; COMMIT picks one ts and dispatches all at that ts.</text>
+  </g>
+
+  <line x1="1070" y1="935" x2="1140" y2="935" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1078" y="928" class="verb" fill="#557f3f">establishes</text>
+
+  <g>
+    <rect x="1140" y="905" width="320" height="60" rx="0" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+    <text x="1155" y="923" class="tag">INVARIANT</text>
+    <text x="1300" y="940" class="smbody" text-anchor="middle">All writes of one transaction</text>
+    <text x="1300" y="955" class="smbody" text-anchor="middle">share one commit_ts (atomicity).</text>
+  </g>
+
+  <line x1="750" y1="975" x2="750" y2="1020" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="1003" class="verb">introduces</text>
+
+  <!-- ============================================================ -->
+  <!-- NATURE — commit_ts decoupled from causality                  -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="430" y="1020" width="640" height="90" rx="0" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+    <text x="450" y="1040" class="tag">NATURE</text>
+    <text x="750" y="1060" class="body" text-anchor="middle" font-weight="bold">commit_ts is picked at the coordinator</text>
+    <text x="750" y="1080" class="smbody" text-anchor="middle">It doesn't reflect what the storage layer has observed. A causal dependency at the row owner</text>
+    <text x="750" y="1098" class="smbody" text-anchor="middle">(read-latest under the lock) does NOT advance the coordinator's commit_ts.</text>
+  </g>
+
+  <line x1="750" y1="1110" x2="750" y2="1155" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="1138" class="verb">produces</text>
+
+  <!-- ============================================================ -->
+  <!-- ANOMALY 4 — shadowed write                                   -->
+  <!-- ============================================================ -->
+  <g>
+    <ellipse cx="750" cy="1190" rx="320" ry="40" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="450" y="1175" class="tag">ANOMALY</text>
+    <text x="750" y="1186" class="body" text-anchor="middle" font-weight="bold">Shadowed write</text>
+    <text x="750" y="1206" class="smbody" text-anchor="middle">A chronologically-later commit lands at a smaller version_ts and is invisible to MVCC reads.</text>
+  </g>
+
+  <line x1="750" y1="1230" x2="750" y2="1275" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="1258" class="verb">implies</text>
+
+  <!-- ============================================================ -->
+  <!-- HINT                                                         -->
+  <!-- ============================================================ -->
+  <g>
+    <ellipse cx="750" cy="1310" rx="380" ry="40" fill="#fff2cc" stroke="#d6b656" stroke-width="2"/>
+    <text x="450" y="1295" class="tag">HINT</text>
+    <text x="750" y="1306" class="body" text-anchor="middle" font-weight="bold">commit_ts must be pushable past observed dependencies</text>
+    <text x="750" y="1326" class="smbody" text-anchor="middle">If a write composes on top of a value at ts=X, its commit_ts must end up &gt; X.</text>
+  </g>
+
+  <!-- splitting the candidate fan-out -->
+  <line x1="750" y1="1350" x2="750" y2="1380" stroke="#444" stroke-width="2"/>
+  <line x1="350" y1="1380" x2="1150" y2="1380" stroke="#444" stroke-width="2"/>
+  <line x1="350" y1="1380" x2="350" y2="1410" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="1150" y1="1380" x2="1150" y2="1410" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="430" y="1397" class="verb">candidate</text>
+  <text x="1010" y="1397" class="verb">candidate</text>
+
+  <!-- ============================================================ -->
+  <!-- CANDIDATE A — per-row bump                                   -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="160" y="1410" width="380" height="100" rx="6" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/>
+    <text x="180" y="1432" class="tag">CANDIDATE</text>
+    <text x="350" y="1452" class="body" text-anchor="middle" font-weight="bold">Per-row version_ts bump</text>
+    <text x="350" y="1472" class="smbody" text-anchor="middle">At write time, raise version_ts to</text>
+    <text x="350" y="1488" class="smbody" text-anchor="middle">max(caller_ts, latest_for_pk + 1).</text>
+    <text x="350" y="1504" class="smbody" text-anchor="middle">Per-row, decided by the lock holder.</text>
+  </g>
+
+  <line x1="350" y1="1510" x2="350" y2="1555" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="363" y="1538" class="verb">blocked by</text>
+
+  <g>
+    <rect x="160" y="1555" width="380" height="80" rx="0" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="180" y="1575" class="tag">ISSUE</text>
+    <text x="350" y="1595" class="body" text-anchor="middle" font-weight="bold">Breaks the atomicity invariant</text>
+    <text x="350" y="1613" class="smbody" text-anchor="middle">Per-row bump fires independently per row.</text>
+    <text x="350" y="1629" class="smbody" text-anchor="middle">Writes of one tx end up at different version_ts.</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- CANDIDATE B — rewrite all rows on push                       -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="960" y="1410" width="380" height="100" rx="6" fill="#ffe6cc" stroke="#d79b00" stroke-width="2"/>
+    <text x="980" y="1432" class="tag">CANDIDATE</text>
+    <text x="1150" y="1452" class="body" text-anchor="middle" font-weight="bold">Rewrite all rows of the tx on push</text>
+    <text x="1150" y="1472" class="smbody" text-anchor="middle">Pick a single commit_ts for the whole tx</text>
+    <text x="1150" y="1488" class="smbody" text-anchor="middle">at COMMIT, scan past every touched row's</text>
+    <text x="1150" y="1504" class="smbody" text-anchor="middle">latest, and rewrite each at the new ts.</text>
+  </g>
+
+  <line x1="1150" y1="1510" x2="1150" y2="1555" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="1163" y="1538" class="verb">blocked by</text>
+
+  <g>
+    <rect x="960" y="1555" width="380" height="80" rx="0" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+    <text x="980" y="1575" class="tag">ISSUE</text>
+    <text x="1150" y="1595" class="body" text-anchor="middle" font-weight="bold">O(N) rewrites at commit</text>
+    <text x="1150" y="1613" class="smbody" text-anchor="middle">Every flushed row must be re-Put on push.</text>
+    <text x="1150" y="1629" class="smbody" text-anchor="middle">Commit cost grows with the tx's write set.</text>
+  </g>
+
+  <!-- converging to FINAL SOLUTION -->
+  <line x1="350" y1="1635" x2="350" y2="1690" stroke="#444" stroke-width="2"/>
+  <line x1="1150" y1="1635" x2="1150" y2="1690" stroke="#444" stroke-width="2"/>
+  <line x1="350" y1="1690" x2="1150" y2="1690" stroke="#444" stroke-width="2"/>
+  <line x1="750" y1="1690" x2="750" y2="1730" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="1715" class="verb">motivates</text>
+
+  <!-- ============================================================ -->
+  <!-- FINAL SOLUTION — intents + txn record                        -->
+  <!-- ============================================================ -->
+  <g>
+    <rect x="370" y="1730" width="760" height="120" rx="6" fill="#d5e8d4" stroke="#82b366" stroke-width="2.5"/>
+    <text x="390" y="1752" class="tag">FINAL SOLUTION</text>
+    <text x="750" y="1772" class="body" text-anchor="middle" font-weight="bold">Intents + txn record</text>
+    <text x="750" y="1796" class="smbody" text-anchor="middle">Each row write lays down an intent { value, txn_id } pointing to a shared txn record.</text>
+    <text x="750" y="1814" class="smbody" text-anchor="middle">The txn record holds { status, commit_ts }; visibility decisions consult it.</text>
+    <text x="750" y="1834" class="smbody" text-anchor="middle">COMMIT and PUSH are single atomic updates of the txn record. Resolution is lazy.</text>
+  </g>
+
+  <line x1="750" y1="1850" x2="750" y2="1895" stroke="#82b366" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="763" y="1878" class="verb" fill="#557f3f">establishes</text>
+
+  <!-- final invariants -->
+  <g>
+    <rect x="160" y="1895" width="560" height="80" rx="0" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+    <text x="180" y="1915" class="tag">INVARIANT</text>
+    <text x="440" y="1935" class="smbody" text-anchor="middle" font-weight="bold">Visibility decided by a single shared txn record,</text>
+    <text x="440" y="1953" class="smbody" text-anchor="middle">not by the row entry alone.</text>
+    <text x="440" y="1969" class="smbody" text-anchor="middle">All N intents flip to visible together via one record write.</text>
+  </g>
+
+  <g>
+    <rect x="780" y="1895" width="560" height="80" rx="0" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+    <text x="800" y="1915" class="tag">INVARIANT</text>
+    <text x="1060" y="1935" class="smbody" text-anchor="middle" font-weight="bold">COMMIT and PUSH are O(1) record updates;</text>
+    <text x="1060" y="1953" class="smbody" text-anchor="middle">no row rewriting on the hot path.</text>
+    <text x="1060" y="1969" class="smbody" text-anchor="middle">Atomicity (I3 above) is preserved: all of T's intents share one record.</text>
+  </g>
+
+  <!-- ===== Footer ===== -->
+  <text x="750" y="2050" class="footer" text-anchor="middle">
+    Read top to bottom. Every arrow has a verb (produces / solved by / establishes / leaves open / introduces / implies / motivates)
   </text>
-  <text x="750" y="1551" font-size="13" font-style="italic" text-anchor="middle" fill="#444">
-    each decision adds. Every later stage's text says which earlier invariants it relies on.
+  <text x="750" y="2068" class="footer" text-anchor="middle">
+    that names the kind of relationship between blocks. Solutions establish invariants but also introduce new natures, which produce new anomalies.
+  </text>
+  <text x="750" y="2086" class="footer" text-anchor="middle">
+    The chain converges only when the final design satisfies every invariant accumulated along the way.
   </text>
 
 </svg>
