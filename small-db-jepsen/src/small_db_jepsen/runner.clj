@@ -103,34 +103,42 @@
     (Thread/sleep 20000))
 
   (invoke! [this test op]
-    (case (:f op)
-      :query-system-tables
-      (let [result (pg.core/query (:conn this) "SELECT * FROM system.tables;")]
-        (info (:node this) "System tables:" result)
-        (assoc op :type :ok, :value result))
+    ;; Tag every SQL statement with the Jepsen op's :index. The server's
+    ;; handle_command logs the raw command, so the comment lands in
+    ;; server.log verbatim and "grep op=N" pulls all activity for that
+    ;; client invocation. Note: this is the :invoke event's :index;
+    ;; the matching :ok/:fail event in history.txt has a later :index,
+    ;; so when investigating a failing :ok at index K, look up its
+    ;; corresponding :invoke index in history.txt and grep for that.
+    (let [tag (str "/* op=" (:index op) " */ ")]
+      (case (:f op)
+        :query-system-tables
+        (let [result (pg.core/query (:conn this) (str tag "SELECT * FROM system.tables;"))]
+          (info (:node this) "System tables:" result)
+          (assoc op :type :ok, :value result))
 
-      :query-system-partitions
-      (let [result (pg.core/query (:conn this) "SELECT * FROM system.partitions WHERE table_name = 'users';")]
-        (info (:node this) "System partitions:" result)
-        (assoc op :type :ok, :value result))
+        :query-system-partitions
+        (let [result (pg.core/query (:conn this) (str tag "SELECT * FROM system.partitions WHERE table_name = 'users';"))]
+          (info (:node this) "System partitions:" result)
+          (assoc op :type :ok, :value result))
 
-      :read
-      (let [results (pg.core/query (:conn this) "SELECT id, balance FROM users;")]
-        (assoc op :type :ok, :value (into {} (map (fn [row] [(:id row) (:balance row)]) results))))
+        :read
+        (let [results (pg.core/query (:conn this) (str tag "SELECT id, balance FROM users;"))]
+          (assoc op :type :ok, :value (into {} (map (fn [row] [(:id row) (:balance row)]) results))))
 
-      :transfer
-      (let [{:keys [from to amount]} (:value op)]
-        (try
-          (pg.core/query (:conn this) "BEGIN;")
-          (pg.core/query (:conn this) (str "UPDATE users SET balance = balance - " amount " WHERE id = " from ";"))
-          (pg.core/query (:conn this) (str "UPDATE users SET balance = balance + " amount " WHERE id = " to ";"))
-          (pg.core/query (:conn this) "COMMIT;")
-          (assoc op :type :ok)
-          (catch Exception e
-            (pg.core/query (:conn this) "ROLLBACK;")
-            (assoc op :type :fail, :error (.getMessage e)))))
+        :transfer
+        (let [{:keys [from to amount]} (:value op)]
+          (try
+            (pg.core/query (:conn this) (str tag "BEGIN;"))
+            (pg.core/query (:conn this) (str tag "UPDATE users SET balance = balance - " amount " WHERE id = " from ";"))
+            (pg.core/query (:conn this) (str tag "UPDATE users SET balance = balance + " amount " WHERE id = " to ";"))
+            (pg.core/query (:conn this) (str tag "COMMIT;"))
+            (assoc op :type :ok)
+            (catch Exception e
+              (pg.core/query (:conn this) (str tag "ROLLBACK;"))
+              (assoc op :type :fail, :error (.getMessage e)))))
 
-      (assoc op :type :fail, :error :unknown-operation)))
+        (assoc op :type :fail, :error :unknown-operation))))
 
   (teardown! [this test]
     (info "tearing down client which connected to" (:node this)))

@@ -227,6 +227,9 @@ static absl::Status commit_txn(TxnState& txn) {
     int64_t commit_ts = now_ms();
     if (commit_ts < txn.start_ts) commit_ts = txn.start_ts;
 
+    SPDLOG_INFO("commit_txn: start_ts={} commit_ts={} pending_updates={}",
+                txn.start_ts, commit_ts, txn.pending_updates.size());
+
     // Reset state up-front so a partial-failure path doesn't leave the
     // connection holding zombie buffered writes.
     auto buffered = std::move(txn.pending_updates);

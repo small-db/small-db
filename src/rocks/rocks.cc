@@ -40,6 +40,9 @@
 // absl
 #include "absl/strings/str_format.h"
 
+// spdlog
+#include "spdlog/spdlog.h"
+
 // nlohmann/json
 #include "nlohmann/json.hpp"
 
@@ -192,6 +195,7 @@ void RocksDBWrapper::WriteRow(
     ts_str << std::setw(20) << std::setfill('0') << ts;
 
     auto key = absl::StrFormat("/%s/%s/%s", table->name(), pk, ts_str.str());
+    SPDLOG_INFO("WriteRow: key={}", key);
     db_->Put(rocksdb::WriteOptions(), key, obj.dump());
 }
 

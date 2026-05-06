@@ -7,7 +7,6 @@
       "Edit",
       "Read(../cockroach/**)",
       "Bash(./build/debug/src/rocks/rocks_scan:*)",
-      "Bash(/home/xiaochen/code/small-db/build/debug/src/rocks/rocks_scan:*)",
       "Bash(./scripts/format/lint.sh:*)",
       "Bash(./scripts/setup/build.sh:*)",
       "Bash(./scripts/test/test.sh:*)",

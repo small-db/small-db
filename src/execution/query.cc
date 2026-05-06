@@ -113,6 +113,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto table_name = small::schema::resolve_table_name(
         select_stmt->from_clause[0]->range_var);
 
+    SPDLOG_INFO("query: table={} dispatch={} snapshot_ts={}", table_name,
+                dispatch, snapshot_ts);
+
     // get the input schema
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);

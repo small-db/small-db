@@ -16,6 +16,7 @@
 - [Read Skew, and Why MVCC Fixes It](./distributed_database/read_skew.md)
 - [Lost Updates](./distributed_database/lost_update.md)
 - [Multi-Statement Transactions](./distributed_database/multi_statement_transactions.md)
+- [Shadowed Writes](./distributed_database/shadowed_writes.md)
 
 # Clutter
 
@@ -30,3 +31,4 @@
 - [Build System Details](./appendix/build_system_details.md)
 - [AI-Coding-Era Narrative Styles](./appendix/ai_coding_narrative.md)
 - [Testing Techniques: PBT vs. Fuzzing](./appendix/testing_techniques.md)
+- [Anomaly-Driven Page Format](./appendix/anomaly_driven_page_format.md)

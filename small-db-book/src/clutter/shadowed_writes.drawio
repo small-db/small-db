@@ -1,0 +1,137 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Shadowed Writes" id="shadowed-writes">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Shadowed Write: arrival order at the partition owner disagrees with commit_ts order. T1's later-arriving write lands at a smaller key and is invisible to MVCC reads."
+                style="text;html=1;align=center;fontSize=14;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1120" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="laneC1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=30" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="180" height="540" as="geometry"/>
+        </mxCell>
+        <mxCell id="laneC2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;opacity=30" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="180" height="540" as="geometry"/>
+        </mxCell>
+        <mxCell id="laneP"  value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=30" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="220" height="540" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hdrC1" value="&lt;b&gt;C1&lt;/b&gt;&lt;br&gt;coordinator of T1"
+                style="text;html=1;align=center;fontSize=12;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="100" y="85" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdrC2" value="&lt;b&gt;C2&lt;/b&gt;&lt;br&gt;coordinator of T2"
+                style="text;html=1;align=center;fontSize=12;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="380" y="85" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdrP"  value="&lt;b&gt;P&lt;/b&gt;&lt;br&gt;owner of row R (storage)"
+                style="text;html=1;align=center;fontSize=12;fontStyle=1"
+                vertex="1" parent="1">
+          <mxGeometry x="660" y="85" width="220" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="timeArrow" value="" style="endArrow=classic;html=1;rounded=0;startSize=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0"
+                edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="140" as="sourcePoint"/>
+            <mxPoint x="50" y="600" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="timeLabel" value="time" style="text;html=1;align=center;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="20" y="350" width="40" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t10label" value="t = 10" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t13label" value="t = 13" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t14label" value="t ≈ 14" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t15label" value="t ≈ 15" style="text;html=1;align=right;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="50" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="evtT1" value="&lt;b&gt;T1 commits&lt;/b&gt;&lt;br&gt;commit_ts = 10&lt;br&gt;send write(R = X1) → P"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="115" y="155" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="evtT2" value="&lt;b&gt;T2 commits&lt;/b&gt;&lt;br&gt;commit_ts = 13&lt;br&gt;send write(R = X2) → P"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="395" y="235" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="evtT2arrive" value="&lt;b&gt;T2's write arrives&lt;/b&gt;&lt;br&gt;write /R/13 = X2"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="675" y="315" width="190" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="evtT1arrive" value="&lt;b&gt;T1's write arrives&lt;/b&gt;&lt;br&gt;write /R/&lt;b&gt;10&lt;/b&gt; = X1"
+                style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#b85450;align=center;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="675" y="430" width="190" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="msgT2" value="" style="endArrow=classic;html=1;rounded=0;curved=0;strokeColor=#82b366" edge="1" parent="1" source="evtT2" target="evtT2arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgT2lbl" value="fast (e.g. local or short hop)"
+                style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="555" y="280" width="180" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="msgT1" value="" style="endArrow=classic;html=1;rounded=0;curved=0;strokeColor=#6c8ebf;dashed=1" edge="1" parent="1" source="evtT1" target="evtT1arrive">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="msgT1lbl" value="slower / reordered network path"
+                style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="280" y="380" width="380" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="state0" value="&lt;b&gt;disk(R) before&lt;/b&gt;&lt;br&gt;/R/&amp;lt;init&amp;gt; → 1500"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontFamily=monospace;fontSize=10;align=left"
+                vertex="1" parent="1">
+          <mxGeometry x="900" y="155" width="240" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="stateAfterT2" value="&lt;b&gt;disk(R) after T2 lands&lt;/b&gt;&lt;br&gt;/R/&amp;lt;init&amp;gt; → 1500&lt;br&gt;/R/13       → X2  &lt;b&gt;(T2)&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontFamily=monospace;fontSize=10;align=left"
+                vertex="1" parent="1">
+          <mxGeometry x="900" y="315" width="240" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="stateAfterT1" value="&lt;b&gt;disk(R) after T1 lands (sorted lex)&lt;/b&gt;&lt;br&gt;/R/&amp;lt;init&amp;gt; → 1500&lt;br&gt;/R/&lt;font color='#b85450'&gt;10&lt;/font&gt;       → X1  &lt;b&gt;(T1)&lt;/b&gt;  &lt;font color='#b85450'&gt;★ SHADOWED&lt;/font&gt;&lt;br&gt;/R/&lt;font color='#82b366'&gt;13&lt;/font&gt;       → X2  &lt;b&gt;(T2)&lt;/b&gt;  &lt;font color='#82b366'&gt;★ lex-largest, MVCC sees this&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontFamily=monospace;fontSize=10;align=left"
+                vertex="1" parent="1">
+          <mxGeometry x="900" y="430" width="240" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="readbox" value="&lt;b&gt;SELECT at snapshot_ts ≥ 13:&lt;/b&gt; reads R = &lt;b&gt;X2&lt;/b&gt;.&lt;br&gt;T1's write at /R/10 is on disk but never observable. T1 reported :ok to its client; the cluster behaves as if T1 never happened, even though X1 is sitting right there in storage."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="1080" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="why" value="&lt;b&gt;Why this happens (general):&lt;/b&gt; the partition owner appends writes in &lt;i&gt;arrival order&lt;/i&gt; but MVCC orders versions by &lt;i&gt;commit_ts&lt;/i&gt;. Each writer picks its commit_ts independently (from its own clock or a logical source), so commit_ts order can disagree with arrival order. The disagreement can come from network latency / reordering, from clock skew, or both. Whenever the later-arriving write has a smaller commit_ts than something already written, it lands at a smaller key and is shadowed.&lt;br&gt;&lt;br&gt;&lt;b&gt;Fix families:&lt;/b&gt; per-key bump rule (cheap, local), HLC + write intents (Cockroach/Yugabyte), TrueTime + commit-wait (Spanner), single-leader-per-range routing."
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;fontSize=12"
+                vertex="1" parent="1">
+          <mxGeometry x="60" y="720" width="1080" height="130" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
