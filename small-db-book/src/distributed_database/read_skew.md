@@ -157,6 +157,8 @@ client ──SELECT──▶ coordinator (picks snapshot_ts)
 
 With this plumbing in place, the bank test's read operation becomes correct. A `SELECT id, balance FROM users` will see every account as of one consistent point in time. Read skew on the SELECT path is gone.
 
+> **MVCC is the reader's half of "atomic-looking transactions."** This page makes a single SELECT pin a snapshot and observe a coherent point in time. That alone is not enough for the bank test's invariant -- the reader could still observe a state in which a writer is half-committed, if the writer's two halves commit at two different timestamps. The matching half (the *writer's* contribution) is on a later page: real `BEGIN`/`COMMIT` semantics where every write inside a transaction shares one `commit_ts`, so a snapshot at any `S` either sees all of them or none. Both halves are needed for the application to perceive a transfer as atomic.
+
 The write race does not. Two concurrent transfers can still both pick `ts` values, both read the same starting balances, and both write new versions -- each transaction is internally consistent, but they overwrite each other in the lexicographic ordering, and money is still lost. Closing that gap requires the next layer: write-conflict detection at commit, so that one of the two transactions is forced to abort. That's the subject of the next page.
 
 > Historical note: commit `e88b510` previously introduced exactly this plumbing (snapshot reads + per-txn `commit_ts`) and commit `1ff91ee` reverted it. The work below is effectively re-landing that change with a cleaner story around what `ts` means and where it originates.

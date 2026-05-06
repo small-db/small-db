@@ -65,9 +65,11 @@ The bluntest fix. Wrap the entire local-execution block of `update.cc` (the read
 
 Works precisely because of the partitioned architecture: two concurrent updates to Charlie both arrive on europe, the mutex orders them, and the second one's `ReadTable` now sees the first's just-committed version. The cost is pessimism: `UPDATE ... WHERE id = 1` blocks `UPDATE ... WHERE id = 5` even though they touch disjoint rows on the same partition owner.
 
-### 2. Per-Row Pessimistic Lock (2PL)
+### 2. Per-Row Pessimistic Lock
 
 A lock manager keyed by `(table, pk)`. Each `update()` acquires the row's lock before reading the pre-image and releases it after the write commits. Updaters of different rows proceed in parallel; updaters of the same row queue.
+
+Strict two-phase locking (2PL) holds the lock until *transaction* commit, not statement commit, so that all of a transaction's locks are released together at the end of its shrinking phase. In a system with real multi-statement transactions, the two scopes differ: a transaction may write row `A`, then later read row `B`, and 2PL guarantees no concurrent writer can move row `A` between those two events. small-db has no such transactions today -- `BEGIN`/`COMMIT` are no-ops, every `UPDATE` auto-commits -- so "statement commit" and "transaction commit" coincide, and a lock held for one statement's read-modify-write satisfies 2PL coincidentally. The moment `BEGIN`/`COMMIT` start carrying real semantics, this scheme stops being 2PL; preventing write skew or read-then-write hazards across statements would then need a transaction object that tracks held locks and releases them at COMMIT/ROLLBACK.
 
 | | |
 |---|---|
@@ -162,7 +164,7 @@ Out of proportion to the failure we have. The bank test's transfer is two single
 | Approach | Correctness | Code change | Concurrency under contention | Aborts to client? | Granularity | Cross-node? |
 |---|---|---|---|---|---|---|
 | 1. Per-node table mutex | Yes | Tiny | Worst (table-wide serial) | No | Per-table | N/A |
-| 2. Per-row 2PL | Yes | Small | Good (per-row serial) | No | Per-row | No (sufficient) |
+| 2. Per-row pessimistic lock | Yes | Small | Good (per-row serial) | No | Per-row | No (sufficient) |
 | 3. RocksDB OptDB | Yes | Medium | Good | Yes | Per-row | No |
 | 4. App-level OCC | Yes | Medium | Good | Yes | Per-row | No |
 | 5. CAS in `WriteRow` | Yes | Small | Good | Internal retry | Per-row | No |
@@ -177,9 +179,11 @@ Reading the matrix:
 - **Solves more than asked** is the third axis. (6) and (7) fix problems we haven't surfaced yet. Adopting them now is paying for capacity we don't currently use.
 - **Cross-node**, in our model, is a non-question for this failure mode. Each row has exactly one owner; "concurrent writers to the same row" is necessarily a same-node phenomenon. (7)'s only real value is multi-row writes that span partitions, which we don't have.
 
-## Implementing Per-Row 2PL
+## Implementing the Per-Row Lock
 
 We pick option (2): per-row pessimistic locking. The reasoning, briefly: it fixes the failure with no client-visible aborts, leaves snapshot reads alone (MVCC keeps doing what it does), uses a fully local mechanism on each partition owner, and is small enough to land in one commit. (1) is the bluntest version of the same idea; (3)-(5) push the same problem onto an abort-and-retry path the bank test isn't structured to handle; (6) and (7) solve more than we're asking.
+
+A scope note up front: the lock is held for the duration of one `UPDATE` statement's read-modify-write and released when that statement returns. Because `BEGIN`/`COMMIT` are no-ops in small-db today, statement boundary and transaction boundary are the same event, and this scheme satisfies strict 2PL trivially. We are not building 2PL in the general sense -- we are building a per-statement row mutex that *happens to be* 2PL-equivalent for the workload we have. When real multi-statement transactions arrive, the two scopes diverge and this scheme would have to be extended into actual 2PL (a transaction-scoped lock list released at COMMIT/ROLLBACK) to keep its current guarantees.
 
 The implementation has three pieces: a lock manager, a tweak to the `update()` flow that takes the lock and reads "latest" instead of "at snapshot," and a small rule that keeps the on-disk version order monotonic per row.
 
@@ -265,7 +269,7 @@ The bump rule lives in `WriteRow`: before writing, scan the pk for the largest e
 A few choices we make explicit so future-us doesn't have to reverse-engineer them:
 
 - **Single-pk UPDATE only.** `WHERE id = X` style. `WHERE balance > 100` (predicate WHERE that resolves to multiple rows) asserts and crashes -- not because it's hard to support, but because supporting it correctly requires (a) lock-ordering rules to avoid deadlock, (b) deciding whether the lock list is acquired before or during the predicate scan. The bank test never issues such an UPDATE; we'll cross that bridge if a workload arrives that does.
-- **Locks are statement-scoped, not transaction-scoped.** The bank test's `BEGIN; UPDATE ...; UPDATE ...; COMMIT` releases the first UPDATE's lock before the second UPDATE starts. This is fine for failure mode 1 (lost updates on a single row); it does *not* prevent a SELECT from observing the state between the two UPDATEs of one transfer (failure mode 2, read skew across statements). That is not the problem this page solves.
+- **Locks are statement-scoped, not transaction-scoped.** The bank test's `BEGIN; UPDATE ...; UPDATE ...; COMMIT` releases the first UPDATE's lock before the second UPDATE starts. This is fine for failure mode 1 (lost updates on a single row); it does *not* prevent a SELECT from observing the state between the two UPDATEs of one transfer. But that's a non-atomic-transfer problem, not a lock-scope problem -- in our system `BEGIN`/`COMMIT` are no-ops and each UPDATE is its own auto-commit transaction. Making the transfer atomic is a separate page.
 - **Catalog DDL bypasses the lock manager.** `CatalogManager::UpdateTable` writes directly through `WriteRow`. DDL is not concurrent with itself in any current path, and routing it through the lock manager would mean serializing every CREATE TABLE behind the same map mutex.
 - **The dispatch fan-out side acquires the lock unconditionally.** UPDATEs broadcast to all three peers; two of them have no row matching the WHERE and do a no-op. They still acquire and release the lock briefly. Cheaper to keep the path uniform than to special-case it.
 
@@ -275,8 +279,8 @@ A few choices we make explicit so future-us doesn't have to reverse-engineer the
 
 **Doesn't.** Three things explicitly remain:
 
-- **Read skew across the two UPDATEs of one transfer.** The bank test's transfer is `BEGIN; UPDATE; UPDATE; COMMIT`, which our system runs as two independent statements at two independent coordinator ts values. A SELECT whose `snapshot_ts` falls between those two ts values still sees the debit without the credit. Locking the rows during one UPDATE doesn't help; the gap is between UPDATEs, not within one. Fixing this is the multi-statement transactions story -- a different page.
+- **Non-atomic multi-statement transfers.** The bank test's transfer is `BEGIN; UPDATE_debit; UPDATE_credit; COMMIT`, which our system runs as **two separate auto-commit transactions** -- `BEGIN` and `COMMIT` are no-ops in `stmt_handler.cc`, and each UPDATE picks its own `ts`. The two halves commit at different timestamps with no notion that they belong together. A SELECT whose `snapshot_ts` falls between the two timestamps correctly returns the cluster's state at that snapshot -- which happens to be "after the debit, before the credit." The SELECT itself is internally consistent; what's broken is that the *writer* isn't atomic. This is not read skew (MVCC already fixed read skew); it's the lack of multi-statement transactions. Fixing it is the next page.
 - **Write skew.** Two transactions read overlapping data, write disjoint rows, the combined effect violates an invariant. Postgres needed SSI to catch this; the bank test doesn't exercise it.
 - **Multi-row UPDATE.** Asserts. Not in scope.
 
-A passing bank test is not the goal of this change -- a passing bank test requires both this *and* the read-skew-across-statements fix from the next page. What this change does deliver is "the on-disk state never gains or loses money," even if a transient SELECT can still observe a torn intermediate.
+A passing bank test is not the goal of this change -- a passing bank test additionally requires real `BEGIN`/`COMMIT` semantics so that a transfer commits atomically. What this change does deliver is "the on-disk state never gains or loses money," even if a transient SELECT can still observe a partially-applied transfer.

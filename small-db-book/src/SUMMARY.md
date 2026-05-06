@@ -15,6 +15,7 @@
 - [Testing the MVP: The Bank Test](./distributed_database/bank_test.md)
 - [Read Skew, and Why MVCC Fixes It](./distributed_database/read_skew.md)
 - [Lost Updates](./distributed_database/lost_update.md)
+- [Multi-Statement Transactions](./distributed_database/multi_statement_transactions.md)
 
 # Clutter
 
