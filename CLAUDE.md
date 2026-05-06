@@ -143,6 +143,29 @@ query <type_chars>
 ```
 Type characters: `T` for text columns. The test framework validates column names, types, and row data.
 
+## Unit Test Style
+
+Unit tests under `test/unit/` exercise internal C++ APIs but should read as if from a user's perspective. The test verifies *what behavior the database guarantees*, not *how the implementation achieves it*.
+
+- **No internal jargon in names, comments, or assertion messages.** Don't mention intents, txn records, snapshots, MVCC versions, ACTIVE/COMMITTED status, push protocols, etc. A reader who only knows SQL semantics should understand what's being checked. "uncommitted write must not be visible" — yes. "intent must remain ACTIVE-filtered" — no.
+- **Name variables by their role**, not by index. `writer`, `concurrent_reader`, `post_commit_reader` — yes. `tx_a`, `tx_b`, `t1`, `t2` — no. The role is what makes the test self-documenting.
+- **Extract a helper for repeated check patterns.** When the same shape of action+assert appears more than once, lift it into a local lambda so the body reads like a sequence of facts. Example from `dirty_read_test.cc`:
+   ```cpp
+   auto expect_balance = [&](std::string_view want, std::string_view why) {
+       small::txn::Txn t;
+       auto r = t.QueryScalar("SELECT balance FROM " + unique_table_ +
+                              " WHERE id = 1");
+       ASSERT_TRUE(r.ok()) << r.status().ToString();
+       EXPECT_EQ(r.value(), want) << why;
+   };
+   // ... after the writer's UPDATE but before its commit:
+   expect_balance("100", "uncommitted write must not be visible");
+   ASSERT_TRUE(writer.Commit().ok());
+   expect_balance("200", "committed write must be visible");
+   ```
+- **Every EXPECT/ASSERT carries a "why" message** stating the invariant in user-perspective language. The message appears on test failure and is the first thing a maintainer reads — make it state the rule, not the literal expected value.
+- **Keep the test body short.** Push environment setup into the fixture (`TxnTestFixture`), repeated checks into helpers. A single-behavior test should fit on one screen.
+
 ## Adding Claude permission rules
 
 When adding entries to `.claude/settings.json`, avoid these two anti-patterns:
