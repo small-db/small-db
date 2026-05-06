@@ -69,6 +69,120 @@ The simplest path that gets there: per-connection state holding a buffer of pend
 
 > **This page pairs with [Read Skew](./read_skew.md).** The two together solve the same observable failure -- an application sees only part of a logical operation -- from opposite ends. Read skew is the *reader's* half: even when writers are atomic, a SELECT visiting rows independently can straddle a writer's commit. MVCC's snapshot read fixes that. This page is the *writer's* half: even when readers snapshot, a writer that commits its rows at multiple timestamps is observable mid-flight. Real `BEGIN`/`COMMIT` fixes that. Either fix on its own leaves a hole; together they give "all-or-nothing visibility for a logical operation," which is what the bank test's invariant actually depends on.
 
+## The Solution Space
+
+Six approaches close this anomaly, in roughly cost-ascending order. They are not interchangeable -- each makes different trade-offs about *when* writes hit storage, *how* timestamp pushes work, and *how much* infrastructure is required.
+
+### 1. Deferred Writes at the Coordinator
+
+Buffer all of a transaction's writes in per-connection state. On `COMMIT`, pick one `commit_ts` and flush every buffered write at that timestamp. Locks acquired during UPDATE are held until COMMIT.
+
+| | |
+|---|---|
+| **Implementation** | Small. A per-connection `TxnState` plus `BEGIN`/`COMMIT` handling in stmt_handler. |
+| **Where writes live before commit** | In coordinator memory only. Nothing on disk. |
+| **Granularity** | Per-transaction, all writes share one `commit_ts`. |
+| **Cross-node** | Single-coordinator only. A transaction whose buffered writes span multiple partition owners still has to dispatch them sequentially at COMMIT time. |
+| **Concurrency cost** | Row locks held from first UPDATE until COMMIT (proper 2PL). |
+| **Client visible** | No aborts in the normal case; long transactions hold locks. |
+
+Simplest of the family. Memory grows with the write set, so a million-row UPDATE inside one transaction would OOM the coordinator. For OLTP workloads (a few rows per transaction), this is fine. **This is what we implement.**
+
+### 2. Eager Writes with Intents + Txn Record
+
+Each write lays down a provisional *intent* on the row at write time, tagged with the writing transaction's ID. A separate txn record holds `{status, commit_ts}`. `COMMIT` is a single update of the txn record; readers consult it on demand. Intent resolution (rewriting intents to canonical version entries) runs lazily.
+
+| | |
+|---|---|
+| **Implementation** | Medium-large. Intent encoding, txn record store, resolution, push protocol. |
+| **Where writes live before commit** | On the row, as provisional records. |
+| **Granularity** | Per-row intent + per-txn record. |
+| **Cross-node** | Yes. The txn record is one logical entity; intents on different nodes still flip atomically by the single record update. |
+| **Concurrency cost** | Readers may consult the txn record on every encounter with an intent; resolution is amortized. |
+| **Client visible** | Aborts on write-write conflict (push or wait). |
+
+CockroachDB and YugabyteDB. Most flexible model in the family -- handles multi-statement atomicity, cheap timestamp push, and cross-node commit, all at the cost of more machinery. The next chapter, [Write Intents](./write_intents.md), is dedicated to this approach.
+
+### 3. Eager Writes with a Commit Log (Postgres XID Model)
+
+Each write lands on disk immediately, tagged with the writing transaction's XID. A separate commit log records each XID's status. Readers consult the commit log on every tuple visit to learn whether the XID committed or aborted, and at what time.
+
+| | |
+|---|---|
+| **Implementation** | Large. Commit log infrastructure, vacuum to GC dead tuples. |
+| **Where writes live before commit** | On the row, tagged with XID. |
+| **Granularity** | Per-XID; one log entry per txn. |
+| **Cross-node** | The commit log is single-machine. To extend across nodes, layer 2PC. |
+| **Concurrency cost** | Commit log lookups on every read; vacuum overhead. |
+| **Client visible** | Aborts on serialization failures. |
+
+Postgres's design. Atomicity from "one commit log entry flips visibility for every write the txn made." Heavier than intents in steady state but cheaper for very short transactions (the commit log is tiny). Doesn't naturally extend across coordinators -- Postgres is single-server, and its replication is asynchronous.
+
+### 4. Two-Phase Commit (2PC)
+
+Layered on top of any per-node transaction model. The coordinator drives a `PREPARE` round across participants (each participant durably promises to commit if asked); a `COMMIT` round finalizes. Failure during commit is recovered via the durable PREPARE state.
+
+| | |
+|---|---|
+| **Implementation** | Large. Coordinator state, participant state, recovery, timeouts. |
+| **Where writes live before commit** | At each participant, in a "prepared" but uncommitted state. |
+| **Granularity** | Per-transaction, distributed. |
+| **Cross-node** | Yes. This is its purpose. |
+| **Concurrency cost** | Two extra network round trips per commit; locks held longer (through PREPARE). |
+| **Client visible** | Aborts; long tail latency on participant failure. |
+
+Spanner's mechanism for cross-Paxos-group transactions. Solves multi-coordinator atomicity but doesn't by itself solve the *single-coordinator* multi-statement problem -- it presupposes that. Mention here only because for cross-coordinator transactions, no other approach in this list is sufficient on its own.
+
+### 5. Single-Leader Serialization
+
+Designate one node as the leader for each range; route every transaction touching that range through the leader. The leader's clock is the only one used; commits are naturally ordered.
+
+| | |
+|---|---|
+| **Implementation** | Medium. Range-leader infrastructure, leader election, leader fail-over. |
+| **Where writes live before commit** | At the leader, in its uncommitted state. |
+| **Granularity** | Per-range. Cross-range transactions need 2PC on top. |
+| **Cross-node** | Per-range only. |
+| **Concurrency cost** | Extra hop to leader for non-local clients. |
+| **Client visible** | Latency on leader fail-over. |
+
+Spanner's per-Paxos-group leader model and CockroachDB's per-Raft-range leader. Sidesteps cross-coordinator clock issues entirely for single-range transactions. Heavier than deferred-writes for a single-server build, lighter for an already-replicated system.
+
+### 6. Push the Problem to the Client
+
+Refuse to support multi-statement transactions. Clients must compose multi-row mutations into one SQL statement (e.g., `WITH ... UPDATE ... RETURNING`, `MERGE`, or stored procedures). The single-statement engine handles atomicity; the application avoids the multi-statement case.
+
+| | |
+|---|---|
+| **Implementation** | Zero. |
+| **Where writes live before commit** | N/A; no commit boundary distinct from statement boundary. |
+| **Granularity** | Per-statement only. |
+| **Cross-node** | Whatever the single-statement engine does. |
+| **Concurrency cost** | None added. |
+| **Client visible** | Clients must restructure code; some workloads cannot be expressed this way. |
+
+Worth naming as the option that exists. Some embedded databases (early SQLite, key-value stores with batch APIs) work like this. For our SQL surface area, declining to support `BEGIN`/`COMMIT` would also decline a contract every Postgres client expects.
+
+## Comparison
+
+| Approach | Code change | Memory at coordinator | Where pre-commit writes live | Cross-node | Aborts to client? |
+|---|---|---|---|---|---|
+| 1. Deferred writes (coord buffer) | Small | O(write set) | Coordinator only | Single-coord | No |
+| 2. Intents + txn record | Medium-large | O(1) | On-row provisional | Yes | Yes |
+| 3. XID + commit log | Large | O(1) | On-row tagged | No (alone) | Yes |
+| 4. 2PC | Large | O(prepared txns) | At each participant, prepared | Yes | Yes |
+| 5. Single-leader | Medium | O(in-flight at leader) | At leader | Per-range | On fail-over |
+| 6. Push to client | Zero | -- | -- | -- | -- |
+
+Reading the matrix:
+
+- **Memory pressure shapes the choice for long transactions.** Deferred writes (1) buffers everything in coordinator memory; intents (2) and commit-log (3) free that memory by writing to disk eagerly. For OLTP-shaped workloads (small transactions, high throughput), all three are fine; for analytics-shaped workloads, (2) or (3) are the only viable answers.
+- **Push-friendliness comes from indirection.** Approaches (2) and (3) put the commit decision in a separate central record (the txn record or the commit log), so a `commit_ts` push is a single update of that record. Approaches (1) and (5) don't have that indirection — push there means re-stamping every flushed write or rewriting buffered values.
+- **Cross-node atomicity is mostly orthogonal.** (4) is the answer for cross-node, layered on top of any of the others. We don't need it for the bank test (each transfer's UPDATEs hit separate single-row partitions, and our bank-test client doesn't issue a single UPDATE that spans partitions).
+- **All but (6) require some commit-time work.** The trade is *what* that work is — a buffer flush (1), a record update (2/3), a coordination round (4), or a leader hop (5).
+
+The cheapest answer that fits small-db's current shape is (1). The next chapter, [Write Intents](./write_intents.md), is the principled long-term answer (2).
+
 ## The Implementation
 
 Five pieces. None of them are large; the largest is per-connection state.
@@ -140,14 +254,9 @@ absl::Status CommitTxn(TxnState& txn) {
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
 
-    // commit_ts must exceed start_ts AND every latest_version_ts of pks
-    // we wrote, so that all our writes are lex-greater than any prior
-    // committed version on those rows.
-    int64_t commit_ts = txn.start_ts;
-    for (const auto& w : txn.pending_writes) {
-        int64_t latest = db->LatestVersionTs(w.table->name(), w.pk);
-        if (latest >= commit_ts) commit_ts = latest + 1;
-    }
+    // Pick one commit_ts for every write of this transaction.
+    int64_t commit_ts = now_ms();
+    if (commit_ts < txn.start_ts) commit_ts = txn.start_ts;
 
     // Apply all writes at the same commit_ts. Since we hold the locks
     // for every pk in pending_writes, no other writer can interleave
@@ -178,28 +287,22 @@ case PG_QUERY__NODE__NODE_SELECT_STMT: {
 
 For the bank test this isn't load-bearing -- the bank test's clients don't issue SELECTs inside their transfers -- but it's the correct behavior and falls out for free.
 
-## How `commit_ts` Composes With the Bump Rule From the Previous Page
-
-`WriteRow` from the previous page applies a per-row bump: `version_ts = max(caller_ts, latest_version_ts_for_pk + 1)`. Inside `CommitTxn` we picked `commit_ts` to be greater than every relevant `latest_version_ts`, so when `WriteRow` runs with `caller_ts = commit_ts`, the bump is a no-op -- every write lands at exactly `commit_ts`.
-
-This is intentional. The bump rule keeps protecting auto-commit statements from out-of-order coordinator timestamps; transactions opt into a stronger property (all writes at one timestamp) by pre-computing `commit_ts` themselves.
-
 ## What This Buys (and What It Doesn't)
 
-**Buys.** The bank test should pass. Each transfer commits at one `commit_ts`; SELECTs see either the entire transfer or none of it. The `9855..9988` deficit pattern goes away because there's no observable interval during which a transfer is half-applied.
+**Buys.** Each transaction's writes share one `commit_ts`. A snapshot read at any `S` either sees every write of one transaction or none of them. For a single-coordinator transaction, the multi-statement atomicity contract holds.
 
 **Doesn't.**
 
+- **Shadowed writes from cross-coordinator commits.** Two transactions running concurrently on different coordinators each pick their own `commit_ts`. If both happen to write the same row, the chronologically-later writer can land at a lex-smaller `version_ts` and be silently shadowed -- even though everything on this page is still doing its job. The single-`commit_ts`-per-transaction property is preserved; what's broken is *across* transactions, not within one. That's a separate anomaly with its own chapter -- [Shadowed Writes](./shadowed_writes.md).
 - **Write skew across transactions.** Two transactions that read overlapping rows and write disjoint rows can still produce schedules that aren't equivalent to any serial order. Postgres needed SSI to catch this; we'd need rw-conflict tracking. The bank test doesn't exercise it.
-- **Cross-partition atomicity for one UPDATE.** A statement that writes rows on multiple partition owners still uses gRPC fan-out; if one peer's gRPC fails after another's succeeds, the cluster has a partial commit. Spanner uses 2PC for this; we don't have it. The bank test's transfer hits two partitions but as two separate UPDATEs, so each individual UPDATE is single-partition and the deferred-write/commit_ts mechanism above is sufficient.
+- **Cross-partition atomicity for one UPDATE.** A statement that writes rows on multiple partition owners still uses gRPC fan-out; if one peer's gRPC fails after another's succeeds, the cluster has a partial commit. Spanner uses 2PC for this; we don't have it. The bank test's transfer hits two partitions but as two separate UPDATEs, so each individual UPDATE is single-partition.
 - **Long-running transactions.** `pending_writes` buffers in memory; a million-row UPDATE inside a transaction would OOM. Production systems eventually spill to disk or use intent-based MVCC for this reason.
 
-With this change the three-page arc through the distributed-database section now closes the bank test:
-
-| Page | Anomaly | Fix |
+| Page | Anomaly | What that page's fix delivers |
 |---|---|---|
 | [Read Skew](./read_skew.md) | A SELECT sees a torn point-in-time view | MVCC snapshot reads + shared `snapshot_ts` across the scatter-gather |
-| [Lost Updates](./lost_update.md) | Two writers' computations both based on the same stale pre-image | Per-row exclusive lock + read-latest under the lock + version_ts bump |
+| [Lost Updates](./lost_update.md) | Two writers' computations both based on the same stale pre-image | Per-row exclusive lock + read-latest under the lock |
 | Multi-Statement Transactions (this page) | A transfer's two halves commit at different times | Deferred writes with a single `commit_ts` at `COMMIT` |
+| [Shadowed Writes](./shadowed_writes.md) | A chronologically-later commit lands at a smaller `version_ts` and is invisible | (still open in the codebase; see that chapter for the menu of fixes) |
 
-Each page solves one anomaly; together they make the bank test green.
+Each page closes one anomaly. The bank test exercises all four; the first three pages get us most of the way, but the fourth is what makes the totals balance under heavy concurrency.

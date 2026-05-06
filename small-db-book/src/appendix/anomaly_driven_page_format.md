@@ -39,7 +39,9 @@ The general theory section. Four subsections, each opening with a bolded phrase:
 
 - **Behavior.** What an outside observer (the application, the bank checker, a human reading a SELECT result) sees go wrong. One paragraph. Do not dive into mechanism here -- just describe the symptom in user-visible terms.
 - **Root cause.** One paragraph naming the underlying mechanic in general terms. This is where you say things like "MVCC selects by lex-largest version_ts" or "read-modify-write is non-atomic." Stay general; resist the urge to mention small-db internals here.
-- **Does this happen in single-server databases?** A direct yes/no, then one paragraph explaining why. This question is load-bearing because it tells the reader whether the problem is fundamental to concurrency (yes -- e.g., read skew, lost update) or specific to distribution (no -- e.g., shadowed writes from cross-coordinator clock skew). Cite the relevant Berenson 1995 anomaly number when applicable.
+- **Does this happen in real systems?** This subsection is load-bearing. It places the anomaly in the broader landscape -- concurrency-fundamental vs. distribution-specific, observed in production vs. theoretical, common at default isolation vs. only under contrived workloads. Two questions to answer explicitly:
+  1. *Does it occur on a single-server database?* Direct yes/no with a one-paragraph reason. "Yes" tells the reader the anomaly is fundamental to concurrency (read skew, lost update). "No" tells the reader the anomaly is distribution-specific (shadowed writes from cross-coordinator clocks). Cite the relevant Berenson 1995 anomaly number when applicable.
+  2. *Does it occur on real distributed databases?* Name the production systems that face it and the systems that don't, and *why*. "Spanner avoids it via TrueTime + commit-wait." "CockroachDB faces it but resolves it with HLC + intents." "Cassandra in last-write-wins mode silently exhibits it." Concrete adoption tells the reader whether they should expect to encounter this anomaly in databases they actually use, and what their database does about it.
 - **Typical solutions.** Three families of approach used in practice, each with one or more real-system pointers. Each family is a bullet with a bolded name and a paragraph; do not number them at this stage (numbered enumeration is for §4). Cite production systems by name (Spanner, CockroachDB, Postgres, MySQL InnoDB, Cassandra, DynamoDB) -- they ground the abstract families in something the reader can look up.
 
 This section is the abstract-first framing. A reader who already knows this anomaly can skim it. A reader who doesn't gets the textbook view in 200-400 words.
@@ -71,7 +73,7 @@ Examples:
 
 Numbered (`### 1. <name>`, `### 2. <name>`, ...), one section per option. The order should reflect ascending complexity / cost, so the simplest answer comes first.
 
-Each option's body has two parts:
+Each option's body has three parts, in this order:
 
 1. A one-paragraph prose description of the mechanism.
 2. A standardized table:
@@ -87,7 +89,11 @@ Each option's body has two parts:
 | **Client visible** | Aborts vs. waiting; latency floor; retry obligations |
 ```
 
-After the table, a paragraph or two of commentary -- known production users, gotchas, when this option is right, when it's wrong. Cite real systems consistently; the more concrete this section is, the more useful the page is.
+3. A **Real-system adoption** paragraph (or short bulleted list when several systems do it differently). Two questions to answer:
+   - *Which production systems use this approach?* Name them. Specific products, specific isolation levels, specific years if relevant. "MySQL InnoDB row X locks under all isolation levels for `UPDATE`." "Postgres `REPEATABLE READ` since 9.1 via SSI."
+   - *Why did they pick it over the alternatives?* What constraint or design value pushed them to this option? Hardware availability (Spanner needed atomic clocks → TrueTime). Backwards compatibility (Postgres kept the commit log because vacuum and PITR were already built around it). Throughput target (Cockroach intents trade complexity for cheap timestamp push). Operational simplicity (a single leader avoids consensus on every commit). The "why" is the part that turns a list of technologies into a useful guide for new design choices.
+
+If a numbered option has *no* known adopters, say so explicitly: "Not used in any production system I know of -- it appears in the design space but the cost/benefit didn't pencil out." That's still useful information; treating absent adoption as silence is a missed signal.
 
 Aim for 5-10 options. Including an option that's clearly overkill (Spanner-grade 2PC + DLM, full SSI) is fine and even useful -- it gives the reader the upper-bound design and lets them see why we don't need it.
 
