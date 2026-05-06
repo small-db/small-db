@@ -84,6 +84,154 @@ Cost: one extra Put per state transition (BEGIN, push, COMMIT/ABORT) and one Put
 
 The persisted record also lays the groundwork for coordinator-restart recovery in a later page. We don't implement recovery here; we just don't make it impossible.
 
+## The Implementation
+
+Six pieces. Most are small; the read-path change is the largest because the prefix scan now has to surface and resolve intents.
+
+**Every statement runs inside a transaction.** An explicit `BEGIN`/`COMMIT` is one transaction; an auto-commit statement (no surrounding `BEGIN`) is wrapped by the dispatcher in an implicit single-statement transaction that goes through the same code below. There is no separate auto-commit fast path. This means every UPDATE -- including the auto-commit transfers used by the bank test in earlier chapters -- now writes an intent, pushes its `commit_ts` if needed, and flips a txn record at commit. A few extra Puts per statement vs. the prior direct `WriteRow`; in exchange, the shadowed-writes invariant covers every write the cluster issues, not just those inside an explicit transaction.
+
+### 1. Per-Connection Transaction State
+
+`TxnState` in `src/server/stmt_handler.cc` drops `pending_writes` (no in-memory buffer; intents are eager-flushed) and gains `txn_id` and `commit_ts`:
+
+```cpp
+struct TxnState {
+    bool active = false;
+    int64_t txn_id = 0;
+    int64_t start_ts = 0;
+    int64_t commit_ts = 0;  // == start_ts at BEGIN; bumped on push
+
+    // Per-row locks acquired during UPDATEs, held until COMMIT/ROLLBACK.
+    std::vector<small::lock::LockManager::Lock> held_locks;
+};
+```
+
+The list of intent keys this txn has written is kept *only* on the on-disk txn record (`/_txn/<txn_id>.intent_keys[]`). No in-memory mirror -- nothing in the live commit/rollback path reads it. The on-disk list exists for a future sweeper/recovery page to walk when reclaiming aborted intents.
+
+### 2. `BEGIN` Persists a Txn Record
+
+```cpp
+case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN: {
+    if (txn.active) return absl::FailedPreconditionError("nested BEGIN");
+    txn.active    = true;
+    txn.txn_id    = small::id::Generate();
+    txn.start_ts  = now_ms();
+    txn.commit_ts = txn.start_ts;
+    db->WriteTxnRecord(txn.txn_id, TxnRecord{
+        .status     = TxnStatus::ACTIVE,
+        .start_ts   = txn.start_ts,
+        .commit_ts  = txn.commit_ts,
+        .intent_keys = {},
+    });
+    return EmptyBatch();
+}
+```
+
+`small::id::Generate()` is the existing snowflake-style ID generator in `src/id/`. The Put goes to the *coordinator's* RocksDB only -- the connection-handling node owns this txn record for its lifetime.
+
+### 3. `UPDATE` Writes an Intent
+
+The active-transaction branch in `src/execution/update.cc` no longer stages a `PendingWrite`. It writes an intent and updates the txn record:
+
+```cpp
+auto lock = LockManager::Acquire(table->name(), pk);
+
+// Read latest committed version_ts on this row.
+int64_t L = db->LatestVersionTs(table->name(), pk);
+
+// Push if our commit_ts isn't already past it.
+if (L >= txn.commit_ts) {
+    txn.commit_ts = L + 1;
+    db->UpdateTxnCommitTs(txn.txn_id, txn.commit_ts);  // one Put on coordinator
+}
+
+// Write the intent on the row's owner (reuses the existing dispatch path).
+auto intent_key = absl::StrFormat("/%s/%s/INTENT", table->name(), pk);
+db->WriteIntent(intent_key, new_value, txn.txn_id, coordinator_addr);
+
+// Append to the txn record's intent_keys (on-disk only).
+db->AppendTxnIntentKey(txn.txn_id, intent_key);  // one Put on coordinator
+
+// Lock stays in held_locks until COMMIT/ROLLBACK.
+txn.held_locks.push_back(std::move(lock));
+```
+
+`LatestVersionTs` becomes intent-aware. Its prefix scan over `/<table>/<pk>/` may encounter an `INTENT` key for a transaction that has already finished but whose intent hasn't been promoted to a numeric `version_ts` yet. When it sees one, it resolves the intent via `ResolveIntent` and treats the resolved `commit_ts` as a candidate for "latest" if the status is `COMMITTED`. `ABORTED` and `UNKNOWN` are skipped. `ACTIVE` cannot appear here -- we hold `lock(R)` and the LIST-partitioning model has at most one writer per row across the cluster, so any pre-existing intent on R must belong to a transaction that has already finished.
+
+### 4. `COMMIT` / `ROLLBACK` Flip the Txn Record
+
+```cpp
+absl::Status CommitTxn(TxnState& txn) {
+    if (!txn.active) return absl::FailedPreconditionError("no active txn");
+    db->SetTxnStatus(txn.txn_id, TxnStatus::COMMITTED, txn.commit_ts);
+    txn.active = false;
+    txn.held_locks.clear();  // RAII releases the row locks
+    return absl::OkStatus();
+}
+
+absl::Status RollbackTxn(TxnState& txn) {
+    if (!txn.active) return absl::FailedPreconditionError("no active txn");
+    db->SetTxnStatus(txn.txn_id, TxnStatus::ABORTED, /*commit_ts=*/0);
+    txn.active = false;
+    txn.held_locks.clear();
+    return absl::OkStatus();
+}
+```
+
+No flush -- intents are already on disk. The single Put on `/_txn/<txn_id>` is the atomicity boundary: every reader that subsequently resolves any of this txn's intents observes the new status.
+
+### 5. The Resolve RPC
+
+A new gRPC service exposed by every server, alongside the existing `gossip` and catalog services:
+
+```proto
+service TxnService {
+    rpc ResolveIntent(ResolveIntentRequest) returns (ResolveIntentResponse);
+}
+
+message ResolveIntentRequest { int64 txn_id = 1; }
+message ResolveIntentResponse {
+    enum Status { ACTIVE = 0; COMMITTED = 1; ABORTED = 2; UNKNOWN = 3; }
+    Status  status    = 1;
+    int64   commit_ts = 2;  // valid iff status == COMMITTED
+}
+```
+
+The handler reads `/_txn/<txn_id>` from local RocksDB and returns its contents. `UNKNOWN` covers the "no record" case (corrupt intent, post-cleanup race) -- the reader treats it as aborted.
+
+### 6. Read Path Resolves Intents
+
+`src/execution/query.cc`'s prefix scan over `/<table>/<pk>/` now distinguishes numeric-`version_ts` keys from `INTENT` keys. Numeric keys sort below `INTENT`, so committed versions surface first:
+
+```cpp
+for (auto iter = db->NewPrefixIterator(prefix); iter.Valid(); iter.Next()) {
+    if (iter.IsIntent()) {
+        auto intent = iter.AsIntent();
+        TxnService::Stub stub(intent.coordinator_addr);
+        auto resp = stub.ResolveIntent({intent.txn_id});
+        switch (resp.status) {
+            case ABORTED:
+            case UNKNOWN:
+                continue;
+            case ACTIVE:
+                return absl::AbortedError("intent pending; client retry");
+            case COMMITTED:
+                if (resp.commit_ts <= snapshot_ts) {
+                    candidates.push_back({resp.commit_ts, intent.value});
+                }
+                continue;
+        }
+    }
+    // numeric version_ts
+    if (iter.version_ts() <= snapshot_ts) {
+        candidates.push_back({iter.version_ts(), iter.value()});
+    }
+}
+// MVCC pick: largest version_ts among candidates.
+```
+
+`ACTIVE` returns a retryable error to the client. Push-the-writer and waiter queues are deferred to a later page; this implementation does the simplest thing that's correct.
+
 ## What This Buys (and What It Doesn't)
 
 **Buys.**
