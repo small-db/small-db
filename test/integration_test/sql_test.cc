@@ -58,7 +58,7 @@
 
 class SmallEnvironment : public ::testing::Environment {
    public:
-    ~SmallEnvironment() override {}
+    ~SmallEnvironment() override = default;
 
     // Override this to define how to set up the environment.
     void SetUp() override {

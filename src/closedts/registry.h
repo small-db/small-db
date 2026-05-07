@@ -44,7 +44,7 @@ constexpr int64_t kClosedTsUnbounded = INT64_MAX;
 // `Deregister` from coordinators in this v0 -- a future revision may
 // add one as a fast-path optimization.
 class InFlightRegistry {
- public:
+   public:
     // Process-wide singleton.
     static InFlightRegistry* GetInstance();
 
@@ -81,7 +81,7 @@ class InFlightRegistry {
     bool WaitUntilSafeToRead(int64_t snapshot_ts,
                              std::chrono::milliseconds timeout);
 
- private:
+   private:
     InFlightRegistry() = default;
 
     struct WriterEntry {

@@ -103,7 +103,9 @@ struct formatter<small::gossip::Info<T>> {
 
 template <>
 struct formatter<small::server_info::ImmutableInfo> {
-    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    static constexpr auto parse(format_parse_context& ctx) {
+        return ctx.begin();
+    }
 
     template <typename Context>
     constexpr auto format(const small::server_info::ImmutableInfo& info,

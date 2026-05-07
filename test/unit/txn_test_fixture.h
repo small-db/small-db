@@ -131,7 +131,7 @@ class InProcessNode {
  private:
     InProcessNode() = default;
 
-    static void AssertOk(absl::Status s) {
+    static void AssertOk(const absl::Status& s) {
         if (!s.ok()) {
             FAIL() << "init failed: " << s.ToString();
         }

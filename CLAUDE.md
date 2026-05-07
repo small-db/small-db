@@ -84,10 +84,30 @@ PostgreSQL client → pg_wire/ (wire protocol) → server/stmt_handler (routing)
 
 ## Code Style
 
-- Google C++ style (enforced by cpplint and clang-format)
-- 4-space indentation, C++20 standard
-- clang-tidy enabled with 100+ checks (bugprone, cert, modernize, etc.)
-- Config files: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`
+**Tooling.** Google C++ style, 4-space indent, C++20. Enforced by clang-format, cpplint, and clang-tidy (100+ checks: bugprone, cert, modernize, …). Configs: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`.
+
+**Write for the caller's mental model.** That single idea drives everything below; bend the rules when the situation genuinely warrants.
+
+**Naming — describe what the caller sees, not the internal mechanism.**
+- Functions: name what the caller gets, not how. `latest_committed` over `read_for_writer`; `WaitUntilSafeToRead` over `WaitForClosedTs`.
+- Arguments: name what the value means at the call site. `snapshot_ts` over `min_ts`.
+- Types: name what the data is, not who consumes it. `CommittedRow` over `WriterPreimage`. For a two-field bundle with no natural noun, return `std::pair` instead of inventing one.
+
+**Comments — default to none.** A well-named identifier is its own documentation. Write one only when a careful reader would still miss something: a hidden constraint, a non-obvious failure mode, a subtle invariant.
+
+When a comment is warranted, it has up to three parts, each a single short sentence, separated by blank lines:
+1. What the API does, in the caller's vocabulary.
+2. What the caller can now rely on as a result (skip if obvious from #1).
+3. What `false` / `nullopt` / an error means (skip if not applicable).
+
+If the contract won't fit that shape, tighten the signature before lengthening the prose.
+
+**Hard rules.**
+- No change history in comments ("replaces X", "previously did Y") — that's the commit message's job.
+- No enumeration of internal branches the public contract already covers — branch reasoning lives at the branch, not in the header.
+
+**⭐ Exemplars.** Functions whose declaration + comment meet the bar above. Copy their shape when writing or revising a public API. Add to this list only when explicitly approved.
+- `small::closedts::InFlightRegistry::WaitUntilSafeToRead` — `src/closedts/registry.h`
 
 ## Jepsen Testing
 

@@ -19,6 +19,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 // =====================================================================
@@ -59,7 +60,7 @@ std::vector<std::string> split_and_trim(const std::string& input,
     std::vector<std::string> result;
     for (absl::string_view part : absl::StrSplit(input, delimiter)) {
         // Trim leading and trailing spaces
-        result.push_back(std::string(absl::StripAsciiWhitespace(part)));
+        result.emplace_back(absl::StripAsciiWhitespace(part));
     }
     return result;
 }
@@ -78,10 +79,10 @@ bool is_comment_line(const std::string& line) {
 SQLTestUnit::SQLTestUnit(std::vector<std::string> labels, std::string sql,
                          std::string raw_expected,
                          behaviour_t expected_behavior)
-    : labels(labels),
-      sql(sql),
-      raw_expected(raw_expected),
-      expected_behavior(expected_behavior) {}
+    : labels(std::move(std::move(labels))),
+      sql(std::move(std::move(sql))),
+      raw_expected(std::move(std::move(raw_expected))),
+      expected_behavior(std::move(std::move(expected_behavior))) {}
 
 static absl::StatusOr<std::unique_ptr<SQLTestUnit>> init(
     std::vector<std::string> lines) {
@@ -118,8 +119,8 @@ static absl::StatusOr<std::unique_ptr<SQLTestUnit>> init(
         }
 
         int reply_row_id = -1;
-        for (int row = 0; row < lines.size(); row++) {
-            if (lines[row] == "----") {
+        for (const auto& line : lines) {
+            if (line == "----") {
                 reply_row_id = 0;
                 continue;
             }
@@ -131,14 +132,13 @@ static absl::StatusOr<std::unique_ptr<SQLTestUnit>> init(
             switch (reply_row_id) {
                 case 0:
                     // column names
-                    query.column_names = split_and_trim(lines[row], '|');
+                    query.column_names = split_and_trim(line, '|');
                     break;
                 case 1:
                     // break line
                     break;
                 default:
-                    query.expected_output.push_back(
-                        split_and_trim(lines[row], '|'));
+                    query.expected_output.push_back(split_and_trim(line, '|'));
                     break;
             }
 

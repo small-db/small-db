@@ -122,6 +122,29 @@ def check_env():
     print("Tools Required for Building:")
     build_tools.display()
 
+    format_tools = ToolList()
+    format_tools.add_cli_tool(
+        "clang-format-18",
+        "C/C++ source formatter (used by run-clang-format.py)",
+        "18.0",
+        r"clang-format version\s+([0-9.]+)",
+    )
+    format_tools.add_cli_tool(
+        "clang-tidy-18",
+        "C/C++ static analyzer (used by run-clang-tidy.py)",
+        "18.0",
+        r"LLVM version\s+([0-9.]+)",
+    )
+    format_tools.add_cli_tool(
+        "run-clang-tidy-18",
+        "LLVM parallel runner for clang-tidy",
+        "(ships with clang-tidy-18)",
+        r"(?!x)x",
+    )
+
+    print("\nTools Required for Linting/Formatting:")
+    format_tools.display()
+
     jepsend_tools = ToolList()
     jepsend_tools.add_cli_tool(
         "vagrant", "virtual machine manager", "2.2.0", r"Vagrant\s+([0-9.]+)"

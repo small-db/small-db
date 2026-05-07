@@ -63,15 +63,14 @@ void from_json(const nlohmann::json& j, ImmutableInfo& info) {
     j.at("join").get_to(info.join);
 }
 
-ImmutableInfo::ImmutableInfo(const std::string& sql_addr,
-                             const std::string& grpc_addr,
-                             const std::string& data_dir,
-                             const std::string& region, const std::string& join)
-    : sql_addr(sql_addr),
-      grpc_addr(grpc_addr),
-      data_dir(data_dir),
-      region(region),
-      join(join) {
+ImmutableInfo::ImmutableInfo(std::string sql_addr, std::string grpc_addr,
+                             std::string data_dir, std::string region,
+                             std::string join)
+    : sql_addr(std::move(sql_addr)),
+      grpc_addr(std::move(grpc_addr)),
+      data_dir(std::move(data_dir)),
+      region(std::move(region)),
+      join(std::move(join)) {
     uuid_t uuid;
     uuid_generate(uuid);
     char str[37];

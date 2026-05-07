@@ -115,7 +115,7 @@ std::optional<ParsedKey> ParseKey(const std::string& key) {
 std::string FormatTimestamp(const std::string& ts_raw) {
     try {
         int64_t ms = std::stoll(ts_raw);
-        time_t s = static_cast<time_t>(ms / 1000);
+        auto s = static_cast<time_t>(ms / 1000);
         int ms_part = static_cast<int>(ms % 1000);
         struct tm tm {};
         localtime_r(&s, &tm);

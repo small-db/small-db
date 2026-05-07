@@ -53,9 +53,8 @@ class ImmutableInfo {
     std::string region;
     std::string join;
 
-    ImmutableInfo(const std::string& sql_addr, const std::string& grpc_addr,
-                  const std::string& data_dir, const std::string& region,
-                  const std::string& join);
+    ImmutableInfo(std::string sql_addr, std::string grpc_addr,
+                  std::string data_dir, std::string region, std::string join);
 
     ImmutableInfo() = default;
 };

@@ -220,7 +220,7 @@ def main():
         "--clang-format-executable",
         metavar="EXECUTABLE",
         help="path to the clang-format executable",
-        default="clang-format",
+        default="clang-format-18",
     )
     parser.add_argument(
         "--extensions",

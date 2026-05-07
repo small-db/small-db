@@ -61,19 +61,18 @@ class Txn {
     absl::Status Commit();
     absl::Status Rollback();
 
-    bool active() const { return active_; }
-    int64_t txn_id() const { return txn_id_; }
-    int64_t start_ts() const { return start_ts_; }
+    [[nodiscard]] bool active() const { return active_; }
+    [[nodiscard]] int64_t txn_id() const { return txn_id_; }
+    [[nodiscard]] int64_t start_ts() const { return start_ts_; }
 
     // The txn's mutable write timestamp. Initialized to start_ts at
-    // BEGIN, may be pushed forward by the per-row bump rule on UPDATE
-    // (see read_for_writer in src/txn/txn.cc), and is
-    // promoted to the final commit timestamp at COMMIT (the value
-    // recorded as TxnRecord.write_ts and observed by readers as the
-    // committed value's effective version_ts).
-    int64_t write_ts() const { return write_ts_; }
+    // BEGIN, may be pushed forward by the per-row bump rule on UPDATE,
+    // and is promoted to the final commit timestamp at COMMIT (recorded
+    // as TxnRecord.write_ts and observed by readers as the committed
+    // value's effective version_ts).
+    [[nodiscard]] int64_t write_ts() const { return write_ts_; }
 
- private:
+   private:
     bool active_ = false;
     int64_t txn_id_ = 0;
     int64_t start_ts_ = 0;

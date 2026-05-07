@@ -57,42 +57,15 @@ class TxnServiceImpl final : public TxnService::Service {
 absl::StatusOr<ResolveIntentResponse> resolve_intent(
     const std::string& coordinator_addr, int64_t txn_id);
 
-// Combined writer-side pre-image read for (table_name, pk). Returns
-// the value to feed into the SET clause AND the largest committed
-// `version_ts` on the row, both observed under one prefix scan and at
-// most one ResolveIntent RPC.
-//
-// Resolves the intent (if any) under writer-mode semantics:
-//   COMMITTED -- full-promote (atomic Put numeric version + Delete
-//                INTENT). Treats the resolved commit_ts as a candidate
-//                for the latest, and the intent's value as a candidate
-//                for the pre-image.
-//   ABORTED / UNKNOWN -- skip the intent entirely.
-//   ACTIVE -- return AbortedError. A concurrent writer has staged its
-//             intent but hasn't committed yet; the caller must roll
-//             back and retry.
-//
-// Caller MUST hold lock(table, pk). The full-promote is path-addressed
-// and would race with concurrent slot mutation if no lock were held.
-//
-// Returns nullopt if the row doesn't exist on this node (the caller is
-// not the partition owner); the writer's update path uses this as the
-// signal to no-op without writing an intent.
-//
-// Replaces the older read_latest_with_intents + latest_committed_version_ts
-// pair, which made two scans + two RPCs and had a TOCTOU window between
-// them where a prior writer could transition ACTIVE -> COMMITTED.
-struct WriterPreimage {
-    // Pre-image value: the latest committed row contents at the moment
-    // of the read. Already includes the resolved intent's value if
-    // that intent was COMMITTED with the largest commit_ts.
+// Latest committed row at (table, pk); nullopt if the row isn't on
+// this node. Caller must hold lock(table, pk). Aborts if a concurrent
+// writer's intent is still in flight.
+struct CommittedRow {
     std::map<std::string, std::string> values;
-    // Largest committed `version_ts` on this row, used by the per-row
-    // bump rule in src/execution/update.cc.
-    int64_t latest_committed_ts;
+    int64_t version_ts;
 };
 
-absl::StatusOr<std::optional<WriterPreimage>> read_for_writer(
+absl::StatusOr<std::optional<CommittedRow>> latest_committed(
     const std::string& table_name, const std::string& pk);
 
 // Intent-aware read of an entire table at a snapshot. For each pk,

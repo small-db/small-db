@@ -226,7 +226,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     // start scanning.
     constexpr auto kClosedTsTimeout = std::chrono::seconds(2);
     bool closed_ok =
-        small::closedts::InFlightRegistry::GetInstance()->WaitForClosedTs(
+        small::closedts::InFlightRegistry::GetInstance()->WaitUntilSafeToRead(
             snapshot_ts, kClosedTsTimeout);
     if (!closed_ok) {
         SPDLOG_WARN(
@@ -383,7 +383,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         columns.push_back(column);
     }
 
-    int num_records = columns[0]->length();
+    int64_t num_records = columns[0]->length();
 
     SPDLOG_INFO("input_schema: {}", input_schema->ToString());
     SPDLOG_INFO("num_records: {}", num_records);
@@ -406,7 +406,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 auto field = column_ref->fields[i];
                 switch (field->node_case) {
                     case PG_QUERY__NODE__NODE_A_STAR:
-                        for (auto f : input_schema->fields()) {
+                        for (const auto& f : input_schema->fields()) {
                             auto node = gandiva::TreeExprBuilder::MakeField(f);
                             auto expression =
                                 gandiva::TreeExprBuilder::MakeExpression(node,

@@ -26,7 +26,7 @@ namespace small::util {
 // and rendered as "unset" so logs do not show a misleading 1970-01-01.
 inline std::string FormatTsMs(int64_t ms) {
     if (ms <= 0) return "unset";
-    time_t s = static_cast<time_t>(ms / 1000);
+    auto s = static_cast<time_t>(ms / 1000);
     int ms_part = static_cast<int>(ms % 1000);
     struct tm tm {};
     localtime_r(&s, &tm);

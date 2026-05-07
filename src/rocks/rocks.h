@@ -238,18 +238,8 @@ class RocksDBWrapper {
         std::optional<IntentRow> intent;
     };
 
-    /**
-     * @brief Single prefix scan over `/<table>/<pk>/` returning the
-     *        largest numeric version with its value AND the current
-     *        intent (if any). One scan, no RPC.
-     *
-     * Used by the writer's combined pre-image read (`read_for_writer`
-     * in `src/txn/`), which replaces the old LatestVersionTs +
-     * ReadIntent + ReadLatestWithResolver triple. Combining the two
-     * reads into one observation closes the TOCTOU window where a
-     * prior writer's status could flip ACTIVE → COMMITTED between
-     * separate calls.
-     */
+    // Largest numeric version (value + ts) and the current intent (if
+    // any) at `/<table>/<pk>/`, observed in one prefix scan with no RPC.
     LatestRowRaw ReadLatestRaw(const std::string& table_name,
                                const std::string& pk);
 

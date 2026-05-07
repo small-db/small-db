@@ -188,7 +188,7 @@ class DataRowResponse : public ServerMessage {
     explicit DataRowResponse(const std::shared_ptr<arrow::RecordBatch>& batch)
         : batch(batch) {}
 
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         int num_rows = batch->num_rows();
 
         for (int i = 0; i < num_rows; ++i) {
@@ -265,14 +265,14 @@ class ErrorResponse : public ServerMessage {
     const std::string error_message;
 
    public:
-    explicit ErrorResponse(const std::string& error_message = "error message")
-        : severity(Severity::ERROR), error_message(error_message) {}
+    explicit ErrorResponse(std::string error_message = "error message")
+        : severity(Severity::ERROR), error_message(std::move(error_message)) {}
 
     explicit ErrorResponse(Severity severity = Severity::ERROR,
-                           const std::string& error_message = "error message")
-        : severity(severity), error_message(error_message) {}
+                           std::string error_message = "error message")
+        : severity(severity), error_message(std::move(error_message)) {}
 
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'E');
 
         std::vector<char> field_severity = encode_severity();
@@ -391,7 +391,7 @@ class ReadyForQuery : public ServerMessage {
     // idle (not in a transaction block); 'T' if in a transaction block; or 'E'
     // if in a failed transaction block (queries will be rejected until block is
     // ended).
-    void encode(std::vector<char>& buffer) {
+    void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'Z');
         append_int32(buffer, 5);
         append_char(buffer, 'I');

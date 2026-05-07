@@ -131,7 +131,7 @@ class SocketsManager {
     static std::mutex mtx;
 
     // Private Constructor
-    SocketsManager() {}
+    SocketsManager() = default;
 
    public:
     /**
@@ -425,7 +425,8 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     }
     SPDLOG_INFO("sql server listening on addr: {}", args.sql_addr);
 
-    struct epoll_event ev, events[MAX_EVENTS];
+    struct epoll_event ev {
+    }, events[MAX_EVENTS];
     int new_events, sock_conn_fd, epollfd;
 
     epollfd = epoll_create(MAX_EVENTS);

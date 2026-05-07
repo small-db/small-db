@@ -65,6 +65,42 @@ Vagrant.configure("2") do |config|
         sudo mkdir -p /opt/small-db/lib
         sudo chown -R vagrant:vagrant /opt/small-db
       SHELL
+
+      # Upload the clock_skew_server binary built on the host. Run a
+      # debug build first (./scripts/setup/build.sh) so this file exists.
+      # If the binary is missing, the file provisioner errors and the run
+      # halts -- by design; we don't want a VM coming up without the
+      # daemon the home-server TUI expects to find.
+      clock_skew_bin =
+        File.expand_path("../../../build/debug/src/clock_skew/clock_skew_server",
+                         __FILE__)
+      if File.exist?(clock_skew_bin)
+        node.vm.provision "file", source: clock_skew_bin,
+                                  destination: "/tmp/clock_skew_server"
+        node.vm.provision "shell", inline: <<-SHELL
+          sudo install -m 0755 /tmp/clock_skew_server /opt/small-db/clock_skew_server
+          sudo tee /etc/systemd/system/clock-skew.service > /dev/null <<UNIT
+[Unit]
+Description=clock-skew probe daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/opt/small-db/clock_skew_server --bind 0.0.0.0 --port 12321
+Restart=always
+RestartSec=2
+User=vagrant
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now clock-skew.service
+        SHELL
+      else
+        warn "clock_skew_server not built at #{clock_skew_bin}; " \
+             "run ./scripts/setup/build.sh first, then `vagrant provision`."
+      end
     end
   end
 end

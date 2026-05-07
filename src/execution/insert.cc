@@ -96,7 +96,8 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
         }
 
         // process row by row
-        int row_count = insert_stmt->select_stmt->select_stmt->n_values_lists;
+        int row_count = static_cast<int>(
+            insert_stmt->select_stmt->select_stmt->n_values_lists);
         for (int row_id = 0; row_id < row_count; row_id++) {
             // get the partition value
             auto row =

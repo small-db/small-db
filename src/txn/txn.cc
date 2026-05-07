@@ -110,7 +110,7 @@ static small::rocks::RocksDBWrapper::IntentResolver default_resolver() {
     };
 }
 
-absl::StatusOr<std::optional<WriterPreimage>> read_for_writer(
+absl::StatusOr<std::optional<CommittedRow>> latest_committed(
     const std::string& table_name, const std::string& pk) {
     auto db_or = small::rocks::RocksDBWrapper::GetInstance();
     if (!db_or.ok()) return db_or.status();
@@ -118,13 +118,11 @@ absl::StatusOr<std::optional<WriterPreimage>> read_for_writer(
 
     auto raw = db->ReadLatestRaw(table_name, pk);
 
-    // No intent on this row: numeric state is the truth.
     if (!raw.intent.has_value()) {
         if (raw.latest_numeric_ts < 0) {
-            // Row doesn't exist on this node -- caller is a non-owner.
-            return std::optional<WriterPreimage>{};
+            return std::optional<CommittedRow>{};
         }
-        return std::optional<WriterPreimage>{WriterPreimage{
+        return std::optional<CommittedRow>{CommittedRow{
             std::move(raw.latest_numeric_value),
             raw.latest_numeric_ts,
         }};
@@ -137,53 +135,41 @@ absl::StatusOr<std::optional<WriterPreimage>> read_for_writer(
 
     switch (resp.status()) {
         case ResolveIntentResponse::COMMITTED: {
-            // Caller holds lock(table, pk) -- safe to do the full
-            // promotion (numeric Put + intent Delete). The resolved
-            // intent's commit_ts and value are the row's true latest
-            // when commit_ts >= latest_numeric_ts, which is the
-            // typical case under our protocol; fall through to the
-            // numeric path otherwise.
             int64_t commit_ts = resp.commit_ts();
             db->PromoteIntent(table_name, pk, commit_ts, raw.intent->values);
             if (commit_ts >= raw.latest_numeric_ts) {
-                return std::optional<WriterPreimage>{WriterPreimage{
+                return std::optional<CommittedRow>{CommittedRow{
                     raw.intent->values,
                     commit_ts,
                 }};
             }
-            return std::optional<WriterPreimage>{WriterPreimage{
+            return std::optional<CommittedRow>{CommittedRow{
                 std::move(raw.latest_numeric_value),
                 raw.latest_numeric_ts,
             }};
         }
         case ResolveIntentResponse::ABORTED:
         case ResolveIntentResponse::UNKNOWN:
-            // Intent is dead; the caller's WriteIntent will overwrite
-            // the slot. Numeric state is the truth.
             if (raw.latest_numeric_ts < 0) {
-                return std::optional<WriterPreimage>{};
+                return std::optional<CommittedRow>{};
             }
-            return std::optional<WriterPreimage>{WriterPreimage{
+            return std::optional<CommittedRow>{CommittedRow{
                 std::move(raw.latest_numeric_value),
                 raw.latest_numeric_ts,
             }};
         case ResolveIntentResponse::ACTIVE:
-            // The intent's coordinator is still in flight. The caller
-            // must abort and retry; pushing the other transaction or
-            // queueing a waiter is deferred to a later page.
             return absl::AbortedError(absl::StrFormat(
                 "active intent on %s/%s for txn_id=%d; retry",
                 table_name, pk, raw.intent->txn_id));
         default:
             SPDLOG_ERROR(
-                "read_for_writer: unknown ResolveIntent status {} for "
+                "latest_committed: unknown ResolveIntent status {} for "
                 "txn_id={}",
                 static_cast<int>(resp.status()), raw.intent->txn_id);
-            // Treat as not-committed.
             if (raw.latest_numeric_ts < 0) {
-                return std::optional<WriterPreimage>{};
+                return std::optional<CommittedRow>{};
             }
-            return std::optional<WriterPreimage>{WriterPreimage{
+            return std::optional<CommittedRow>{CommittedRow{
                 std::move(raw.latest_numeric_value),
                 raw.latest_numeric_ts,
             }};

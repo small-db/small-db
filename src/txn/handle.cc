@@ -82,7 +82,8 @@ static absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
             case PG_QUERY__NODE__NODE_COLUMN_DEF: {
                 auto column_def = create_stmt->table_elts[i]->column_def;
 
-                int name_id = column_def->type_name->n_names - 1;
+                int name_id =
+                    static_cast<int>(column_def->type_name->n_names) - 1;
                 auto type_name = ::semantics::is_string(
                     column_def->type_name->names[name_id]);
 
@@ -132,7 +133,7 @@ static absl::Status handle_create_table(PgQuery__CreateStmt* create_stmt) {
         return status;
     }
 
-    if (create_stmt->partspec != NULL) {
+    if (create_stmt->partspec != nullptr) {
         auto strategy = create_stmt->partspec->strategy;
         if (create_stmt->partspec->n_part_params != 1) {
             SPDLOG_ERROR("number of part params: {}",

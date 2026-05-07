@@ -25,6 +25,7 @@
 
 - [Jepsen Testing](./clutter/jepsen.md)
 - [Observability](./clutter/observability.md)
+- [Time Sources](./clutter/time_sources.md)
 
 # Appendix
 
