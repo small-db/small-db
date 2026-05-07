@@ -346,7 +346,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::ExecuteNode(
                     auto db = small::rocks::RocksDBWrapper::GetInstance();
                     if (!db.ok()) return db.status();
                     auto result = small::execution::update(
-                        stmt->update_stmt, /*dispatch=*/true, write_ts_,
+                        stmt->update_stmt, true, write_ts_,
                         txn_id_, info.value()->grpc_addr);
                     if (!result.ok()) return result.status();
                     if (result->final_write_ts > write_ts_) {

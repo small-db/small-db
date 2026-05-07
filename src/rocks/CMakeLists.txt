@@ -1,6 +1,8 @@
 add_library(small_rocks
     rocks.h
     rocks.cc
+    keys.h
+    keys.cc
 )
 
 target_link_libraries(small_rocks

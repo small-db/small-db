@@ -27,11 +27,10 @@ namespace {
 
 using small::test::TxnTestFixture;
 
-// After a writer commits, the intent slot still holds the new value
-// and no numeric version exists at the writer's commit timestamp. The
-// first reader to resolve the intent must persist the value as
-// /<table>/<pk>/<commit_ts> (half-promote) without deleting the slot.
-TEST_F(TxnTestFixture, ReaderHalfPromotesCommittedIntent) {
+// A reader that resolves a COMMITTED intent must return the writer's
+// new value but must not mutate on-disk state -- the intent slot stays
+// in place until a writer (under the row lock) full-promotes it.
+TEST_F(TxnTestFixture, ReaderResolvesCommittedIntentWithoutMutating) {
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
     const std::string qualified_table = "default_schema." + unique_table_;
     const std::string pk = "1";
@@ -43,29 +42,27 @@ TEST_F(TxnTestFixture, ReaderHalfPromotesCommittedIntent) {
                              " SET balance = 200 WHERE id = 1")
                     .ok());
     ASSERT_TRUE(writer.Commit().ok());
-    // Capture write_ts AFTER Commit -- Txn::Commit bumps write_ts to
-    // now_ms() (Mechanism A from closed_timestamps.md), so the on-disk
-    // commit timestamp is not the value write_ts() would return mid-txn.
-    int64_t writer_commit_ts = writer.write_ts();
 
-    // Before any read: intent on disk, latest numeric version is the
-    // seed (well below the writer's commit ts).
-    EXPECT_TRUE(db->ReadIntent(qualified_table, pk).has_value());
-    EXPECT_LT(db->LatestVersionTs(qualified_table, pk), writer_commit_ts);
+    // Before any read: intent on disk, no numeric version at the
+    // writer's commit ts.
+    ASSERT_TRUE(db->ReadIntent(qualified_table, pk).has_value());
+    int64_t pre_read_latest = db->LatestVersionTs(qualified_table, pk);
 
     small::txn::Txn reader;
     ASSERT_TRUE(reader.Begin().ok());
     auto r = reader.QueryScalar("SELECT balance FROM " + unique_table_ +
                                 " WHERE id = 1");
     ASSERT_TRUE(r.ok()) << r.status().ToString();
-    EXPECT_EQ(r.value(), "200");
+    EXPECT_EQ(r.value(), "200")
+        << "reader must surface the resolved COMMITTED intent's value";
     ASSERT_TRUE(reader.Commit().ok());
 
-    // After the read: numeric version at the writer's commit ts
-    // exists; the intent slot is untouched.
-    EXPECT_EQ(db->LatestVersionTs(qualified_table, pk), writer_commit_ts);
+    // After the read: intent slot untouched, no numeric version
+    // written. Writer-side full-promote is the only path that mutates.
     EXPECT_TRUE(db->ReadIntent(qualified_table, pk).has_value())
         << "reader must not delete the intent slot";
+    EXPECT_EQ(db->LatestVersionTs(qualified_table, pk), pre_read_latest)
+        << "reader must not write a numeric version of its own";
 }
 
 // A writer that finds an ACTIVE intent on its target row aborts with
