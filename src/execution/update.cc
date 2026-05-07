@@ -55,6 +55,7 @@
 #include "src/execution/execution.pb.h"
 #include "src/gossip/gossip.h"
 #include "src/lock/lock_manager.h"
+#include "src/rocks/keys.h"
 #include "src/rocks/rocks.h"
 #include "src/schema/const.h"
 #include "src/schema/schema.h"
@@ -186,7 +187,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     const std::string pk = pk_or.value();
     UpdateResult out;
     out.final_write_ts = write_ts;
-    out.intent_key = absl::StrFormat("/%s/%s/INTENT", table_name, pk);
+    out.intent_key = small::rocks::IntentKey(table_name, pk);
 
     if (dispatch) {
         // Coordinator side: fan out to every peer with the txn fields.
@@ -233,22 +234,23 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     auto row_lock =
         small::lock::LockManager::GetInstance()->Acquire(table_name, pk);
 
-    // No row on this node => not the partition owner (or the row
-    // doesn't exist anywhere). Return write_ts unchanged.
-    //
-    // Use the intent-aware variant so a prior committed-but-unpromoted
-    // intent on this row contributes its value as the pre-image for
-    // the SET clause computation.
-    auto current = small::txn::read_latest_with_intents(table_name, pk);
-    if (!current.has_value()) {
+    // Combined writer-side pre-image read: one prefix scan + at most
+    // one ResolveIntent RPC, returning both the pre-image value and
+    // the latest committed version_ts. Replaces the older two-call
+    // pattern (read_latest_with_intents + latest_committed_version_ts)
+    // and closes the TOCTOU window where a prior writer could
+    // transition ACTIVE -> COMMITTED between the two calls.
+    auto pre_or = small::txn::read_for_writer(table_name, pk);
+    if (!pre_or.ok()) return pre_or.status();
+    auto& pre_optional = pre_or.value();
+    if (!pre_optional.has_value()) {
+        // Row not on this node => non-owner. Return write_ts unchanged.
         return out;
     }
+    auto& pre = pre_optional.value();
 
-    auto latest_or = small::txn::latest_committed_version_ts(table_name, pk);
-    if (!latest_or.ok()) return latest_or.status();
-    int64_t latest = latest_or.value();
-    if (latest >= out.final_write_ts) {
-        out.final_write_ts = latest + 1;
+    if (pre.latest_committed_ts >= out.final_write_ts) {
+        out.final_write_ts = pre.latest_committed_ts + 1;
         SPDLOG_INFO(
             "update push: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
             txn_id, table_name, pk, write_ts,
@@ -256,7 +258,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
             small::util::FormatTsMs(out.final_write_ts));
     }
 
-    auto values_or = apply_set_clause(update_stmt, table, current.value());
+    auto values_or = apply_set_clause(update_stmt, table, pre.values);
     if (!values_or.ok()) return values_or.status();
 
     // Register this writer on the local closed-ts registry before the

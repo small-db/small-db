@@ -57,19 +57,42 @@ class TxnServiceImpl final : public TxnService::Service {
 absl::StatusOr<ResolveIntentResponse> resolve_intent(
     const std::string& coordinator_addr, int64_t txn_id);
 
-// Largest committed `version_ts` on (table_name, pk), considering both
-// numeric committed versions on disk *and* any unresolved INTENT key
-// whose backing transaction has already committed. RPCs the
-// coordinator embedded in the intent to learn its status.
+// Combined writer-side pre-image read for (table_name, pk). Returns
+// the value to feed into the SET clause AND the largest committed
+// `version_ts` on the row, both observed under one prefix scan and at
+// most one ResolveIntent RPC.
 //
-// Used by the write path's push protocol: a writer about to bump its
-// write_ts compares against this value, not the rocks-layer view
-// that ignores intents.
+// Resolves the intent (if any) under writer-mode semantics:
+//   COMMITTED -- full-promote (atomic Put numeric version + Delete
+//                INTENT). Treats the resolved commit_ts as a candidate
+//                for the latest, and the intent's value as a candidate
+//                for the pre-image.
+//   ABORTED / UNKNOWN -- skip the intent entirely.
+//   ACTIVE -- return AbortedError. A concurrent writer has staged its
+//             intent but hasn't committed yet; the caller must roll
+//             back and retry.
 //
-// Layering note: this lives in src/txn/ rather than as a method on
-// RocksDBWrapper because resolution requires gRPC, and rocks/ is kept
-// network-free.
-absl::StatusOr<int64_t> latest_committed_version_ts(
+// Caller MUST hold lock(table, pk). The full-promote is path-addressed
+// and would race with concurrent slot mutation if no lock were held.
+//
+// Returns nullopt if the row doesn't exist on this node (the caller is
+// not the partition owner); the writer's update path uses this as the
+// signal to no-op without writing an intent.
+//
+// Replaces the older read_latest_with_intents + latest_committed_version_ts
+// pair, which made two scans + two RPCs and had a TOCTOU window between
+// them where a prior writer could transition ACTIVE -> COMMITTED.
+struct WriterPreimage {
+    // Pre-image value: the latest committed row contents at the moment
+    // of the read. Already includes the resolved intent's value if
+    // that intent was COMMITTED with the largest commit_ts.
+    std::map<std::string, std::string> values;
+    // Largest committed `version_ts` on this row, used by the per-row
+    // bump rule in src/execution/update.cc.
+    int64_t latest_committed_ts;
+};
+
+absl::StatusOr<std::optional<WriterPreimage>> read_for_writer(
     const std::string& table_name, const std::string& pk);
 
 // Intent-aware read of an entire table at a snapshot. For each pk,
@@ -79,12 +102,5 @@ absl::StatusOr<int64_t> latest_committed_version_ts(
 // to resolve.
 std::map<std::string, std::map<std::string, std::string>>
 read_table_at_snapshot(const std::string& table_name, int64_t snapshot_ts);
-
-// Intent-aware read of a single row's latest committed value. Same
-// rule as `read_table_at_snapshot` but scoped to one (table, pk).
-// Used by writers in their pre-image read so the SET clause computes
-// on top of any prior COMMITTED-but-unpromoted intent.
-std::optional<std::map<std::string, std::string>> read_latest_with_intents(
-    const std::string& table_name, const std::string& pk);
 
 }  // namespace small::txn

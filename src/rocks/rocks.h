@@ -131,49 +131,12 @@ class RocksDBWrapper {
     void operator=(const RocksDBWrapper&) = delete;
 
     /**
-     * @brief Reads the latest visible MVCC version of every row in a table.
-     *
-     * Scans keys with the prefix "/{table_name}/" and, for each primary
-     * key, returns the row version with the largest timestamp suffix
-     * that is still <= snapshot_ts. Versions written after snapshot_ts
-     * are invisible to this read.
-     *
-     * @param table_name  Schema-qualified table name (e.g. "system.tables").
-     * @param snapshot_ts Snapshot timestamp; only versions with
-     *                    version_ts <= snapshot_ts are visible.
-     * @return Map of {primary_key -> {column_name -> value}}.
-     */
-    std::map<std::string, std::map<std::string, std::string>> ReadTable(
-        const std::string& table_name, int64_t snapshot_ts);
-
-    /**
-     * @brief Reads the most recent committed version of a single row,
-     *        ignoring any snapshot filter.
-     *
-     * Used inside an UPDATE's read-modify-write under the per-row lock,
-     * where the writer must see the absolutely-latest committed value
-     * regardless of the coordinator's snapshot timestamp. SELECT goes
-     * through ReadTable; only the write path uses ReadLatest.
-     *
-     * @param table_name Schema-qualified table name.
-     * @param pk         Primary key.
-     * @return The latest version's columns, or nullopt if no version exists.
-     */
-    std::optional<std::map<std::string, std::string>> ReadLatest(
-        const std::string& table_name, const std::string& pk);
-
-    /**
      * @brief Hard-deletes a single raw key.
      *
      * Removes the underlying RocksDB entry directly; this is not an MVCC
      * tombstone and does not interact with row-version semantics.
      */
     bool Delete(const std::string& key);
-
-    /**
-     * @brief Dumps every key/value pair to stdout. Debug aid only.
-     */
-    void PrintAllKV();
 
     /**
      * @brief Writes a new MVCC version of a row at the given timestamp.
@@ -222,11 +185,6 @@ class RocksDBWrapper {
                                         const std::string& pk);
 
     /**
-     * @brief Hard-deletes the intent at /<table>/<pk>/INTENT, if any.
-     */
-    bool DeleteIntent(const std::string& table_name, const std::string& pk);
-
-    /**
      * @brief Writes the txn record at /_txn/<txn_id>.
      *
      * Overwrites any prior record for the same txn_id. The coordinator is
@@ -262,6 +220,40 @@ class RocksDBWrapper {
     void SetTxnStatus(int64_t txn_id, TxnStatus status, int64_t write_ts);
 
     /**
+     * @brief Raw view of `/<table>/<pk>/`'s latest state.
+     *
+     * The caller (txn-layer) resolves the intent (RPC the embedded
+     * coordinator_addr) and applies whatever policy matters for its
+     * call site (writer-side: abort on ACTIVE + full-promote on
+     * COMMITTED; reader-side: skip on non-COMMITTED + half-promote).
+     */
+    struct LatestRowRaw {
+        // Largest committed `version_ts` found by the numeric prefix
+        // scan. -1 if no committed version exists for this row.
+        int64_t latest_numeric_ts = -1;
+        // Column map at latest_numeric_ts. Empty if latest_numeric_ts < 0.
+        std::map<std::string, std::string> latest_numeric_value;
+        // Current `/<table>/<pk>/INTENT`, if any. Caller resolves
+        // separately.
+        std::optional<IntentRow> intent;
+    };
+
+    /**
+     * @brief Single prefix scan over `/<table>/<pk>/` returning the
+     *        largest numeric version with its value AND the current
+     *        intent (if any). One scan, no RPC.
+     *
+     * Used by the writer's combined pre-image read (`read_for_writer`
+     * in `src/txn/`), which replaces the old LatestVersionTs +
+     * ReadIntent + ReadLatestWithResolver triple. Combining the two
+     * reads into one observation closes the TOCTOU window where a
+     * prior writer's status could flip ACTIVE → COMMITTED between
+     * separate calls.
+     */
+    LatestRowRaw ReadLatestRaw(const std::string& table_name,
+                               const std::string& pk);
+
+    /**
      * @brief Callback that resolves an intent into (is_committed, commit_ts).
      *
      * Returned commit_ts is meaningful only when is_committed is true; it
@@ -275,20 +267,6 @@ class RocksDBWrapper {
             const IntentRow&)>;
 
     /**
-     * @brief Reader-side intent promotion: persist a resolved
-     *        COMMITTED intent's value as a numeric MVCC version.
-     *
-     * Writes only `/<table>/<pk>/<commit_ts>` -- the intent slot is
-     * left in place. Lock-free and idempotent: any number of readers
-     * may race this Put against each other or against a writer's
-     * `FullPromoteIntent` and the result is identical (same key, same
-     * value derived from the txn's permanent commit_ts).
-     */
-    void HalfPromoteIntent(const std::string& table_name,
-                           const std::string& pk, int64_t commit_ts,
-                           const std::map<std::string, std::string>& values);
-
-    /**
      * @brief Writer-side intent promotion: persist the value as a
      *        numeric MVCC version AND delete the intent slot in one
      *        atomic write batch.
@@ -297,31 +275,45 @@ class RocksDBWrapper {
      * (`/<table>/<pk>/INTENT`) and would race with a concurrent slot
      * mutation if no lock were held.
      */
-    void FullPromoteIntent(const std::string& table_name,
+    void PromoteIntent(const std::string& table_name,
                            const std::string& pk, int64_t commit_ts,
                            const std::map<std::string, std::string>& values);
 
     /**
-     * @brief Variant of ReadTable that surfaces COMMITTED intents whose
-     *        commit_ts is <= snapshot_ts.
+     * @brief Reads the latest visible MVCC version of every row in a
+     *        table, surfacing COMMITTED intents whose commit_ts is
+     *        <= snapshot_ts.
      *
-     * For each pk under the table prefix, picks the lex-largest visible
-     * source of truth: the largest numeric `version_ts <= snapshot_ts`,
-     * OR the resolved `commit_ts` of an INTENT (if its txn is COMMITTED
-     * and commit_ts <= snapshot_ts), whichever is larger.
+     * Scans keys with the prefix "/{table_name}/". For each primary key,
+     * picks the lex-largest visible source of truth: the largest numeric
+     * `version_ts <= snapshot_ts`, OR the resolved `commit_ts` of an
+     * INTENT (if its txn is COMMITTED and commit_ts <= snapshot_ts),
+     * whichever is larger.
+     *
+     * @param table_name  Schema-qualified table name (e.g. "system.tables").
+     * @param snapshot_ts Snapshot timestamp; only versions with
+     *                    version_ts <= snapshot_ts are visible.
+     * @param resolver    Intent-resolution callback (typically RPCs the
+     *                    coordinator); see IntentResolver.
+     * @return Map of {primary_key -> {column_name -> value}}.
      */
     std::map<std::string, std::map<std::string, std::string>>
     ReadTableWithResolver(const std::string& table_name, int64_t snapshot_ts,
                           const IntentResolver& resolver);
 
     /**
-     * @brief Variant of ReadLatest that surfaces a COMMITTED intent if
-     *        its commit_ts is greater than the largest numeric
-     *        version_ts on the row.
+     * @brief Reads the most recent committed version of a single row,
+     *        surfacing a COMMITTED intent if its commit_ts is greater
+     *        than the largest numeric version_ts on the row.
      *
      * Used by writers in their pre-image read: a COMMITTED intent left
      * by a prior transaction (not yet promoted) is the row's "current"
      * state, and the next writer must compute on top of it.
+     *
+     * @param table_name Schema-qualified table name.
+     * @param pk         Primary key.
+     * @param resolver   Intent-resolution callback; see IntentResolver.
+     * @return The latest version's columns, or nullopt if no version exists.
      */
     std::optional<std::map<std::string, std::string>> ReadLatestWithResolver(
         const std::string& table_name, const std::string& pk,

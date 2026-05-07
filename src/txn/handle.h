@@ -67,7 +67,7 @@ class Txn {
 
     // The txn's mutable write timestamp. Initialized to start_ts at
     // BEGIN, may be pushed forward by the per-row bump rule on UPDATE
-    // (see latest_committed_version_ts in src/txn/txn.cc), and is
+    // (see read_for_writer in src/txn/txn.cc), and is
     // promoted to the final commit timestamp at COMMIT (the value
     // recorded as TxnRecord.write_ts and observed by readers as the
     // committed value's effective version_ts).
