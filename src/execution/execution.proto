@@ -32,8 +32,8 @@ message Row {
 message RawNode {
   bytes packed_node = 1;
   // Transaction timestamp (ms since epoch). For writes (UPDATE) ts is
-  // the *current* commit_ts the coordinator believes; the row owner
-  // may push it upward (see WriteResponse.final_commit_ts). For reads
+  // the *current* write_ts the coordinator believes; the row owner
+  // may push it upward (see WriteResponse.final_write_ts). For reads
   // (SELECT) ts is the snapshot at which to evaluate the query.
   int64 ts = 2;
   // Identifier of the writing transaction. Embedded in the on-disk
@@ -47,12 +47,12 @@ message RawNode {
 
 message WriteResponse {
   int64 affected_rows = 1;
-  // The commit_ts the row owner used when writing the intent. Equals
+  // The write_ts the row owner used when writing the intent. Equals
   // the request's `ts` unless the row's latest committed version was
   // already >= request `ts`, in which case the owner pushed it upward
   // to `latest + 1`. The coordinator takes max across all peers'
   // responses and updates the txn record on disk + in memory.
-  int64 final_commit_ts = 2;
+  int64 final_write_ts = 2;
 }
 
 message QueryResponse {

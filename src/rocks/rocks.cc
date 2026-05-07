@@ -98,7 +98,7 @@ void to_json(nlohmann::json& j, const TxnRecord& r) {
     j = nlohmann::json{
         {"status", r.status},
         {"start_ts", r.start_ts},
-        {"commit_ts", r.commit_ts},
+        {"write_ts", r.write_ts},
         {"intent_keys", r.intent_keys},
     };
 }
@@ -106,7 +106,7 @@ void to_json(nlohmann::json& j, const TxnRecord& r) {
 void from_json(const nlohmann::json& j, TxnRecord& r) {
     j.at("status").get_to(r.status);
     j.at("start_ts").get_to(r.start_ts);
-    j.at("commit_ts").get_to(r.commit_ts);
+    j.at("write_ts").get_to(r.write_ts);
     j.at("intent_keys").get_to(r.intent_keys);
 }
 
@@ -384,9 +384,9 @@ bool RocksDBWrapper::DeleteIntent(const std::string& table_name,
 void RocksDBWrapper::WriteTxnRecord(int64_t txn_id, const TxnRecord& record) {
     auto key = txn_key(txn_id);
     nlohmann::json j = record;
-    SPDLOG_INFO("WriteTxnRecord: key={} status={} commit_ts={} ({})", key,
-                static_cast<int>(record.status), record.commit_ts,
-                small::util::FormatTsMs(record.commit_ts));
+    SPDLOG_INFO("WriteTxnRecord: key={} status={} write_ts={} ({})", key,
+                static_cast<int>(record.status), record.write_ts,
+                small::util::FormatTsMs(record.write_ts));
     db_->Put(rocksdb::WriteOptions(), key, j.dump());
 }
 
@@ -403,13 +403,13 @@ std::optional<TxnRecord> RocksDBWrapper::ReadTxnRecord(int64_t txn_id) {
     return j.get<TxnRecord>();
 }
 
-void RocksDBWrapper::UpdateTxnCommitTs(int64_t txn_id, int64_t commit_ts) {
+void RocksDBWrapper::UpdateTxnWriteTs(int64_t txn_id, int64_t write_ts) {
     auto record = ReadTxnRecord(txn_id);
     if (!record.has_value()) {
-        SPDLOG_ERROR("UpdateTxnCommitTs: no record for txn_id={}", txn_id);
+        SPDLOG_ERROR("UpdateTxnWriteTs: no record for txn_id={}", txn_id);
         return;
     }
-    record->commit_ts = commit_ts;
+    record->write_ts = write_ts;
     WriteTxnRecord(txn_id, record.value());
 }
 
@@ -425,14 +425,14 @@ void RocksDBWrapper::AppendTxnIntentKey(int64_t txn_id,
 }
 
 void RocksDBWrapper::SetTxnStatus(int64_t txn_id, TxnStatus status,
-                                  int64_t commit_ts) {
+                                  int64_t write_ts) {
     auto record = ReadTxnRecord(txn_id);
     if (!record.has_value()) {
         SPDLOG_ERROR("SetTxnStatus: no record for txn_id={}", txn_id);
         return;
     }
     record->status = status;
-    if (status == TxnStatus::COMMITTED) record->commit_ts = commit_ts;
+    if (status == TxnStatus::COMMITTED) record->write_ts = write_ts;
     WriteTxnRecord(txn_id, record.value());
 }
 

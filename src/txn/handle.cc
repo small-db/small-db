@@ -215,14 +215,14 @@ absl::Status Txn::Begin() {
     active_ = true;
     txn_id_ = id::generate_id();
     start_ts_ = now_ms();
-    commit_ts_ = start_ts_;
+    write_ts_ = start_ts_;
 
     auto db = small::rocks::RocksDBWrapper::GetInstance();
     if (!db.ok()) return db.status();
     db.value()->WriteTxnRecord(
         txn_id_,
         small::rocks::TxnRecord{small::rocks::TxnStatus::ACTIVE, start_ts_,
-                                commit_ts_, {}});
+                                write_ts_, {}});
     SPDLOG_INFO("begin_txn: txn_id={} start_ts={} ({})", txn_id_, start_ts_,
                 small::util::FormatTsMs(start_ts_));
     return absl::OkStatus();
@@ -232,17 +232,31 @@ absl::Status Txn::Commit() {
     if (!active_) {
         return absl::FailedPreconditionError("COMMIT outside of BEGIN");
     }
+    // Mechanism A from closed_timestamps.md: bump write_ts to the wall
+    // clock at this moment before promoting it to the final commit
+    // timestamp. Any reader whose snapshot_ts < now() is reading "in
+    // the past" relative to this commit, so this txn must not be
+    // visible to them; the bump enforces that by ensuring the final
+    // commit_ts is strictly greater than any active reader's snapshot
+    // that has not yet waited past T_closed on the owners.
+    int64_t now = now_ms();
+    if (now > write_ts_) {
+        write_ts_ = now;
+    }
+    // After this point, write_ts_ is the txn's final commit timestamp.
     SPDLOG_INFO("commit_txn: txn_id={} start_ts={} ({}) commit_ts={} ({})",
                 txn_id_, start_ts_, small::util::FormatTsMs(start_ts_),
-                commit_ts_, small::util::FormatTsMs(commit_ts_));
+                write_ts_, small::util::FormatTsMs(write_ts_));
     auto db = small::rocks::RocksDBWrapper::GetInstance();
     if (!db.ok()) return db.status();
     db.value()->SetTxnStatus(txn_id_, small::rocks::TxnStatus::COMMITTED,
-                             commit_ts_);
+                             write_ts_);
+    // Leave txn_id_/start_ts_/write_ts_ populated after the txn ends
+    // so callers (notably tests) can inspect the final commit_ts that
+    // landed on disk. `active_ = false` is the source of truth for
+    // "this Txn is no longer driving statements"; Begin() resets the
+    // other fields when starting the next transaction.
     active_ = false;
-    txn_id_ = 0;
-    start_ts_ = 0;
-    commit_ts_ = 0;
     return absl::OkStatus();
 }
 
@@ -255,9 +269,6 @@ absl::Status Txn::Rollback() {
     if (!db.ok()) return db.status();
     db.value()->SetTxnStatus(txn_id_, small::rocks::TxnStatus::ABORTED, 0);
     active_ = false;
-    txn_id_ = 0;
-    start_ts_ = 0;
-    commit_ts_ = 0;
     return absl::OkStatus();
 }
 
@@ -335,12 +346,12 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::ExecuteNode(
                     auto db = small::rocks::RocksDBWrapper::GetInstance();
                     if (!db.ok()) return db.status();
                     auto result = small::execution::update(
-                        stmt->update_stmt, /*dispatch=*/true, commit_ts_,
+                        stmt->update_stmt, /*dispatch=*/true, write_ts_,
                         txn_id_, info.value()->grpc_addr);
                     if (!result.ok()) return result.status();
-                    if (result->final_commit_ts > commit_ts_) {
-                        commit_ts_ = result->final_commit_ts;
-                        db.value()->UpdateTxnCommitTs(txn_id_, commit_ts_);
+                    if (result->final_write_ts > write_ts_) {
+                        write_ts_ = result->final_write_ts;
+                        db.value()->UpdateTxnWriteTs(txn_id_, write_ts_);
                     }
                     db.value()->AppendTxnIntentKey(txn_id_, result->intent_key);
                     return EmptyBatch();

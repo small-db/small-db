@@ -28,8 +28,8 @@ namespace {
 using small::test::TxnTestFixture;
 
 // After a writer commits, the intent slot still holds the new value
-// and no numeric version exists at writer.commit_ts. The first reader
-// to resolve the intent must persist the value as
+// and no numeric version exists at the writer's commit timestamp. The
+// first reader to resolve the intent must persist the value as
 // /<table>/<pk>/<commit_ts> (half-promote) without deleting the slot.
 TEST_F(TxnTestFixture, ReaderHalfPromotesCommittedIntent) {
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
@@ -42,11 +42,14 @@ TEST_F(TxnTestFixture, ReaderHalfPromotesCommittedIntent) {
                     .Execute("UPDATE " + unique_table_ +
                              " SET balance = 200 WHERE id = 1")
                     .ok());
-    int64_t writer_commit_ts = writer.commit_ts();
     ASSERT_TRUE(writer.Commit().ok());
+    // Capture write_ts AFTER Commit -- Txn::Commit bumps write_ts to
+    // now_ms() (Mechanism A from closed_timestamps.md), so the on-disk
+    // commit timestamp is not the value write_ts() would return mid-txn.
+    int64_t writer_commit_ts = writer.write_ts();
 
     // Before any read: intent on disk, latest numeric version is the
-    // seed (well below writer's commit_ts).
+    // seed (well below the writer's commit ts).
     EXPECT_TRUE(db->ReadIntent(qualified_table, pk).has_value());
     EXPECT_LT(db->LatestVersionTs(qualified_table, pk), writer_commit_ts);
 
@@ -58,8 +61,8 @@ TEST_F(TxnTestFixture, ReaderHalfPromotesCommittedIntent) {
     EXPECT_EQ(r.value(), "200");
     ASSERT_TRUE(reader.Commit().ok());
 
-    // After the read: numeric version at writer.commit_ts exists; the
-    // intent slot is untouched.
+    // After the read: numeric version at the writer's commit ts
+    // exists; the intent slot is untouched.
     EXPECT_EQ(db->LatestVersionTs(qualified_table, pk), writer_commit_ts);
     EXPECT_TRUE(db->ReadIntent(qualified_table, pk).has_value())
         << "reader must not delete the intent slot";
@@ -80,7 +83,7 @@ TEST_F(TxnTestFixture, WriterAbortsOnActiveIntent) {
     db->WriteTxnRecord(kStaleTxnId,
                        small::rocks::TxnRecord{
                            small::rocks::TxnStatus::ACTIVE,
-                           /*start_ts=*/1, /*commit_ts=*/1, {}});
+                           /*start_ts=*/1, /*write_ts=*/1, {}});
     auto table = small::catalog::CatalogManager::GetInstance()
                      ->GetTable(qualified_table)
                      .value();

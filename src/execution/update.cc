@@ -50,6 +50,7 @@
 // =====================================================================
 
 #include "src/catalog/catalog.h"
+#include "src/closedts/registry.h"
 #include "src/execution/execution.grpc.pb.h"
 #include "src/execution/execution.pb.h"
 #include "src/gossip/gossip.h"
@@ -168,7 +169,7 @@ static absl::StatusOr<std::vector<std::string>> apply_set_clause(
 }
 
 absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
-                                    bool dispatch, int64_t commit_ts,
+                                    bool dispatch, int64_t write_ts,
                                     int64_t txn_id,
                                     const std::string& coordinator_addr) {
     auto table_name = small::schema::resolve_table_name(update_stmt->relation);
@@ -184,13 +185,13 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     if (!pk_or.ok()) return pk_or.status();
     const std::string pk = pk_or.value();
     UpdateResult out;
-    out.final_commit_ts = commit_ts;
+    out.final_write_ts = write_ts;
     out.intent_key = absl::StrFormat("/%s/%s/INTENT", table_name, pk);
 
     if (dispatch) {
         // Coordinator side: fan out to every peer with the txn fields.
         // Only the row's owner does anything visible; non-owners return
-        // their input commit_ts unchanged. We collect the max across
+        // their input write_ts unchanged. We collect the max across
         // all responses so a push reported by the owner propagates back.
         auto servers = small::gossip::get_nodes(std::nullopt);
         for (auto& [id, server] : servers) {
@@ -201,7 +202,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
             pg_query__update_stmt__pack(update_stmt, buf);
 
             request.set_packed_node(buf, len);
-            request.set_ts(commit_ts);
+            request.set_ts(write_ts);
             request.set_txn_id(txn_id);
             request.set_coordinator_addr(coordinator_addr);
             free(buf);
@@ -217,8 +218,8 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
                     fmt::format("failed to update into server {}: {}",
                                 server.grpc_addr, status.error_message()));
             }
-            if (result.final_commit_ts() > out.final_commit_ts) {
-                out.final_commit_ts = result.final_commit_ts();
+            if (result.final_write_ts() > out.final_write_ts) {
+                out.final_write_ts = result.final_write_ts();
             }
         }
         return out;
@@ -233,7 +234,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
         small::lock::LockManager::GetInstance()->Acquire(table_name, pk);
 
     // No row on this node => not the partition owner (or the row
-    // doesn't exist anywhere). Return commit_ts unchanged.
+    // doesn't exist anywhere). Return write_ts unchanged.
     //
     // Use the intent-aware variant so a prior committed-but-unpromoted
     // intent on this row contributes its value as the pre-image for
@@ -246,17 +247,28 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     auto latest_or = small::txn::latest_committed_version_ts(table_name, pk);
     if (!latest_or.ok()) return latest_or.status();
     int64_t latest = latest_or.value();
-    if (latest >= out.final_commit_ts) {
-        out.final_commit_ts = latest + 1;
+    if (latest >= out.final_write_ts) {
+        out.final_write_ts = latest + 1;
         SPDLOG_INFO(
-            "update push: txn_id={} {}/{} commit_ts {} ({}) -> {} ({})",
-            txn_id, table_name, pk, commit_ts,
-            small::util::FormatTsMs(commit_ts), out.final_commit_ts,
-            small::util::FormatTsMs(out.final_commit_ts));
+            "update push: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
+            txn_id, table_name, pk, write_ts,
+            small::util::FormatTsMs(write_ts), out.final_write_ts,
+            small::util::FormatTsMs(out.final_write_ts));
     }
 
     auto values_or = apply_set_clause(update_stmt, table, current.value());
     if (!values_or.ok()) return values_or.status();
+
+    // Register this writer on the local closed-ts registry before the
+    // intent goes to disk. The reader-side gate
+    // (small::closedts::InFlightRegistry::WaitForClosedTs) will not let
+    // a SELECT scan this node at snapshot_ts >= out.final_write_ts
+    // until this txn settles, ensuring the reader doesn't observe a
+    // partial state where the intent isn't yet on this node but is on
+    // another. See small-db-book/.../closed_timestamps.md.
+    small::closedts::InFlightRegistry::GetInstance()->Register(
+        txn_id, out.final_write_ts, coordinator_addr);
+
     db->WriteIntent(table, pk, values_or.value(), txn_id, coordinator_addr);
 
     return out;
@@ -280,7 +292,7 @@ grpc::Status UpdateServiceImpl::Update(
         return {grpc::StatusCode::INTERNAL,
                 std::string(result.status().message())};
     }
-    response->set_final_commit_ts(result->final_commit_ts);
+    response->set_final_write_ts(result->final_write_ts);
     return grpc::Status::OK;
 }
 

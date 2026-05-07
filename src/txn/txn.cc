@@ -67,7 +67,9 @@ grpc::Status TxnServiceImpl::ResolveIntent(
             break;
         case small::rocks::TxnStatus::COMMITTED:
             response->set_status(ResolveIntentResponse::COMMITTED);
-            response->set_commit_ts(record->commit_ts);
+            // record->write_ts is the txn's final commit timestamp now
+            // that status is COMMITTED.
+            response->set_commit_ts(record->write_ts);
             break;
         case small::rocks::TxnStatus::ABORTED:
             response->set_status(ResolveIntentResponse::ABORTED);

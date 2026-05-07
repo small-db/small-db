@@ -46,8 +46,8 @@ namespace small::rocks {
 // Status of a transaction record persisted under /_txn/<txn_id>.
 //
 // ACTIVE     -- in flight; the writer is still issuing intents.
-// COMMITTED  -- finalized; commit_ts is authoritative for every intent
-//               this transaction wrote.
+// COMMITTED  -- finalized; write_ts is the txn's commit timestamp,
+//               authoritative for every intent it wrote.
 // ABORTED    -- the writer rolled back; readers should skip its intents.
 enum class TxnStatus {
     ACTIVE = 0,
@@ -63,10 +63,17 @@ void from_json(const nlohmann::json& j, TxnStatus& s);
 //
 // The coordinator is the only writer. Readers on any node consult it
 // via the TxnService gRPC when resolving an intent.
+//
+// `write_ts` is the txn's mutable mid-flight write timestamp (initialized
+// to start_ts at BEGIN, pushed by the per-row bump rule on UPDATE). When
+// status flips to COMMITTED, `write_ts` is the txn's final commit
+// timestamp -- the value at which every intent it wrote becomes visible.
+// While ACTIVE the value is provisional; while ABORTED it carries no
+// meaning (readers ignore it).
 struct TxnRecord {
     TxnStatus status = TxnStatus::ACTIVE;
     int64_t start_ts = 0;
-    int64_t commit_ts = 0;
+    int64_t write_ts = 0;
 
     // Keys of intents this transaction has written (e.g. "/users/3/INTENT").
     // Populated as intents are dispatched. Consumed by a future sweeper /
@@ -233,12 +240,12 @@ class RocksDBWrapper {
     std::optional<TxnRecord> ReadTxnRecord(int64_t txn_id);
 
     /**
-     * @brief Read-modify-write: bump commit_ts on /_txn/<txn_id>.
+     * @brief Read-modify-write: bump write_ts on /_txn/<txn_id>.
      *
      * Used by the push protocol when a writer encounters a row whose
-     * latest committed version is >= the current commit_ts.
+     * latest committed version_ts is >= the txn's current write_ts.
      */
-    void UpdateTxnCommitTs(int64_t txn_id, int64_t commit_ts);
+    void UpdateTxnWriteTs(int64_t txn_id, int64_t write_ts);
 
     /**
      * @brief Read-modify-write: append `intent_key` to the txn record's
@@ -248,17 +255,20 @@ class RocksDBWrapper {
 
     /**
      * @brief Read-modify-write: flip the txn's status (and, for COMMITTED,
-     *        finalize its commit_ts). One Put -- the atomicity boundary
-     *        for every intent this txn has written.
+     *        record write_ts as the txn's final commit timestamp). One
+     *        Put -- the atomicity boundary for every intent this txn has
+     *        written.
      */
-    void SetTxnStatus(int64_t txn_id, TxnStatus status, int64_t commit_ts);
+    void SetTxnStatus(int64_t txn_id, TxnStatus status, int64_t write_ts);
 
     /**
      * @brief Callback that resolves an intent into (is_committed, commit_ts).
      *
-     * Used by the With-Resolver read variants to delegate intent
-     * resolution out of this network-free layer. The wrapper supplied
-     * by src/txn/ implements the gRPC RPC under the hood.
+     * Returned commit_ts is meaningful only when is_committed is true; it
+     * is the resolved txn's final commit timestamp (the txn record's
+     * write_ts post-COMMIT). Used by the With-Resolver read variants to
+     * delegate intent resolution out of this network-free layer; the
+     * wrapper supplied by src/txn/ implements the gRPC RPC under the hood.
      */
     using IntentResolver =
         std::function<absl::StatusOr<std::pair<bool, int64_t>>(

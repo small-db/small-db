@@ -4,6 +4,7 @@ function(small_unit_test name)
         ${name}
         PRIVATE
         small::catalog
+        small::closedts
         small::execution
         small::gossip
         small::rocks
@@ -26,3 +27,4 @@ include(GoogleTest)
 
 small_unit_test(dirty_read_test)
 small_unit_test(intent_promote_test)
+small_unit_test(closed_ts_test)

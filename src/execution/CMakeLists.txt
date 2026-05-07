@@ -11,6 +11,7 @@ target_link_libraries(small_execution
     PUBLIC
     small::execution_proto
     PRIVATE
+    small::closedts
     small::lock
     small::rocks
     small::schema

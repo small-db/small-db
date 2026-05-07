@@ -63,7 +63,7 @@ absl::StatusOr<ResolveIntentResponse> resolve_intent(
 // coordinator embedded in the intent to learn its status.
 //
 // Used by the write path's push protocol: a writer about to bump its
-// commit_ts compares against this value, not the rocks-layer view
+// write_ts compares against this value, not the rocks-layer view
 // that ignores intents.
 //
 // Layering note: this lives in src/txn/ rather than as a method on

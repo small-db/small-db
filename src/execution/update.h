@@ -39,12 +39,12 @@
 
 namespace small::execution {
 
-// Returned from `update`. `final_commit_ts` is the timestamp the owner
-// used when it wrote the intent (>= the caller's commit_ts; bigger if
+// Returned from `update`. `final_write_ts` is the timestamp the owner
+// used when it wrote the intent (>= the caller's write_ts; bigger if
 // the row's chain forced a push). `intent_key` is the /<table>/<pk>/
 // INTENT key the caller appends to /_txn/<txn_id>.intent_keys[].
 struct UpdateResult {
-    int64_t final_commit_ts = 0;
+    int64_t final_write_ts = 0;
     std::string intent_key;
 };
 
@@ -53,7 +53,7 @@ struct UpdateResult {
 // needed, write intent). The caller is responsible for persisting any
 // push to /_txn/<txn_id> and for appending intent_key.
 absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
-                                    bool dispatch, int64_t commit_ts,
+                                    bool dispatch, int64_t write_ts,
                                     int64_t txn_id,
                                     const std::string& coordinator_addr);
 
