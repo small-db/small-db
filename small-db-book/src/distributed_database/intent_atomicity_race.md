@@ -67,35 +67,45 @@ Bracketing context (from `history.txt`):
 
 Worker 0's transfer `2→1, 53` succeeded; worker 2 (asia) saw both legs (`{1=1053, 2=1947}`); 4 ms later, worker 1 (europe) saw only the debit (`{1=1000, 2=1947}`).
 
-**Trace (server-side).**
+**Trace (server-side, single millisecond resolution).**
+
+| Time | Node    | Event |
+|------|---------|-------|
+| .393 | america | T0 BEGIN (writes `/_txn/<T0>` ACTIVE) |
+| .393 | europe  | worker 1's `SELECT` arrives, dispatch begins |
+| .394 | america | T0 UPDATE row 2 → WriteIntent `/users/2/INTENT(T0)` |
+| **.396** | **europe**  | **worker 1's europe-loopback scan runs (snapshot_ts=.393)** |
+| .404 | america | T0 UPDATE row 1 dispatched to all peers |
+| .412 | america | T0 SetTxnStatus(COMMITTED, commit_ts=.393) |
+| .412 | europe  | T0's UPDATE-row-1 dispatch arrives → WriteIntent `/users/1/INTENT(T0)` |
+| **.445** | **america** | **worker 1's america cross-region scan runs (snapshot_ts=.393)** |
+| .515 | client  | worker 1's `:ok :read` reported |
+
+The two starred lines are the smoking gun. `dispatch=false` log lines (server.log query.cc:118) confirm both timestamps:
 
 ```
-14:57:37.393  america  /* op=0 */ BEGIN;                              (worker 0's BEGIN)
-14:57:37.393  europe   /* op=1 */ SELECT id, balance FROM users;      (worker 1's read starts)
-14:57:37.394  america  /* op=0 */ UPDATE ... SET balance = balance - 53 WHERE id = 2;
-14:57:37.404  america  /* op=0 */ UPDATE ... SET balance = balance + 53 WHERE id = 1;
-14:57:37.412  america  WriteTxnRecord: /_txn/310535603693486080 status=1 commit_ts=1778104657393
-                       (worker 0's COMMIT — txn record flipped to COMMITTED)
-14:57:37.412  europe   WriteIntent:    /default_schema.users/1/INTENT
-                       txn_id=310535603693486080 coordinator=america:50001
-                       (row 1's intent appears on europe)
-... worker 1's SELECT response returns at 14:57:37.515 ...
+europe   .396  query: dispatch=false snapshot_ts=1778104657393   (= worker 1's BEGIN, .393)
+america  .445  query: dispatch=false snapshot_ts=1778104657393
 ```
 
-Notice the row-1 intent on europe was written at **the same millisecond** as worker 0's COMMIT on america. Worker 1's SELECT was already running on europe (started at 14:57:37.393).
+Same `SELECT`, same `snapshot_ts`. The two local scans ran 49 ms apart — the gap was wide enough for *all* of T0's transfer (UPDATE/dispatch/COMMIT) to land inside it.
 
-**The race.** Worker 1's SELECT on europe fans out to all three nodes via gRPC. Each node's `query` handler runs `ReadTableWithResolver` on its own RocksDB:
+**The race.** Atomic from worker 0's perspective; non-atomic from worker 1's perspective:
 
-| Row | Owner | Resolver call shape | Likely outcome at this moment |
-|---|---|---|---|
-| Row 2 (`{2=1947}`) | america | `america`'s local resolver issues a *loopback* gRPC to its own `TxnService` for `txn_id=…486080` | Loopback is fast → the local lookup of `/_txn/<id>` hits *after* `14:57:37.412` → **COMMITTED** → intent visible at commit_ts (1947 surfaces) |
-| Row 1 (`{1=1000}`) | europe  | `europe`'s local resolver issues a *cross-region* gRPC to `america:50001` for the same `txn_id` | Network RTT ≥ a few ms; the request races worker 0's COMMIT-flip. If the lookup observes the txn record before `SetTxnStatus`, response is **ACTIVE** → resolver returns `(false, 0)` → intent skipped → seed (1000) surfaces |
+- **europe scan at .396 reads `/users/1/*`.** At that wall-clock moment the only key under that prefix is the seed (`/users/1/<seed_ts> = 1000`). T0's UPDATE-row-1 hasn't even been dispatched from america yet; T0's intent doesn't exist on europe until .412. Result: row 1 = seed = **1000**. T0's credit invisible.
+- **america scan at .445 reads `/users/2/*`.** At that wall-clock moment T0's intent has been on disk since .394, and T0 flipped to COMMITTED at .412. Resolver lookup of `/_txn/<T0>` (loopback, micro-second) returns COMMITTED at commit_ts=.393. Result: row 2 = intent value = **1947**. T0's debit visible.
 
-Worker 1's read returns `{2=1947, 1=1000}` — atomicity violated. Different physical resolver-call paths to the same logical txn-record, with the COMMIT flip landing inside the latency gap between the two paths.
+`{row 1 = 1000, row 2 = 1947}` — the credit leg is invisible while the debit leg is visible. Total 9947, lost 53.
 
-Worker 2 (4 ms earlier in `:invoke` time but reaching `:ok` at the same instant) happens to land on the lucky side of both races, sees both legs.
+**Why one scan ran so much earlier than the other.** Both scans are triggered by the same `SELECT` dispatched from europe at .393. Europe's loopback dispatch reaches its own query handler in ~3 ms (.396). The cross-region dispatch europe→america takes 52 ms in this run (.393→.445) — gRPC channel/connection setup, queueing, etc. T0's whole transfer (BEGIN→COMMIT, .393→.412 ≈ 19 ms) and the row-1 dispatch (.404→.412 ≈ 8 ms more) fit comfortably inside that 52 ms gap.
 
-**This race is not from this commit.** Pre-`a61c31c`, the read-side resolver returned `(false, 0)` for ACTIVE just like it does now (see `default_resolver` in `src/txn/txn.cc`). Half-promote / full-promote run only on resolved-COMMITTED — they cannot influence a read whose resolver got back ACTIVE. Confirmed by `git show 1a9635e:src/rocks/rocks.cc` — the `if (!pair.first) continue;` skip path is identical. The race has been latent since intents landed.
+Worker 2 at index 5 (4 ms earlier `:ok` time but luckier scan timing — its europe scan ran at .444, after .412) saw both legs.
+
+**The flip side: net-positive reads.** Run 2 (`20260506T170618`) skewed almost entirely toward `:wrong-total > 10000`. Same race, opposite asymmetry: in those reads the *credit* leg was visible while the *debit* leg's scan ran too early. Symmetric phenomenon, same fix space.
+
+**This race is not from this commit.** Pre-`a61c31c`, the read-side resolver returned `(false, 0)` for ACTIVE just like it does now (see `default_resolver` in `src/txn/txn.cc`). The atomicity hole is in the read-dispatch itself — different nodes scan their local DB at different wall-clock times, with no shared cut. Confirmed by `git show 1a9635e:src/rocks/rocks.cc` — the read path's behavior on intent resolution is identical. The race has been latent since intents landed.
+
+<p><img src="./intent_atomicity_race.svg" alt="Two local scans of one SELECT land 49 ms apart; T0's intents-and-COMMIT fit entirely inside the gap." style="max-width:100%;height:auto"/></p>
 
 ## Why It Hides on Single-Node and Integration Tests
 
@@ -106,14 +116,15 @@ Worker 2 (4 ms earlier in `:invoke` time but reaching `:ok` at the same instant)
 
 ## Fix Options
 
-Listed against `write_intents.md`'s "Doesn't" bullets at the bottom — these are the deferred items now made concrete:
+The hole is in the read-dispatch: each node's local scan happens at a different wall-clock instant with no shared cut. `snapshot_ts` is propagated identically to every node, but `snapshot_ts` only filters out writes whose `version_ts > snapshot_ts` — it can't surface a write that hasn't physically landed on this node yet.
 
-1. **Block-on-ACTIVE on the read path.** When a reader's resolver gets `ACTIVE`, wait briefly (e.g. retry the resolve a small number of times with a few-ms backoff) before deciding "skip." Crude but local fix; absorbs the common "writer is about to commit" case. Doesn't help ABORTED→stays-not-skipped or genuinely-stuck transactions.
-2. **Wait-for graphs / push-the-writer.** Production design (CockroachDB-style). A reader that hits ACTIVE either waits on the writer's commit, or pushes the writer's `commit_ts` past the reader's snapshot so the reader can ignore the intent without losing data. New chapter material.
-3. **Coordinator-side commit fence.** Before the coordinator returns `:ok` for `COMMIT`, propagate the new status to every node that owns one of this txn's intents (or wait long enough that those nodes' resolvers will observe it on next RPC). Eliminates the race at the source. Cost: COMMIT latency ≥ longest path RTT × number of intent-bearing nodes.
-4. **Hold lock until COMMIT/ROLLBACK** (already discussed in Mode 1). Doesn't directly fix Mode 2 — a reader doesn't take row locks — but reduces the window during which intents linger in mixed states.
+1. **Two-phase commit (real 2PC).** Coordinator's `COMMIT` does (a) PREPARE → wait for every intent-bearing peer to ack durably, then (b) DECISION → wait for every peer to ack the status flip. By the time the client sees `:ok`, every node that owns any of T's intents has them on disk *and* the COMMITTED status visible to its resolvers. Two extra RTTs per commit, but it closes both Mode 2 and the spurious aborts of Mode 1. The "right" answer.
+2. **Read-path "wait for in-flight writes ≤ snapshot_ts".** Each node tracks a per-shard high-water mark of received-and-applied writes; a scan at `snapshot_ts` blocks until that high-water mark passes `snapshot_ts`. Cheap on the write side, costs reader latency. Doesn't help if the writer hasn't yet *issued* the write toward this node (it has to be in flight for "wait" to mean anything) — needs to be combined with something that delays COMMIT until issue.
+3. **Two-phase reads (snapshot consensus).** Coordinator picks `snapshot_ts`, polls all peers ("have you applied everything ≤ S?"), then dispatches the actual scans. Reader-side analog of 2PC. One extra RTT per read.
+4. **HLC + commit-wait.** The shadowed-writes chapter's options 2 and 3 — replace wall-clock `commit_ts` with HLC, or add Spanner-style commit-wait. Both make `commit_ts` carry "all causally-prior writes are visible by now" semantics, which combined with read-side wait gives external consistency. Big architectural moves; orthogonal to the per-row mechanics of intents.
+5. **Reader block-on-ACTIVE / waiter queues (CockroachDB-style).** Useful but doesn't actually close *this* race — Mode 2 mostly fires when an intent isn't on the local node yet, not when it's there in ACTIVE state. Worth having for the cases where the intent *is* present, and for noise-reduction on Mode 1.
 
-For the book, option 2 is the right teaching arc: introduce the failure with this trace, then walk through "why the obvious wait isn't enough" and arrive at waiter queues / pushes as the production answer.
+For the book: option 1 (2PC) is the cleanest follow-on chapter — it's a familiar, well-named protocol, it directly closes the failure traced above, and it sets up later distinctions (vs. Paxos commit, vs. coordinated commits, vs. the various workarounds for 2PC's blocking nature). Option 2 alone is interesting as a "minimal local fix" stepping stone if you want to teach that arc first.
 
 ## Files / Pointers
 

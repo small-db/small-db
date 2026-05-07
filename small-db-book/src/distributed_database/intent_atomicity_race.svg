@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b85450"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#82b366"/>
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="28" text-anchor="middle" font-size="16" font-weight="bold">
+    Intent Atomicity Race: one SELECT's local scans land on opposite sides of T0's transfer
+  </text>
+  <text x="600" y="48" text-anchor="middle" font-size="12" fill="#666">
+    Bank-test run 20260506T145627 — index 7 read returns {1=1000, 2=1947, ...} = 9947 (lost the credit leg of T0's transfer 2→1, 53)
+  </text>
+
+  <!-- Time axis -->
+  <line x1="160" y1="100" x2="1140" y2="100" stroke="#444" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1148" y="104" font-size="11" fill="#666">time (ms)</text>
+
+  <!-- Tick marks + labels -->
+  <g font-size="11" fill="#444" text-anchor="middle">
+    <line x1="180" y1="94" x2="180" y2="106" stroke="#444" stroke-width="2"/>
+    <text x="180" y="82" font-weight="bold">.393</text>
+
+    <line x1="240" y1="94" x2="240" y2="106" stroke="#444" stroke-width="2"/>
+    <text x="240" y="82" font-weight="bold">.394</text>
+
+    <line x1="290" y1="94" x2="290" y2="106" stroke="#82b366" stroke-width="2.5"/>
+    <text x="290" y="82" font-weight="bold" fill="#82b366">.396</text>
+    <text x="290" y="124" fill="#1f5e1a">europe scan</text>
+
+    <line x1="420" y1="94" x2="420" y2="106" stroke="#444" stroke-width="2"/>
+    <text x="420" y="82" font-weight="bold">.404</text>
+
+    <line x1="540" y1="94" x2="540" y2="106" stroke="#b85450" stroke-width="2.5"/>
+    <text x="540" y="82" font-weight="bold" fill="#b85450">.412</text>
+
+    <line x1="850" y1="94" x2="850" y2="106" stroke="#82b366" stroke-width="2.5"/>
+    <text x="850" y="82" font-weight="bold" fill="#82b366">.445</text>
+    <text x="850" y="124" fill="#1f5e1a">america scan</text>
+
+    <line x1="1100" y1="94" x2="1100" y2="106" stroke="#444" stroke-width="2"/>
+    <text x="1100" y="82" font-weight="bold">.515</text>
+  </g>
+
+  <!-- Lane A: america's /users/2/* state -->
+  <text x="20" y="180" font-weight="bold">america</text>
+  <text x="20" y="196" font-size="11" fill="#666">/users/2/*</text>
+  <text x="20" y="212" font-size="11" fill="#666">on disk</text>
+
+  <!-- Pre-.394: seed only -->
+  <rect x="160" y="170" width="80" height="44" rx="4" fill="#e1e1e1" stroke="#999"/>
+  <text x="200" y="190" text-anchor="middle" font-size="11">/users/2/&lt;seed&gt;</text>
+  <text x="200" y="204" text-anchor="middle" font-size="11">= 2000</text>
+
+  <!-- .394–.412: seed + INTENT (ACTIVE) -->
+  <rect x="240" y="170" width="300" height="44" rx="4" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="390" y="188" text-anchor="middle" font-size="11" font-weight="bold">+ /users/2/INTENT (T0, value=1947)</text>
+  <text x="390" y="204" text-anchor="middle" font-size="11" fill="#7a3434">T0 status: ACTIVE</text>
+
+  <!-- .412+: seed + INTENT (COMMITTED) -->
+  <rect x="540" y="170" width="600" height="44" rx="4" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="840" y="188" text-anchor="middle" font-size="11" font-weight="bold">+ /users/2/INTENT (T0, value=1947)</text>
+  <text x="840" y="204" text-anchor="middle" font-size="11" fill="#1f5e1a">T0 status: COMMITTED at .412</text>
+
+  <!-- Annotation under lane A -->
+  <text x="240" y="230" font-size="10" fill="#666">↑ T0 WriteIntent</text>
+  <text x="540" y="230" font-size="10" fill="#7a3434">↑ T0 SetTxnStatus(COMMITTED)</text>
+
+  <!-- Lane B: europe's /users/1/* state -->
+  <text x="20" y="290" font-weight="bold">europe</text>
+  <text x="20" y="306" font-size="11" fill="#666">/users/1/*</text>
+  <text x="20" y="322" font-size="11" fill="#666">on disk</text>
+
+  <!-- Pre-.412: seed only -->
+  <rect x="160" y="280" width="380" height="44" rx="4" fill="#e1e1e1" stroke="#999"/>
+  <text x="350" y="300" text-anchor="middle" font-size="11">/users/1/&lt;seed&gt;</text>
+  <text x="350" y="314" text-anchor="middle" font-size="11">= 1000</text>
+
+  <!-- .412+: seed + INTENT (already COMMITTED at write time) -->
+  <rect x="540" y="280" width="600" height="44" rx="4" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="840" y="298" text-anchor="middle" font-size="11" font-weight="bold">+ /users/1/INTENT (T0, value=1053)</text>
+  <text x="840" y="314" text-anchor="middle" font-size="11" fill="#1f5e1a">T0 status already COMMITTED (intent and flip both .412)</text>
+
+  <!-- Annotation under lane B -->
+  <text x="540" y="340" font-size="10" fill="#666">↑ T0 dispatch arrives → WriteIntent</text>
+
+  <!-- Dispatch arrow from america's UPDATE-row-1 (.404) down to europe's WriteIntent (.412) -->
+  <path d="M 420 100 Q 430 200 530 280" stroke="#888" stroke-width="1.2" fill="none" marker-end="url(#arrowGray)" stroke-dasharray="4 3"/>
+  <text x="380" y="200" font-size="10" fill="#666" text-anchor="end">T0 UPDATE row 1</text>
+  <text x="380" y="214" font-size="10" fill="#666" text-anchor="end">(gRPC dispatch, ~8 ms)</text>
+
+  <!-- Lane C: Worker 1's SELECT scans -->
+  <text x="20" y="400" font-weight="bold">worker 1's</text>
+  <text x="20" y="416" font-weight="bold">SELECT</text>
+  <text x="20" y="432" font-size="11" fill="#666">snapshot_ts</text>
+  <text x="20" y="446" font-size="11" fill="#666">= .393</text>
+
+  <!-- europe scan event (at .396) -->
+  <rect x="260" y="390" width="60" height="50" rx="4" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="290" y="408" text-anchor="middle" font-size="11" font-weight="bold">europe</text>
+  <text x="290" y="422" text-anchor="middle" font-size="11">scan</text>
+  <text x="290" y="435" text-anchor="middle" font-size="9" fill="#7a3434">.396</text>
+
+  <!-- arrow from europe scan up to lane B -->
+  <path d="M 290 390 L 290 324" stroke="#d6b656" stroke-width="1.5" fill="none" marker-end="url(#arrowRed)"/>
+
+  <!-- america scan event (at .445) -->
+  <rect x="820" y="390" width="60" height="50" rx="4" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="850" y="408" text-anchor="middle" font-size="11" font-weight="bold">america</text>
+  <text x="850" y="422" text-anchor="middle" font-size="11">scan</text>
+  <text x="850" y="435" text-anchor="middle" font-size="9" fill="#1f5e1a">.445</text>
+
+  <!-- arrow from america scan up to lane A -->
+  <path d="M 850 390 L 850 214" stroke="#82b366" stroke-width="1.5" fill="none" marker-end="url(#arrowGreen)"/>
+
+  <!-- Dispatch arrows from europe at .393 to the two scans -->
+  <path d="M 180 444 Q 220 444 260 415" stroke="#bbb" stroke-width="1" fill="none" marker-end="url(#arrowGray)" stroke-dasharray="3 3"/>
+  <text x="200" y="460" font-size="9" fill="#888">loopback</text>
+  <text x="200" y="471" font-size="9" fill="#888">(~3 ms)</text>
+
+  <path d="M 180 444 Q 480 530 820 415" stroke="#bbb" stroke-width="1" fill="none" marker-end="url(#arrowGray)" stroke-dasharray="3 3"/>
+  <text x="500" y="540" font-size="9" fill="#888" text-anchor="middle">cross-region dispatch (~52 ms)</text>
+
+  <!-- Outcome -->
+  <rect x="160" y="560" width="980" height="120" rx="6" fill="#f8cecc" stroke="#b85450"/>
+  <text x="650" y="585" text-anchor="middle" font-weight="bold" fill="#7a3434" font-size="14">PARTIAL TRANSFER VISIBLE — atomicity broken across nodes</text>
+
+  <text x="180" y="612" font-size="12">
+    <tspan font-weight="bold">europe scan at .396</tspan> reads /users/1/* — at that moment only the seed is on disk; T0's WriteIntent on europe doesn't land until .412.
+  </text>
+  <text x="180" y="628" font-size="12">
+    → row 1 = 1000 (seed). T0's <tspan font-weight="bold">credit leg invisible</tspan>.
+  </text>
+
+  <text x="180" y="650" font-size="12">
+    <tspan font-weight="bold">america scan at .445</tspan> reads /users/2/* — at that moment T0's intent has been on disk since .394 and T0's status flipped to COMMITTED at .412.
+  </text>
+  <text x="180" y="666" font-size="12">
+    → row 2 = 1947 (intent value). T0's <tspan font-weight="bold">debit leg visible</tspan>.
+  </text>
+
+  <text x="650" y="700" text-anchor="middle" font-size="11" fill="#666">
+    Same SELECT, same snapshot_ts, but the two local scans run 49 ms apart — T0's whole transfer fits inside that gap.
+  </text>
+</svg>
