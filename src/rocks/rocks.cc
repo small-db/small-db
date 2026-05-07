@@ -53,6 +53,7 @@
 // =====================================================================
 
 #include "src/server_info/info.h"
+#include "src/util/time/time.h"
 
 // =====================================================================
 // self header
@@ -383,8 +384,9 @@ bool RocksDBWrapper::DeleteIntent(const std::string& table_name,
 void RocksDBWrapper::WriteTxnRecord(int64_t txn_id, const TxnRecord& record) {
     auto key = txn_key(txn_id);
     nlohmann::json j = record;
-    SPDLOG_INFO("WriteTxnRecord: key={} status={} commit_ts={}", key,
-                static_cast<int>(record.status), record.commit_ts);
+    SPDLOG_INFO("WriteTxnRecord: key={} status={} commit_ts={} ({})", key,
+                static_cast<int>(record.status), record.commit_ts,
+                small::util::FormatTsMs(record.commit_ts));
     db_->Put(rocksdb::WriteOptions(), key, j.dump());
 }
 

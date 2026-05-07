@@ -51,6 +51,7 @@
 #include "src/semantics/extract.h"
 #include "src/server_info/info.h"
 #include "src/type/type.h"
+#include "src/util/time/time.h"
 
 // =====================================================================
 // self header
@@ -222,7 +223,8 @@ absl::Status Txn::Begin() {
         txn_id_,
         small::rocks::TxnRecord{small::rocks::TxnStatus::ACTIVE, start_ts_,
                                 commit_ts_, {}});
-    SPDLOG_INFO("begin_txn: txn_id={} start_ts={}", txn_id_, start_ts_);
+    SPDLOG_INFO("begin_txn: txn_id={} start_ts={} ({})", txn_id_, start_ts_,
+                small::util::FormatTsMs(start_ts_));
     return absl::OkStatus();
 }
 
@@ -230,8 +232,9 @@ absl::Status Txn::Commit() {
     if (!active_) {
         return absl::FailedPreconditionError("COMMIT outside of BEGIN");
     }
-    SPDLOG_INFO("commit_txn: txn_id={} start_ts={} commit_ts={}", txn_id_,
-                start_ts_, commit_ts_);
+    SPDLOG_INFO("commit_txn: txn_id={} start_ts={} ({}) commit_ts={} ({})",
+                txn_id_, start_ts_, small::util::FormatTsMs(start_ts_),
+                commit_ts_, small::util::FormatTsMs(commit_ts_));
     auto db = small::rocks::RocksDBWrapper::GetInstance();
     if (!db.ok()) return db.status();
     db.value()->SetTxnStatus(txn_id_, small::rocks::TxnStatus::COMMITTED,

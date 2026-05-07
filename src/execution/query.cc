@@ -63,6 +63,7 @@
 #include "src/server_info/info.h"
 #include "src/txn/txn.h"
 #include "src/type/type.h"
+#include "src/util/time/time.h"
 
 // =====================================================================
 // self header
@@ -114,8 +115,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto table_name = small::schema::resolve_table_name(
         select_stmt->from_clause[0]->range_var);
 
-    SPDLOG_INFO("query: table={} dispatch={} snapshot_ts={}", table_name,
-                dispatch, snapshot_ts);
+    SPDLOG_INFO("query: table={} dispatch={} snapshot_ts={} ({})", table_name,
+                dispatch, snapshot_ts,
+                small::util::FormatTsMs(snapshot_ts));
 
     // get the input schema
     auto table_optional =

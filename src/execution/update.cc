@@ -60,6 +60,7 @@
 #include "src/semantics/extract.h"
 #include "src/txn/txn.h"
 #include "src/type/type.h"
+#include "src/util/time/time.h"
 
 // =====================================================================
 // self header
@@ -247,8 +248,11 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     int64_t latest = latest_or.value();
     if (latest >= out.final_commit_ts) {
         out.final_commit_ts = latest + 1;
-        SPDLOG_INFO("update push: txn_id={} {}/{} commit_ts {}->{}", txn_id,
-                    table_name, pk, commit_ts, out.final_commit_ts);
+        SPDLOG_INFO(
+            "update push: txn_id={} {}/{} commit_ts {} ({}) -> {} ({})",
+            txn_id, table_name, pk, commit_ts,
+            small::util::FormatTsMs(commit_ts), out.final_commit_ts,
+            small::util::FormatTsMs(out.final_commit_ts));
     }
 
     auto values_or = apply_set_clause(update_stmt, table, current.value());
