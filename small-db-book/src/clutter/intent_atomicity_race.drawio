@@ -92,7 +92,7 @@
                 style="text;html=1;align=left;fontSize=13" vertex="1" parent="1">
           <mxGeometry x="20" y="293" width="1280" height="16" as="geometry"/>
         </mxCell>
-        <mxCell id="t0meta" value="&lt;b&gt;start_ts = .393&lt;/b&gt;  ·  &lt;b&gt;commit_ts = .393&lt;/b&gt;  ·  &lt;font color=&quot;#666666&quot;&gt;commit_ts is never bumped — both rows have only seed versions, and seed_ts &#8810; start_ts, so the per-row bump rule never triggers&lt;/font&gt;"
+        <mxCell id="t0meta" value="&lt;b&gt;start_ts = .393&lt;/b&gt;  ·  &lt;b&gt;write_ts = .393&lt;/b&gt;  ·  &lt;font color=&quot;#666666&quot;&gt;write_ts is never bumped — both rows have only seed versions, and seed_ts &#8810; start_ts, so the per-row bump rule never triggers; final commit_ts equals start_ts&lt;/font&gt;"
                 style="text;html=1;align=left;fontSize=11" vertex="1" parent="1">
           <mxGeometry x="20" y="312" width="1280" height="20" as="geometry"/>
         </mxCell>

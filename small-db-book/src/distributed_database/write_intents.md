@@ -2,21 +2,23 @@
 
 A continuation of [Shadowed Writes](./shadowed_writes.md). That page surveyed five fixes for the anomaly. The cheapest one -- per-row monotonic bump -- closes the anomaly when paired with the deferred-writes pattern from [Multi-Statement Transactions](./multi_statement_transactions.md). This page implements a different fix, **write intents**, motivated by a property bump-at-commit doesn't give us: cheap **timestamp push**.
 
+> **Naming:** the txn carries two timestamps. `start_ts` is fixed at BEGIN and used as the read snapshot. `write_ts` is mutable: initialized to `start_ts`, pushed forward by the per-row bump rule on UPDATE, and *promoted* to the txn's final commit timestamp at COMMIT (the value at which every intent it wrote becomes visible). On disk the txn record stores `write_ts` for both the mid-flight and the post-COMMIT phase; readers that see the txn as COMMITTED treat `write_ts` as the txn's commit timestamp. See `closed_timestamps.md` for the additional bump that runs at COMMIT.
+
 ## What's a Push, and Why Care?
 
-A timestamp push raises a transaction's `commit_ts` after the transaction has begun writing. Two common triggers:
+A timestamp push raises a transaction's `write_ts` after the transaction has begun writing. Two common triggers:
 
-- A subsequent UPDATE in the same transaction hits a row whose latest committed `version_ts` is larger than the transaction's current `commit_ts`. To keep per-row lex order matching commit order (the [Shadowed Writes](./shadowed_writes.md) invariant), `commit_ts` must move past it.
-- A concurrent reader has snapshotted at a `read_ts` past the writer's intended `commit_ts`; the writer pushes to keep its commit external to that read.
+- A subsequent UPDATE in the same transaction hits a row whose latest committed `version_ts` is larger than the transaction's current `write_ts`. To keep per-row lex order matching commit order (the [Shadowed Writes](./shadowed_writes.md) invariant), `write_ts` must move past it.
+- A concurrent reader has snapshotted at a `read_ts` past the writer's intended `write_ts`; the writer pushes to keep its commit external to that read.
 
 The cost of a push depends on how in-flight writes are stored.
 
 - **Buffered in memory until COMMIT** (the [Multi-Statement Transactions](./multi_statement_transactions.md) model): a push is an in-memory arithmetic adjustment before flush. The bump runs once per pending row in `CommitTxn`, with no disk I/O until the final batched flush. Cost stays bounded by `pending_writes.size()` * O(1).
-- **Eager-flushed to disk at write time**, with `commit_ts` baked into the key as `version_ts`: a push means rewriting every already-flushed row at the new ts -- O(N) Puts and Deletes, where N is "rows already flushed."
+- **Eager-flushed to disk at write time**, with `write_ts` baked into the key as `version_ts`: a push means rewriting every already-flushed row at the new ts -- O(N) Puts and Deletes, where N is "rows already flushed."
 
 Eager flushing is what production systems move to once transactions get large (millions of rows; long-held locks contending with concurrent writers). Under that model, a per-row push cost is what kills you. The on-disk record has to stop committing to `version_ts` at write time.
 
-**Intents do that.** The disk record at write time is a placeholder carrying the new value and a back-pointer to the transaction. The effective `version_ts` is whatever the transaction record's `commit_ts` says at read time. A push updates one record (the txn record on the coordinator) -- regardless of how many intents the transaction has flushed.
+**Intents do that.** The disk record at write time is a placeholder carrying the new value and a back-pointer to the transaction. The effective `version_ts` is whatever the transaction record's `write_ts` says at read time. A push updates one record (the txn record on the coordinator) -- regardless of how many intents the transaction has flushed.
 
 ## Disk Layout
 
@@ -24,11 +26,11 @@ Two new key shapes alongside the existing committed versions:
 
 ```
 /<schema.table>/<pk>/INTENT     →  { value, txn_id, coordinator_addr }
-/_txn/<txn_id>                  →  { status, start_ts, commit_ts, intent_keys[] }
+/_txn/<txn_id>                  →  { status, start_ts, write_ts, intent_keys[] }
 ```
 
 - **Intent rows** sit in each row owner's RocksDB. The literal suffix `INTENT` sorts above every numeric `version_ts`, so an existing prefix scan over `/<table>/<pk>/` surfaces the intent first if one exists. The row lock prevents two intents on the same `(table, pk)` -- at most one intent per row at a time.
-- **The transaction record** lives only on the *coordinator's* RocksDB, under the `/_txn/` prefix. `status` is `PENDING`, `COMMITTED`, or `ABORTED`. `commit_ts` is the timestamp every intent attached to this txn resolves at once `status = COMMITTED`.
+- **The transaction record** lives only on the *coordinator's* RocksDB, under the `/_txn/` prefix. `status` is `PENDING`, `COMMITTED`, or `ABORTED`. `write_ts` is the timestamp every intent attached to this txn resolves at once `status = COMMITTED` -- it is the txn's commit timestamp post-COMMIT.
 
 We don't have shared storage. The intent therefore embeds `coordinator_addr` (gRPC endpoint of the coordinator that owns the txn record). A reader on any node uses that to fetch the record.
 
@@ -40,7 +42,7 @@ Inside an active transaction, UPDATE on row R becomes:
 
 1. Acquire `lock(R)`, held until COMMIT/ROLLBACK.
 2. Read latest committed `version_ts` for R: `L = LatestVersionTs(R)`.
-3. If `L >= txn.commit_ts`: **push.** Set `txn.commit_ts := L + 1`, persisted by one Put on the coordinator's `/_txn/<txn_id>`.
+3. If `L >= txn.write_ts`: **push.** Set `txn.write_ts := L + 1`, persisted by one Put on the coordinator's `/_txn/<txn_id>`.
 4. Write `Put(/<table>/<pk>/INTENT, { value, txn_id, coordinator_addr })` on R's owner.
 5. Append the intent key to `intent_keys[]` in the txn record (one more Put on the coordinator).
 
@@ -70,12 +72,12 @@ What half-promotion buys: the resolved value survives any future GC of the txn r
 
 Replay [Shadowed Writes](./shadowed_writes.md)'s Charlie scenario:
 
-1. T2 (europe coordinator, `commit_ts = 873`) arrives at europe -- Charlie's owner -- first via the local hop. Acquires `lock(Charlie)`, reads latest committed = 1500, writes the intent at `/users/3/INTENT` with value 1439.
-2. T2 commits. Europe's coordinator Puts `/_txn/T2 := { COMMITTED, commit_ts: 873 }`. Lock(Charlie) released.
-3. T1 (america coordinator, `commit_ts = 870`) arrives at europe via the network hop. Acquires `lock(Charlie)`. Reads latest committed: scan resolves T2's intent (or its already-promoted `/users/3/...873`) → 1439 at `version_ts = 873`.
-4. `L = 873 >= T1.commit_ts = 870` → **push**. `T1.commit_ts := 874`. One Put on america's `/_txn/T1`.
+1. T2 (europe coordinator, `write_ts = 873`) arrives at europe -- Charlie's owner -- first via the local hop. Acquires `lock(Charlie)`, reads latest committed = 1500, writes the intent at `/users/3/INTENT` with value 1439.
+2. T2 commits. Europe's coordinator Puts `/_txn/T2 := { COMMITTED, write_ts: 873 }`. Lock(Charlie) released. T2's commit timestamp is 873.
+3. T1 (america coordinator, `write_ts = 870`) arrives at europe via the network hop. Acquires `lock(Charlie)`. Reads latest committed: scan resolves T2's intent (or its already-promoted `/users/3/...873`) → 1439 at `version_ts = 873`.
+4. `L = 873 >= T1.write_ts = 870` → **push**. `T1.write_ts := 874`. One Put on america's `/_txn/T1`.
 5. T1 writes its intent at `/users/3/INTENT` with value 1453.
-6. T1 commits. America's coordinator Puts `/_txn/T1 := { COMMITTED, commit_ts: 874 }`.
+6. T1 commits. America's coordinator Puts `/_txn/T1 := { COMMITTED, write_ts: 874 }`. T1's commit timestamp is 874.
 7. A subsequent SELECT scans Charlie's chain, resolves both intents (or sees them already promoted to `/.../873` and `/.../874`), and picks lex-largest: `874 → 1453`. T1's value wins. No shadowing.
 
 Step 4 is the key. The per-row bump from `multi_statement_transactions.md` would do the same arithmetic at COMMIT for buffered writes; intents do it at the moment of conflict, by updating one txn record instead of N rows.
@@ -84,7 +86,7 @@ Step 4 is the key. The per-row bump from `multi_statement_transactions.md` would
 
 The txn record lives in RocksDB rather than coordinator memory because the project's debug workflow scans on-disk state after a Jepsen run. The runner tags every SQL statement with `op=N` (in `runner.clj`); combined with a persisted txn record this gives end-to-end post-mortem visibility:
 
-- `/_txn/<txn_id>` on each region's data dir → who was PENDING / COMMITTED / ABORTED at shutdown, plus `start_ts` and `commit_ts`.
+- `/_txn/<txn_id>` on each region's data dir → who was PENDING / COMMITTED / ABORTED at shutdown, plus `start_ts` and `write_ts` (the latter being the txn's commit timestamp once status is COMMITTED).
 - `/<table>/<pk>/INTENT` keys left behind → which rows had unresolved intents.
 - `server.log` `op=N` lines → which Jepsen op authored each statement.
 
@@ -96,21 +98,19 @@ The persisted record also lays the groundwork for coordinator-restart recovery i
 
 Six pieces. Most are small; the read-path change is the largest because the prefix scan now has to surface and resolve intents.
 
-**Every statement runs inside a transaction.** An explicit `BEGIN`/`COMMIT` is one transaction; an auto-commit statement (no surrounding `BEGIN`) is wrapped by the dispatcher in an implicit single-statement transaction that goes through the same code below. There is no separate auto-commit fast path. This means every UPDATE -- including the auto-commit transfers used by the bank test in earlier chapters -- now writes an intent, pushes its `commit_ts` if needed, and flips a txn record at commit. A few extra Puts per statement vs. the prior direct `WriteRow`; in exchange, the shadowed-writes invariant covers every write the cluster issues, not just those inside an explicit transaction.
+**Every statement runs inside a transaction.** An explicit `BEGIN`/`COMMIT` is one transaction; an auto-commit statement (no surrounding `BEGIN`) is wrapped by the dispatcher in an implicit single-statement transaction that goes through the same code below. There is no separate auto-commit fast path. This means every UPDATE -- including the auto-commit transfers used by the bank test in earlier chapters -- now writes an intent, pushes its `write_ts` if needed, and flips a txn record at commit. A few extra Puts per statement vs. the prior direct `WriteRow`; in exchange, the shadowed-writes invariant covers every write the cluster issues, not just those inside an explicit transaction.
 
 ### 1. Per-Connection Transaction State
 
-`TxnState` in `src/server/stmt_handler.cc` drops `pending_writes` (no in-memory buffer; intents are eager-flushed) and gains `txn_id` and `commit_ts`:
+`Txn` in `src/txn/handle.h` drops `pending_writes` (no in-memory buffer; intents are eager-flushed) and gains `txn_id` and `write_ts`:
 
 ```cpp
-struct TxnState {
-    bool active = false;
-    int64_t txn_id = 0;
-    int64_t start_ts = 0;
-    int64_t commit_ts = 0;  // == start_ts at BEGIN; bumped on push
-
-    // Per-row locks acquired during UPDATEs, held until COMMIT/ROLLBACK.
-    std::vector<small::lock::LockManager::Lock> held_locks;
+class Txn {
+    bool active_ = false;
+    int64_t txn_id_ = 0;
+    int64_t start_ts_ = 0;
+    int64_t write_ts_ = 0;  // == start_ts at BEGIN; pushed by the bump rule;
+                            // promoted to commit_ts at COMMIT
 };
 ```
 
@@ -119,23 +119,19 @@ The list of intent keys this txn has written is kept *only* on the on-disk txn r
 ### 2. `BEGIN` Persists a Txn Record
 
 ```cpp
-case PG_QUERY__TRANSACTION_STMT_KIND__TRANS_STMT_BEGIN: {
-    if (txn.active) return absl::FailedPreconditionError("nested BEGIN");
-    txn.active    = true;
-    txn.txn_id    = small::id::Generate();
-    txn.start_ts  = now_ms();
-    txn.commit_ts = txn.start_ts;
-    db->WriteTxnRecord(txn.txn_id, TxnRecord{
-        .status     = TxnStatus::ACTIVE,
-        .start_ts   = txn.start_ts,
-        .commit_ts  = txn.commit_ts,
-        .intent_keys = {},
-    });
-    return EmptyBatch();
+absl::Status Txn::Begin() {
+    if (active_) return absl::FailedPreconditionError("nested BEGIN");
+    active_   = true;
+    txn_id_   = id::generate_id();
+    start_ts_ = now_ms();
+    write_ts_ = start_ts_;
+    db->WriteTxnRecord(txn_id_, TxnRecord{
+        TxnStatus::ACTIVE, start_ts_, write_ts_, {}});
+    return absl::OkStatus();
 }
 ```
 
-`small::id::Generate()` is the existing snowflake-style ID generator in `src/id/`. The Put goes to the *coordinator's* RocksDB only -- the connection-handling node owns this txn record for its lifetime.
+The Put goes to the *coordinator's* RocksDB only -- the connection-handling node owns this txn record for its lifetime.
 
 ### 3. `UPDATE` Writes an Intent
 
@@ -147,10 +143,10 @@ auto lock = LockManager::Acquire(table->name(), pk);
 // Read latest committed version_ts on this row.
 int64_t L = db->LatestVersionTs(table->name(), pk);
 
-// Push if our commit_ts isn't already past it.
-if (L >= txn.commit_ts) {
-    txn.commit_ts = L + 1;
-    db->UpdateTxnCommitTs(txn.txn_id, txn.commit_ts);  // one Put on coordinator
+// Push if our write_ts isn't already past it.
+if (L >= txn.write_ts) {
+    txn.write_ts = L + 1;
+    db->UpdateTxnWriteTs(txn.txn_id, txn.write_ts);  // one Put on coordinator
 }
 
 // Write the intent on the row's owner (reuses the existing dispatch path).
@@ -166,25 +162,27 @@ txn.held_locks.push_back(std::move(lock));
 
 `LatestVersionTs` becomes intent-aware. Its prefix scan over `/<table>/<pk>/` may encounter an `INTENT` key for a prior transaction. It resolves via `ResolveIntent` and acts on the result:
 
-- `COMMITTED`: full-promote (atomic `Put /<commit_ts>` + `Delete /INTENT` -- safe because we hold `lock(R)`) and use `commit_ts` as the candidate for "latest." The slot is now empty for the writer's own intent.
+- `COMMITTED`: full-promote (atomic `Put /<commit_ts>` + `Delete /INTENT` -- safe because we hold `lock(R)`) and use the resolved `commit_ts` as the candidate for "latest." The slot is now empty for the writer's own intent.
 - `ABORTED` / `UNKNOWN`: skip; the writer's own `WriteIntent` will overwrite the slot.
 - `ACTIVE`: abort the current transaction with a retryable error. In the steady state this should not happen -- the row lock plus single-owner-per-row partitioning means any intent on `R` belongs to a transaction that has released its lock, and a transaction that has released its lock has flipped its status. The case still has to be handled, because a coordinator that crashed between writing intents and flipping its txn record leaves a stale `ACTIVE` record behind. Pushing the other transaction or queueing a waiter is deferred to a later page.
 
 ### 4. `COMMIT` / `ROLLBACK` Flip the Txn Record
 
 ```cpp
-absl::Status CommitTxn(TxnState& txn) {
-    if (!txn.active) return absl::FailedPreconditionError("no active txn");
-    db->SetTxnStatus(txn.txn_id, TxnStatus::COMMITTED, txn.commit_ts);
-    txn.active = false;
-    txn.held_locks.clear();  // RAII releases the row locks
+absl::Status Txn::Commit() {
+    if (!active_) return absl::FailedPreconditionError("no active txn");
+    // Mechanism A bump (see closed_timestamps.md): final push to now()
+    // before promoting write_ts to the txn's commit timestamp.
+    if (now_ms() > write_ts_) write_ts_ = now_ms();
+    db->SetTxnStatus(txn_id_, TxnStatus::COMMITTED, write_ts_);
+    active_ = false;
     return absl::OkStatus();
 }
 
-absl::Status RollbackTxn(TxnState& txn) {
-    if (!txn.active) return absl::FailedPreconditionError("no active txn");
-    db->SetTxnStatus(txn.txn_id, TxnStatus::ABORTED, /*commit_ts=*/0);
-    txn.active = false;
+absl::Status Txn::Rollback() {
+    if (!active_) return absl::FailedPreconditionError("no active txn");
+    db->SetTxnStatus(txn_id_, TxnStatus::ABORTED, /*write_ts=*/0);
+    active_ = false;
     txn.held_locks.clear();
     return absl::OkStatus();
 }
@@ -250,7 +248,7 @@ for (auto iter = db->NewPrefixIterator(prefix); iter.Valid(); iter.Next()) {
 
 - **O(1) timestamp push.** A push updates one record on the coordinator -- regardless of how many intents the transaction has flushed.
 - **Eager flush.** UPDATEs inside BEGIN/COMMIT no longer buffer; they hit disk immediately. Long transactions stop bounding system memory by their write-set size.
-- **Same shadowed-writes guarantee** as the per-row bump approach: the lock+push protocol forces the second writer's `commit_ts` to be strictly larger than every previously committed `version_ts` on every row in its write set.
+- **Same shadowed-writes guarantee** as the per-row bump approach: the lock+push protocol forces the second writer's `write_ts` (and therefore its commit timestamp) to be strictly larger than every previously committed `version_ts` on every row in its write set.
 
 **Doesn't.**
 

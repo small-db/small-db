@@ -64,6 +64,7 @@ int64_t InFlightRegistry::ComputedClosedTs() {
 int64_t InFlightRegistry::Refresh() {
     // Snapshot entries under the lock, release for RPCs, re-acquire
     // to apply drops + compute the result.
+    // NOLINTNEXTLINE(build/include_what_you_use) -- <string> is included above
     std::vector<std::pair<int64_t, std::string>> snapshot;
     {
         std::lock_guard<std::mutex> guard(mu_);

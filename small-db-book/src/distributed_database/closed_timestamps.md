@@ -40,13 +40,13 @@ Server-side timeline (drawn from `america/server.log` and `europe/server.log`, `
 
 | Wall clock | Node | Event |
 |---|---|---|
-| .393 | america | T0 BEGIN, txn record ACTIVE, `start_ts = .393`, `commit_ts = .393` |
+| .393 | america | T0 BEGIN, txn record ACTIVE, `start_ts = .393`, `write_ts = .393` |
 | .393 | europe | worker 1 SELECT received, dispatch to all 3 nodes |
 | .394 | america | T0 UPDATE row 2 → `WriteIntent /users/2/INTENT(T0)` |
 | **.396** | **europe** | **worker 1's europe-loopback scan runs** with `snapshot_ts = .393` |
 | .404 | america | T0 UPDATE row 1 dispatched |
 | .412 | europe  | T0 UPDATE-row-1 dispatch arrives → `WriteIntent /users/1/INTENT(T0)` |
-| .412 | america | T0 SetTxnStatus(COMMITTED, `commit_ts = .393`) |
+| .412 | america | T0 SetTxnStatus(COMMITTED, `write_ts = .393`) — final commit timestamp is .393 |
 | **.445** | **america** | **worker 1's america cross-region scan runs** with `snapshot_ts = .393` |
 | .515 | client  | worker 1 returns `{1=1000, 2=1947, ...}` — total 9947 |
 
@@ -94,11 +94,11 @@ Pin every write for a key to one node. That node's wall clock is the only clock 
 
 ### 2. Closed timestamps with per-node in-flight registry
 
-Each node tracks the set of in-flight writers that have written intents to it, together with each writer's lower-bound `commit_ts` (its `start_ts` at registration time, or higher if bumped). The node computes `T_closed = min(in-flight writers' lower bounds) − 1`, advancing as writers commit or abort. Readers query each touched node's `T_closed` and wait until `T_closed ≥ snapshot_ts` before scanning. Writers set their final `commit_ts = max(running commit_ts, now() at COMMIT)` so that the writer's eventual commit_ts is strictly greater than any `T_closed` observed *before* the writer registered.
+Each node tracks the set of in-flight writers that have written intents to it, together with each writer's lower-bound `write_ts` (its `start_ts` at registration time, or higher if pushed). The node computes `T_closed = min(in-flight writers' lower bounds) − 1`, advancing as writers commit or abort. Readers query each touched node's `T_closed` and wait until `T_closed ≥ snapshot_ts` before scanning. At COMMIT each writer bumps `write_ts := max(write_ts, now())` (Mechanism A) and persists that as the txn's final commit timestamp, so the writer's eventual commit_ts is strictly greater than any `T_closed` observed *before* the writer registered.
 
 | | |
 |---|---|
-| **Implementation** | New `closedts` module: per-node registry, `T_closed` compute, gRPC for reader queries. Hooks in `WriteIntent` (register), `Txn::Commit` (deregister fan-out + `commit_ts` bump). ~700 lines plus the reader-side gate in `query.cc`. |
+| **Implementation** | New `closedts` module: per-node registry, `T_closed` compute, gRPC for reader queries. Hooks in `WriteIntent` (register), `Txn::Commit` (deregister fan-out + `write_ts` bump). ~700 lines plus the reader-side gate in `query.cc`. |
 | **Granularity** | Per-shard (= per-row-owner node in our setup). |
 | **What it fixes** | Cross-shard read atomicity (this anomaly). |
 | **Cross-node** | Yes — explicitly distributed. |
@@ -168,7 +168,7 @@ Reading the matrix:
 - **Solution 1 alone is insufficient.** Single-leader fixes same-key ordering but doesn't address the cross-shard atomicity invariant. It's an *enabler* of solutions 2 and 3, not an alternative.
 - **HLC (4) is solution 2 hardened.** The protocol shape is identical; HLC just hardens the clock layer to tolerate real-world skew. Worth doing once solution 2 is in place and the next workload exposes skew.
 - **Solution 5 trades a bottleneck for protocol simplicity.** Workable for small clusters; the oracle has to be sharded itself once the cluster grows past the oracle's RTT capacity.
-- **Closed timestamps (2) is the path with the lowest marginal cost over the existing code.** Single-leader is already true in small-db; we just need to add the registry, `T_closed` computation, reader gate, and the one-line `commit_ts` move. No clock infrastructure changes, no centralized service to operate, no new abort paths in the writer.
+- **Closed timestamps (2) is the path with the lowest marginal cost over the existing code.** Single-leader is already true in small-db; we just need to add the registry, `T_closed` computation, reader gate, and the one-line `write_ts` move at COMMIT. No clock infrastructure changes, no centralized service to operate, no new abort paths in the writer.
 
 ## Implementing Closed Timestamps
 
@@ -191,7 +191,7 @@ class InFlightRegistry {
     // Called when a writer first writes an intent on this node.
     // Idempotent: re-registering the same txn_id refreshes the
     // entry but doesn't change the protocol's lower bound.
-    void Register(int64_t txn_id, int64_t lower_bound_commit_ts);
+    void Register(int64_t txn_id, int64_t lower_bound_write_ts);
 
     // Called when the writer's coordinator confirms COMMITTED or
     // ABORTED status for the txn.
@@ -225,14 +225,14 @@ message WaitForClosedTsResponse { int64 closed_ts = 1; }
 **Write path** (`src/execution/update.cc` peer-side):
 1. Acquire `lock(table, pk)` as today.
 2. Read pre-image and per-row latest as today.
-3. Bump `commit_ts = max(commit_ts, latest_ts + 1)` as today.
-4. **New:** before WriteIntent, register on the local closed-ts registry: `registry.Register(txn_id, commit_ts)`.
+3. Bump `write_ts = max(write_ts, latest_ts + 1)` as today.
+4. **New:** before WriteIntent, register on the local closed-ts registry: `registry.Register(txn_id, write_ts)`.
 5. Write the intent.
 6. Lock released on update() return.
 
 **Commit path** (`src/txn/handle.cc` in `Txn::Commit`):
-1. **New:** `commit_ts = max(commit_ts, now_ms())` — Mechanism A.
-2. `SetTxnStatus(COMMITTED, commit_ts)` on the coordinator's local DB.
+1. **New:** `write_ts = max(write_ts, now_ms())` — Mechanism A. After this point, `write_ts` is the txn's final commit timestamp.
+2. `SetTxnStatus(COMMITTED, write_ts)` on the coordinator's local DB.
 3. **New:** for each `intent_key` in the txn record's `intent_keys[]`, fan out a `Deregister` RPC to that key's owner. Best-effort fire-and-forget — the registry is a cache; correctness comes from worst-case fall-through to the next RPC's ResolveIntent path (deferred to a v1 enhancement; for v0 we trust the deregister fan-out).
 
 **Rollback path** (`src/txn/handle.cc` in `Txn::Rollback`): same fan-out as Commit, but with ABORTED.
@@ -250,7 +250,7 @@ The reader-side wait is per-shard, run inside each node's local `query` handler.
 - **Coordinator crash mid-flight.** If a writer's coordinator dies between `WriteIntent` and `Txn::Commit/Rollback`, the writer stays registered on its intent owners forever; `T_closed` cannot advance past its `start_ts`. Out of scope for this chapter; the production fix is heartbeats on the txn record, deferred to a future page.
 - **Lost deregister RPC.** If the COMMIT-time fan-out fails to reach an intent owner, the registry on that owner accumulates a stale entry. Mitigated in v0 by treating Deregister as best-effort plus a periodic refresh (every 1s, the registry RPCs each entry's coordinator and drops terminal-status entries). Costs a small amount of background traffic.
 - **Read-side deadline.** `WaitForClosedTs` blocks server-side; the gRPC deadline (set by the read coordinator) caps the wait. On deadline, the read returns a retryable error to the SQL client.
-- **No margin.** Pure in-flight-driven. If a shard has no in-flight writers, `T_closed` is effectively `now()` (a sentinel value the registry returns). Writers' `commit_ts` is set at COMMIT to `now_ms()`, naturally above any `T_closed` published before they registered.
+- **No margin.** Pure in-flight-driven. If a shard has no in-flight writers, `T_closed` is effectively `now()` (a sentinel value the registry returns). The Mechanism A bump at COMMIT sets `write_ts := max(write_ts, now_ms())`, so the final commit timestamp is naturally above any `T_closed` published before this writer registered.
 - **No HLC.** The shared-clock assumption (3 VMs on one host) is good enough. Replacing wall-clock with HLC is a future chapter when we observe a skew-induced failure.
 
 ### What This Buys (and What It Doesn't)
@@ -259,12 +259,12 @@ The reader-side wait is per-shard, run inside each node's local `query` handler.
 
 - **Cross-shard read atomicity for the bank test.** The Mode 2 partial-read race traced above stops occurring. Worker 1's read at index 7 either waits past T0's COMMIT (and sees both legs) or proceeds early enough that T0's `commit_ts > snapshot_ts` (and sees neither leg). No more torn reads.
 - **A consistent-cut primitive** that future features (changefeeds, online backups, schema migrations) can build on without re-deriving the protocol.
-- **`commit_ts` set at COMMIT time** is now the rule, eliminating a class of subtle bugs where `start_ts == snapshot_ts` made the visibility check incorrectly return "visible" for an in-flight writer.
+- **`commit_ts` set at COMMIT time** (via the Mechanism A bump on `write_ts`) is now the rule, eliminating a class of subtle bugs where `start_ts == snapshot_ts` made the visibility check incorrectly return "visible" for an in-flight writer.
 
 **Doesn't.**
 
 - **Mode 1 spurious aborts** (`:fail :transfer ... active intent on .../X for txn_id=Y; retry`). When two writers collide on the same row, the per-row lock manager and the abort-on-ACTIVE rule still fire. The Jepsen `active intent` count stays roughly where it was. The next chapter — Push-the-Writer — replaces self-aborts with pushes that resolve the conflict deterministically.
 - **Coordinator-failure recovery.** A writer's coordinator crashing mid-flight blocks `T_closed` advancement on the writer's owners until the orphan is cleaned up. The mechanism (txn record heartbeats) is deferred to a future chapter.
-- **Bounded clock skew.** The current implementation relies on the 3-VMs-on-one-host shared-clock assumption. Under real network deployment with NTP-only clocks, `T_closed` advancement and `commit_ts` assignment can disagree by the skew amount, reintroducing race windows. The HLC chapter that follows replaces wall clocks with hybrid logical clocks to close this.
+- **Bounded clock skew.** The current implementation relies on the 3-VMs-on-one-host shared-clock assumption. Under real network deployment with NTP-only clocks, `T_closed` advancement and `write_ts` assignment can disagree by the skew amount, reintroducing race windows. The HLC chapter that follows replaces wall clocks with hybrid logical clocks to close this.
 
 The Jepsen test after this chapter lands should show `:wrong-total` count drop to ~0, `:fail :transfer ... active intent` count unchanged. That's the chapter-1 success criterion; chapter 2's success criterion is the latter going to ~0 too.

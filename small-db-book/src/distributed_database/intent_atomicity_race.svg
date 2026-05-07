@@ -92,7 +92,7 @@
 
   <text x="20" y="302" font-weight="bold" font-size="13">T0 — worker 0's transfer (2 → 1, amount 53), coordinator on america</text>
   <text x="20" y="320" font-size="11" fill="#444">
-    <tspan font-weight="bold">start_ts = .393</tspan>  ·  <tspan font-weight="bold">commit_ts = .393</tspan>  ·  <tspan fill="#666">commit_ts is never bumped — both rows have only seed versions, and seed_ts ≪ start_ts, so the per-row bump rule never triggers</tspan>
+    <tspan font-weight="bold">start_ts = .393</tspan>  ·  <tspan font-weight="bold">write_ts = .393</tspan>  ·  <tspan fill="#666">write_ts is never bumped — both rows have only seed versions, and seed_ts ≪ start_ts, so the per-row bump rule never triggers; the final commit_ts equals start_ts</tspan>
   </text>
 
   <line x1="160" y1="395" x2="1200" y2="395" stroke="#bbb" stroke-width="1" stroke-dasharray="3 3"/>
