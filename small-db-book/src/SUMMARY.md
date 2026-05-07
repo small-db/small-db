@@ -18,6 +18,7 @@
 - [Multi-Statement Transactions](./distributed_database/multi_statement_transactions.md)
 - [Shadowed Writes](./distributed_database/shadowed_writes.md)
 - [Write Intents](./distributed_database/write_intents.md)
+- [Lost Intent](./distributed_database/lost_intent.md)
 
 # Clutter
 

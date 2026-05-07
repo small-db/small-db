@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 600" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b85450"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="590" y="28" text-anchor="middle" font-size="16" font-weight="bold">
+    Lost Intent: T2 overwrites the slot before T1's commit is recorded as a numeric version on the chain
+  </text>
+  <text x="590" y="48" text-anchor="middle" font-size="12" fill="#666">
+    From run 20260506T131345 — account 2 (Bob, partition users_us, owner america)
+  </text>
+
+  <!-- Time axis -->
+  <line x1="160" y1="92" x2="1140" y2="92" stroke="#444" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1148" y="96" font-size="11" fill="#666">time</text>
+
+  <!-- Tick marks + labels (wall-clock from server.log) -->
+  <g font-size="11" fill="#444" text-anchor="middle">
+    <line x1="200" y1="86" x2="200" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="200" y="74" font-weight="bold">.603</text>
+    <text x="200" y="112" fill="#666">T1 BEGIN</text>
+
+    <line x1="380" y1="86" x2="380" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="380" y="74" font-weight="bold">.627</text>
+    <text x="380" y="112" fill="#666">T1 WriteIntent /2</text>
+
+    <line x1="510" y1="86" x2="510" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="510" y="74" font-weight="bold">.628</text>
+    <text x="510" y="112" fill="#666">T1 COMMIT</text>
+
+    <line x1="730" y1="86" x2="730" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="730" y="74" font-weight="bold" fill="#b85450">.642</text>
+    <text x="730" y="112" fill="#b85450">T2 WriteIntent /2</text>
+
+    <line x1="900" y1="86" x2="900" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="900" y="74" font-weight="bold" fill="#b85450">.65x</text>
+    <text x="900" y="112" fill="#b85450">Reader (op 15) scans</text>
+
+    <line x1="1040" y1="86" x2="1040" y2="98" stroke="#444" stroke-width="2"/>
+    <text x="1040" y="74" font-weight="bold">.652</text>
+    <text x="1040" y="112" fill="#666">T2 COMMIT</text>
+  </g>
+
+  <!-- Lane A: slot (intent) bytes over time -->
+  <text x="20" y="170" font-weight="bold">Slot at</text>
+  <text x="20" y="186" font-weight="bold">/users/2/INTENT</text>
+  <text x="20" y="202" font-size="11" fill="#666">(path-addressed,</text>
+  <text x="20" y="216" font-size="11" fill="#666">at most one entry)</text>
+
+  <line x1="160" y1="180" x2="200" y2="180" stroke="#bbb" stroke-width="2" stroke-dasharray="4 3"/>
+  <rect x="200" y="160" width="180" height="40" rx="6" fill="#f5f5f5" stroke="#999"/>
+  <text x="290" y="178" text-anchor="middle" fill="#666">empty</text>
+  <text x="290" y="193" text-anchor="middle" fill="#666" font-size="11">(no in-flight writer)</text>
+
+  <rect x="380" y="160" width="350" height="40" rx="6" fill="#fff2cc" stroke="#d6b656"/>
+  <text x="555" y="178" text-anchor="middle" font-weight="bold">{ value: 2064, txn_id: T1, ACTIVE → COMMITTED at .628 }</text>
+  <text x="555" y="194" text-anchor="middle" font-size="11" fill="#666">T1's bytes — the +64 credit's only on-disk record</text>
+
+  <rect x="730" y="160" width="410" height="40" rx="6" fill="#f8cecc" stroke="#b85450"/>
+  <text x="935" y="178" text-anchor="middle" font-weight="bold">{ value: 2048, txn_id: T2, ACTIVE → COMMITTED at .652 }</text>
+  <text x="935" y="194" text-anchor="middle" font-size="11" fill="#7a3434">T2's Put overwrites — T1's slot bytes are now gone</text>
+
+  <!-- Overwrite arrow -->
+  <path d="M 730 220 L 730 200" stroke="#b85450" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+  <text x="735" y="235" font-size="11" fill="#b85450" font-weight="bold">overwrite</text>
+
+  <!-- Lane B: chain (numeric versions) -->
+  <text x="20" y="295" font-weight="bold">Chain at</text>
+  <text x="20" y="311" font-weight="bold">/users/2/&lt;ts&gt;</text>
+  <text x="20" y="327" font-size="11" fill="#666">(numeric versions,</text>
+  <text x="20" y="341" font-size="11" fill="#666">written at COMMIT</text>
+  <text x="20" y="355" font-size="11" fill="#666">or full-promote)</text>
+
+  <!-- Seed entry, persists -->
+  <rect x="160" y="290" width="980" height="40" rx="6" fill="#dae8fc" stroke="#6c8ebf"/>
+  <text x="650" y="308" text-anchor="middle" font-weight="bold">/users/2/&lt;seed_ts&gt; = 2000   (only numeric version that ever exists during this window)</text>
+  <text x="650" y="324" text-anchor="middle" font-size="11" fill="#1a4f7c">no /users/2/&lt;T1.commit_ts&gt; entry — pre-fix code never persists T1's value as a chain entry</text>
+
+  <!-- "Missing" marker at .628 -->
+  <g>
+    <rect x="430" y="350" width="180" height="38" rx="6" fill="#ffffff" stroke="#b85450" stroke-dasharray="6 4"/>
+    <text x="520" y="368" text-anchor="middle" fill="#b85450" font-weight="bold">missing entry</text>
+    <text x="520" y="382" text-anchor="middle" font-size="11" fill="#7a3434">/users/2/&lt;T1.commit_ts&gt;</text>
+    <path d="M 510 350 L 510 332" stroke="#b85450" stroke-width="1.5" fill="none" marker-end="url(#arrowRed)"/>
+  </g>
+
+  <!-- Lane C: Reader scan + outcome -->
+  <text x="20" y="450" font-weight="bold">Reader</text>
+  <text x="20" y="466" font-weight="bold">(op 15)</text>
+  <text x="20" y="482" font-size="11" fill="#666">snapshot past</text>
+  <text x="20" y="496" font-size="11" fill="#666">T1.commit_ts</text>
+
+  <rect x="850" y="440" width="100" height="46" rx="6" fill="#e1d5e7" stroke="#9673a6"/>
+  <text x="900" y="460" text-anchor="middle" font-weight="bold">scan</text>
+  <text x="900" y="476" text-anchor="middle" font-size="11" fill="#5a3870">prefix /users/2/</text>
+
+  <!-- Reader sees: seed and an INTENT in ACTIVE state (T2). Pre-fix skips active intents. -->
+  <g font-size="12">
+    <rect x="240" y="510" width="900" height="60" rx="6" fill="#fff2cc" stroke="#d6b656" opacity="0.9"/>
+    <text x="690" y="530" text-anchor="middle" font-weight="bold">What the scan sees, and how pre-fix code (commit 1a9635e) handles it:</text>
+    <text x="260" y="552" font-size="12">• numeric version /users/2/&lt;seed_ts&gt; = 2000  →  candidate at seed_ts</text>
+    <text x="260" y="568" font-size="12" fill="#7a3434">• /users/2/INTENT (T2, ACTIVE)  →  resolver returns (false, 0) → skip the entry → no candidate from the slot</text>
+  </g>
+
+  <!-- Arrow from scan to outcome -->
+  <path d="M 900 486 L 900 510" stroke="#444" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Outcome callout -->
+  <g>
+    <rect x="970" y="438" width="170" height="50" rx="6" fill="#f8cecc" stroke="#b85450"/>
+    <text x="1055" y="458" text-anchor="middle" font-weight="bold" fill="#7a3434">returns 2000</text>
+    <text x="1055" y="474" text-anchor="middle" font-size="11" fill="#7a3434">T1's +64 credit lost</text>
+  </g>
+</svg>

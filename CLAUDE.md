@@ -127,6 +127,13 @@ Listens on http://localhost:8080/ and browses `small-db-jepsen/store/`. This is 
 - `history.edn` / `history.txt` — Operation history
 - `results.edn` — Checker output (pass/fail with details)
 
+**Investigating a historical failure (after the bug is fixed):** A previously-failing run is enough to ground a postmortem even when the working tree no longer reproduces it. Combine:
+- The run's `store/<test>/<timestamp>/` directory (logs, history, results) — captures the exact symptom and timeline.
+- Server-log statements tagged `/* op=N */` — line them up with the matching op-index in `history.txt` to reconstruct what each transaction did.
+- The code as it was at the time of the run — `git log --until="<timestamp from results.edn>"`, then `git show <commit>:<file>` for the code path that produced the failure. The current code may already have moved past the bug; the historical commit is what matters for explaining the trace.
+
+A run can be referenced by timestamp directory directly (`small-db-jepsen/store/bank-test/20260506T131345.793-0700`); the same path is what the `lein run serve` web UI exposes under `/files/<test>/<timestamp>`.
+
 **VM details:** 3 nodes with private IPs (america=192.168.56.130, europe=192.168.56.120, asia=192.168.56.110). SSH: `ssh -i ~/.vagrant.d/insecure_private_key vagrant@<node>`. VMs managed from `small-db-jepsen/vagrant/`.
 
 ## Test Format

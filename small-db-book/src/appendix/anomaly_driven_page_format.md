@@ -52,7 +52,7 @@ The concrete-evidence section. Open with what the failing test actually reported
 
 - Identify the operations involved by their op-index in the Jepsen history.
 - Show the wall-clock timeline of writes (or commits, or whatever's relevant) on each affected node, with `version_ts` values.
-- Where helpful, include an ASCII diagram of the timeline. Diagrams are not optional for failures with non-obvious orderings -- shadowed writes, read skew, sequential dispatch races. See the diagram in [Shadowed Writes](../distributed_database/shadowed_writes.md) for the canonical example.
+- Include a diagram of the timeline. Diagrams are not optional for failures with non-obvious orderings -- shadowed writes, read skew, sequential dispatch races. See [Shadowed Writes](../distributed_database/shadowed_writes.md) for the canonical example, and the **Diagrams** subsection of Style Notes below for the format convention.
 - End the section with a short rundown of "what every layer beneath the failure delivered correctly" vs "what specifically went wrong." This separates the anomaly from collateral correctness.
 
 The point of this section is to ground the rest of the page in evidence the reader can verify in `small-db-jepsen/store/latest/`. Conjecture is forbidden here; everything in this section should be backed by a log line, a disk scan, or a history entry.
@@ -124,7 +124,16 @@ If the page has *not* committed to an implementation -- e.g., the fix was deferr
 
 ## Style Notes
 
-- **Diagrams.** ASCII art only. The book is plain Markdown via mdBook with no diagram plugin. Use box-drawing characters (`┌─┐│└─┘├─┤├──►`) sparingly and only where they add clarity. A wall-clock timeline with arrows is the most common shape.
+- **Diagrams.** Always draw.io SVG. ASCII art is not used in this book, even for "simple enough" timelines -- the geometry tools more than pay for themselves and the rendered output stays consistent across chapters. See [Shadowed Writes](../distributed_database/shadowed_writes.md) for the canonical example. The convention:
+  - Source `*.drawio` files live in `small-db-book/src/clutter/` (keeps chapter directories clean of source XML).
+  - Rendered `*.svg` files live alongside the chapter's `*.md` (same directory). Re-exporting the SVG is the author's responsibility -- there is no automated conversion in CI.
+  - When one diagram has a "what the user sees" version and a "what's actually happening" version, suffix `_simplified` and `_actual` (`shadowed_writes_simplified.svg`, `shadowed_writes_actual.svg`).
+  - Embed snippet:
+    ```html
+    <p><img src="./<name>.svg" alt="<one-sentence summary>" style="max-width:100%;height:auto"/></p>
+    ```
+    The `alt` text is the only thing readers see when the SVG fails to render and is what screen readers announce, so it should summarize the *takeaway* of the diagram, not name it.
+  - Both the `.drawio` source and the exported `.svg` must be committed in the same change. The source is required for any future edit; the SVG is what mdBook serves.
 - **Tables.** Keep narrow enough to fit a typical browser column without horizontal scrolling. Two-column tables for option details; six- or seven-column matrices for comparisons.
 - **Code blocks.** When showing code, prefer real excerpts with file paths in the surrounding prose: `src/server/stmt_handler.cc`'s `commit_txn` does X. Do not paste hundreds of lines. A 5-15 line excerpt is usually enough; the reader can follow links to the full file.
 - **Tone.** Direct, evidence-grounded, no marketing. Avoid hedges ("perhaps," "might be") when an evidence trace settles the question. Conversely, distinguish observed facts from inferred conclusions clearly.
