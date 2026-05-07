@@ -262,7 +262,7 @@
           :total-amount 10000
           :max-transfer 100
           :generator (jepsen.generator/clients
-                      (jepsen.generator/limit 100
+                      (jepsen.generator/limit 300
                                               (jepsen.generator/mix [bank/diff-transfer bank/read])))
           :checker (checker/compose
                     {:bank     (bank/checker {:negative-balances? false})
