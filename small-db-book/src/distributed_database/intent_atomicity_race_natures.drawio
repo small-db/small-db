@@ -1,0 +1,29 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Atomicity-race natures" id="atomicity-race-natures">
+    <mxGraphModel dx="1500" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="320" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="The atomicity race has two distinct natures. Each motivates a different fix."
+                style="text;html=1;align=center;fontSize=14;fontStyle=2;fontColor=#444"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1320" height="24" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nature_resolver" value="&lt;b&gt;[NATURE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Stale Resolver Lookup&lt;/b&gt;&lt;br&gt;&lt;br&gt;The intent is on disk on every node the reader touches. Per-key visibility hinges on the resolver's view of the txn record's status, which depends on when the call physically lands relative to &lt;font face=&quot;monospace&quot;&gt;SetTxnStatus&lt;/font&gt;. Two calls in one read can disagree: one sees ACTIVE, the other COMMITTED.&lt;br/&gt;&lt;br/&gt;&lt;font face=&quot;monospace&quot;&gt;snapshot_ts&lt;/font&gt; filters by &lt;font face=&quot;monospace&quot;&gt;version_ts&lt;/font&gt;, not by status — it cannot pin the resolver's view of the txn record.&lt;br/&gt;&lt;br/&gt;&lt;i&gt;Closed by: force the writer to decide before the call returns (push-the-writer / wait-on-intent).&lt;/i&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;strokeWidth=2;align=center;fontSize=12;verticalAlign=middle"
+                vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="640" height="240" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="nature_unpropagated" value="&lt;b&gt;[NATURE]&lt;/b&gt;&lt;br&gt;&lt;b&gt;Unpropagated Write&lt;/b&gt;&lt;br&gt;&lt;br&gt;The reader's per-key call lands on a node where the write hasn't physically arrived. Only the prior version is on disk; the call returns the prior value. Meanwhile, on a different node, the same transaction's intent has arrived and committed — its key returns the new value.&lt;br/&gt;&lt;br/&gt;&lt;font face=&quot;monospace&quot;&gt;snapshot_ts&lt;/font&gt; cannot filter &lt;i&gt;in&lt;/i&gt; writes that haven't landed; push-the-writer has nothing on this node to push against.&lt;br/&gt;&lt;br/&gt;&lt;i&gt;Closed by: pin the snapshot to a globally-settled instant (closed timestamps).&lt;/i&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999;strokeWidth=2;align=center;fontSize=12;verticalAlign=middle"
+                vertex="1" parent="1">
+          <mxGeometry x="720" y="60" width="640" height="240" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

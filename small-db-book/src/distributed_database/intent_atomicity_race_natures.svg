@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 320" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="1400" height="320" fill="#ffffff"/>
+
+  <text x="700" y="32" text-anchor="middle" font-size="14" font-style="italic" fill="#444">
+    The atomicity race has two distinct natures. Each motivates a different fix.
+  </text>
+
+  <!-- Card 1: Stale Resolver Lookup -->
+  <rect x="40" y="60" width="640" height="240" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+  <text x="360" y="86" text-anchor="middle" font-weight="bold" font-size="13">[NATURE]</text>
+  <text x="360" y="108" text-anchor="middle" font-weight="bold" font-size="15">Stale Resolver Lookup</text>
+
+  <text x="360" y="138" text-anchor="middle" font-size="12">
+    <tspan x="360" dy="0">The intent is on disk on every node the reader touches. Per-key visibility</tspan>
+    <tspan x="360" dy="16">hinges on the resolver's view of the txn record's status, which depends on</tspan>
+    <tspan x="360" dy="16">when the call physically lands relative to <tspan font-family="monospace">SetTxnStatus</tspan>.</tspan>
+    <tspan x="360" dy="16">Two calls in one read can disagree: one sees ACTIVE, the other COMMITTED.</tspan>
+  </text>
+
+  <text x="360" y="222" text-anchor="middle" font-size="12">
+    <tspan x="360" dy="0"><tspan font-family="monospace">snapshot_ts</tspan> filters by <tspan font-family="monospace">version_ts</tspan>, not by status — it cannot pin</tspan>
+    <tspan x="360" dy="16">the resolver's view of the txn record.</tspan>
+  </text>
+
+  <text x="360" y="278" text-anchor="middle" font-size="12" font-style="italic" fill="#333">
+    <tspan x="360" dy="0">Closed by: force the writer to decide before the call returns</tspan>
+    <tspan x="360" dy="16">(push-the-writer / wait-on-intent).</tspan>
+  </text>
+
+  <!-- Card 2: Unpropagated Write -->
+  <rect x="720" y="60" width="640" height="240" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+  <text x="1040" y="86" text-anchor="middle" font-weight="bold" font-size="13">[NATURE]</text>
+  <text x="1040" y="108" text-anchor="middle" font-weight="bold" font-size="15">Unpropagated Write</text>
+
+  <text x="1040" y="138" text-anchor="middle" font-size="12">
+    <tspan x="1040" dy="0">The reader's per-key call lands on a node where the write hasn't physically</tspan>
+    <tspan x="1040" dy="16">arrived. Only the prior version is on disk; the call returns the prior value.</tspan>
+    <tspan x="1040" dy="16">Meanwhile, on a different node, the same transaction's intent has arrived</tspan>
+    <tspan x="1040" dy="16">and committed — its key returns the new value.</tspan>
+  </text>
+
+  <text x="1040" y="222" text-anchor="middle" font-size="12">
+    <tspan x="1040" dy="0"><tspan font-family="monospace">snapshot_ts</tspan> cannot filter <tspan font-style="italic">in</tspan> writes that haven't landed; push-the-writer</tspan>
+    <tspan x="1040" dy="16">has nothing on this node to push against.</tspan>
+  </text>
+
+  <text x="1040" y="278" text-anchor="middle" font-size="12" font-style="italic" fill="#333">
+    <tspan x="1040" dy="0">Closed by: pin the snapshot to a globally-settled instant</tspan>
+    <tspan x="1040" dy="16">(closed timestamps).</tspan>
+  </text>
+</svg>
