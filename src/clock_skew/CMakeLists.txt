@@ -1,0 +1,20 @@
+add_executable(clock_skew_server
+    server.cc
+    wire.h
+)
+target_link_libraries(clock_skew_server
+    PRIVATE
+    spdlog::spdlog
+    CLI11::CLI11
+)
+
+add_executable(clock_skew_client
+    client.cc
+    wire.h
+)
+target_link_libraries(clock_skew_client
+    PRIVATE
+    spdlog::spdlog
+    CLI11::CLI11
+    nlohmann_json::nlohmann_json
+)
