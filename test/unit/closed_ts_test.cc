@@ -28,25 +28,23 @@ namespace {
 using small::test::TxnTestFixture;
 
 // With no in-flight writers on this node, T_closed is unbounded
-// and a reader's WaitForClosedTs returns immediately at any
+// and a reader's WaitUntilSafeToRead returns immediately at any
 // snapshot_ts.
 TEST_F(TxnTestFixture, ClosedTsUnboundedWhenIdle) {
     auto* registry = small::closedts::InFlightRegistry::GetInstance();
-    EXPECT_EQ(registry->ComputedClosedTs(),
-              small::closedts::kClosedTsUnbounded);
 
     auto t0 = std::chrono::steady_clock::now();
-    bool ok = registry->WaitForClosedTs(/*min_ts=*/9'000'000'000'000,
-                                        std::chrono::milliseconds(500));
+    bool ok = registry->WaitUntilSafeToRead(/*snapshot_ts=*/9'000'000'000'000,
+                                            std::chrono::milliseconds(500));
     auto elapsed = std::chrono::steady_clock::now() - t0;
 
     EXPECT_TRUE(ok);
     EXPECT_LT(elapsed, std::chrono::milliseconds(50))
-        << "WaitForClosedTs should return immediately on an idle registry";
+        << "WaitUntilSafeToRead should return immediately on an idle registry";
 }
 
 // With an in-flight writer registered at lower_bound L, T_closed
-// is L - 1 and a reader at min_ts >= L blocks until the writer
+// is L - 1 and a reader at snapshot_ts >= L blocks until the writer
 // commits or aborts. After commit, lazy refresh drops the entry
 // and T_closed advances; the read unblocks.
 TEST_F(TxnTestFixture, ClosedTsBlocksUntilWriterFinishes) {
@@ -65,11 +63,16 @@ TEST_F(TxnTestFixture, ClosedTsBlocksUntilWriterFinishes) {
                     .ok());
     int64_t writer_lower_bound = writer.write_ts();
 
-    // The registry should now contain this writer.
-    int64_t closed_during =
-        small::closedts::InFlightRegistry::GetInstance()->ComputedClosedTs();
-    EXPECT_EQ(closed_during, writer_lower_bound - 1)
-        << "T_closed should equal lower_bound - 1 with one in-flight writer";
+    // T_closed should equal lower_bound - 1: a wait at lower_bound
+    // times out (T_closed < lower_bound) while a wait at lower_bound - 1
+    // returns immediately (T_closed >= lower_bound - 1).
+    EXPECT_FALSE(registry->WaitUntilSafeToRead(writer_lower_bound,
+                                           std::chrono::milliseconds(60)))
+        << "T_closed must not yet cover the writer's lower_bound while the "
+           "writer is in flight";
+    EXPECT_TRUE(registry->WaitUntilSafeToRead(writer_lower_bound - 1,
+                                          std::chrono::milliseconds(60)))
+        << "T_closed must already cover lower_bound - 1";
 
     // Spawn a thread that commits the writer after a short delay.
     std::thread committer([&]() {
@@ -78,16 +81,17 @@ TEST_F(TxnTestFixture, ClosedTsBlocksUntilWriterFinishes) {
     });
 
     auto t0 = std::chrono::steady_clock::now();
-    bool ok = registry->WaitForClosedTs(writer_lower_bound,
+    bool ok = registry->WaitUntilSafeToRead(writer_lower_bound,
                                         std::chrono::seconds(5));
     auto elapsed = std::chrono::steady_clock::now() - t0;
     committer.join();
 
-    EXPECT_TRUE(ok) << "WaitForClosedTs should unblock once the writer commits";
+    EXPECT_TRUE(ok)
+        << "WaitUntilSafeToRead should unblock once the writer commits";
     EXPECT_GE(elapsed, std::chrono::milliseconds(80))
-        << "WaitForClosedTs returned before the writer's commit";
+        << "WaitUntilSafeToRead returned before the writer's commit";
     EXPECT_LT(elapsed, std::chrono::seconds(2))
-        << "WaitForClosedTs took longer than the writer's commit + refresh";
+        << "WaitUntilSafeToRead took longer than the writer's commit + refresh";
 }
 
 // A writer's commit_ts is bumped to now_ms() at Commit time

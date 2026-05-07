@@ -28,7 +28,7 @@
 namespace small::closedts {
 
 namespace {
-// How long to sleep between refresh attempts during WaitForClosedTs.
+// How long to sleep between refresh attempts during WaitUntilSafeToRead.
 constexpr auto kRefreshInterval = std::chrono::milliseconds(20);
 }  // namespace
 
@@ -37,18 +37,39 @@ InFlightRegistry* InFlightRegistry::GetInstance() {
     return &instance;
 }
 
-void InFlightRegistry::Register(int64_t txn_id, int64_t lower_bound,
-                                const std::string& coordinator_addr) {
+int64_t InFlightRegistry::Register(int64_t txn_id, int64_t lower_bound,
+                                   const std::string& coordinator_addr) {
     std::lock_guard<std::mutex> guard(mu_);
+
+    // Compute current min(lower_bound) inline -- ComputedClosedTs would
+    // re-acquire the lock. The protocol invariant requires the writer's
+    // effective lower_bound be > T_closed = min_lb - 1, i.e. >= min_lb.
+    // If the request is below min_lb, T_closed has already advanced
+    // past the writer's start_ts and we must bump.
+    int64_t min_lb = INT64_MAX;
+    for (const auto& [_, entry] : writers_) {
+        if (entry.lower_bound < min_lb) min_lb = entry.lower_bound;
+    }
+
+    int64_t effective_lb = lower_bound;
+    if (min_lb != INT64_MAX && lower_bound < min_lb) {
+        effective_lb = min_lb;
+    }
+
     auto it = writers_.find(txn_id);
     if (it == writers_.end()) {
-        writers_[txn_id] = WriterEntry{lower_bound, coordinator_addr};
-        return;
+        writers_[txn_id] = WriterEntry{effective_lb, coordinator_addr};
+    } else if (effective_lb > it->second.lower_bound) {
+        // Re-register with a higher value (e.g. caller's per-row bump
+        // pushed write_ts forward between intents).
+        it->second.lower_bound = effective_lb;
+    } else {
+        // Re-register where the existing value is already >= our
+        // effective. Keep the existing value -- lower bounds never
+        // decrease.
+        effective_lb = it->second.lower_bound;
     }
-    // Already registered: lower bound never decreases.
-    if (lower_bound > it->second.lower_bound) {
-        it->second.lower_bound = lower_bound;
-    }
+    return effective_lb;
 }
 
 int64_t InFlightRegistry::ComputedClosedTs() {
@@ -112,15 +133,15 @@ int64_t InFlightRegistry::Refresh() {
     return min_lb - 1;
 }
 
-bool InFlightRegistry::WaitForClosedTs(
-    int64_t min_ts, std::chrono::milliseconds timeout) {
+bool InFlightRegistry::WaitUntilSafeToRead(
+    int64_t snapshot_ts, std::chrono::milliseconds timeout) {
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
     // Fast path: no in-flight writers blocking us.
-    if (ComputedClosedTs() >= min_ts) return true;
+    if (ComputedClosedTs() >= snapshot_ts) return true;
 
     while (true) {
-        if (Refresh() >= min_ts) return true;
+        if (Refresh() >= snapshot_ts) return true;
         if (std::chrono::steady_clock::now() >= deadline) return false;
         std::this_thread::sleep_for(kRefreshInterval);
     }

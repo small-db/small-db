@@ -234,13 +234,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     auto row_lock =
         small::lock::LockManager::GetInstance()->Acquire(table_name, pk);
 
-    // Combined writer-side pre-image read: one prefix scan + at most
-    // one ResolveIntent RPC, returning both the pre-image value and
-    // the latest committed version_ts. Replaces the older two-call
-    // pattern (read_latest_with_intents + latest_committed_version_ts)
-    // and closes the TOCTOU window where a prior writer could
-    // transition ACTIVE -> COMMITTED between the two calls.
-    auto pre_or = small::txn::read_for_writer(table_name, pk);
+    auto pre_or = small::txn::latest_committed(table_name, pk);
     if (!pre_or.ok()) return pre_or.status();
     auto& pre_optional = pre_or.value();
     if (!pre_optional.has_value()) {
@@ -249,8 +243,8 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     }
     auto& pre = pre_optional.value();
 
-    if (pre.latest_committed_ts >= out.final_write_ts) {
-        out.final_write_ts = pre.latest_committed_ts + 1;
+    if (pre.version_ts >= out.final_write_ts) {
+        out.final_write_ts = pre.version_ts + 1;
         SPDLOG_INFO(
             "update push: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
             txn_id, table_name, pk, write_ts,
@@ -262,14 +256,24 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     if (!values_or.ok()) return values_or.status();
 
     // Register this writer on the local closed-ts registry before the
-    // intent goes to disk. The reader-side gate
-    // (small::closedts::InFlightRegistry::WaitForClosedTs) will not let
-    // a SELECT scan this node at snapshot_ts >= out.final_write_ts
-    // until this txn settles, ensuring the reader doesn't observe a
-    // partial state where the intent isn't yet on this node but is on
-    // another. See small-db-book/.../closed_timestamps.md.
-    small::closedts::InFlightRegistry::GetInstance()->Register(
-        txn_id, out.final_write_ts, coordinator_addr);
+    // intent goes to disk. Register returns the *effective* lower_bound
+    // -- if T_closed on this node has already advanced past our
+    // requested write_ts, the registry bumps us up to T_closed + 1 to
+    // preserve the protocol invariant (every writer's commit_ts must be
+    // > T_closed observed at register time on every node it touches).
+    // We propagate the bumped value back to the coordinator via
+    // out.final_write_ts so Txn::Commit stamps the correct value.
+    int64_t effective_lb =
+        small::closedts::InFlightRegistry::GetInstance()->Register(
+            txn_id, out.final_write_ts, coordinator_addr);
+    if (effective_lb > out.final_write_ts) {
+        SPDLOG_INFO(
+            "closed-ts bump: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
+            txn_id, table_name, pk, out.final_write_ts,
+            small::util::FormatTsMs(out.final_write_ts), effective_lb,
+            small::util::FormatTsMs(effective_lb));
+        out.final_write_ts = effective_lb;
+    }
 
     db->WriteIntent(table, pk, values_or.value(), txn_id, coordinator_addr);
 

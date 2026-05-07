@@ -23,8 +23,8 @@
 
 namespace small::closedts {
 
-// Sentinel returned by ComputedClosedTs when the registry has no
-// in-flight writers. Treats as "everything is settled, advance freely."
+// Sentinel for an empty registry. Treats as "everything is settled,
+// advance freely."
 constexpr int64_t kClosedTsUnbounded = INT64_MAX;
 
 // Per-node registry of writers that have written intents on this node
@@ -35,10 +35,10 @@ constexpr int64_t kClosedTsUnbounded = INT64_MAX;
 // Callers:
 //   - WriteIntent path (src/execution/update.cc) calls `Register` when
 //     a writer first stages an intent on this node.
-//   - SELECT path (src/execution/query.cc) calls `WaitForClosedTs`
+//   - SELECT path (src/execution/query.cc) calls `WaitUntilSafeToRead`
 //     before scanning, to gate the scan on a settled snapshot.
 //
-// Cleanup is lazy: `WaitForClosedTs` refreshes by RPC'ing each
+// Cleanup is lazy: `WaitUntilSafeToRead` refreshes by RPC'ing each
 // registered writer's coordinator (`ResolveIntent`) and dropping
 // entries whose status is no longer ACTIVE. There is no explicit
 // `Deregister` from coordinators in this v0 -- a future revision may
@@ -49,32 +49,37 @@ class InFlightRegistry {
     static InFlightRegistry* GetInstance();
 
     // Register a writer that has just staged an intent on this node.
-    // Idempotent: if `txn_id` is already registered, update its entry
-    // (this can happen when the same txn writes multiple intents on
-    // the same node). The lower bound never decreases on re-register;
-    // the protocol's invariant (`commit_ts > T_closed`) only requires
-    // a lower bound, and bumping the registered lower bound up is
-    // always safe.
-    void Register(int64_t txn_id, int64_t lower_bound,
-                  const std::string& coordinator_addr);
-
-    // Returns `min(lower_bound) - 1` over the current registry, or
-    // `kClosedTsUnbounded` if the registry is empty. Does NOT refresh.
-    int64_t ComputedClosedTs();
-
-    // Block until `ComputedClosedTs() >= min_ts` or `timeout` elapses.
     //
-    // Each iteration: refresh the registry by RPC'ing every registered
-    // writer's coordinator; drop entries whose status is COMMITTED,
-    // ABORTED, or UNKNOWN; recompute. If still < min_ts, sleep briefly
-    // and retry.
+    // The protocol invariant -- "every writer's commit_ts > T_closed
+    // at register time" -- requires that the writer's lower_bound be
+    // strictly greater than T_closed (= min(lower_bound) - 1) on this
+    // node. If the requested lower_bound would violate that (the writer
+    // arrived after T_closed has already advanced past it), the
+    // registry bumps the entry to the smallest valid value -- i.e.,
+    // the current min lower_bound, which is T_closed + 1.
     //
-    // Returns true if the gate was satisfied within the timeout, false
-    // otherwise. The caller decides whether to proceed (e.g. fall
-    // through to a stale-but-best-effort scan) or report a retryable
-    // error to the client on timeout.
-    bool WaitForClosedTs(int64_t min_ts,
-                         std::chrono::milliseconds timeout);
+    // Returns the **effective** lower_bound the registry stored. If
+    // the return value is greater than the requested value, the writer
+    // was bumped; the caller MUST propagate the new value back to the
+    // coordinator's write_ts (otherwise the writer could later commit
+    // at a ts <= T_closed, breaking the closed-ts gate for any reader
+    // that's already passed).
+    //
+    // Idempotent: re-registering the same txn_id never decreases its
+    // stored lower_bound; the existing value is kept if it's already
+    // >= the new effective value.
+    int64_t Register(int64_t txn_id, int64_t lower_bound,
+                     const std::string& coordinator_addr);
+
+    // Wait until all writes at or before `snapshot_ts` are settled on
+    // this node.
+    //
+    // On true, scans at `snapshot_ts` on this node are stable: no
+    // in-flight writer will later commit at or before that timestamp.
+    //
+    // Returns false on timeout.
+    bool WaitUntilSafeToRead(int64_t snapshot_ts,
+                             std::chrono::milliseconds timeout);
 
  private:
     InFlightRegistry() = default;
@@ -84,12 +89,21 @@ class InFlightRegistry {
         std::string coordinator_addr;
     };
 
+    // `min(lower_bound) - 1` over the current registry, or
+    // `kClosedTsUnbounded` if empty. Does NOT refresh.
+    int64_t ComputedClosedTs();
+
     // Self-locking. Snapshot entries, release the lock for the RPCs,
     // re-acquire to apply drops + compute. Returns the post-refresh
     // T_closed.
     int64_t Refresh();
 
     std::mutex mu_;
+
+    // All active write transactions with intents on this node.
+    //
+    // - Writers added by write action on staging an intent.
+    // - Writers cleaned lazily by read action on waiting for closed ts.
     std::map<int64_t, WriterEntry> writers_;
 };
 
