@@ -114,6 +114,135 @@ Worker 2 at index 5 (4 ms earlier `:ok` time but luckier scan timing — its eur
 - **`intent_promote_test`** (unit): plants states directly; doesn't drive multi-statement commits across nodes.
 - **Bank test under Jepsen**: 3 workers issuing transfers and reads at high rate, intents land on different region owners → cross-region resolver RPCs vs. local resolver RPCs in the same read → the latency asymmetry exposes the window.
 
+## The Underlying Problem
+
+The race isn't really about intents, or 2PC, or our specific protocol. It's a class of problem any distributed read has to face. Stating it precisely:
+
+**Visibility(X, S) should be a pure function of two things:** (a) eternal facts about `X` (its `commit_ts`, its status), and (b) the reader's snapshot `S`. As long as it's a pure function, every per-key call returns the same answer regardless of when it physically runs — so atomicity falls out for free across the N keys a reader touches.
+
+The race we hit happens because today the per-key call also depends on (c) the wall-clock instant at which it runs, for three concrete reasons:
+
+1. **Undecided txn.** `X`'s owning txn has no `commit_ts` yet (mid-flight, no DECISION).
+2. **Unpropagated write.** `X` isn't on disk on this node yet (write is in flight). *(This is what bit us in Mode 2 above — europe scanned at .396, T0's intent didn't arrive on europe until .412.)*
+3. **Stale resolver lookup.** The status the reader sees for `X` depends on when the resolver call lands relative to `SetTxnStatus`.
+
+Three families of techniques eliminate each cause.
+
+### Family 1 — Force-decision
+
+When a per-key call hits an undecided txn, force the txn to decide before continuing. After a finite wait, every txn the reader touched has a frozen `(commit_ts, status)`. Per-key calls now answer purely from `X`'s eternal facts.
+
+- **Mechanism:** push-the-writer (CockroachDB's `PushTxnRequest`), or wait-on-intent (block until the writer flips).
+- **Pairing required:** atomic commit decision (2PC PREPARE + DECISION) so "frozen `commit_ts`" is a meaningful concept — once DECISION is durable, every observer of the txn record agrees on `commit_ts`.
+- **Cost:** reader latency under contention; deadlocks (handled with priority / wait-die schemes).
+- **Eliminates:** causes #1 and #3.
+
+### Family 2 — Settle-then-read
+
+Push the reader's snapshot back to a moment in the past that every node certifies is settled. Below the certified instant, no new writes appear and no statuses flip — per-key calls trivially return the same answer regardless of when they run.
+
+- **Mechanism:** **closed timestamps** (each shard publishes "I will not admit writes at ts ≤ `T_closed`"). The reader's snapshot is bounded by `min(T_closed across all shards touched)`.
+- **Pairing required:** causal / HLC timestamps so the bound is meaningful across nodes despite clock skew.
+- **Cost:** read freshness lag (seconds, typically); cannot read your own recent writes from this path — needs Family 1 alongside for that case.
+- **Eliminates:** causes #2 and #3.
+
+### Family 3 — Funnel through a single ordering point
+
+Make all writes for a key flow through one node that timestamps them serially. Reads against that node observe writes in their issued order. No race because there is only one observer of "before vs after" for each key.
+
+- **Mechanism:** per-shard leader / Raft leaseholder. Writes go through Raft; the leader's applied-index becomes the per-shard logical instant.
+- **Pairing required:** Family 1 or 2 for cross-shard reads (this only solves the within-shard case).
+- **Cost:** leader is a single point of serialization (and failure recovery); doesn't directly solve cross-shard atomicity.
+- **Eliminates:** cause #3 within a shard. Combined with 2PC across shards: also cause #1.
+
+### Composition
+
+Family 3 solves *single-key* consistency. Families 1 and 2 then compose single-key instants into a *cross-key* shared instant. CockroachDB layers all three:
+
+- Raft per range → Family 3.
+- 2PC + push-the-writer → Family 1.
+- Closed timestamps → Family 2 (latency optimization that lets readers skip the push when their snapshot is far enough back).
+
+Each family alone has a hole. The combination is what gives serializable isolation cheaply in the common case.
+
+### The lower bound
+
+You cannot eliminate all of (1), (2), (3) without *some* coordination between writers and readers. The choice is *where* to pay it:
+
+| Pay at        | What gets expensive |
+|---------------|---------------------|
+| Write time    | COMMIT is slow — 2PC PREPARE waits for every intent durable on every owner before COMMIT can return. |
+| Read time     | Reads block on intents (push) or settle (closed-ts wait). |
+| Infrastructure | Every key's activity is pinned through one ordering point (leader); leader becomes a hot spot. |
+
+There is no protocol where writers don't coordinate, readers don't coordinate, and atomicity holds across N independent per-key decisions. That would let two parties learn each others' state with zero communication, which violates information-theoretic limits. You always pay the cost somewhere — what you're choosing is the location.
+
+## Deep Dive: Push-the-Writer
+
+Of the three families above, Family 1 is the most invasive on the read path but the most directly applicable to small-db's current architecture (we don't have leaseholders or closed timestamps to start from). The mechanism is worth a closer look.
+
+### The contract
+
+When a reader's per-key call hits an intent for txn T whose status it cannot resolve to a definite COMMITTED-or-ABORTED, it issues a *push* RPC to T's coordinator. The push completes only after T is in a definitively-decided state — either committed at a frozen `commit_ts`, or aborted. After return, the reader's visibility decision is a pure function of `(T.commit_ts, T.status, R.snapshot_ts)` and no longer depends on when the resolver call physically happened.
+
+This is the moment where cause (1) "undecided txn" stops being a problem for this reader: by definition, after the push returns, T is decided.
+
+### The three push types (CockroachDB's vocabulary)
+
+| Type | Caller wants | What the coordinator does |
+|---|---|---|
+| `PUSH_TIMESTAMP` | "Move T's `commit_ts` past my `snapshot_ts` so T's intent is invisible to me." | If T can refresh its read set at the new commit_ts, T accepts and moves up. Otherwise T aborts. |
+| `PUSH_ABORT` | "Just abort T." | T's status flips to ABORTED. |
+| `PUSH_TOUCH` | "Just tell me T's current status, don't force anything." | Returns current status. |
+
+A read encountering an intent normally issues `PUSH_TIMESTAMP`. The semantics are clean: either T moves forward (intent now invisible to the reader) or T aborts (intent invisible because the txn is dead). Either way, the reader gets a definite answer.
+
+A *write* encountering an intent issues `PUSH_ABORT` (if it has higher priority) or waits (if it has lower).
+
+### Priority and conflict resolution
+
+Every txn carries a priority. CockroachDB's default is "older `start_ts` = higher priority", with explicit user-supplied overrides for special cases. When R pushes T:
+
+- **R's priority > T's:** T's coordinator must comply. `PUSH_ABORT` → T flipped to ABORTED. `PUSH_TIMESTAMP` → T accepts the new `commit_ts` (and may need to refresh its read set; if refresh fails because some read it relied on has moved, T aborts).
+- **R's priority ≤ T's:** the push fails ("not now") or R is enqueued in T's wait queue and unblocked when T finishes on its own.
+
+This priority scheme is what prevents livelock: there's always a deterministic winner. The shape matches the *wait-die* scheduling discipline (older waits, younger dies on conflict).
+
+### Wait-for graph and deadlock
+
+Pushes register the pusher in the pushee's wait queue. Cycles can form (R waits T, T waits U, U waits R). A periodic deadlock detector walks the graph; if it finds a cycle, the lowest-priority txn in the cycle is aborted. CockroachDB implements this in `pkg/kv/kvserver/concurrency/`.
+
+### STAGING and Parallel Commits
+
+CockroachDB's optimization "Parallel Commits" overlaps PREPARE and DECISION using a `STAGING` status — clients can return `:ok` after one RTT, with readers responsible for *completing the protocol* if they encounter a STAGING txn. A reader that pushes a STAGING txn must run a recovery protocol: check whether every one of T's intents is durably present on its respective range. If yes, force-commit. If no, force-abort. From the pusher's perspective the API is the same; just one more status to handle internally.
+
+### Why push alone doesn't fully fix Mode 2
+
+Push closes causes (1) and (3) but not (2). If a reader's local scan **doesn't even find** T's intent (because the write is still in flight from T's coordinator to this node), there's nothing on disk to push against. So push has to be paired with something on the write side that ensures intents are durable on every owner before COMMIT can be observed:
+
+- **2PC PREPARE** — coordinator's COMMIT only succeeds after every intent is acked durable on every owner.
+- **Raft per shard** — a write to a shard isn't acked back to the coordinator until it's Raft-committed (and the leaseholder has applied it).
+
+Either gives the read-side push something to work with. Without one of them, push handles the easy half (already-on-disk intents) and Mode 2 still fires for the in-flight half.
+
+### How small-db could adopt it
+
+Minimal sketch — what it would take to add reader-side push to the current code, without going to full waiter queues / priority schemes:
+
+1. **Extend `TxnService.proto`** with a `PushTxnRequest`:
+   - Input: `txn_id`, `push_type` (`TIMESTAMP` / `ABORT` / `TOUCH`), `pusher_priority`, `pusher_snapshot_ts`.
+   - Output: `(status, commit_ts)` *after* the push resolves on the coordinator.
+2. **Coordinator handler** (`txn::TxnServiceImpl::PushTxn` in `src/txn/txn.cc`):
+   - Look up `/_txn/<txn_id>`. If already COMMITTED or ABORTED: return immediately.
+   - If ACTIVE and pusher_priority > T's priority: for `PUSH_TIMESTAMP`, atomically bump T's `commit_ts` and mark "must refresh" on the txn record. For `PUSH_ABORT`, `SetTxnStatus(ABORTED)`.
+   - If ACTIVE and pusher_priority ≤ T's priority: minimal v0 just returns ACTIVE — pusher decides whether to retry or wait.
+3. **Resolver side** (`default_resolver` in `src/txn/txn.cc`): on `ACTIVE`, instead of returning `(false, 0)`, issue `PushTxn(intent.txn_id, PUSH_TIMESTAMP, our_priority, our_snapshot_ts)`. After return, re-decide.
+4. **Writer's commit path** (`Txn::Commit` in `src/txn/handle.cc`): before SetTxnStatus(COMMITTED), check the "must refresh" mark; if set, validate that the bumped `commit_ts` is still consistent with what was written. v0 can just abort if marked.
+
+The minimal version (no waiting, no wait-for graph) would already absorb most spurious `active intent` aborts from Mode 1 and the in-already-on-disk subset of Mode 2 misses. The wait queue + deadlock detector is a v1+ refinement; it adds correctness for the case where two txns push each other and deserves its own page once we have the core path.
+
+This is essentially what CockroachDB's `kvserver/concurrency/lock_table.go` and the surrounding wait-queue infrastructure does, in a small fraction of the code.
+
 ## Fix Options
 
 The hole is in the read-dispatch: each node's local scan happens at a different wall-clock instant with no shared cut. `snapshot_ts` is propagated identically to every node, but `snapshot_ts` only filters out writes whose `version_ts > snapshot_ts` — it can't surface a write that hasn't physically landed on this node yet.
