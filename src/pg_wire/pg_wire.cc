@@ -49,6 +49,7 @@
 // =====================================================================
 
 #include "src/type/type.h"
+#include "src/util/narrow/narrow.h"
 
 // =====================================================================
 // self header
@@ -66,20 +67,20 @@ class ServerMessage {
     }
 
     static void append_int16(std::vector<char>& buffer, int16_t value) {
-        int16_t network_value = htons(value);
+        auto network_value = small::util::narrow_cast<int16_t>(htons(value));
         const char* data = reinterpret_cast<const char*>(&network_value);
         buffer.insert(buffer.end(), data, data + sizeof(network_value));
     }
 
     static void append_int32(std::vector<char>& buffer, int32_t value) {
-        int32_t network_value = htonl(value);
+        auto network_value = small::util::narrow_cast<int32_t>(htonl(value));
         const char* data = reinterpret_cast<const char*>(&network_value);
         buffer.insert(buffer.end(), data, data + sizeof(network_value));
     }
 
     static void write_int32(std::vector<char>& buffer, int32_t value,
                             int offset) {
-        int32_t network_value = htonl(value);
+        auto network_value = small::util::narrow_cast<int32_t>(htonl(value));
         const char* data = reinterpret_cast<const char*>(&network_value);
         memcpy(buffer.data() + offset, data, sizeof(network_value));
     }
@@ -139,10 +140,11 @@ class RowDescriptionResponse : public ServerMessage {
         append_char(buffer, 'T');
 
         // message length (placeholder)
-        int pre_bytes = buffer.size();
+        int pre_bytes = small::util::narrow_cast<int>(buffer.size());
         append_int32(buffer, 0);
 
-        int16_t num_fields = schema->num_fields();
+        auto num_fields =
+            small::util::narrow_cast<int16_t>(schema->num_fields());
         append_int16(buffer, num_fields);
 
         for (int i = 0; i < num_fields; ++i) {
@@ -161,7 +163,8 @@ class RowDescriptionResponse : public ServerMessage {
             append_int16(buffer, 0);
 
             // The field's data type OID.
-            append_int32(buffer, small::type::to_pgwire_oid(data_type));
+            append_int32(buffer, small::util::narrow_cast<int32_t>(
+                                     small::type::to_pgwire_oid(data_type)));
 
             // The data type size.
             append_int16(buffer, small::type::get_pgwire_size(data_type));
@@ -174,7 +177,8 @@ class RowDescriptionResponse : public ServerMessage {
         }
 
         // update the message length
-        int32_t message_length = buffer.size() - pre_bytes;
+        auto message_length =
+            small::util::narrow_cast<int32_t>(buffer.size() - pre_bytes);
         write_int32(buffer, message_length, pre_bytes);
     }
 };
@@ -189,17 +193,19 @@ class DataRowResponse : public ServerMessage {
         : batch(batch) {}
 
     void encode(std::vector<char>& buffer) override {
-        int num_rows = batch->num_rows();
+        int num_rows = small::util::narrow_cast<int>(batch->num_rows());
 
         for (int i = 0; i < num_rows; ++i) {
             append_char(buffer, 'D');
 
             // message length (placeholder)
-            int pre_bytes = buffer.size();
+            int pre_bytes = small::util::narrow_cast<int>(buffer.size());
             append_int32(buffer, 0);
 
             // number of columns
-            append_int16(buffer, batch->num_columns());
+            append_int16(buffer,
+                         small::util::narrow_cast<int16_t>(
+                             batch->num_columns()));
 
             for (int j = 0; j < batch->num_columns(); ++j) {
                 std::string cell;
@@ -213,13 +219,15 @@ class DataRowResponse : public ServerMessage {
                         std::static_pointer_cast<arrow::Int64Array>(col);
                     cell = std::to_string(int_column->Value(i));
                 }
-                append_int32(buffer, cell.size());
+                append_int32(buffer,
+                             small::util::narrow_cast<int32_t>(cell.size()));
                 buffer.insert(buffer.end(), cell.data(),
                               cell.data() + cell.size());
             }
 
             // update the message length
-            int32_t message_length = buffer.size() - pre_bytes;
+            auto message_length =
+                small::util::narrow_cast<int32_t>(buffer.size() - pre_bytes);
             write_int32(buffer, message_length, pre_bytes);
         }
     }
@@ -236,14 +244,15 @@ class CommandComplete : public ServerMessage {
         append_char(buffer, 'C');
 
         // message length (placeholder)
-        int pre_bytes = buffer.size();
+        int pre_bytes = small::util::narrow_cast<int>(buffer.size());
         append_int32(buffer, 0);
 
         // command tag
         append_cstring(buffer, "SELECT 0");
 
         // update the message length
-        int32_t message_length = buffer.size() - pre_bytes;
+        auto message_length =
+            small::util::narrow_cast<int32_t>(buffer.size() - pre_bytes);
         write_int32(buffer, message_length, pre_bytes);
     }
 };
@@ -278,8 +287,8 @@ class ErrorResponse : public ServerMessage {
         std::vector<char> field_severity = encode_severity();
         std::vector<char> field_message = encode_message();
 
-        int32_t message_length =
-            4 + field_severity.size() + field_message.size() + 1;
+        auto message_length = small::util::narrow_cast<int32_t>(
+            4 + field_severity.size() + field_message.size() + 1);
         SPDLOG_DEBUG("message_length: {}", message_length);
         append_int32(buffer, message_length);
         append_vector(buffer, field_severity);
@@ -342,7 +351,8 @@ class ParameterStatus : public ServerMessage {
     // The current value of the parameter.
     void encode(std::vector<char>& buffer) override {
         append_char(buffer, 'S');
-        append_int32(buffer, 4 + key.size() + 1 + value.size() + 1);
+        append_int32(buffer, small::util::narrow_cast<int32_t>(
+                                 4 + key.size() + 1 + value.size() + 1));
         append_cstring(buffer, key);
         append_cstring(buffer, value);
     }
@@ -368,12 +378,11 @@ class BackendKeyData : public ServerMessage {
         int32_t process_id = getpid();
         append_int32(buffer, process_id);
 
-        srand(time(nullptr));
-
-        // TODO: use a thread-local seed
-        unsigned int seed = 42;
-        int32_t secret_key = rand_r(&seed);
-        append_int32(buffer, secret_key);
+        // BackendKeyData carries (process_id, secret_key) for the
+        // client's CancelRequest path. CancelRequest is not implemented
+        // here, so the key is a constant; do not rely on it for
+        // authorization.
+        append_int32(buffer, 0);
     }
 };
 
@@ -519,7 +528,7 @@ constexpr int SSL_MAGIC_CODE = 80877103;
 int32_t read_int32(std::string& message, int offset) {
     int32_t network_value;
     memcpy(&network_value, message.data() + offset, sizeof(network_value));
-    int32_t value = ntohl(network_value);
+    auto value = small::util::narrow_cast<int32_t>(ntohl(network_value));
     return value;
 }
 

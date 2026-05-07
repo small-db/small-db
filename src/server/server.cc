@@ -65,6 +65,7 @@
 #include "src/txn/handle.h"
 #include "src/txn/txn.h"
 #include "src/util/ip/ip.h"
+#include "src/util/narrow/narrow.h"
 
 // =====================================================================
 // self header
@@ -89,7 +90,7 @@ class ReaderWriter {
         if (bytes_received != sizeof(network_value)) {
             throw std::runtime_error("error reading int32_t from socket..");
         }
-        int32_t value = ntohl(network_value);
+        auto value = small::util::narrow_cast<int32_t>(ntohl(network_value));
         return value;
     }
 };
@@ -97,7 +98,7 @@ class ReaderWriter {
 int32_t read_int32_chars(char* buffer) {
     int32_t network_value;
     memcpy(&network_value, buffer, sizeof(network_value));
-    int32_t value = ntohl(network_value);
+    auto value = small::util::narrow_cast<int32_t>(ntohl(network_value));
     return value;
 }
 

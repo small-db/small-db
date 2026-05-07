@@ -38,6 +38,7 @@
 #include "spdlog/fmt/fmt.h"
 
 #include "src/clock_skew/wire.h"
+#include "src/util/narrow/narrow.h"
 
 namespace {
 
@@ -235,7 +236,9 @@ void emit_human(const std::vector<std::pair<Target, ProbeResult>>& results) {
             continue;
         }
         fmt::print("{:<10} {:<22} {:>14.3f} {:>12.1f} {:<14} {:<10} {}/{}\n",
-                   t.name, addr, r.offset_ns / 1e6, r.rtt_ns / 1e3,
+                   t.name, addr,
+                   small::util::narrow_cast<double>(r.offset_ns) / 1e6,
+                   small::util::narrow_cast<double>(r.rtt_ns) / 1e3,
                    r.clocksource, ntp_status_str(r.ntp_status),
                    r.samples_received, r.samples_attempted);
     }

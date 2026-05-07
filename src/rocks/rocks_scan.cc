@@ -47,6 +47,8 @@
 #include "CLI/CLI.hpp"
 #include "nlohmann/json.hpp"
 
+#include "src/util/narrow/narrow.h"
+
 namespace fs = std::filesystem;
 
 // =====================================================================
@@ -269,7 +271,7 @@ void PrintScan(const std::vector<std::pair<std::string, std::string>>& kvs,
                 std::cout << "\n";
             }
             ++row_count;
-            version_count += versions.size();
+            version_count += small::util::narrow_cast<int>(versions.size());
         }
     }
 
