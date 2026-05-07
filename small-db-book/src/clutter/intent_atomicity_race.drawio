@@ -1,134 +1,173 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Intent Atomicity Race" id="intent-atomicity-race">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1320" dy="920" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1320" pageHeight="920" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="title" value="Intent Atomicity Race: one SELECT's local scans land on opposite sides of T0's transfer"
+        <mxCell id="title" value="Intent Atomicity Race: T_read's two scans straddle T0's commit"
                 style="text;html=1;align=center;fontSize=15;fontStyle=1"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="15" width="1120" height="30" as="geometry"/>
+          <mxGeometry x="40" y="15" width="1240" height="30" as="geometry"/>
         </mxCell>
 
-        <mxCell id="subtitle" value="Bank-test run 20260506T145627 — index 7 read returns {1=1000, 2=1947, ...} = 9947 (lost the credit leg of T0's transfer 2&#8594;1, 53)"
+        <mxCell id="subtitle" value="Bank-test run 20260506T145627 — index 7 returns {1=1000, 2=1947, ...} = 9947 (lost the credit leg of T0's transfer 2&#8594;1, 53)"
                 style="text;html=1;align=center;fontSize=12;fontColor=#666666"
                 vertex="1" parent="1">
-          <mxGeometry x="40" y="42" width="1120" height="20" as="geometry"/>
+          <mxGeometry x="40" y="42" width="1240" height="20" as="geometry"/>
         </mxCell>
 
+        <!-- Time axis -->
         <mxCell id="timeAxis" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#444444"
                 edge="1" parent="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="160" y="100" as="sourcePoint"/>
-            <mxPoint x="1140" y="100" as="targetPoint"/>
+            <mxPoint x="1200" y="100" as="targetPoint"/>
           </mxGeometry>
-        </mxCell>
-        <mxCell id="timeLabel" value="time (ms)" style="text;html=1;align=left;fontSize=11;fontColor=#666666" vertex="1" parent="1">
-          <mxGeometry x="1145" y="92" width="55" height="16" as="geometry"/>
         </mxCell>
 
         <!-- Time tick labels -->
         <mxCell id="t1" value="&lt;b&gt;.393&lt;/b&gt;" style="text;html=1;align=center;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="160" y="70" width="40" height="16" as="geometry"/>
+          <mxGeometry x="150" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
         <mxCell id="t2" value="&lt;b&gt;.394&lt;/b&gt;" style="text;html=1;align=center;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="220" y="70" width="40" height="16" as="geometry"/>
+          <mxGeometry x="180" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
-        <mxCell id="t3" value="&lt;b&gt;.396&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot; size=&quot;1&quot;&gt;europe scan&lt;/font&gt;"
-                style="text;html=1;align=center;fontSize=11;fontColor=#82b366" vertex="1" parent="1">
-          <mxGeometry x="270" y="55" width="40" height="32" as="geometry"/>
+        <mxCell id="t3" value="&lt;b&gt;.396&lt;/b&gt;" style="text;html=1;align=center;fontSize=11;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="230" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
         <mxCell id="t4" value="&lt;b&gt;.404&lt;/b&gt;" style="text;html=1;align=center;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="400" y="70" width="40" height="16" as="geometry"/>
+          <mxGeometry x="360" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
         <mxCell id="t5" value="&lt;b&gt;.412&lt;/b&gt;" style="text;html=1;align=center;fontSize=11;fontColor=#b85450" vertex="1" parent="1">
-          <mxGeometry x="520" y="70" width="40" height="16" as="geometry"/>
+          <mxGeometry x="490" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
-        <mxCell id="t6" value="&lt;b&gt;.445&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot; size=&quot;1&quot;&gt;america scan&lt;/font&gt;"
-                style="text;html=1;align=center;fontSize=11;fontColor=#82b366" vertex="1" parent="1">
-          <mxGeometry x="830" y="55" width="40" height="32" as="geometry"/>
+        <mxCell id="t6" value="&lt;b&gt;.445&lt;/b&gt;" style="text;html=1;align=center;fontSize=11;fontColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="780" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
         <mxCell id="t7" value="&lt;b&gt;.515&lt;/b&gt;" style="text;html=1;align=center;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1080" y="70" width="40" height="16" as="geometry"/>
+          <mxGeometry x="1160" y="68" width="40" height="16" as="geometry"/>
         </mxCell>
 
-        <!-- Lane A: america's row 2 state -->
+        <!-- Lane 1: america's /users/2/* -->
         <mxCell id="laneAlbl" value="&lt;b&gt;america&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#666666&quot; size=&quot;1&quot;&gt;/users/2/*&lt;/font&gt;"
                 style="text;html=1;align=left;fontSize=12" vertex="1" parent="1">
-          <mxGeometry x="20" y="178" width="100" height="40" as="geometry"/>
+          <mxGeometry x="20" y="148" width="100" height="36" as="geometry"/>
         </mxCell>
 
-        <mxCell id="aSeed" value="&lt;b&gt;/users/2/&amp;lt;seed&amp;gt;&lt;/b&gt; = 2000"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1e1e1;strokeColor=#999999;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="160" y="170" width="80" height="44" as="geometry"/>
+        <mxCell id="aSeed" value="seed&lt;br/&gt;= 2000"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1e1e1;strokeColor=#999999;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="160" y="140" width="40" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="aActive" value="&lt;b&gt;+ /users/2/INTENT (T0, value=1947)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot;&gt;T0 status: ACTIVE&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="240" y="170" width="300" height="44" as="geometry"/>
+        <mxCell id="aActive" value="&lt;b&gt;+ /users/2/INTENT(txn=T0, value=1947)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot;&gt;T0 status: ACTIVE&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="200" y="140" width="310" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="aCommitted" value="&lt;b&gt;+ /users/2/INTENT (T0, value=1947)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot;&gt;T0 status: COMMITTED at .412&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="540" y="170" width="600" height="44" as="geometry"/>
+        <mxCell id="aCommitted" value="&lt;b&gt;+ /users/2/INTENT(txn=T0, value=1947)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot;&gt;T0 status: COMMITTED at commit_ts=.393&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="510" y="140" width="660" height="44" as="geometry"/>
         </mxCell>
 
-        <!-- Lane B: europe's row 1 state -->
+        <!-- Lane 2: europe's /users/1/* -->
         <mxCell id="laneBlbl" value="&lt;b&gt;europe&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#666666&quot; size=&quot;1&quot;&gt;/users/1/*&lt;/font&gt;"
                 style="text;html=1;align=left;fontSize=12" vertex="1" parent="1">
-          <mxGeometry x="20" y="288" width="100" height="40" as="geometry"/>
+          <mxGeometry x="20" y="218" width="100" height="36" as="geometry"/>
         </mxCell>
 
-        <mxCell id="bSeed" value="&lt;b&gt;/users/1/&amp;lt;seed&amp;gt;&lt;/b&gt; = 1000"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1e1e1;strokeColor=#999999;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="160" y="280" width="380" height="44" as="geometry"/>
+        <mxCell id="bSeed" value="seed&lt;br/&gt;= 1000"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1e1e1;strokeColor=#999999;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="160" y="210" width="350" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="bCommitted" value="&lt;b&gt;+ /users/1/INTENT (T0, value=1053)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot;&gt;intent and status flip both at .412&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="540" y="280" width="600" height="44" as="geometry"/>
-        </mxCell>
-
-        <!-- T0 dispatch arrow from .404 to europe at .412 -->
-        <mxCell id="dispatchArrow" style="endArrow=classic;html=1;rounded=0;strokeWidth=1.2;strokeColor=#888888;dashed=1;curved=1"
-                edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="420" y="100" as="sourcePoint"/>
-            <mxPoint x="540" y="280" as="targetPoint"/>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="dispatchLabel" value="T0 UPDATE row 1&lt;br/&gt;&lt;font color=&quot;#666666&quot;&gt;(gRPC dispatch, ~8 ms)&lt;/font&gt;"
-                style="text;html=1;align=right;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="270" y="200" width="120" height="28" as="geometry"/>
+        <mxCell id="bCommitted" value="&lt;b&gt;+ /users/1/INTENT(txn=T0, value=1053)&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot;&gt;T0 status: COMMITTED (intent &amp; flip both at .412)&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="510" y="210" width="660" height="44" as="geometry"/>
         </mxCell>
 
-        <!-- Worker 1's SELECT lane -->
-        <mxCell id="laneClbl" value="&lt;b&gt;worker 1's&lt;/b&gt;&lt;br/&gt;&lt;b&gt;SELECT&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#666666&quot; size=&quot;1&quot;&gt;snapshot_ts = .393&lt;/font&gt;"
-                style="text;html=1;align=left;fontSize=12" vertex="1" parent="1">
-          <mxGeometry x="20" y="395" width="120" height="60" as="geometry"/>
+        <!-- T0 transaction panel -->
+        <mxCell id="t0panel" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc"
+                vertex="1" parent="1">
+          <mxGeometry x="10" y="280" width="1300" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="t0title" value="&lt;b&gt;T0 — worker 0's transfer (2 &#8594; 1, amount 53), coordinator on america&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="20" y="293" width="1280" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="t0meta" value="&lt;b&gt;start_ts = .393&lt;/b&gt;  ·  &lt;b&gt;commit_ts = .393&lt;/b&gt;  ·  &lt;font color=&quot;#666666&quot;&gt;commit_ts is never bumped — both rows have only seed versions, and seed_ts &#8810; start_ts, so the per-row bump rule never triggers&lt;/font&gt;"
+                style="text;html=1;align=left;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="20" y="312" width="1280" height="20" as="geometry"/>
         </mxCell>
 
-        <mxCell id="europeScan" value="&lt;b&gt;europe scan&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot; size=&quot;1&quot;&gt;.396&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="260" y="390" width="60" height="50" as="geometry"/>
+        <mxCell id="t0begin" value="&lt;b&gt;BEGIN&lt;/b&gt;&lt;br/&gt;.393&lt;br/&gt;/_txn/T0 ACTIVE"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="160" y="375" width="62" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="europeArrow" style="endArrow=classic;html=1;rounded=0;strokeWidth=1.5;strokeColor=#b85450"
-                edge="1" parent="1" source="europeScan" target="bCommitted">
+        <mxCell id="t0u2" value="&lt;b&gt;UPDATE row 2&lt;/b&gt;&lt;br/&gt;.394&lt;br/&gt;+ INTENT on america"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="225" y="375" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="t0u1" value="&lt;b&gt;UPDATE row 1 (dispatch)&lt;/b&gt;&lt;br/&gt;.404 &#8594; europe at .412&lt;br/&gt;+ INTENT on europe"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="335" y="375" width="155" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="t0commit" value="&lt;b style=&quot;color:#7a3434&quot;&gt;COMMIT&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot;&gt;.412&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot;&gt;&#8594; COMMITTED, .393&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="495" y="375" width="80" height="44" as="geometry"/>
+        </mxCell>
+
+        <!-- T_read transaction panel -->
+        <mxCell id="trpanel" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc"
+                vertex="1" parent="1">
+          <mxGeometry x="10" y="455" width="1300" height="305" as="geometry"/>
+        </mxCell>
+        <mxCell id="trtitle" value="&lt;b&gt;T_read — worker 1's SELECT id, balance FROM users; coordinator on europe&lt;/b&gt;"
+                style="text;html=1;align=left;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="20" y="468" width="1280" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="trmeta" value="&lt;b&gt;snapshot_ts = .393&lt;/b&gt;  ·  fan-out: each node runs ReadTableWithResolver on its own RocksDB; aggregator concatenates per-node batches  ·  no commit_ts (read-only)"
+                style="text;html=1;align=left;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="20" y="487" width="1280" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="trbegin" value="&lt;b&gt;BEGIN&lt;/b&gt;&lt;br/&gt;.393&lt;br/&gt;snapshot=.393"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="160" y="535" width="62" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="treu" value="&lt;b style=&quot;color:#7a3434&quot;&gt;europe scan&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot;&gt;.396 (loopback ~3ms)&lt;/font&gt;&lt;br/&gt;&#8594; row-1 detail &#8595;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="232" y="535" width="105" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="tram" value="&lt;b style=&quot;color:#1f5e1a&quot;&gt;america scan&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot;&gt;.445 (cross-region ~52ms)&lt;/font&gt;&lt;br/&gt;&#8594; row-2 detail &#8595;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="755" y="535" width="105" height="44" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="europeDecision" value="&lt;b style=&quot;color:#7a3434&quot;&gt;europe scan @ .396 — found and decision&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;prefix scan over europe's local /users/1/* :&lt;br/&gt;&amp;nbsp;&amp;nbsp;/users/1/&amp;lt;seed_ts&amp;gt; = 1000&amp;nbsp;&amp;nbsp;&amp;nbsp;&#10003; found&lt;br/&gt;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#7a3434&quot;&gt;/users/1/INTENT&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&#10007; not on disk yet&lt;/font&gt;&lt;br/&gt;&lt;font color=&quot;#7a3434&quot; size=&quot;1&quot;&gt;&amp;nbsp;&amp;nbsp;(T0's WriteIntent on europe doesn't land until .412 — 16 ms from now)&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Comparison(s):&lt;/b&gt;&lt;br/&gt;&amp;nbsp;&amp;nbsp;seed_ts &amp;le; snapshot_ts (.393) ?&amp;nbsp;&amp;nbsp;YES&amp;nbsp;&amp;nbsp;&#8594;&amp;nbsp;&amp;nbsp;candidate value=1000&lt;br/&gt;&lt;br/&gt;&lt;b style=&quot;color:#7a3434&quot;&gt;&#8594; row 1 = 1000&amp;nbsp;&amp;nbsp;(T0's credit leg invisible — there's no intent here to even compare)&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="20" y="595" width="630" height="155" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="americaDecision" value="&lt;b style=&quot;color:#1f5e1a&quot;&gt;america scan @ .445 — found and decision&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;prefix scan over america's local /users/2/* :&lt;br/&gt;&amp;nbsp;&amp;nbsp;/users/2/&amp;lt;seed_ts&amp;gt; = 2000&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&#10003; found&lt;br/&gt;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#1f5e1a&quot;&gt;/users/2/INTENT(T0, 1947)&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&#10003; found (on disk since .394)&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Comparison(s):&lt;/b&gt;&lt;br/&gt;&amp;nbsp;&amp;nbsp;seed: seed_ts &amp;le; .393 ?&amp;nbsp;&amp;nbsp;YES&amp;nbsp;&amp;nbsp;&#8594;&amp;nbsp;&amp;nbsp;candidate 2000&lt;br/&gt;&amp;nbsp;&amp;nbsp;intent: resolve T0 &#8594; (COMMITTED, commit_ts=.393)&lt;br/&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;commit_ts (.393) &amp;le; snapshot_ts (.393) ? YES&amp;nbsp;&amp;nbsp;&#8594;&amp;nbsp;&amp;nbsp;candidate 1947&lt;br/&gt;&lt;b style=&quot;color:#1f5e1a&quot;&gt;&#8594; row 2 = 1947&amp;nbsp;&amp;nbsp;(lex-largest version_ts wins; commit_ts &gt; seed_ts)&lt;/b&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f5e6;strokeColor=#82b366;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=11"
+                vertex="1" parent="1">
+          <mxGeometry x="660" y="595" width="650" height="155" as="geometry"/>
+        </mxCell>
+
+        <!-- Connector arrows -->
+        <mxCell id="arrEu" style="endArrow=classic;html=1;rounded=0;strokeWidth=1.5;strokeColor=#b85450"
+                edge="1" parent="1" source="treu" target="europeDecision">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-
-        <mxCell id="americaScan" value="&lt;b&gt;america scan&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#1f5e1a&quot; size=&quot;1&quot;&gt;.445&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="820" y="390" width="60" height="50" as="geometry"/>
-        </mxCell>
-        <mxCell id="americaArrow" style="endArrow=classic;html=1;rounded=0;strokeWidth=1.5;strokeColor=#82b366"
-                edge="1" parent="1" source="americaScan" target="aCommitted">
+        <mxCell id="arrAm" style="endArrow=classic;html=1;rounded=0;strokeWidth=1.5;strokeColor=#82b366"
+                edge="1" parent="1" source="tram" target="americaDecision">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
         <!-- Outcome callout -->
-        <mxCell id="outcome" value="&lt;b style=&quot;font-size:14px;color:#7a3434&quot;&gt;PARTIAL TRANSFER VISIBLE — atomicity broken across nodes&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;europe scan at .396&lt;/b&gt; reads /users/1/* — at that moment only the seed is on disk; T0's WriteIntent on europe doesn't land until .412.&lt;br/&gt;&amp;rarr; row 1 = 1000 (seed). T0's &lt;b&gt;credit leg invisible&lt;/b&gt;.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;america scan at .445&lt;/b&gt; reads /users/2/* — at that moment T0's intent has been on disk since .394 and T0's status flipped to COMMITTED at .412.&lt;br/&gt;&amp;rarr; row 2 = 1947 (intent value). T0's &lt;b&gt;debit leg visible&lt;/b&gt;.&lt;br/&gt;&lt;br/&gt;&lt;font color=&quot;#666666&quot;&gt;Same SELECT, same snapshot_ts, but the two local scans run 49 ms apart — T0's whole transfer fits inside that gap.&lt;/font&gt;"
-                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=20;spacingTop=10;fontSize=12"
+        <mxCell id="outcome" value="&lt;b style=&quot;font-size:14px;color:#7a3434&quot;&gt;PARTIAL TRANSFER: aggregated answer mixes &amp;quot;before T0&amp;quot; (row 1) with &amp;quot;after T0&amp;quot; (row 2)&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;&lt;font face=&quot;monospace&quot;&gt;SELECT result: { 1=1000 (seed), 2=1947 (T0's intent), 3=1500 (seed), 4=3000 (seed), 5=2500 (seed) }&amp;nbsp;&amp;nbsp;&amp;nbsp;sum = 9947&amp;nbsp;&amp;nbsp;(expected 10000)&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;Both per-key visibility decisions used the &lt;b&gt;same snapshot_ts&lt;/b&gt; and the &lt;b&gt;same comparison rule&lt;/b&gt; (`version_ts &amp;le; snapshot_ts`).&lt;br/&gt;They returned different answers because they ran at different physical wall-clock times relative to T0's WriteIntent propagation:&lt;br/&gt;europe scanned &lt;b style=&quot;color:#7a3434&quot;&gt;16 ms before&lt;/b&gt; T0's intent landed on europe; america scanned &lt;b style=&quot;color:#1f5e1a&quot;&gt;51 ms after&lt;/b&gt; T0's intent landed on america &lt;i&gt;and&lt;/i&gt; after T0's COMMIT.&lt;br/&gt;&lt;br/&gt;&lt;font color=&quot;#444444&quot;&gt;&lt;i&gt;The reader's &amp;quot;view&amp;quot; is N independent per-key observations, no shared cut. Atomicity needs either: (a) push-the-writer + closed timestamps (CockroachDB) or (b) 2PC PREPARE + read-side wait.&lt;/i&gt;&lt;/font&gt;"
+                style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=20;spacingTop=15;fontSize=12"
                 vertex="1" parent="1">
-          <mxGeometry x="160" y="560" width="980" height="160" as="geometry"/>
+          <mxGeometry x="10" y="775" width="1300" height="135" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>
