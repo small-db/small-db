@@ -5,14 +5,14 @@ import cxc_toolkit
 
 
 def main():
-    cxc_toolkit.exec.run_command("vagrant up", work_dir="small-db-jepsen/vagrant")
+    # cxc_toolkit.exec.run_command("vagrant up", work_dir="small-db-jepsen/vagrant")
 
-    # update dns resolution
-    cxc_toolkit.exec.run_command(
-        "sudo $(go env GOPATH)/bin/hostctl add small-db-jepsen --from ./nodes",
-        work_dir="small-db-jepsen/vagrant",
-        start_new_session=False,
-    )
+    # # update dns resolution
+    # cxc_toolkit.exec.run_command(
+    #     "sudo $(go env GOPATH)/bin/hostctl add small-db-jepsen --from ./nodes",
+    #     work_dir="small-db-jepsen/vagrant",
+    #     start_new_session=False,
+    # )
 
     output, _ = cxc_toolkit.exec.run_command(
         "vagrant status", work_dir="small-db-jepsen/vagrant", stream_output=False
