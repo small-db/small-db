@@ -243,6 +243,41 @@ The minimal version (no waiting, no wait-for graph) would already absorb most sp
 
 This is essentially what CockroachDB's `kvserver/concurrency/lock_table.go` and the surrounding wait-queue infrastructure does, in a small fraction of the code.
 
+### Edge cases
+
+The headline mechanism (push → coordinator forces decision → reader applies visibility) is the easy half. The protocol has to handle a long tail of in-the-middle states. Each case named below comes with what the coordinator should return and what the pusher should do.
+
+**1. T has already finished by the time the push arrives.** This is the most common case at scale and the most benign. The coordinator reads `/_txn/<T>`, finds a terminal status (`COMMITTED at commit_ts` or `ABORTED`), and returns it immediately — no priority compare, no flip, no waiting. The pusher applies it normally: COMMITTED → visibility decided by `commit_ts ≤ snapshot_ts`; ABORTED → skip the intent. The push effectively degenerated to a `PUSH_TOUCH` lookup. Worth the network round-trip vs. silently skipping ACTIVE intents because the answer is now correct and durable.
+
+**2. T's record is missing (UNKNOWN).** Coordinator can't find `/_txn/<T>`. Could be: (a) T's `txn_id` was never created here (the intent was tagged with the wrong `coordinator_addr` — bug or corruption); (b) T was created on a different node (not happening if the pusher RPCed the address embedded in the intent, which is what `default_resolver` does); (c) T was GCed long after committing/aborting (a long-deferred sweeper case). Standard convention: treat UNKNOWN as ABORTED. The intent is orphaned; skip it. The risk: case (a) means we lose the actual decision. Mitigation: never GC txn records ahead of intent cleanup, and always trust `intent.coordinator_addr` for the lookup.
+
+**3. T's coordinator crashed mid-flight (orphan ACTIVE).** T's record exists with status ACTIVE; no one will ever flip it on its own. A naive pusher waits forever. Standard fix: **heartbeats** on the txn record. Each active txn updates `last_heartbeat_ts` on its record at a known cadence (CockroachDB does ~1 s). A pusher that sees a heartbeat older than some threshold (~5 s) is allowed to force ABORT regardless of priority — the coordinator is presumed dead. Without heartbeats you have no way to distinguish "T is slow" from "T's coordinator died" — and you must pick a fixed timeout, which costs correctness or progress.
+
+**4. T is in STAGING (Parallel Commits).** Pusher discovers T is STAGING. T's status doesn't decide on its own — the protocol expects whoever observes it (a pusher, a recovery scan) to **complete the protocol**: walk T's `intent_keys`, RPC each owner, and check that every intent is durably present at the expected `commit_ts`. All present → force COMMITTED. Any missing → force ABORTED. Cost is O(|T's writes|) RPCs per recovery run. Multiple concurrent pushers can race the recovery; the txn record's range serializes the final flip so only one decision sticks.
+
+**5. `PUSH_TIMESTAMP` succeeds but T can't actually commit at the new `commit_ts`.** Pusher bumped T from `.393` to `.700` to make T's intent invisible at the pusher's snapshot. Now T tries to COMMIT. Before committing, T must **refresh**: re-validate that every key it read at `.393` still has the same value (or no overwrite) at `.700`. If anything T read has been overwritten in `[.393, .700]`, refresh fails — T must abort, client retries. For small-db: this needs T to record its read-set during execution, which we don't currently do. Without refresh, PUSH_TIMESTAMP is unsafe (a pushed-up T might commit at a `commit_ts` larger than its read set's snapshot, breaking serializability).
+
+**6. Multiple pushers concurrent on the same T.** R₁ and R₂ both push T at roughly the same wall-clock instant. Coordinator serializes via the txn record's range (single-writer). First push lands first, takes its action; later pushers see the post-decision state. No correctness issue; brief contention on the record's range. The serialization point is what makes "the decision" well-defined — even a 1000-way concurrent push results in exactly one transition.
+
+**7. Tied priorities.** R and T both carry priority X. No deterministic winner from priority alone. Tie-break: lower `txn_id` = higher priority (or any deterministic rule), so the system always picks one side. CockroachDB also bumps priorities by a small random amount over time so persistent ties dissolve. Without a tie-break: livelock — both sides retry forever.
+
+**8. Wait-for cycle.** R waits for T (R pushed and T's priority was higher). T waits for R (T independently pushed something R is writing). Cycle. A periodic deadlock detector walks the wait-for graph; on cycle detection, abort the lowest-priority txn in the cycle. Without detection: every txn in the cycle hangs until the request timeout fires, at which point one of them gives up — works in the limit but pays the timeout latency.
+
+**9. Network partition between pusher and coordinator.** Push RPC times out. Pusher retries until success, or eventually returns a retryable error to its client. Two sub-cases by txn-record durability model:
+
+- **Single-node txn record (small-db's current model):** if the coordinator's node is on the wrong side of the partition, T's status is frozen for the duration. The pusher cannot make progress regardless of how long it waits.
+- **Quorum-based txn record (CockroachDB Raft):** a surviving quorum on T's range can elect a new leaseholder and accept the push. Pusher's retry succeeds once the new leaseholder is up.
+
+**10. Coordinator failover (CockroachDB-specific).** When the txn record's range loses its leaseholder, a Raft replica takes over. Pushes target the *range*, not a specific node, so failover is transparent to the pusher (a brief window of "service unavailable" retries, then back to normal). Doesn't apply to small-db's single-node txn record model — failover requires quorum replication, which we don't have.
+
+The cases divide into three families by where the work is:
+
+- **Coordinator-side state** (1, 2, 3, 4): coordinator has to track terminal status, missing-record convention, heartbeats, and STAGING recovery — all in the txn record schema.
+- **Refresh / read-set tracking** (5): pusher's `PUSH_TIMESTAMP` is only safe if writers track what they read; otherwise the only safe push type is `PUSH_ABORT`.
+- **Concurrency control** (6, 7, 8, 9, 10): serialization of decisions, deterministic tie-breaks, deadlock detection, and durability of the txn record under failures.
+
+A v0 implementation in small-db can omit (5)–(10) entirely if it accepts: only `PUSH_ABORT` (no read-set tracking), single-pusher-at-a-time semantics (lock around the txn record write), no priority comparison (always abort the pushee — simple, gives the reader-side what it needs), and trust the `coordinator_addr` (no failover). That's already enough to absorb the spurious `active intent` aborts that motivated this whole discussion. Cases (5)–(10) are the path to production.
+
 ## Fix Options
 
 The hole is in the read-dispatch: each node's local scan happens at a different wall-clock instant with no shared cut. `snapshot_ts` is propagated identically to every node, but `snapshot_ts` only filters out writes whose `version_ts > snapshot_ts` — it can't surface a write that hasn't physically landed on this node yet.
