@@ -142,8 +142,8 @@ When a per-key call hits an undecided txn, force the txn to decide before contin
 Push the reader's snapshot back to a moment in the past that every node certifies is settled. Below the certified instant, no new writes appear and no statuses flip — per-key calls trivially return the same answer regardless of when they run.
 
 - **Mechanism:** **closed timestamps** (each shard publishes "I will not admit writes at ts ≤ `T_closed`"). The reader's snapshot is bounded by `min(T_closed across all shards touched)`.
-- **Pairing required:** causal / HLC timestamps so the bound is meaningful across nodes despite clock skew.
-- **Cost:** read freshness lag (seconds, typically); cannot read your own recent writes from this path — needs Family 1 alongside for that case.
+- **Pairing options:** causal / HLC timestamps if cross-replica skew matters; or a shared-clock assumption (good enough for small-db's setup, where every node reads the same wall clock to within sub-ms drift).
+- **Cost:** reader latency proportional to in-flight write durations; bounded by what you tolerate.
 - **Eliminates:** causes #2 and #3.
 
 ### Family 3 — Funnel through a single ordering point
