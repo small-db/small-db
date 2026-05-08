@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// =====================================================================
+// c std
+// =====================================================================
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/timex.h>
+#include <unistd.h>
+
+// =====================================================================
+// c++ std
+// =====================================================================
+
 #include <array>
 #include <cerrno>
 #include <cstdint>
@@ -22,15 +36,21 @@
 #include <sstream>
 #include <string>
 
-#include "spdlog/spdlog.h"
-#include "src/clock_skew/wire.h"
+// =====================================================================
+// third-party libraries
+// =====================================================================
 
+// CLI11
 #include "CLI/CLI.hpp"
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/timex.h>
-#include <unistd.h>
+
+// spdlog
+#include "spdlog/spdlog.h"
+
+// =====================================================================
+// small-db libraries
+// =====================================================================
+
+#include "src/clock_skew/wire.h"
 
 namespace {
 

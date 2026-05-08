@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// =====================================================================
+// c std
+// =====================================================================
+
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+// =====================================================================
+// c++ std
+// =====================================================================
+
 #include <array>
 #include <cerrno>
 #include <chrono>
@@ -27,17 +41,25 @@
 #include <utility>
 #include <vector>
 
+// =====================================================================
+// third-party libraries
+// =====================================================================
+
+// CLI11
+#include "CLI/CLI.hpp"
+
+// nlohmann/json
+#include "nlohmann/json.hpp"
+
+// spdlog
 #include "spdlog/fmt/fmt.h"
+
+// =====================================================================
+// small-db libraries
+// =====================================================================
+
 #include "src/clock_skew/wire.h"
 #include "src/util/narrow/narrow.h"
-
-#include "CLI/CLI.hpp"
-#include "nlohmann/json.hpp"
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 namespace {
 

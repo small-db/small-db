@@ -149,6 +149,23 @@ A run can be referenced by timestamp directory directly (`small-db-jepsen/store/
 
 **Tooling.** Google C++ style, 4-space indent, C++20. Enforced by clang-format, cpplint, and clang-tidy (100+ checks: bugprone, cert, modernize, …). Configs: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`.
 
+**Include layout in `.cc` files.** Group includes into named sections separated by a blank line and a banner comment. Within each section, sort alphabetically. Sections, in order:
+
+1. **c std** — C/POSIX system headers (`<unistd.h>`, `<sys/socket.h>`, `<arpa/inet.h>`, …)
+2. **c++ std** — C++ standard library, including `<c*>` wrappers (`<cstdint>`, `<cerrno>`, `<string>`, `<vector>`)
+3. **third-party libraries** — external deps (`spdlog/...`, `CLI/CLI.hpp`, `nlohmann/json.hpp`, `pg_query.h`, …). When a library contributes more than one include, prefix the group with a short sub-comment naming the library (e.g., `// spdlog`).
+4. **small-db libraries** — in-tree headers (`src/...`)
+5. **self header** — the matching `.h` for this `.cc`, last (omit for executables with no header)
+
+Banner format:
+```
+// =====================================================================
+// <section name>
+// =====================================================================
+```
+
+Skip a section entirely if it has no entries. Canonical example: `src/server/server.cc`.
+
 **Guiding principle.** Write for the caller's mental model. That single idea drives everything below; bend the rules when the situation genuinely warrants.
 
 **Naming — describe what the caller sees, not the internal mechanism.**
