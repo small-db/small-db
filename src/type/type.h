@@ -43,8 +43,6 @@ namespace small::type {
 
 std::string to_string(Type type);
 
-absl::StatusOr<Type> from_string(const std::string& type_name);
-
 absl::StatusOr<Type> from_ast_string(const std::string& type_name);
 
 pqxx::oid to_pgwire_oid(Type type);

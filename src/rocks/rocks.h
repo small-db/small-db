@@ -58,26 +58,20 @@ enum class TxnStatus {
 void to_json(nlohmann::json& j, const TxnStatus& s);
 void from_json(const nlohmann::json& j, TxnStatus& s);
 
-// On-disk record persisted at /_txn/<txn_id> on the coordinator. Holds
-// the authoritative status for every intent tagged with this txn_id.
+// On-disk record persisted at /_txn/<txn_id> on the coordinator,
+// holding authoritative status for every intent tagged with this
+// txn_id. The coordinator is the only writer.
 //
-// The coordinator is the only writer. Readers on any node consult it
-// via the TxnService gRPC when resolving an intent.
-//
-// `write_ts` is the txn's mutable mid-flight write timestamp (initialized
-// to start_ts at BEGIN, pushed by the per-row bump rule on UPDATE). When
-// status flips to COMMITTED, `write_ts` is the txn's final commit
-// timestamp -- the value at which every intent it wrote becomes visible.
-// While ACTIVE the value is provisional; while ABORTED it carries no
-// meaning (readers ignore it).
+// `write_ts` is provisional while ACTIVE, the txn's final commit
+// timestamp once COMMITTED, and meaningless while ABORTED.
 struct TxnRecord {
     TxnStatus status = TxnStatus::ACTIVE;
     int64_t start_ts = 0;
     int64_t write_ts = 0;
 
     // Keys of intents this transaction has written (e.g. "/users/3/INTENT").
-    // Populated as intents are dispatched. Consumed by a future sweeper /
-    // recovery path, not by the live commit/rollback protocol.
+    // Consumed by a future sweeper / recovery path, not the live
+    // commit/rollback protocol.
     std::vector<std::string> intent_keys;
 };
 
@@ -87,10 +81,6 @@ void from_json(const nlohmann::json& j, TxnRecord& r);
 // On-disk intent stored at /<table>/<pk>/INTENT. The literal suffix
 // "INTENT" sorts above every 20-digit numeric version_ts so a prefix
 // scan over /<table>/<pk>/ surfaces it last.
-//
-// `values` is the column map (column_name -> encoded value), same shape
-// as a committed row. `txn_id` keys the coordinator's /_txn/<txn_id>
-// record; `coordinator_addr` is the gRPC endpoint to RPC for resolution.
 struct IntentRow {
     std::map<std::string, std::string> values;
     int64_t txn_id = 0;
@@ -102,131 +92,70 @@ void from_json(const nlohmann::json& j, IntentRow& r);
 
 class RocksDBWrapper {
    private:
-    // singleton instance
     explicit RocksDBWrapper(const std::string& db_path);
     ~RocksDBWrapper();
 
    public:
-    /**
-     * @brief Returns the RocksDB singleton for the current server process.
-     *
-     * Resolves the data directory from the global server_info. Equivalent to
-     * GetInstance(server_info::get_info()->db_path).
-     */
+    // Singleton for the current server process; data dir from server_info.
     static absl::StatusOr<RocksDBWrapper*> GetInstance();
 
-    /**
-     * @brief Returns the RocksDB singleton for an explicit path.
-     *
-     * Per-path singleton: repeated calls with the same db_path return the
-     * same instance. Used by tests that open ad-hoc databases outside of a
-     * full server process.
-     */
+    // Per-path singleton: repeated calls with the same db_path return the
+    // same instance. Used by tests that open ad-hoc databases outside of a
+    // full server process.
     static RocksDBWrapper* GetInstance(const std::string& db_path);
 
-    // copy blocker
     RocksDBWrapper(const RocksDBWrapper&) = delete;
-
-    // assignment blocker
     void operator=(const RocksDBWrapper&) = delete;
 
-    /**
-     * @brief Hard-deletes a single raw key.
-     *
-     * Removes the underlying RocksDB entry directly; this is not an MVCC
-     * tombstone and does not interact with row-version semantics.
-     */
+    // Hard-deletes a single raw key. Not an MVCC tombstone; does not
+    // interact with row-version semantics.
     bool Delete(const std::string& key);
 
-    /**
-     * @brief Writes a new MVCC version of a row at the given timestamp.
-     *
-     * Stores the column values JSON-encoded under the key
-     * "/{table}/{pk}/{ts}", where `ts` is formatted as a zero-padded
-     * 20-digit value so lex order on the key suffix matches
-     * chronological order.
-     *
-     * @param table  Table schema; supplies column order and table name.
-     * @param pk     Primary key value, used as the second key segment.
-     * @param values Column values in the same order as table->columns().
-     * @param ts     Version timestamp (ms since epoch). Used as-is.
-     */
+    // Writes a new MVCC version of a row at the given timestamp.
+    //
+    // Stores the column values JSON-encoded under the key
+    // "/{table}/{pk}/{ts}", where `ts` is zero-padded to 20 digits so
+    // lex order on the key suffix matches chronological order.
     void WriteRow(const std::shared_ptr<small::schema::Table>& table,
                   const std::string& pk,
                   const std::vector<std::string>& values, int64_t ts);
 
-    /**
-     * @brief Returns the largest committed `version_ts` on (table, pk),
-     *        or 0 if no committed version exists.
-     *
-     * Inspects only numeric-suffix keys; an unresolved INTENT key is
-     * ignored at this layer. The intent-aware variant -- which RPC's the
-     * coordinator and treats COMMITTED intents as candidates -- is layered
-     * on top in src/txn/.
-     */
+    // Largest committed `version_ts` on (table, pk), or 0 if no committed
+    // version exists. Inspects only numeric-suffix keys; an unresolved
+    // INTENT key is ignored at this layer.
     int64_t LatestVersionTs(const std::string& table_name,
                             const std::string& pk);
 
-    /**
-     * @brief Writes an intent at /<table>/<pk>/INTENT.
-     *
-     * Overwrites any existing intent for the same (table, pk). The caller
-     * is expected to hold lock(table, pk) so this is the only writer.
-     */
+    // Writes an intent at /<table>/<pk>/INTENT, overwriting any existing
+    // intent. Caller must hold lock(table, pk).
     void WriteIntent(const std::shared_ptr<small::schema::Table>& table,
                      const std::string& pk,
                      const std::vector<std::string>& values, int64_t txn_id,
                      const std::string& coordinator_addr);
 
-    /**
-     * @brief Reads the intent at /<table>/<pk>/INTENT, if any.
-     */
     std::optional<IntentRow> ReadIntent(const std::string& table_name,
                                         const std::string& pk);
 
-    /**
-     * @brief Writes the txn record at /_txn/<txn_id>.
-     *
-     * Overwrites any prior record for the same txn_id. The coordinator is
-     * the only writer of its own txn records.
-     */
+    // Overwrites any prior record for the same txn_id. The coordinator is
+    // the only writer of its own txn records.
     void WriteTxnRecord(int64_t txn_id, const TxnRecord& record);
 
-    /**
-     * @brief Reads the txn record at /_txn/<txn_id>, if any.
-     */
     std::optional<TxnRecord> ReadTxnRecord(int64_t txn_id);
 
-    /**
-     * @brief Read-modify-write: bump write_ts on /_txn/<txn_id>.
-     *
-     * Used by the push protocol when a writer encounters a row whose
-     * latest committed version_ts is >= the txn's current write_ts.
-     */
+    // Read-modify-write: bump write_ts on /_txn/<txn_id>.
     void UpdateTxnWriteTs(int64_t txn_id, int64_t write_ts);
 
-    /**
-     * @brief Read-modify-write: append `intent_key` to the txn record's
-     *        intent_keys[].
-     */
+    // Read-modify-write: append `intent_key` to the txn record's
+    // intent_keys[].
     void AppendTxnIntentKey(int64_t txn_id, const std::string& intent_key);
 
-    /**
-     * @brief Read-modify-write: flip the txn's status (and, for COMMITTED,
-     *        record write_ts as the txn's final commit timestamp). One
-     *        Put -- the atomicity boundary for every intent this txn has
-     *        written.
-     */
+    // Flips the txn's status (and, for COMMITTED, records write_ts as
+    // the final commit timestamp). One Put — the atomicity boundary
+    // for every intent this txn has written.
     void SetTxnStatus(int64_t txn_id, TxnStatus status, int64_t write_ts);
 
-    /**
-     * @brief Raw view of `/<table>/<pk>/`'s latest state.
-     *
-     * The caller (txn-layer) resolves the intent (RPC the embedded
-     * coordinator_addr) and applies whatever policy matters for its
-     * call site (writer-side: abort on ACTIVE + full-promote on
-     * COMMITTED; reader-side: skip on non-COMMITTED + half-promote).
-     */
+    // Raw view of `/<table>/<pk>/`'s latest state. The caller resolves
+    // the intent and applies whatever policy matters for its call site.
     struct LatestRowRaw {
         // Largest committed `version_ts` found by the numeric prefix
         // scan. -1 if no committed version exists for this row.
@@ -243,68 +172,32 @@ class RocksDBWrapper {
     LatestRowRaw ReadLatestRaw(const std::string& table_name,
                                const std::string& pk);
 
-    /**
-     * @brief Callback that resolves an intent into (is_committed, write_ts).
-     *
-     * Returned write_ts is meaningful only when is_committed is true; it
-     * is the resolved txn's finalized write_ts (post-COMMIT). Used by
-     * the With-Resolver read variants to delegate intent resolution out
-     * of this network-free layer; the wrapper supplied by src/txn/
-     * implements the gRPC RPC under the hood.
-     */
+    // Callback that resolves an intent into (is_committed, write_ts).
+    // The returned write_ts is meaningful only when is_committed is true;
+    // it is the resolved txn's finalized write_ts (post-COMMIT).
     using IntentResolver =
         std::function<absl::StatusOr<std::pair<bool, int64_t>>(
             const IntentRow&)>;
 
-    /**
-     * @brief Writer-side intent promotion: persist the value as a
-     *        numeric MVCC version AND delete the intent slot in one
-     *        atomic write batch.
-     *
-     * Caller MUST hold `lock(table, pk)`. The Delete is path-addressed
-     * (`/<table>/<pk>/INTENT`) and would race with a concurrent slot
-     * mutation if no lock were held.
-     */
+    // Writer-side intent promotion: persist the value as a numeric MVCC
+    // version AND delete the intent slot in one atomic write batch.
+    // Caller MUST hold lock(table, pk) — the Delete is path-addressed
+    // and would race with a concurrent slot mutation otherwise.
     void PromoteIntent(const std::string& table_name,
                            const std::string& pk, int64_t write_ts,
                            const std::map<std::string, std::string>& values);
 
-    /**
-     * @brief Reads the latest visible MVCC version of every row in a
-     *        table, surfacing COMMITTED intents whose write_ts is
-     *        <= snapshot_ts.
-     *
-     * Scans keys with the prefix "/{table_name}/". For each primary key,
-     * picks the lex-largest visible source of truth: the largest numeric
-     * `version_ts <= snapshot_ts`, OR the resolved `write_ts` of an
-     * INTENT (if its txn is COMMITTED and write_ts <= snapshot_ts),
-     * whichever is larger.
-     *
-     * @param table_name  Schema-qualified table name (e.g. "system.tables").
-     * @param snapshot_ts Snapshot timestamp; only versions with
-     *                    version_ts <= snapshot_ts are visible.
-     * @param resolver    Intent-resolution callback (typically RPCs the
-     *                    coordinator); see IntentResolver.
-     * @return Map of {primary_key -> {column_name -> value}}.
-     */
+    // Latest visible MVCC version of every row in the table at
+    // snapshot_ts. For each pk, picks the larger of (numeric
+    // version_ts <= snapshot_ts) and (resolved write_ts of a COMMITTED
+    // INTENT whose write_ts <= snapshot_ts).
     std::map<std::string, std::map<std::string, std::string>>
     ReadTableWithResolver(const std::string& table_name, int64_t snapshot_ts,
                           const IntentResolver& resolver);
 
-    /**
-     * @brief Reads the most recent committed version of a single row,
-     *        surfacing a COMMITTED intent if its write_ts is greater
-     *        than the largest numeric version_ts on the row.
-     *
-     * Used by writers in their pre-image read: a COMMITTED intent left
-     * by a prior transaction (not yet promoted) is the row's "current"
-     * state, and the next writer must compute on top of it.
-     *
-     * @param table_name Schema-qualified table name.
-     * @param pk         Primary key.
-     * @param resolver   Intent-resolution callback; see IntentResolver.
-     * @return The latest version's columns, or nullopt if no version exists.
-     */
+    // Latest committed version of a single row, surfacing a COMMITTED
+    // intent whose write_ts beats the largest numeric version_ts.
+    // Returns nullopt if no version exists.
     std::optional<std::map<std::string, std::string>> ReadLatestWithResolver(
         const std::string& table_name, const std::string& pk,
         const IntentResolver& resolver);

@@ -83,14 +83,12 @@ struct formatter<small::gossip::Info<T>> {
         fmt::format_to(out, "{{");
         fmt::format_to(out, "value: {}, ", info.value);
 
-        // Convert last_updated (milliseconds since epoch) to time_t
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             info.last_updated);
         std::time_t t =
             std::chrono::duration_cast<std::chrono::seconds>(ms).count();
         std::tm tm = *std::localtime(&t);
 
-        // Format as "YYYY-MM-DD HH:MM:SS"
         char buf[32];
         std::strftime(buf, sizeof(buf), "%F %T", &tm);
         fmt::format_to(out, "last_updated: {}", buf);
@@ -132,7 +130,6 @@ void InfoStore::update(const std::string& key, const Entry& entry) {
     auto it = entries.entries().find(key);
     if (it != entries.entries().end() &&
         it->second.last_update() >= entry.last_update()) {
-        // the stored entry is newer, do not update
         return;
     }
 
@@ -181,22 +178,19 @@ std::vector<small::server_info::ImmutableInfo> GossipServer::get_nodes() {
 GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
                            const std::string& seed_peer)
     : self_info(self_info) {
-    // add self to the nodes list
     this->add_node(self_info);
 
     std::thread([this, seed_peer]() {
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
 
-            // Select the peer to communicate with in this round.
             auto nodes = this->get_nodes();
             std::string peer_addr;
 
             if (!seed_peer.empty()) {
-                // Use seed peer if present
                 peer_addr = seed_peer;
             } else if (nodes.size() > 1) {
-                // Choose a random node from nodes list (not self)
+                // Pick a random non-self peer.
                 std::vector<small::server_info::ImmutableInfo> other_nodes;
                 for (const auto& node : nodes) {
                     if (node.id != this->self_info.id) {
@@ -214,7 +208,6 @@ GossipServer::GossipServer(const small::server_info::ImmutableInfo& self_info,
             }
 
             if (peer_addr.empty()) {
-                // No peer available, wait passively
                 continue;
             }
 
@@ -284,7 +277,7 @@ small::gossip::Entries GossipServer::update(
 
     small::gossip::Entries self_newer;
 
-    // step 1: update entries that are newer in the peer
+    // step 1: pull in keys where the peer is newer
     for (const auto& [key, peer_entry] : peer_entries.entries()) {
         auto value = peer_entry.value();
         auto last_update = peer_entry.last_update();
@@ -292,30 +285,24 @@ small::gossip::Entries GossipServer::update(
         auto it = this->store.entries.mutable_entries()->find(key);
         if (it != this->store.entries.entries().end()) {
             if (it->second.last_update() < last_update) {
-                // peer's entry is newer, update the store
                 it->second.set_value(value);
                 it->second.set_last_update(last_update);
             } else {
-                // self's entry is newer, add it to self_newer
                 self_newer.mutable_entries()->insert({key, it->second});
             }
         } else {
-            // key doesn't exist in self
             this->store.entries.mutable_entries()->insert({key, peer_entry});
         }
     }
 
-    // step 2: update entries that are newer in self
+    // step 2: collect keys where self is newer (or peer doesn't have)
     for (const auto& [key, self_entry] : this->store.entries.entries()) {
         auto it = peer_entries.entries().find(key);
         if (it != peer_entries.entries().end()) {
-            // If the key exists in both, check which one is newer
             if (self_entry.last_update() > it->second.last_update()) {
-                // Add the self entry to self_newer
                 self_newer.mutable_entries()->insert({key, self_entry});
             }
         } else {
-            // If the key doesn't exist in the peer, add it to self_newer
             self_newer.mutable_entries()->insert({key, self_entry});
         }
     }

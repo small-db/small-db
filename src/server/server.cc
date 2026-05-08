@@ -81,20 +81,6 @@ namespace small::server {
 
 std::atomic<bool> stopSignal = false;
 
-class ReaderWriter {
-   protected:
-    static int32_t read_int32(int sockfd) {
-        int32_t network_value;
-        ssize_t bytes_received =
-            recv(sockfd, &network_value, sizeof(network_value), 0);
-        if (bytes_received != sizeof(network_value)) {
-            throw std::runtime_error("error reading int32_t from socket..");
-        }
-        auto value = small::util::narrow_cast<int32_t>(ntohl(network_value));
-        return value;
-    }
-};
-
 int32_t read_int32_chars(char* buffer) {
     int32_t network_value;
     memcpy(&network_value, buffer, sizeof(network_value));
@@ -125,27 +111,15 @@ class SocketsManager {
     std::unordered_map<int, SocketState> socket_states;
     std::unordered_map<int, small::txn::Txn> txn_states;
 
-    // Static pointer to the Singleton instance.
     static SocketsManager* instancePtr;
-
-    // Mutex to ensure thread safety.
     static std::mutex mtx;
 
-    // Private Constructor
     SocketsManager() = default;
 
    public:
-    /**
-     * Delete the assignment operator.
-     */
     void operator=(const SocketsManager&) = delete;
-
-    /**
-     * Delete the copy constructor.
-     */
     SocketsManager(const SocketsManager& obj) = delete;
 
-    // Static method to get the Singleton instance
     static SocketsManager* getInstance() {
         if (instancePtr == nullptr) {
             std::lock_guard<std::mutex> lock(mtx);
@@ -161,7 +135,6 @@ class SocketsManager {
 
         auto it = instance->socket_states.find(sockfd);
         if (it == instance->socket_states.end()) {
-            // set the initial state
             instance->socket_states[sockfd] = SocketState::StartUp;
             return SocketState::StartUp;
         }
@@ -190,43 +163,8 @@ class SocketsManager {
     }
 };
 
-// define the static members
 SocketsManager* SocketsManager::instancePtr = nullptr;
 std::mutex SocketsManager::mtx;
-
-// get a message with length word from connection
-std::string pq_getmessage(char* buffer) {
-    int len = read_int32_chars(buffer);
-    std::string message(buffer + 4, len - 4);
-    return message;
-}
-
-class SSLRequest : ReaderWriter {
-   public:
-    static const int BODY_SIZE = 8;
-    static const int SSL_MAGIC_CODE = 80877103;
-
-    static void handle_ssl_request(int newsockfd) {
-        SPDLOG_DEBUG("handling ssl request, newsockfd: {}", newsockfd);
-
-        auto body_size = read_int32(newsockfd);
-        if (body_size != BODY_SIZE) {
-            auto error_msg =
-                fmt::format("invalid length of startup packet: {}", body_size);
-            throw std::runtime_error(error_msg);
-        }
-
-        auto ssl_code = read_int32(newsockfd);
-        if (ssl_code != SSL_MAGIC_CODE) {
-            auto error_msg = fmt::format("invalid ssl code: {}", ssl_code);
-            throw std::runtime_error(error_msg);
-        }
-
-        // reply 'N' for no SSL support
-        char SSLok = 'N';
-        send(newsockfd, &SSLok, 1, 0);
-    }
-};
 
 void handle_command(std::string& command, int sockfd) {
     SPDLOG_INFO("command: {}", command);
@@ -369,7 +307,6 @@ void start_grpc_server(
 }
 
 int RunServer(const small::server_info::ImmutableInfo& args) {
-    // === initialize singleton instances start ===
     auto status = small::server_info::init(args);
     if (!status.ok()) {
         SPDLOG_ERROR("failed to init server: {}", status.ToString());
@@ -377,9 +314,7 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     }
 
     small::catalog::CatalogManager::InitInstance();
-
     small::gossip::GossipServer::init_instance(args, args.join);
-    // === initialize singleton instances end ===
 
     SPDLOG_INFO(
         "start server: sql_address: {}, grpc_address: {}, region: {}"
@@ -406,14 +341,13 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
     int sock_listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_listen_fd < 0) {
         SPDLOG_ERROR("error creating socket: {}", strerror(errno));
-        exit(EXIT_FAILURE);  // Exit the program if socket creation fails
+        exit(EXIT_FAILURE);
     }
     int opt = 1;
     setsockopt(sock_listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     auto server_addr = small::util::ip::str_to_sockaddr(args.sql_addr);
 
-    // bind socket and listen for connections
     if (bind(sock_listen_fd, (struct sockaddr*)&server_addr,
              sizeof(server_addr)) < 0) {
         SPDLOG_ERROR("error binding socket {}, error: {}", args.sql_addr,
@@ -454,7 +388,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
             break;
         }
 
-        // timeout: 1000ms
         new_events = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
 
         if (new_events == -1) {
@@ -462,8 +395,6 @@ int RunServer(const small::server_info::ImmutableInfo& args) {
         }
 
         for (int i = 0; i < new_events; ++i) {
-            int event_fd = events[i].data.fd;
-
             if (events[i].data.fd == sock_listen_fd) {
                 sock_conn_fd =
                     accept4(sock_listen_fd, (struct sockaddr*)&client_addr,

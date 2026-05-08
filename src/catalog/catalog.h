@@ -49,22 +49,16 @@ namespace small::catalog {
 
 class CatalogManager {
    private:
-    // singleton instance - the only instance
     static CatalogManager* instancePtr;
 
-    // singleton instance - constructor protector
     CatalogManager();
-
-    // singleton instance - destructor protector
     ~CatalogManager() = default;
 
     small::rocks::RocksDBWrapper* db;
 
-    // all tables, key: table_name, value: table
     std::unordered_map<std::string, std::shared_ptr<small::schema::Table>>
         tables;
 
-    // all partitions, key: partition_name, value: partition
     std::unordered_map<std::string, std::shared_ptr<small::schema::Partition>>
         partitions;
 
@@ -73,26 +67,18 @@ class CatalogManager {
     std::shared_ptr<small::schema::Table> system_partitions;
 
    public:
-    // singleton instance - assignment-blocker
     void operator=(const CatalogManager&) = delete;
-
-    // singleton instance - copy-blocker
     CatalogManager(const CatalogManager&) = delete;
 
-    // singleton instance - get api
     static CatalogManager* GetInstance();
-
-    // singleton instance - init api
     static void InitInstance();
 
     // Create a new table on all servers in the cluster.
     absl::Status CreateTable(const std::string& table_name,
                              const std::vector<small::schema::Column>& columns);
 
-    /*
-     * Update the table metadata, create new table if not exists. If broadcast
-     * is true, the update will be sent to all other servers.
-     */
+    // Updates the table metadata, creating it if absent. If `broadcast`,
+    // forwards the update to every other server.
     absl::Status UpdateTable(const std::shared_ptr<small::schema::Table>& table,
                              bool broadcast);
 

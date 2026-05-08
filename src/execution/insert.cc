@@ -81,7 +81,6 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
 
         auto partition_column = list_partition.column_name();
 
-        // get partition column id (in the insert statement)
         int partition_column_id = -1;
         for (int i = 0; i < insert_stmt->n_cols; i++) {
             if (insert_stmt->cols[i]->res_target->name == partition_column) {
@@ -95,11 +94,9 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
                 fmt::format("partition column {} not found", partition_column));
         }
 
-        // process row by row
         int row_count = static_cast<int>(
             insert_stmt->select_stmt->select_stmt->n_values_lists);
         for (int row_id = 0; row_id < row_count; row_id++) {
-            // get the partition value
             auto row =
                 insert_stmt->select_stmt->select_stmt->values_lists[row_id];
             auto pv_or = small::semantics::a_const_to_string(
@@ -108,7 +105,6 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
             std::string partition_value = std::move(pv_or.value());
             SPDLOG_INFO("partition value: {}", partition_value);
 
-            // get the partition
             auto partition_item =
                 small::schema::lookup(list_partition, partition_value);
             if (!partition_item) {
@@ -137,7 +133,6 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
                                 partition_value));
             }
 
-            // insert the row into the server
             auto server = servers.begin()->second;
 
             small::execution::Row request;
@@ -172,7 +167,6 @@ absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
 
         return absl::OkStatus();
     } else {
-        // no partition, unimplemented
         return absl::UnimplementedError(
             fmt::format("insert into table {} without partition is not "
                         "supported yet",
@@ -187,7 +181,6 @@ grpc::Status InsertServiceImpl::Insert(
 
     auto db = small::rocks::RocksDBWrapper::GetInstance().value();
 
-    // get the table
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(
             request->table_name());

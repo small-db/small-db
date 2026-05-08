@@ -61,8 +61,6 @@
 
 namespace small::txn {
 
-// Wall-clock ms since epoch. Stamped on every BEGIN as the txn's
-// start_ts (snapshot for reads, initial floor for write_ts).
 static int64_t now_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
@@ -240,11 +238,8 @@ absl::Status Txn::Commit() {
     if (!db.ok()) return db.status();
     db.value()->SetTxnStatus(txn_id_, small::rocks::TxnStatus::COMMITTED,
                              write_ts_);
-    // Leave txn_id_/start_ts_/write_ts_ populated after the txn ends
-    // so callers (notably tests) can inspect the final write_ts that
-    // landed on disk. `active_ = false` is the source of truth for
-    // "this Txn is no longer driving statements"; Begin() resets the
-    // other fields when starting the next transaction.
+    // Leave txn_id_/start_ts_/write_ts_ set so callers can inspect the
+    // final write_ts after Commit; Begin() reinitializes them next time.
     active_ = false;
     return absl::OkStatus();
 }

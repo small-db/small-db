@@ -136,8 +136,6 @@ RocksDBWrapper* RocksDBWrapper::GetInstance(const std::string& db_path) {
     if (it != instances.end()) {
         return it->second;
     }
-
-    // Create a new instance if it doesn't exist
     instances[db_path] = new RocksDBWrapper(db_path);
     return instances[db_path];
 }
@@ -148,7 +146,6 @@ RocksDBWrapper::RocksDBWrapper(const std::string& db_path) {
     rocksdb::Options options;
     options.create_if_missing = true;
 
-    // Open database with column families
     rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db_);
     if (!status.ok()) {
         throw std::runtime_error("Failed to open RocksDB: " +
@@ -168,7 +165,6 @@ bool RocksDBWrapper::Delete(const std::string& key) {
 void RocksDBWrapper::WriteRow(
     const std::shared_ptr<small::schema::Table>& table, const std::string& pk,
     const std::vector<std::string>& values, int64_t ts) {
-    // Build JSON object from columns
     nlohmann::json obj;
     for (int i = 0; i < table->columns().size(); ++i) {
         obj[table->columns()[i].name()] = values[i];
@@ -196,15 +192,12 @@ int64_t RocksDBWrapper::LatestVersionTs(const std::string& table_name,
     read_options.prefix_same_as_start = true;
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
 
-    // Walk numeric version_ts entries; ignore the INTENT key (resolution
-    // for that lives in src/txn/).
     int64_t latest = 0;
     for (it->Seek(scan_prefix);
          it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
         std::string key = it->key().ToString();
         std::string suffix = key.substr(scan_prefix.length());
         if (suffix == kIntentSuffix) continue;
-        // Numeric suffix.
         try {
             int64_t ts = std::stoll(suffix);
             if (ts > latest) latest = ts;
@@ -350,9 +343,6 @@ RocksDBWrapper::ReadTableWithResolver(const std::string& table_name,
     rocksdb::ReadOptions read_options;
     read_options.prefix_same_as_start = true;
 
-    // Per pk, remember the largest visible version_ts we've seen and
-    // the columns it points to. A pk's slot only advances when a
-    // new candidate beats `entry.first`.
     std::map<std::string,
              std::pair<int64_t, std::map<std::string, std::string>>>
         best;

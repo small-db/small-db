@@ -14,39 +14,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 small-db is a distributed SQL database written in C++20. It supports PostgreSQL wire protocol, LIST-based partitioning across regions, gossip-based replication, and uses RocksDB for storage.
 
-## Environment Check
-
-Before building or running tests, verify toolchain, kernel modules, and versions with:
-
-```bash
-uv run ./scripts/setup/check-env.py
-```
-
-This is the authoritative source for required tools and their minimum versions (build, Jepsen, debugging, book). It also flags kernel-module conflicts (e.g. `kvm_amd` blocking VirtualBox). Run it first whenever something looks wrong with the environment.
-
-## Build Commands
-
-```bash
-# Install dependencies (first time only)
-./scripts/setup/install-deps.sh
-
-# Build (debug preset with clang-18 + Ninja)
-./scripts/setup/build.sh
-# Or manually:
-cmake --preset=debug && cmake --build ./build/debug
-
-# Run integration tests (starts 3 server instances, runs .sqltest files)
-./scripts/test/test.sh
-
-# Lint (cpplint with Google style)
-./scripts/format/lint.sh
-
-# Run the server
-./build/debug/src/server/server --sql-port 5001 --grpc-port 50001 --data-dir /tmp/us --region us --join ""
-```
-
-The test binary is at `./build/debug/test/integration_test/sql_test`. Tests fork 3 server processes (us/eu/asia regions on ports 5001-5003 and gRPC 50001-50003), then run SQL test cases from `test/integration_test/test.sqltest`.
-
 ## Architecture
 
 **Request flow:**
@@ -73,41 +40,63 @@ PostgreSQL client → pg_wire/ (wire protocol) → server/stmt_handler (routing)
 
 **Inter-server communication:** gRPC for catalog updates, insert/update forwarding to partition owners, and gossip replication. Protobuf definitions live alongside their modules (e.g., `src/gossip/gossip.proto`).
 
-## Build System Details
+## Build & Environment
 
-- CMake 3.28+ with Ninja generator, clang-18 compiler
-- Build preset `debug` outputs to `build/debug/`
-- Proto code generation uses `small_proto_target()` defined in `cmake/recipes/external/grpc.cmake`
-- Libraries follow `small::module` naming convention (e.g., `small::server`, `small::rocks`)
-- Third-party deps fetched via CMake's FetchContent; gRPC installed to `cmake/libs_install/`
-- Generated proto headers go to `CMAKE_BINARY_DIR` (build/debug/)
+**Environment check.** Before building or running tests, verify toolchain, kernel modules, and versions:
 
-## Code Style
+```bash
+uv run ./scripts/setup/check-env.py
+```
 
-**Tooling.** Google C++ style, 4-space indent, C++20. Enforced by clang-format, cpplint, and clang-tidy (100+ checks: bugprone, cert, modernize, …). Configs: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`.
+This is the authoritative source for required tools and their minimum versions (build, Jepsen, debugging, book). It also flags kernel-module conflicts (e.g. `kvm_amd` blocking VirtualBox). Run it first whenever something looks wrong with the environment.
 
-**Write for the caller's mental model.** That single idea drives everything below; bend the rules when the situation genuinely warrants.
+**Build, lint, run.**
 
-**Naming — describe what the caller sees, not the internal mechanism.**
-- Functions: name what the caller gets, not how. `latest_committed` over `read_for_writer`; `WaitUntilSafeToRead` over `WaitForClosedTs`.
-- Arguments: name what the value means at the call site. `snapshot_ts` over `min_ts`.
-- Types: name what the data is, not who consumes it. `CommittedRow` over `WriterPreimage`. For a two-field bundle with no natural noun, return `std::pair` instead of inventing one.
+```bash
+# Install dependencies (first time only)
+./scripts/setup/install-deps.sh
 
-**Comments — default to none.** A well-named identifier is its own documentation. Write one only when a careful reader would still miss something: a hidden constraint, a non-obvious failure mode, a subtle invariant.
+# Build (debug preset with clang-18 + Ninja)
+./scripts/setup/build.sh
 
-When a comment is warranted, it has up to three parts, each a single short sentence, separated by blank lines:
-1. What the API does, in the caller's vocabulary.
-2. What the caller can now rely on as a result (skip if obvious from #1).
-3. What `false` / `nullopt` / an error means (skip if not applicable).
+# Lint (cpplint + clang-format)
+./scripts/format/lint.sh
 
-If the contract won't fit that shape, tighten the signature before lengthening the prose.
+# Run the server
+./build/debug/src/server/server --sql-port 5001 --grpc-port 50001 --data-dir /tmp/us --region us --join ""
+```
 
-**Hard rules.**
-- No change history in comments ("replaces X", "previously did Y") — that's the commit message's job.
-- No enumeration of internal branches the public contract already covers — branch reasoning lives at the branch, not in the header.
+**Build system internals.**
+- CMake 3.28+ with Ninja generator, clang-18 compiler.
+- Build preset `debug` outputs to `build/debug/`.
+- Proto code generation uses `small_proto_target()` defined in `cmake/recipes/external/grpc.cmake`.
+- Libraries follow `small::module` naming convention (e.g., `small::server`, `small::rocks`).
+- Third-party deps fetched via CMake's FetchContent; gRPC installed to `cmake/libs_install/`.
+- Generated proto headers go to `CMAKE_BINARY_DIR` (`build/debug/`).
 
-**⭐ Exemplars.** Functions whose declaration + comment meet the bar above. Copy their shape when writing or revising a public API. Add to this list only when explicitly approved.
-- `small::closedts::InFlightRegistry::WaitUntilSafeToRead` — `src/closedts/registry.h`
+## Testing
+
+**Integration & unit tests.**
+
+```bash
+./scripts/test/test.sh
+```
+
+The integration test binary is at `./build/debug/test/integration_test/sql_test`. It forks 3 server processes (us/eu/asia regions on ports 5001-5003 and gRPC 50001-50003), then runs SQL test cases from `test/integration_test/test.sqltest`.
+
+**SQLTEST format.**
+
+```
+statement ok
+<SQL that should succeed>
+
+query <type_chars>
+<SQL query>
+----
+<expected tabular output>
+```
+
+Type characters: `T` for text columns. The framework validates column names, types, and row data.
 
 ## Jepsen Testing
 
@@ -156,19 +145,44 @@ A run can be referenced by timestamp directory directly (`small-db-jepsen/store/
 
 **VM details:** 3 nodes with private IPs (america=192.168.56.130, europe=192.168.56.120, asia=192.168.56.110). SSH: `ssh -i ~/.vagrant.d/insecure_private_key vagrant@<node>`. VMs managed from `small-db-jepsen/vagrant/`.
 
-## SQLTEST File Format
+## Code Style
 
-Tests use `.sqltest` files with this format:
-```
-statement ok
-<SQL that should succeed>
+**Tooling.** Google C++ style, 4-space indent, C++20. Enforced by clang-format, cpplint, and clang-tidy (100+ checks: bugprone, cert, modernize, …). Configs: `.clang-format`, `.clang-tidy`, `CPPLINT.cfg`.
 
-query <type_chars>
-<SQL query>
-----
-<expected tabular output>
-```
-Type characters: `T` for text columns. The test framework validates column names, types, and row data.
+**Guiding principle.** Write for the caller's mental model. That single idea drives everything below; bend the rules when the situation genuinely warrants.
+
+**Naming — describe what the caller sees, not the internal mechanism.**
+- Functions: name what the caller gets, not how. `latest_committed` over `read_for_writer`; `WaitUntilSafeToRead` over `WaitForClosedTs`.
+- Arguments: name what the value means at the call site. `snapshot_ts` over `min_ts`.
+- Types: name what the data is, not who consumes it. `CommittedRow` over `WriterPreimage`. For a two-field bundle with no natural noun, return `std::pair` instead of inventing one.
+
+**Comments — default to none.** A well-named identifier is its own documentation. Write one only when a careful reader would still miss something: a hidden constraint, a non-obvious failure mode, a subtle invariant.
+
+When a comment is warranted, scope-specific shape:
+- **Public API**: up to three short sentences (separated by blank lines) — what it does in the caller's vocabulary; what the caller can rely on (skip if obvious from the first); what `false`/`nullopt`/error means (skip if N/A). If the contract won't fit, tighten the signature before lengthening the prose.
+- **Class**: one or two sentences for the role.
+- **Field/member**: one short clause for what the name doesn't convey.
+
+**Hard rules.**
+- No change history in comments ("replaces X", "previously did Y") — that's the commit message's job.
+- No enumeration of internal branches the public contract already covers — branch reasoning lives at the branch, not in the header.
+
+**Cleanup anti-patterns** — delete or trim if any apply:
+- *Restates the code.* `// Pause so wall clock advances` above `sleep_for(50ms)` — no.
+- *Narrates the body.* Step-by-step prose mirroring each statement — no.
+- *Names APIs the field's name already implies.* `last_advertised_ts_` does NOT need `// Updated by WaitUntilSafeToRead`; the name implies an advertising API, readers can grep. State only what the name does NOT convey (e.g., `// monotonically increasing`).
+- *Uses internal jargon callers don't think in.* `// Returns the stored bound` — `stored bound` is the implementation, not the contract.
+- *Documents the obvious.* `// Returns true on success` on `IsValid()` — no.
+- *Enumerates callers or implementation paragraphs in class headers.* No bulleted caller list. No "Cleanup is lazy: …" paragraph.
+
+**Logic cleanup.**
+- *Duplicated scans/loops* → extract one helper, call from each.
+- *Unused public APIs* → delete. No "for future use."
+- *Test-only branches in production code* → delete.
+- *Test-only APIs on production classes* — no `ClearForTest`, no `friend class FooTest`. Use a separate test binary if isolation requires it.
+- *Half-finished implementations / TODO scaffolds* → finish or remove.
+- *Sentinel constants with one user* → fold inline.
+- *State that exists only to feed a comment* → delete the comment, then the state.
 
 ## Unit Test Style
 
@@ -199,7 +213,7 @@ Unit tests under `test/unit/` exercise internal C++ APIs but should read as if f
 - **Use small literal values for test-author-controlled parameters.** When only the relative ordering matters, prefer `2` over `1'000'000'000'000`. Magnitude theatre adds noise without adding signal.
 - **No test-only APIs on production classes.** Don't add methods like `ClearForTest()`, `ResetForTest()`, or `friend class FooTest` just to make a test work. APIs are designed for the architecture; if a member shouldn't be reachable by other modules it stays private, regardless of what tests need. When a test wants isolation the singleton can't provide, put it in its own test binary so the process boundary handles it (see `test/unit/closed_ts_register_test.cc`).
 
-## Adding Claude permission rules
+## Claude Permission Rules
 
 When adding entries to `.claude/settings.json`, avoid these two anti-patterns:
 

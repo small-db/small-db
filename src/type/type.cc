@@ -57,16 +57,6 @@ std::string to_string(Type type) {
     }
 }
 
-absl::StatusOr<Type> from_string(const std::string& type_name) {
-    if (type_name == "int") {
-        return Type::INT64;
-    } else if (type_name == "str") {
-        return Type::STRING;
-    } else {
-        return absl::InternalError("unknown type: " + type_name);
-    }
-}
-
 absl::StatusOr<Type> from_ast_string(const std::string& type_name) {
     if (type_name == "int4") {
         return Type::INT64;

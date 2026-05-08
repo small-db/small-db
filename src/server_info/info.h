@@ -65,18 +65,13 @@ void from_json(const nlohmann::json& j, ImmutableInfo& info);
 
 class ServerInfo {
    private:
-    // singleton instance - constructor protector
     ServerInfo();
-    // singleton instance - destructor protector
     ~ServerInfo();
 
     static ServerInfo* instance;
 
    public:
-    // singleton instance - copy blocker
     ServerInfo(const ServerInfo&) = delete;
-
-    // singleton instance - assignment blocker
     void operator=(const ServerInfo&) = delete;
 
     std::string db_path;
@@ -88,8 +83,6 @@ class ServerInfo {
     std::string grpc_addr;
 
     static absl::Status Init(const ImmutableInfo& args);
-
-    // singleton instance - get instance
     static absl::StatusOr<ServerInfo*> GetInstance();
 };
 

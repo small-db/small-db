@@ -41,10 +41,7 @@ namespace small::gossip {
 
 class GossipMessage {
    private:
-    // servers that already received the message
     std::set<std::string> recipient_ids;
-
-    // message content
     std::string message;
 
    public:
@@ -87,65 +84,38 @@ class Info {
     }
 };
 
-// Design:
-// - Each server own exactly one GossipServer instance.
-// - Every 3 seconds, the GossipServer randomly selects several peers to
-//   talk with.
-// - Each talk consists of 3 steps:
-//   1. Send the list of keys and the "latest-update" timestamp of each key to
-//      the peer.
-//   2. The peer responds with the keys that it has a version of as well as the
-//      "latest-update" timestamp and the value of each key.
-//   3. GossipServer updates its local store with the values received from the
-//      peer.
-//
-// Notes:
-// - At least one peer is needed to initiate the GossipServer. We don't use
-//   multicast and broadcast since they can only be used in LAN, and small-db
-//   are supposted to be use in WAN and LAN.
+// One per server. Every few seconds, picks a random peer and exchanges
+// (key, last-update-ts) pairs to converge the cluster's view.
 class GossipServer {
    private:
-    // singleton instance - the only instance
     static GossipServer* instance_ptr;
 
-    // singleton instance - protected constructor
-    //
-    // Initialize the GossipServer with self_info and seed_peer. If seed_peer
-    // is empty, the GossipServer will wait other peers passively.
+    // If `seed_peer` is empty, wait for other peers to initiate contact.
     explicit GossipServer(const small::server_info::ImmutableInfo& self_info,
                           const std::string& seed_peer);
 
-    // singleton instance - protected destructor
     ~GossipServer() = default;
 
-    // Add a node to the nodes list if not already present.
     void add_node(const small::server_info::ImmutableInfo& node);
 
    public:
-    // singleton instance - assignment-blocker
     void operator=(const GossipServer&) = delete;
-
-    // singleton instance - copy-blocker
     GossipServer(const GossipServer&) = delete;
 
-    // Store of all gossip entries.
     InfoStore store;
 
     small::server_info::ImmutableInfo self_info;
 
-    // Returns all known nodes in the cluster.
     std::vector<small::server_info::ImmutableInfo> get_nodes();
 
-    // singleton instance - init api
     static void init_instance(
         const small::server_info::ImmutableInfo& self_info,
         const std::string& seed_peer);
 
-    // singleton instance - get api
     static GossipServer* get_instance();
 
-    // Update the local store with the entries received from a peer, return
-    // the entries that are newer in self.
+    // Merge peer_entries into the local store. Returns entries this
+    // server has newer copies of (so the caller can ship them back).
     Entries update(const Entries& peer_entries);
 };
 

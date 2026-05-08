@@ -35,21 +35,8 @@ struct RowKeyHash {
     }
 };
 
-/**
- * @brief Per-process exclusive row-lock manager.
- *
- * Two-tier locking. The map is protected by its own short-lived mutex
- * `map_mu_`, used only to find or insert the per-row mutex. The per-row
- * mutex itself, held via shared_ptr, is what serializes the read-modify-
- * write of one row across concurrent UPDATE statements.
- *
- * Exclusive locks only -- there is no shared-lock variant. Readers go
- * through MVCC and never touch this manager.
- *
- * Map entries live for the lifetime of the process. A real workload would
- * eventually need a refcounted GC pass; for now the cardinality is bounded
- * by distinct (table, pk) pairs touched.
- */
+// Per-process exclusive row-lock manager. Exclusive locks only;
+// readers go through MVCC and don't acquire any.
 class LockManager {
    public:
     static LockManager* GetInstance();

@@ -57,14 +57,14 @@ class TxnServiceImpl final : public TxnService::Service {
 absl::StatusOr<ResolveIntentResponse> resolve_intent(
     const std::string& coordinator_addr, int64_t txn_id);
 
-// Latest committed row at (table, pk); nullopt if the row isn't on
-// this node. Caller must hold lock(table, pk). Aborts if a concurrent
-// writer's intent is still in flight.
 struct CommittedRow {
     std::map<std::string, std::string> values;
     int64_t version_ts;
 };
 
+// Latest committed row at (table, pk); nullopt if the row isn't on
+// this node. Caller must hold lock(table, pk). Aborts if a concurrent
+// writer's intent is still in flight.
 absl::StatusOr<std::optional<CommittedRow>> latest_committed(
     const std::string& table_name, const std::string& pk);
 

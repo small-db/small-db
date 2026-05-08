@@ -238,19 +238,14 @@ class CommandComplete : public ServerMessage {
     CommandComplete() = default;
 
     void encode(std::vector<char>& buffer) override {
-        // DataRow (B)
-
-        // identifier
         append_char(buffer, 'C');
 
         // message length (placeholder)
         int pre_bytes = small::util::narrow_cast<int>(buffer.size());
         append_int32(buffer, 0);
 
-        // command tag
         append_cstring(buffer, "SELECT 0");
 
-        // update the message length
         auto message_length =
             small::util::narrow_cast<int32_t>(buffer.size() - pre_bytes);
         write_int32(buffer, message_length, pre_bytes);
@@ -475,13 +470,6 @@ void send_error(int sockfd, const std::string& error_message) {
 
 constexpr int MAX_MESSAGE_LEN = 2048;
 
-uint32_t read_int32_chars(char* buffer) {
-    uint32_t network_value;
-    memcpy(&network_value, buffer, sizeof(network_value));
-    uint32_t value = ntohl(network_value);
-    return value;
-}
-
 // Returns the raw message bytes. Return empty string on client disconnect.
 std::string read_bytes(int sockfd) {
     char buffer[MAX_MESSAGE_LEN];
@@ -492,31 +480,25 @@ std::string read_bytes(int sockfd) {
             fmt::format("error receiving data: {}", strerror(errno));
         switch (errno) {
             case EWOULDBLOCK:
-                // Non-blocking socket operation would block
                 error_message += " (would block, try again later)";
                 break;
             case ECONNREFUSED:
                 error_message += " (connection refused)";
-                // Handle reconnection logic here
                 break;
             case ETIMEDOUT:
                 error_message += " (connection timed out)";
-                // Handle timeout logic here
                 break;
             case ENOTCONN:
                 error_message += " (socket is not connected)";
-                // Handle disconnection logic here
                 break;
             default:
                 error_message +=
                     " (recv() failed: " + std::string(strerror(errno)) + ")";
-                // Handle other errors
                 break;
         }
         throw std::runtime_error(error_message);
     }
 
-    // log in hex
     SPDLOG_INFO("received data in hex: {}",
                 spdlog::to_hex(buffer, buffer + bytes_received));
 
@@ -543,31 +525,27 @@ std::optional<StartupPacketType> read_startup_packet(int sockfd) {
     if (message.size() == 8 && read_int32(message, 4) == SSL_MAGIC_CODE) {
         return StartupPacketType::SSLRequest;
     } else {
-        // the first 4 bytes is length
-
-        // the next 4 bytes is version
+        // [0..4) length, [4..8) protocol version, then null-terminated
+        // key/value pairs until end of message.
         std::string version(message.begin() + 4, message.begin() + 8);
 
         std::unordered_map<std::string, std::string> recv_params;
-        // key and value are separated by '\x00'
-        int pos = 8;  // start after the version
+        int pos = 8;
         while (pos < message.size()) {
             std::string key;
             std::string value;
 
-            // Read key
             while (pos < message.size() && message[pos] != '\x00') {
                 key += message[pos];
                 pos++;
             }
-            pos++;  // skip the null character
+            pos++;
 
-            // Read value
             while (pos < message.size() && message[pos] != '\x00') {
                 value += message[pos];
                 pos++;
             }
-            pos++;  // skip the null character
+            pos++;
 
             if (!key.empty()) {
                 recv_params[key] = value;

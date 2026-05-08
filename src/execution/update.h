@@ -49,9 +49,8 @@ struct UpdateResult {
 };
 
 // Coordinator-side entry point. Fans out to every peer's UpdateService;
-// the row owner runs the intent path (lock, read latest, push if
-// needed, write intent). The caller is responsible for persisting any
-// push to /_txn/<txn_id> and for appending intent_key.
+// the row owner runs the intent path. The caller is responsible for
+// persisting any push to /_txn/<txn_id> and for appending intent_key.
 absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
                                     bool dispatch, int64_t write_ts,
                                     int64_t txn_id,

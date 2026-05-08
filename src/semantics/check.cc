@@ -23,15 +23,9 @@
 // third-party libraries
 // =====================================================================
 
-// magic_enum
-#include "magic_enum/magic_enum.hpp"
-
 // pg_query
 #include "pg_query.h"
 #include "pg_query.pb-c.h"
-
-// spdlog
-#include "spdlog/spdlog.h"
 
 // =====================================================================
 // self header
@@ -47,10 +41,6 @@ std::optional<std::string> is_string(PgQuery__Node* node) {
     } else {
         return std::nullopt;
     }
-}
-
-std::string node_type_str(PgQuery__Node* node) {
-    return std::string(magic_enum::enum_name(node->node_case));
 }
 
 }  // namespace semantics

@@ -73,7 +73,6 @@ CatalogManager* CatalogManager::GetInstance() {
 }
 
 CatalogManager::CatalogManager() {
-    // init table "system.tables"
     {
         auto system_tables = std::make_shared<small::schema::Table>();
         this->tables["system.tables"] = system_tables;
@@ -151,7 +150,6 @@ absl::Status CatalogManager::CreateTable(
 
 absl::Status CatalogManager::UpdateTable(
     const std::shared_ptr<small::schema::Table>& table, bool broadcast) {
-    // write to in-memory cache
     tables[table->name()] = table;
 
     // DDL is not threaded through a transaction coordinator; CREATE TABLE
@@ -161,19 +159,12 @@ absl::Status CatalogManager::UpdateTable(
                      std::chrono::system_clock::now().time_since_epoch())
                      .count();
 
-    // write to disk
     {
         std::vector<std::string> values;
-
-        // name
         values.push_back(table->name());
-
-        // columns
         values.push_back(nlohmann::json(table->columns()).dump());
-
         db->WriteRow(this->system_tables, table->name(), values, ts);
 
-        // partition
         if (table->has_partition()) {
             auto partition = table->partition();
             if (partition.has_list_partition()) {
@@ -181,24 +172,13 @@ absl::Status CatalogManager::UpdateTable(
                 for (const auto& [partition_name, partition_item] :
                      list_partition.partitions()) {
                     std::vector<std::string> values;
-
-                    // table_name
                     values.push_back(table->name());
-
-                    // partition_name
                     values.push_back(partition_name);
-
-                    // constraint
                     values.push_back(
                         nlohmann::json(partition_item.constraints()).dump());
-
-                    // column_name
                     values.push_back(list_partition.column_name());
-
-                    // partition values
                     values.push_back(
                         nlohmann::json(partition_item.values()).dump());
-
                     db->WriteRow(this->system_partitions, partition_name,
                                  values, ts);
                 }

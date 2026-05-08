@@ -84,13 +84,7 @@ std::shared_ptr<arrow::Schema> get_input_schema(
     return arrow::schema(fields);
 }
 
-/**
- * @brief Get the builders object.
- *
- * @param table
- * @return std::vector<std::shared_ptr<arrow::ArrayBuilder>> -
- *         order by column order in table
- */
+// Builders in the table's column order.
 std::vector<std::shared_ptr<arrow::ArrayBuilder>> get_builders(
     const std::shared_ptr<small::schema::Table>& table) {
     std::vector<std::shared_ptr<arrow::ArrayBuilder>> builders;
@@ -120,7 +114,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                 dispatch, snapshot_ts,
                 small::util::FormatTsMs(snapshot_ts));
 
-    // get the input schema
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!table_optional) {
@@ -235,13 +228,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
             snapshot_ts, small::util::FormatTsMs(snapshot_ts));
     }
 
-    // Read kv pairs at snapshot_ts, surfacing COMMITTED intents whose
-    // write_ts is <= snapshot_ts. The intent resolver RPCs each
-    // intent's coordinator under the hood.
     auto rows =
         small::txn::read_table_at_snapshot(table_name, snapshot_ts);
 
-    // filter rows based on WHERE clause
     if (select_stmt->where_clause != nullptr) {
         auto expr = select_stmt->where_clause->a_expr;
         auto filter_column =
@@ -260,7 +249,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         rows = filtered;
     }
 
-    // init builders
     auto builders = get_builders(table_optional.value());
 
     for (const auto& [pk, columns] : rows) {
@@ -311,15 +299,10 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
                     if (table_name == "system.tables" &&
                         column.name() == "columns") {
-                        // dedicate branch to modify the value for "columns"
-                        // column
-                        //
-                        // TODO: generalize this logic
-
+                        // TODO: generalize this branch.
                         // input:
                         // {"columns":[{"name":"id","type":"INT64","is_primary_key":true},{"name":"name","type":"STRING","is_primary_key":false},{"name":"balance","type":"INT64","is_primary_key":false},{"name":"country","type":"STRING","is_primary_key":false}]}
                         // output: int(PK), name:str, balance:int, country:str
-
                         std::vector<small::schema::Column> columns;
                         nlohmann::json::parse(string_value).get_to(columns);
 
@@ -330,20 +313,12 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
                         string_value = "";
                         for (int i = 0; i < columns.size(); i++) {
                             const auto& col = columns[i];
-
-                            // name
                             string_value += col.name();
-
-                            // type
                             string_value += ":";
                             string_value += small::type::to_string(col.type());
-
-                            // is_primary_key
                             if (col.is_primary_key()) {
                                 string_value += "(PK)";
                             }
-
-                            // comma
                             if (i != columns.size() - 1) {
                                 string_value += ", ";
                             }
@@ -372,7 +347,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
     arrow::ArrayVector columns;
     for (const auto& builder : builders) {
-        // SPDLOG_INFO("column_name: {}", column_name);
         auto result = builder->Finish();
         if (!result.ok()) {
             return absl::Status(
@@ -393,8 +367,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         arrow::RecordBatch::Make(input_schema, num_records, columns);
 
     std::vector<std::shared_ptr<arrow::Field>> output_fields;
-
-    // get result schema
     std::vector<std::shared_ptr<gandiva::Expression>> expressions;
     for (size_t t = 0; t < select_stmt->n_target_list; t++) {
         auto res_target = select_stmt->target_list[t]->res_target;
@@ -471,7 +443,6 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
 
     auto pool = arrow::default_memory_pool();
 
-    // log in_batch and input_schema
     SPDLOG_INFO("in_batch: {}", in_batch->ToString());
     SPDLOG_INFO("input_schema: {}", input_schema->ToString());
 
