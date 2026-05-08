@@ -33,7 +33,7 @@ namespace small::txn {
 // single-statement transaction (Begin before, Commit after). Explicit
 // BEGIN/COMMIT/ROLLBACK toggle the active flag between statements.
 class Txn {
- public:
+   public:
     Txn() = default;
 
     // Parse `sql` and run the first statement under this transaction.

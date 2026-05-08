@@ -78,9 +78,10 @@ TEST_F(TxnTestFixture, WriterAbortsOnActiveIntent) {
 
     auto info = small::server_info::get_info().value();
     db->WriteTxnRecord(kStaleTxnId,
-                       small::rocks::TxnRecord{
-                           small::rocks::TxnStatus::ACTIVE,
-                           /*start_ts=*/1, /*write_ts=*/1, {}});
+                       small::rocks::TxnRecord{small::rocks::TxnStatus::ACTIVE,
+                                               /*start_ts=*/1,
+                                               /*write_ts=*/1,
+                                               {}});
     auto table = small::catalog::CatalogManager::GetInstance()
                      ->GetTable(qualified_table)
                      .value();

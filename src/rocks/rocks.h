@@ -32,8 +32,9 @@
 // =====================================================================
 
 #include "absl/status/statusor.h"
-#include "nlohmann/json.hpp"
 #include "rocksdb/db.h"
+
+#include "nlohmann/json.hpp"
 
 // =====================================================================
 // small-db libraries
@@ -117,8 +118,8 @@ class RocksDBWrapper {
     // "/{table}/{pk}/{ts}", where `ts` is zero-padded to 20 digits so
     // lex order on the key suffix matches chronological order.
     void WriteRow(const std::shared_ptr<small::schema::Table>& table,
-                  const std::string& pk,
-                  const std::vector<std::string>& values, int64_t ts);
+                  const std::string& pk, const std::vector<std::string>& values,
+                  int64_t ts);
 
     // Largest committed `version_ts` on (table, pk), or 0 if no committed
     // version exists. Inspects only numeric-suffix keys; an unresolved
@@ -183,9 +184,9 @@ class RocksDBWrapper {
     // version AND delete the intent slot in one atomic write batch.
     // Caller MUST hold lock(table, pk) — the Delete is path-addressed
     // and would race with a concurrent slot mutation otherwise.
-    void PromoteIntent(const std::string& table_name,
-                           const std::string& pk, int64_t write_ts,
-                           const std::map<std::string, std::string>& values);
+    void PromoteIntent(const std::string& table_name, const std::string& pk,
+                       int64_t write_ts,
+                       const std::map<std::string, std::string>& values);
 
     // Latest visible MVCC version of every row in the table at
     // snapshot_ts. For each pk, picks the larger of (numeric

@@ -44,7 +44,7 @@ namespace small::txn {
 // owns the txn record (the coordinator_addr embedded in the intent),
 // not an arbitrary node; an RPC to the wrong server returns UNKNOWN.
 class TxnServiceImpl final : public TxnService::Service {
- public:
+   public:
     grpc::Status ResolveIntent(grpc::ServerContext* context,
                                const ResolveIntentRequest* request,
                                ResolveIntentResponse* response) override;

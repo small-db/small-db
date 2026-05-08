@@ -79,8 +79,7 @@ class LockManager {
     LockManager() = default;
 
     std::mutex map_mu_;
-    std::unordered_map<RowKey, std::shared_ptr<std::mutex>, RowKeyHash>
-        locks_;
+    std::unordered_map<RowKey, std::shared_ptr<std::mutex>, RowKeyHash> locks_;
 };
 
 }  // namespace small::lock

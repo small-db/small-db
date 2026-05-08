@@ -43,11 +43,10 @@
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
 #include "spdlog/spdlog.h"
+#include "src/util/narrow/narrow.h"
 
 #include "CLI/CLI.hpp"
 #include "nlohmann/json.hpp"
-
-#include "src/util/narrow/narrow.h"
 
 namespace fs = std::filesystem;
 

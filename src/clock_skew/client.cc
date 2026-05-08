@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <unistd.h>
-
 #include <array>
 #include <cerrno>
 #include <chrono>
@@ -33,12 +27,17 @@
 #include <utility>
 #include <vector>
 
-#include "CLI/CLI.hpp"
-#include "nlohmann/json.hpp"
 #include "spdlog/fmt/fmt.h"
-
 #include "src/clock_skew/wire.h"
 #include "src/util/narrow/narrow.h"
+
+#include "CLI/CLI.hpp"
+#include "nlohmann/json.hpp"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 namespace {
 
@@ -147,8 +146,8 @@ ProbeResult probe(const Target& target, int samples,
 
         uint64_t t1 = now_realtime_ns();
         req.client_send_ns = t1;
-        ssize_t s = sendto(sock, &req, sizeof(req), 0, res->ai_addr,
-                           res->ai_addrlen);
+        ssize_t s =
+            sendto(sock, &req, sizeof(req), 0, res->ai_addr, res->ai_addrlen);
         if (s != static_cast<ssize_t>(sizeof(req))) {
             continue;
         }
@@ -156,8 +155,8 @@ ProbeResult probe(const Target& target, int samples,
         std::array<char, 2048> buf{};
         ssize_t n = recvfrom(sock, buf.data(), buf.size(), 0, nullptr, nullptr);
         uint64_t t4 = now_realtime_ns();
-        if (n < static_cast<ssize_t>(
-                    sizeof(small::clock_skew::ResponseHeader))) {
+        if (n <
+            static_cast<ssize_t>(sizeof(small::clock_skew::ResponseHeader))) {
             continue;
         }
 
@@ -174,8 +173,8 @@ ProbeResult probe(const Target& target, int samples,
 
         auto t2 = static_cast<int64_t>(hdr.server_recv_ns);
         auto t3 = static_cast<int64_t>(hdr.server_send_ns);
-        int64_t rtt = (static_cast<int64_t>(t4) - static_cast<int64_t>(t1)) -
-                      (t3 - t2);
+        int64_t rtt =
+            (static_cast<int64_t>(t4) - static_cast<int64_t>(t1)) - (t3 - t2);
         int64_t offset = ((t2 - static_cast<int64_t>(t1)) +
                           (t3 - static_cast<int64_t>(t4))) /
                          2;
@@ -288,8 +287,7 @@ int main(int argc, char* argv[]) {
     app.add_option("--target", raw_targets,
                    "Probe target as name=host:port. Repeat for each peer.")
         ->required();
-    app.add_option("--samples", samples,
-                   "Probes per target (min RTT wins)")
+    app.add_option("--samples", samples, "Probes per target (min RTT wins)")
         ->capture_default_str();
     app.add_option("--recv-timeout-ms", recv_timeout_ms,
                    "Per-probe receive timeout")

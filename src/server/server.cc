@@ -218,22 +218,19 @@ bool handle_client_event(int sockfd) {
     auto state = SocketsManager::get_socket_state(sockfd);
     switch (state) {
         case SocketsManager::SocketState::StartUp: {
-            auto packet_type =
-                small::pg_wire::read_startup_packet(sockfd);
+            auto packet_type = small::pg_wire::read_startup_packet(sockfd);
             if (!packet_type.has_value()) return false;
 
             switch (packet_type.value()) {
                 case small::pg_wire::StartupPacketType::SSLRequest:
                     small::pg_wire::send_no_ssl_support(sockfd);
                     SocketsManager::set_socket_state(
-                        sockfd,
-                        SocketsManager::SocketState::NoSSLAcknowledged);
+                        sockfd, SocketsManager::SocketState::NoSSLAcknowledged);
                     return true;
                 case small::pg_wire::StartupPacketType::StartupMessage:
                     small::pg_wire::send_ready(sockfd);
                     SocketsManager::set_socket_state(
-                        sockfd,
-                        SocketsManager::SocketState::ReadyForQuery);
+                        sockfd, SocketsManager::SocketState::ReadyForQuery);
                     return true;
                 default:
                     SPDLOG_ERROR("unknown startup packet type: {}",
@@ -243,16 +240,14 @@ bool handle_client_event(int sockfd) {
         }
 
         case SocketsManager::SocketState::NoSSLAcknowledged: {
-            auto packet_type =
-                small::pg_wire::read_startup_packet(sockfd);
+            auto packet_type = small::pg_wire::read_startup_packet(sockfd);
             if (!packet_type.has_value()) return false;
 
             switch (packet_type.value()) {
                 case small::pg_wire::StartupPacketType::StartupMessage:
                     small::pg_wire::send_ready(sockfd);
                     SocketsManager::set_socket_state(
-                        sockfd,
-                        SocketsManager::SocketState::ReadyForQuery);
+                        sockfd, SocketsManager::SocketState::ReadyForQuery);
                     return true;
                 default:
                     SPDLOG_ERROR("unknown startup packet type: {}",
@@ -267,8 +262,7 @@ bool handle_client_event(int sockfd) {
 
             switch (message[0]) {
                 case 'Q': {
-                    int32_t query_len =
-                        read_int32_chars(message.data() + 1);
+                    int32_t query_len = read_int32_chars(message.data() + 1);
                     std::string command(message.data() + 5, query_len - 4);
                     handle_command(command, sockfd);
                     return true;

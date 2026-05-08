@@ -21,7 +21,6 @@
 #include <cstdint>
 
 #include "gtest/gtest.h"
-
 #include "src/closedts/registry.h"
 
 namespace {
@@ -33,8 +32,8 @@ TEST(InFlightRegistry, ClosedTsMonotonic) {
 
     // 1. Advertise `advertised` as safe against an empty registry.
     constexpr int64_t advertised = 2;
-    ASSERT_TRUE(registry->WaitUntilSafeToRead(
-        advertised, std::chrono::milliseconds(50)));
+    ASSERT_TRUE(registry->WaitUntilSafeToRead(advertised,
+                                              std::chrono::milliseconds(50)));
 
     // 2. Register a writer with a lower_bound below `advertised`.
     int64_t effective = registry->Register(777, 1, "");

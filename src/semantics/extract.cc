@@ -77,9 +77,9 @@ absl::StatusOr<std::string> a_const_to_string(PgQuery__AConst* c) {
         case PG_QUERY__A__CONST__VAL_SVAL:
             return std::string(c->sval->sval);
         default:
-            return absl::InvalidArgumentError(absl::StrFormat(
-                "unsupported A_Const value kind: %s",
-                magic_enum::enum_name(c->val_case)));
+            return absl::InvalidArgumentError(
+                absl::StrFormat("unsupported A_Const value kind: %s",
+                                magic_enum::enum_name(c->val_case)));
     }
 }
 

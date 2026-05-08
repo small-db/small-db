@@ -34,8 +34,7 @@ std::string RowPrefix(std::string_view table, std::string_view pk);
 // "/<table>/<pk>/<ts>" -- MVCC version key. `ts` is rendered as a
 // 20-digit zero-padded decimal so lex order on the suffix matches
 // chronological order.
-std::string VersionKey(std::string_view table, std::string_view pk,
-                       int64_t ts);
+std::string VersionKey(std::string_view table, std::string_view pk, int64_t ts);
 
 // "/<table>/<pk>/INTENT" -- unresolved intent slot.
 std::string IntentKey(std::string_view table, std::string_view pk);

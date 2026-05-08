@@ -33,8 +33,7 @@ LockManager::Lock LockManager::Acquire(const std::string& table,
         RowKey key{table, pk};
         auto it = locks_.find(key);
         if (it == locks_.end()) {
-            it = locks_.emplace(std::move(key),
-                                std::make_shared<std::mutex>())
+            it = locks_.emplace(std::move(key), std::make_shared<std::mutex>())
                      .first;
         }
         row_mu = it->second;

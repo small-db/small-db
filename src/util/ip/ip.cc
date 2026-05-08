@@ -44,7 +44,7 @@
 namespace small::util::ip {
 
 sockaddr_in str_to_sockaddr(const std::string& sql_addr) {
-    struct sockaddr_in addr{};
+    struct sockaddr_in addr {};
     std::memset(&addr, 0, sizeof(addr));  // Zero out the structure
 
     // Find the position of the colon (:) separating the IP and port

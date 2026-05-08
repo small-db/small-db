@@ -12,12 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/timex.h>
-#include <unistd.h>
-
 #include <array>
 #include <cerrno>
 #include <cstdint>
@@ -28,10 +22,15 @@
 #include <sstream>
 #include <string>
 
-#include "CLI/CLI.hpp"
 #include "spdlog/spdlog.h"
-
 #include "src/clock_skew/wire.h"
+
+#include "CLI/CLI.hpp"
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/timex.h>
+#include <unistd.h>
 
 namespace {
 
@@ -41,9 +40,8 @@ std::string read_file_trim(const std::string& path) {
     std::stringstream ss;
     ss << in.rdbuf();
     std::string s = ss.str();
-    while (!s.empty() &&
-           (s.back() == '\n' || s.back() == ' ' || s.back() == '\t' ||
-            s.back() == '\r')) {
+    while (!s.empty() && (s.back() == '\n' || s.back() == ' ' ||
+                          s.back() == '\t' || s.back() == '\r')) {
         s.pop_back();
     }
     return s;
@@ -102,14 +100,15 @@ void append_lp_string(std::string* buf, const std::string& s) {
 int main(int argc, char* argv[]) {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
-    CLI::App app{"clock_skew_server: tiny UDP daemon that answers with current "
-                 "wall-clock time + clocksource info"};
+    CLI::App app{
+        "clock_skew_server: tiny UDP daemon that answers with current "
+        "wall-clock time + clocksource info"};
     std::string bind_addr = "0.0.0.0";
     int bind_port = 12321;
-    app.add_option("--bind", bind_addr,
-                   "Bind address (default 0.0.0.0)")->capture_default_str();
-    app.add_option("--port", bind_port,
-                   "UDP port (default 12321)")->capture_default_str();
+    app.add_option("--bind", bind_addr, "Bind address (default 0.0.0.0)")
+        ->capture_default_str();
+    app.add_option("--port", bind_port, "UDP port (default 12321)")
+        ->capture_default_str();
     CLI11_PARSE(app, argc, argv);
 
     const std::string hostname = get_hostname();
@@ -177,9 +176,8 @@ int main(int argc, char* argv[]) {
         append_lp_string(&out, available_cs);
 
         uint64_t t_send = now_realtime_ns();
-        std::memcpy(out.data() +
-                        offsetof(small::clock_skew::ResponseHeader,
-                                 server_send_ns),
+        std::memcpy(out.data() + offsetof(small::clock_skew::ResponseHeader,
+                                          server_send_ns),
                     &t_send, sizeof(t_send));
 
         ssize_t s = sendto(sock, out.data(), out.size(), 0,

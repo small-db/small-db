@@ -44,9 +44,9 @@
 
 namespace small::txn {
 
-grpc::Status TxnServiceImpl::ResolveIntent(
-    grpc::ServerContext* context, const ResolveIntentRequest* request,
-    ResolveIntentResponse* response) {
+grpc::Status TxnServiceImpl::ResolveIntent(grpc::ServerContext* context,
+                                           const ResolveIntentRequest* request,
+                                           ResolveIntentResponse* response) {
     auto db_or = small::rocks::RocksDBWrapper::GetInstance();
     if (!db_or.ok()) {
         return {grpc::StatusCode::INTERNAL,
@@ -87,9 +87,9 @@ absl::StatusOr<ResolveIntentResponse> resolve_intent(
     ResolveIntentResponse response;
     auto status = stub->ResolveIntent(&context, request, &response);
     if (!status.ok()) {
-        return absl::InternalError(absl::StrFormat(
-            "ResolveIntent rpc to %s for txn_id=%d failed: %s",
-            coordinator_addr, txn_id, status.error_message()));
+        return absl::InternalError(
+            absl::StrFormat("ResolveIntent rpc to %s for txn_id=%d failed: %s",
+                            coordinator_addr, txn_id, status.error_message()));
     }
     return response;
 }
@@ -98,7 +98,7 @@ absl::StatusOr<ResolveIntentResponse> resolve_intent(
 // methods so the rocks layer stays network-free.
 static small::rocks::RocksDBWrapper::IntentResolver default_resolver() {
     return [](const small::rocks::IntentRow& intent)
-        -> absl::StatusOr<std::pair<bool, int64_t>> {
+               -> absl::StatusOr<std::pair<bool, int64_t>> {
         auto resp = resolve_intent(intent.coordinator_addr, intent.txn_id);
         if (!resp.ok()) return resp.status();
         if (resp->status() == ResolveIntentResponse::COMMITTED) {
@@ -156,9 +156,9 @@ absl::StatusOr<std::optional<CommittedRow>> latest_committed(
                 raw.latest_numeric_ts,
             }};
         case ResolveIntentResponse::ACTIVE:
-            return absl::AbortedError(absl::StrFormat(
-                "active intent on %s/%s for txn_id=%d; retry",
-                table_name, pk, raw.intent->txn_id));
+            return absl::AbortedError(
+                absl::StrFormat("active intent on %s/%s for txn_id=%d; retry",
+                                table_name, pk, raw.intent->txn_id));
         default:
             SPDLOG_ERROR(
                 "latest_committed: unknown ResolveIntent status {} for "

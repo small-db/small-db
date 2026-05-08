@@ -69,7 +69,7 @@ namespace small::test {
 // gossip, and every gRPC service the production code paths expect to
 // be reachable. Lazily initialized once per process.
 class InProcessNode {
- public:
+   public:
     static InProcessNode& Instance() {
         static InProcessNode node;
         return node;
@@ -128,7 +128,7 @@ class InProcessNode {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
- private:
+   private:
     InProcessNode() = default;
 
     static void AssertOk(const absl::Status& s) {
@@ -151,20 +151,19 @@ class InProcessNode {
 // users_<n> table seeded with (id=1, balance=100). Each test in a
 // suite gets its own table so state doesn't leak across tests.
 class TxnTestFixture : public ::testing::Test {
- protected:
+   protected:
     void SetUp() override {
         InProcessNode::Instance().EnsureStarted();
         unique_table_ = "users_" + std::to_string(++table_counter_);
 
         small::txn::Txn ddl;
-        ASSERT_TRUE(ddl.Execute(
-                          "CREATE TABLE " + unique_table_ +
-                          " (id INT PRIMARY KEY, balance INT) "
-                          "PARTITION BY LIST (id)")
+        ASSERT_TRUE(ddl.Execute("CREATE TABLE " + unique_table_ +
+                                " (id INT PRIMARY KEY, balance INT) "
+                                "PARTITION BY LIST (id)")
                         .ok());
-        ASSERT_TRUE(ddl.Execute(
-                          "CREATE TABLE " + unique_table_ + "_p PARTITION OF " +
-                          unique_table_ + " FOR VALUES IN (1, 2, 3)")
+        ASSERT_TRUE(ddl.Execute("CREATE TABLE " + unique_table_ +
+                                "_p PARTITION OF " + unique_table_ +
+                                " FOR VALUES IN (1, 2, 3)")
                         .ok());
 
         small::txn::Txn seed;

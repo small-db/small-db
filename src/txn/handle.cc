@@ -30,10 +30,11 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
-#include "magic_enum/magic_enum.hpp"
 #include "pg_query.h"
 #include "pg_query.pb-c.h"
 #include "spdlog/spdlog.h"
+
+#include "magic_enum/magic_enum.hpp"
 
 // =====================================================================
 // small-db libraries
@@ -220,8 +221,8 @@ absl::Status Txn::Begin() {
     if (!db.ok()) return db.status();
     db.value()->WriteTxnRecord(
         txn_id_,
-        small::rocks::TxnRecord{small::rocks::TxnStatus::ACTIVE, start_ts_,
-                                write_ts_, {}});
+        small::rocks::TxnRecord{
+            small::rocks::TxnStatus::ACTIVE, start_ts_, write_ts_, {}});
     SPDLOG_INFO("begin_txn: txn_id={} start_ts={} ({})", txn_id_, start_ts_,
                 small::util::FormatTsMs(start_ts_));
     return absl::OkStatus();
@@ -269,8 +270,7 @@ static absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> run_with_txn(
     }
     auto result = body();
     if (implicit) {
-        auto commit_status =
-            result.ok() ? txn.Commit() : txn.Rollback();
+        auto commit_status = result.ok() ? txn.Commit() : txn.Rollback();
         if (!commit_status.ok()) return commit_status;
     }
     return result;
@@ -330,8 +330,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::ExecuteNode(
                     auto db = small::rocks::RocksDBWrapper::GetInstance();
                     if (!db.ok()) return db.status();
                     auto result = small::execution::update(
-                        stmt->update_stmt, true, write_ts_,
-                        txn_id_, info.value()->grpc_addr);
+                        stmt->update_stmt, true, write_ts_, txn_id_,
+                        info.value()->grpc_addr);
                     if (!result.ok()) return result.status();
                     if (result->final_write_ts > write_ts_) {
                         write_ts_ = result->final_write_ts;
@@ -345,8 +345,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::ExecuteNode(
             return run_with_txn(
                 *this,
                 [&]() -> absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> {
-                    auto status = small::execution::insert(stmt->insert_stmt,
-                                                           start_ts_);
+                    auto status =
+                        small::execution::insert(stmt->insert_stmt, start_ts_);
                     if (!status.ok()) return status;
                     return EmptyBatch();
                 });
@@ -363,8 +363,8 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::ExecuteNode(
 absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> Txn::Execute(
     std::string_view sql) {
     std::string sql_str(sql);
-    PgQueryProtobufParseResult parsed = pg_query_parse_protobuf_opts(
-        sql_str.c_str(), PG_QUERY_PARSE_DEFAULT);
+    PgQueryProtobufParseResult parsed =
+        pg_query_parse_protobuf_opts(sql_str.c_str(), PG_QUERY_PARSE_DEFAULT);
     if (parsed.error != nullptr) {
         std::string msg = parsed.error->message;
         pg_query_free_protobuf_parse_result(parsed);

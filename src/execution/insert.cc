@@ -65,8 +65,7 @@
 namespace small::execution {
 
 absl::Status insert(PgQuery__InsertStmt* insert_stmt, int64_t ts) {
-    auto table_name =
-        small::schema::resolve_table_name(insert_stmt->relation);
+    auto table_name = small::schema::resolve_table_name(insert_stmt->relation);
     auto result =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
     if (!result) {

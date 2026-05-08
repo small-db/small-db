@@ -203,9 +203,8 @@ class DataRowResponse : public ServerMessage {
             append_int32(buffer, 0);
 
             // number of columns
-            append_int16(buffer,
-                         small::util::narrow_cast<int16_t>(
-                             batch->num_columns()));
+            append_int16(buffer, small::util::narrow_cast<int16_t>(
+                                     batch->num_columns()));
 
             for (int j = 0; j < batch->num_columns(); ++j) {
                 std::string cell;
@@ -518,7 +517,7 @@ std::optional<StartupPacketType> read_startup_packet(int sockfd) {
     std::string message = read_bytes(sockfd);
     if (message.size() < 8) {
         SPDLOG_INFO("startup packet too short: {} bytes (fd={})",
-                     message.size(), sockfd);
+                    message.size(), sockfd);
         return std::nullopt;
     }
 

@@ -16,8 +16,8 @@
 // c++ std
 // =====================================================================
 
-#include <csignal>
 #include <algorithm>
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>

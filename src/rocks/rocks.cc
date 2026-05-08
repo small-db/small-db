@@ -56,9 +56,8 @@
 // self header
 // =====================================================================
 
-#include "src/rocks/rocks.h"
-
 #include "src/rocks/keys.h"
+#include "src/rocks/rocks.h"
 
 namespace small::rocks {
 
@@ -307,8 +306,7 @@ RocksDBWrapper::LatestRowRaw RocksDBWrapper::ReadLatestRaw(
     LatestRowRaw out;
     for (it->Seek(scan_prefix);
          it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
-        std::string suffix =
-            it->key().ToString().substr(scan_prefix.length());
+        std::string suffix = it->key().ToString().substr(scan_prefix.length());
         std::string raw = it->value().ToString();
 
         if (suffix == kIntentSuffix) {
@@ -413,8 +411,7 @@ RocksDBWrapper::ReadLatestWithResolver(const std::string& table_name,
     std::unique_ptr<rocksdb::Iterator> it(db_->NewIterator(read_options));
     for (it->Seek(scan_prefix);
          it->Valid() && it->key().starts_with(scan_prefix); it->Next()) {
-        std::string suffix =
-            it->key().ToString().substr(scan_prefix.length());
+        std::string suffix = it->key().ToString().substr(scan_prefix.length());
         std::string raw = it->value().ToString();
 
         if (suffix == kIntentSuffix) {

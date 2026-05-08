@@ -112,8 +112,8 @@ static absl::StatusOr<std::vector<std::string>> apply_set_clause(
             auto expr = val_node->a_expr;
             auto op = std::string(expr->name[0]->string->sval);
 
-            auto ref_column = std::string(
-                expr->lexpr->column_ref->fields[0]->string->sval);
+            auto ref_column =
+                std::string(expr->lexpr->column_ref->fields[0]->string->sval);
             auto current_encoded = updated.at(ref_column);
 
             small::type::Type col_type = small::type::Type::STRING;
@@ -124,8 +124,7 @@ static absl::StatusOr<std::vector<std::string>> apply_set_clause(
                 }
             }
 
-            auto current_datum =
-                small::type::decode(current_encoded, col_type);
+            auto current_datum = small::type::decode(current_encoded, col_type);
             auto const_datum =
                 small::semantics::extract_const(expr->rexpr->a_const).value();
 
@@ -245,11 +244,10 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
 
     if (pre.version_ts >= out.final_write_ts) {
         out.final_write_ts = pre.version_ts + 1;
-        SPDLOG_INFO(
-            "update push: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
-            txn_id, table_name, pk, write_ts,
-            small::util::FormatTsMs(write_ts), out.final_write_ts,
-            small::util::FormatTsMs(out.final_write_ts));
+        SPDLOG_INFO("update push: txn_id={} {}/{} write_ts {} ({}) -> {} ({})",
+                    txn_id, table_name, pk, write_ts,
+                    small::util::FormatTsMs(write_ts), out.final_write_ts,
+                    small::util::FormatTsMs(out.final_write_ts));
     }
 
     auto values_or = apply_set_clause(update_stmt, table, pre.values);
@@ -289,9 +287,8 @@ grpc::Status UpdateServiceImpl::Update(
         nullptr, request->packed_node().size(),
         reinterpret_cast<const uint8_t*>(request->packed_node().data()));
 
-    auto result =
-        update(node, /*dispatch=*/false, request->ts(), request->txn_id(),
-               request->coordinator_addr());
+    auto result = update(node, /*dispatch=*/false, request->ts(),
+                         request->txn_id(), request->coordinator_addr());
     pg_query__update_stmt__free_unpacked(node, nullptr);
 
     if (!result.ok()) {

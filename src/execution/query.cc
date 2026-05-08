@@ -56,11 +56,11 @@
 // =====================================================================
 
 #include "src/catalog/catalog.h"
+#include "src/closedts/registry.h"
 #include "src/gossip/gossip.h"
 #include "src/rocks/rocks.h"
 #include "src/schema/const.h"
 #include "src/semantics/extract.h"
-#include "src/closedts/registry.h"
 #include "src/server_info/info.h"
 #include "src/txn/txn.h"
 #include "src/type/type.h"
@@ -111,8 +111,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
         select_stmt->from_clause[0]->range_var);
 
     SPDLOG_INFO("query: table={} dispatch={} snapshot_ts={} ({})", table_name,
-                dispatch, snapshot_ts,
-                small::util::FormatTsMs(snapshot_ts));
+                dispatch, snapshot_ts, small::util::FormatTsMs(snapshot_ts));
 
     auto table_optional =
         small::catalog::CatalogManager::GetInstance()->GetTable(table_name);
@@ -125,8 +124,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     // just the rows owned by this node. System / non-partitioned tables are
     // replicated identically on every node, so fall through to local execution.
     if (dispatch && table_optional.value()->partition().has_list_partition()) {
-        size_t packed_len =
-            pg_query__select_stmt__get_packed_size(select_stmt);
+        size_t packed_len = pg_query__select_stmt__get_packed_size(select_stmt);
         std::vector<uint8_t> packed(packed_len);
         pg_query__select_stmt__pack(select_stmt, packed.data());
 
@@ -146,9 +144,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
             small::execution::QueryResponse response;
             auto status = stub->Query(&context, request, &response);
             if (!status.ok()) {
-                return absl::InternalError(fmt::format(
-                    "failed to query server {}: {}", server.grpc_addr,
-                    status.error_message()));
+                return absl::InternalError(
+                    fmt::format("failed to query server {}: {}",
+                                server.grpc_addr, status.error_message()));
             }
 
             // Move the IPC bytes into an owning Buffer; otherwise the
@@ -161,10 +159,9 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
             auto reader_result =
                 arrow::ipc::RecordBatchStreamReader::Open(reader_input);
             if (!reader_result.ok()) {
-                return absl::InternalError(
-                    fmt::format("failed to open IPC reader from {}: {}",
-                                server.grpc_addr,
-                                reader_result.status().ToString()));
+                return absl::InternalError(fmt::format(
+                    "failed to open IPC reader from {}: {}", server.grpc_addr,
+                    reader_result.status().ToString()));
             }
             auto reader = reader_result.ValueOrDie();
             std::shared_ptr<arrow::RecordBatch> batch;
@@ -228,8 +225,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
             snapshot_ts, small::util::FormatTsMs(snapshot_ts));
     }
 
-    auto rows =
-        small::txn::read_table_at_snapshot(table_name, snapshot_ts);
+    auto rows = small::txn::read_table_at_snapshot(table_name, snapshot_ts);
 
     if (select_stmt->where_clause != nullptr) {
         auto expr = select_stmt->where_clause->a_expr;
@@ -481,14 +477,12 @@ grpc::Status QueryServiceImpl::Query(
 
     auto sink_result = arrow::io::BufferOutputStream::Create();
     if (!sink_result.ok()) {
-        return {grpc::StatusCode::INTERNAL,
-                sink_result.status().ToString()};
+        return {grpc::StatusCode::INTERNAL, sink_result.status().ToString()};
     }
     auto sink = sink_result.ValueOrDie();
     auto writer_result = arrow::ipc::MakeStreamWriter(sink, batch->schema());
     if (!writer_result.ok()) {
-        return {grpc::StatusCode::INTERNAL,
-                writer_result.status().ToString()};
+        return {grpc::StatusCode::INTERNAL, writer_result.status().ToString()};
     }
     auto writer = writer_result.ValueOrDie();
     auto write_status = writer->WriteRecordBatch(*batch);
@@ -502,8 +496,7 @@ grpc::Status QueryServiceImpl::Query(
 
     auto buffer_result = sink->Finish();
     if (!buffer_result.ok()) {
-        return {grpc::StatusCode::INTERNAL,
-                buffer_result.status().ToString()};
+        return {grpc::StatusCode::INTERNAL, buffer_result.status().ToString()};
     }
     auto buffer = buffer_result.ValueOrDie();
     response->set_ipc_bytes(buffer->data(), buffer->size());
