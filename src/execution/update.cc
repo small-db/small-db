@@ -259,10 +259,10 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
     // intent goes to disk. Register returns the *effective* lower_bound
     // -- if T_closed on this node has already advanced past our
     // requested write_ts, the registry bumps us up to T_closed + 1 to
-    // preserve the protocol invariant (every writer's commit_ts must be
-    // > T_closed observed at register time on every node it touches).
-    // We propagate the bumped value back to the coordinator via
-    // out.final_write_ts so Txn::Commit stamps the correct value.
+    // preserve the protocol invariant (every writer's final write_ts
+    // must be > T_closed observed at register time on every node it
+    // touches). We propagate the bumped value back to the coordinator
+    // via out.final_write_ts so Txn::Commit stamps the correct value.
     int64_t effective_lb =
         small::closedts::InFlightRegistry::GetInstance()->Register(
             txn_id, out.final_write_ts, coordinator_addr);

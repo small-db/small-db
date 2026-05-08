@@ -70,8 +70,8 @@ absl::StatusOr<std::optional<CommittedRow>> latest_committed(
 
 // Intent-aware read of an entire table at a snapshot. For each pk,
 // surfaces the largest of (numeric latest committed version_ts <=
-// snapshot_ts) and (commit_ts of an unresolved INTENT for a COMMITTED
-// txn whose commit_ts <= snapshot_ts). RPCs each intent's coordinator
+// snapshot_ts) and (write_ts of an unresolved INTENT for a COMMITTED
+// txn whose write_ts <= snapshot_ts). RPCs each intent's coordinator
 // to resolve.
 std::map<std::string, std::map<std::string, std::string>>
 read_table_at_snapshot(const std::string& table_name, int64_t snapshot_ts);

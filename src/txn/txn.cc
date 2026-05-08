@@ -58,7 +58,7 @@ grpc::Status TxnServiceImpl::ResolveIntent(
         // No record on this server -- intent is orphaned, or the caller
         // RPC'd the wrong coordinator. Either way, ABORTED-equivalent.
         response->set_status(ResolveIntentResponse::UNKNOWN);
-        response->set_commit_ts(0);
+        response->set_write_ts(0);
         return grpc::Status::OK;
     }
     switch (record->status) {
@@ -67,9 +67,7 @@ grpc::Status TxnServiceImpl::ResolveIntent(
             break;
         case small::rocks::TxnStatus::COMMITTED:
             response->set_status(ResolveIntentResponse::COMMITTED);
-            // record->write_ts is the txn's final commit timestamp now
-            // that status is COMMITTED.
-            response->set_commit_ts(record->write_ts);
+            response->set_write_ts(record->write_ts);
             break;
         case small::rocks::TxnStatus::ABORTED:
             response->set_status(ResolveIntentResponse::ABORTED);
@@ -104,7 +102,7 @@ static small::rocks::RocksDBWrapper::IntentResolver default_resolver() {
         auto resp = resolve_intent(intent.coordinator_addr, intent.txn_id);
         if (!resp.ok()) return resp.status();
         if (resp->status() == ResolveIntentResponse::COMMITTED) {
-            return std::make_pair(true, resp->commit_ts());
+            return std::make_pair(true, resp->write_ts());
         }
         return std::make_pair(false, int64_t{0});
     };
@@ -135,12 +133,12 @@ absl::StatusOr<std::optional<CommittedRow>> latest_committed(
 
     switch (resp.status()) {
         case ResolveIntentResponse::COMMITTED: {
-            int64_t commit_ts = resp.commit_ts();
-            db->PromoteIntent(table_name, pk, commit_ts, raw.intent->values);
-            if (commit_ts >= raw.latest_numeric_ts) {
+            int64_t write_ts = resp.write_ts();
+            db->PromoteIntent(table_name, pk, write_ts, raw.intent->values);
+            if (write_ts >= raw.latest_numeric_ts) {
                 return std::optional<CommittedRow>{CommittedRow{
                     raw.intent->values,
-                    commit_ts,
+                    write_ts,
                 }};
             }
             return std::optional<CommittedRow>{CommittedRow{

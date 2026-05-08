@@ -375,11 +375,11 @@ RocksDBWrapper::ReadTableWithResolver(const std::string& table_name,
             if (!resolved.ok()) continue;
             auto pair = resolved.value();
             if (!pair.first) continue;
-            int64_t commit_ts = pair.second;
-            if (commit_ts > snapshot_ts) continue;
+            int64_t write_ts = pair.second;
+            if (write_ts > snapshot_ts) continue;
             auto& entry = best[pk];
-            if (commit_ts > entry.first) {
-                entry = {commit_ts, intent.values};
+            if (write_ts > entry.first) {
+                entry = {write_ts, intent.values};
             }
             continue;
         }
@@ -433,9 +433,9 @@ RocksDBWrapper::ReadLatestWithResolver(const std::string& table_name,
             if (!resolved.ok()) continue;
             auto pair = resolved.value();
             if (!pair.first) continue;
-            int64_t commit_ts = pair.second;
-            if (commit_ts > best_ts) {
-                best_ts = commit_ts;
+            int64_t write_ts = pair.second;
+            if (write_ts > best_ts) {
+                best_ts = write_ts;
                 best_value = intent.values;
             }
             continue;
@@ -461,11 +461,11 @@ RocksDBWrapper::ReadLatestWithResolver(const std::string& table_name,
 }
 
 void RocksDBWrapper::PromoteIntent(
-    const std::string& table_name, const std::string& pk, int64_t commit_ts,
+    const std::string& table_name, const std::string& pk, int64_t write_ts,
     const std::map<std::string, std::string>& values) {
     rocksdb::WriteBatch batch;
     nlohmann::json obj = values;
-    batch.Put(VersionKey(table_name, pk, commit_ts), obj.dump());
+    batch.Put(VersionKey(table_name, pk, write_ts), obj.dump());
     batch.Delete(IntentKey(table_name, pk));
     auto status = db_->Write(rocksdb::WriteOptions(), &batch);
     if (!status.ok()) {

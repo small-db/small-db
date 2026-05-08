@@ -244,13 +244,13 @@ class RocksDBWrapper {
                                const std::string& pk);
 
     /**
-     * @brief Callback that resolves an intent into (is_committed, commit_ts).
+     * @brief Callback that resolves an intent into (is_committed, write_ts).
      *
-     * Returned commit_ts is meaningful only when is_committed is true; it
-     * is the resolved txn's final commit timestamp (the txn record's
-     * write_ts post-COMMIT). Used by the With-Resolver read variants to
-     * delegate intent resolution out of this network-free layer; the
-     * wrapper supplied by src/txn/ implements the gRPC RPC under the hood.
+     * Returned write_ts is meaningful only when is_committed is true; it
+     * is the resolved txn's finalized write_ts (post-COMMIT). Used by
+     * the With-Resolver read variants to delegate intent resolution out
+     * of this network-free layer; the wrapper supplied by src/txn/
+     * implements the gRPC RPC under the hood.
      */
     using IntentResolver =
         std::function<absl::StatusOr<std::pair<bool, int64_t>>(
@@ -266,18 +266,18 @@ class RocksDBWrapper {
      * mutation if no lock were held.
      */
     void PromoteIntent(const std::string& table_name,
-                           const std::string& pk, int64_t commit_ts,
+                           const std::string& pk, int64_t write_ts,
                            const std::map<std::string, std::string>& values);
 
     /**
      * @brief Reads the latest visible MVCC version of every row in a
-     *        table, surfacing COMMITTED intents whose commit_ts is
+     *        table, surfacing COMMITTED intents whose write_ts is
      *        <= snapshot_ts.
      *
      * Scans keys with the prefix "/{table_name}/". For each primary key,
      * picks the lex-largest visible source of truth: the largest numeric
-     * `version_ts <= snapshot_ts`, OR the resolved `commit_ts` of an
-     * INTENT (if its txn is COMMITTED and commit_ts <= snapshot_ts),
+     * `version_ts <= snapshot_ts`, OR the resolved `write_ts` of an
+     * INTENT (if its txn is COMMITTED and write_ts <= snapshot_ts),
      * whichever is larger.
      *
      * @param table_name  Schema-qualified table name (e.g. "system.tables").
@@ -293,7 +293,7 @@ class RocksDBWrapper {
 
     /**
      * @brief Reads the most recent committed version of a single row,
-     *        surfacing a COMMITTED intent if its commit_ts is greater
+     *        surfacing a COMMITTED intent if its write_ts is greater
      *        than the largest numeric version_ts on the row.
      *
      * Used by writers in their pre-image read: a COMMITTED intent left

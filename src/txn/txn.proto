@@ -22,7 +22,7 @@ message ResolveIntentResponse {
     UNKNOWN = 0;
     // In flight; coordinator has not decided yet.
     ACTIVE = 1;
-    // Finalized; commit_ts is authoritative for every intent this txn
+    // Finalized; write_ts is authoritative for every intent this txn
     // wrote.
     COMMITTED = 2;
     // Coordinator rolled back.
@@ -30,5 +30,5 @@ message ResolveIntentResponse {
   }
   Status status = 1;
   // Valid iff status == COMMITTED.
-  int64 commit_ts = 2;
+  int64 write_ts = 2;
 }

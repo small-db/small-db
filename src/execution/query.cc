@@ -222,7 +222,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     // closes the cross-shard partial-read race traced in
     // small-db-book/src/distributed_database/closed_timestamps.md --
     // the wait guarantees no in-flight writer with eventual
-    // commit_ts <= snapshot_ts will appear on this node after we
+    // write_ts <= snapshot_ts will appear on this node after we
     // start scanning.
     constexpr auto kClosedTsTimeout = std::chrono::seconds(2);
     bool closed_ok =
@@ -236,7 +236,7 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     }
 
     // Read kv pairs at snapshot_ts, surfacing COMMITTED intents whose
-    // commit_ts is <= snapshot_ts. The intent resolver RPCs each
+    // write_ts is <= snapshot_ts. The intent resolver RPCs each
     // intent's coordinator under the hood.
     auto rows =
         small::txn::read_table_at_snapshot(table_name, snapshot_ts);

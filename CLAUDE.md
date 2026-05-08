@@ -156,7 +156,7 @@ A run can be referenced by timestamp directory directly (`small-db-jepsen/store/
 
 **VM details:** 3 nodes with private IPs (america=192.168.56.130, europe=192.168.56.120, asia=192.168.56.110). SSH: `ssh -i ~/.vagrant.d/insecure_private_key vagrant@<node>`. VMs managed from `small-db-jepsen/vagrant/`.
 
-## Test Format
+## SQLTEST File Format
 
 Tests use `.sqltest` files with this format:
 ```
@@ -190,8 +190,14 @@ Unit tests under `test/unit/` exercise internal C++ APIs but should read as if f
    ASSERT_TRUE(writer.Commit().ok());
    expect_balance("200", "committed write must be visible");
    ```
-- **Every EXPECT/ASSERT carries a "why" message** stating the invariant in user-perspective language. The message appears on test failure and is the first thing a maintainer reads — make it state the rule, not the literal expected value.
+- **Every EXPECT/ASSERT carries a "why" message** stating the invariant in user-perspective language. The message appears on test failure and is the first thing a maintainer reads — make it state the rule, not the literal expected value (gtest already prints actual vs. expected).
 - **Keep the test body short.** Push environment setup into the fixture (`TxnTestFixture`), repeated checks into helpers. A single-behavior test should fit on one screen.
+- **Test name is concise.** 1–4 words, matching peers in the file (`WaitForWriterCommit`, `ClosedTsMonotonic`). Long noun-phrase names (`RegisterCannotRegressBelowAdvertisedClosedTs`) read as a sentence and clutter test output.
+- **Lead comment states the invariant in one or two sentences.** Not a step-by-step narration of the body. The invariant is the rule; the body demonstrates it. Yes: `// T_closed is monotonic: a writer registering after a snapshot ts has been advertised as safe must commit strictly above it.` No: `// Reader observes "safe at ts = advertised" against an empty registry. The fast path returns immediately because ComputedClosedTs() == +infinity. Then a writer arrives with a low lower_bound...`
+- **Body is structured as numbered steps** (`// 1.`, `// 2.`, …) describing each phase. Step comments describe the phase, not the next line of code. Don't restate what the code already shows; if a step would just paraphrase the EXPECT message, drop the comment.
+- **No inline argument-name comments.** `Register(777, 1, "")` — not `Register(/*txn_id=*/777, /*lower_bound=*/1, /*coordinator_addr=*/"")`. The IDE shows them; comments duplicate.
+- **Use small literal values for test-author-controlled parameters.** When only the relative ordering matters, prefer `2` over `1'000'000'000'000`. Magnitude theatre adds noise without adding signal.
+- **No test-only APIs on production classes.** Don't add methods like `ClearForTest()`, `ResetForTest()`, or `friend class FooTest` just to make a test work. APIs are designed for the architecture; if a member shouldn't be reachable by other modules it stays private, regardless of what tests need. When a test wants isolation the singleton can't provide, put it in its own test binary so the process boundary handles it (see `test/unit/closed_ts_register_test.cc`).
 
 ## Adding Claude permission rules
 

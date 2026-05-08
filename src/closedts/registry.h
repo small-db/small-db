@@ -15,7 +15,6 @@
 #pragma once
 
 #include <chrono>
-#include <climits>
 #include <cstdint>
 #include <map>
 #include <mutex>
@@ -23,59 +22,25 @@
 
 namespace small::closedts {
 
-// Sentinel for an empty registry. Treats as "everything is settled,
-// advance freely."
-constexpr int64_t kClosedTsUnbounded = INT64_MAX;
-
-// Per-node registry of writers that have written intents on this node
-// and haven't been observed in a terminal (COMMITTED / ABORTED) state.
-// The closed timestamp on this node is `min(lower_bound) - 1` over the
-// registry, or `kClosedTsUnbounded` if empty.
-//
-// Callers:
-//   - WriteIntent path (src/execution/update.cc) calls `Register` when
-//     a writer first stages an intent on this node.
-//   - SELECT path (src/execution/query.cc) calls `WaitUntilSafeToRead`
-//     before scanning, to gate the scan on a settled snapshot.
-//
-// Cleanup is lazy: `WaitUntilSafeToRead` refreshes by RPC'ing each
-// registered writer's coordinator (`ResolveIntent`) and dropping
-// entries whose status is no longer ACTIVE. There is no explicit
-// `Deregister` from coordinators in this v0 -- a future revision may
-// add one as a fast-path optimization.
+// Per-node registry of in-flight writers, gating the local closed
+// timestamp.
 class InFlightRegistry {
    public:
     // Process-wide singleton.
     static InFlightRegistry* GetInstance();
 
-    // Register a writer that has just staged an intent on this node.
-    //
-    // The protocol invariant -- "every writer's commit_ts > T_closed
-    // at register time" -- requires that the writer's lower_bound be
-    // strictly greater than T_closed (= min(lower_bound) - 1) on this
-    // node. If the requested lower_bound would violate that (the writer
-    // arrived after T_closed has already advanced past it), the
-    // registry bumps the entry to the smallest valid value -- i.e.,
-    // the current min lower_bound, which is T_closed + 1.
-    //
-    // Returns the **effective** lower_bound the registry stored. If
-    // the return value is greater than the requested value, the writer
-    // was bumped; the caller MUST propagate the new value back to the
-    // coordinator's write_ts (otherwise the writer could later commit
-    // at a ts <= T_closed, breaking the closed-ts gate for any reader
-    // that's already passed).
-    //
-    // Idempotent: re-registering the same txn_id never decreases its
-    // stored lower_bound; the existing value is kept if it's already
-    // >= the new effective value.
-    int64_t Register(int64_t txn_id, int64_t lower_bound,
+    // Register a writer's write_ts on this node. Returns the resulting
+    // write_ts, bumped above the last advertised closed timestamp if the
+    // provided value is at or below it.
+    int64_t Register(int64_t txn_id, int64_t write_ts,
                      const std::string& coordinator_addr);
 
     // Wait until all writes at or before `snapshot_ts` are settled on
     // this node.
     //
     // On true, scans at `snapshot_ts` on this node are stable: no
-    // in-flight writer will later commit at or before that timestamp.
+    // writer registered after this call will commit at or before
+    // `snapshot_ts`.
     //
     // Returns false on timeout.
     bool WaitUntilSafeToRead(int64_t snapshot_ts,
@@ -89,22 +54,19 @@ class InFlightRegistry {
         std::string coordinator_addr;
     };
 
-    // `min(lower_bound) - 1` over the current registry, or
-    // `kClosedTsUnbounded` if empty. Does NOT refresh.
-    int64_t ComputedClosedTs();
+    bool TryAdvertise(int64_t snapshot_ts);
 
-    // Self-locking. Snapshot entries, release the lock for the RPCs,
-    // re-acquire to apply drops + compute. Returns the post-refresh
-    // T_closed.
-    int64_t Refresh();
+    // Resolve every registered writer's intent and drop entries no
+    // longer ACTIVE. Self-locking; releases the lock for the RPCs.
+    void RefreshAndDrop();
 
     std::mutex mu_;
 
     // All active write transactions with intents on this node.
-    //
-    // - Writers added by write action on staging an intent.
-    // - Writers cleaned lazily by read action on waiting for closed ts.
     std::map<int64_t, WriterEntry> writers_;
+
+    // monotonically increasing
+    int64_t last_advertised_ts_ = 0;
 };
 
 }  // namespace small::closedts

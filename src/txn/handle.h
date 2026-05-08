@@ -62,8 +62,6 @@ class Txn {
     absl::Status Rollback();
 
     [[nodiscard]] bool active() const { return active_; }
-    [[nodiscard]] int64_t txn_id() const { return txn_id_; }
-    [[nodiscard]] int64_t start_ts() const { return start_ts_; }
 
     // The txn's mutable write timestamp. Initialized to start_ts at
     // BEGIN, may be pushed forward by the per-row bump rule on UPDATE,

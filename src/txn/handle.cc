@@ -61,8 +61,8 @@
 
 namespace small::txn {
 
-// Wall-clock ms since epoch. Used both as snapshot timestamps for
-// reads and as the floor for write commit timestamps.
+// Wall-clock ms since epoch. Stamped on every BEGIN as the txn's
+// start_ts (snapshot for reads, initial floor for write_ts).
 static int64_t now_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
@@ -233,19 +233,7 @@ absl::Status Txn::Commit() {
     if (!active_) {
         return absl::FailedPreconditionError("COMMIT outside of BEGIN");
     }
-    // Mechanism A from closed_timestamps.md: bump write_ts to the wall
-    // clock at this moment before promoting it to the final commit
-    // timestamp. Any reader whose snapshot_ts < now() is reading "in
-    // the past" relative to this commit, so this txn must not be
-    // visible to them; the bump enforces that by ensuring the final
-    // commit_ts is strictly greater than any active reader's snapshot
-    // that has not yet waited past T_closed on the owners.
-    int64_t now = now_ms();
-    if (now > write_ts_) {
-        write_ts_ = now;
-    }
-    // After this point, write_ts_ is the txn's final commit timestamp.
-    SPDLOG_INFO("commit_txn: txn_id={} start_ts={} ({}) commit_ts={} ({})",
+    SPDLOG_INFO("commit_txn: txn_id={} start_ts={} ({}) write_ts={} ({})",
                 txn_id_, start_ts_, small::util::FormatTsMs(start_ts_),
                 write_ts_, small::util::FormatTsMs(write_ts_));
     auto db = small::rocks::RocksDBWrapper::GetInstance();
@@ -253,7 +241,7 @@ absl::Status Txn::Commit() {
     db.value()->SetTxnStatus(txn_id_, small::rocks::TxnStatus::COMMITTED,
                              write_ts_);
     // Leave txn_id_/start_ts_/write_ts_ populated after the txn ends
-    // so callers (notably tests) can inspect the final commit_ts that
+    // so callers (notably tests) can inspect the final write_ts that
     // landed on disk. `active_ = false` is the source of truth for
     // "this Txn is no longer driving statements"; Begin() resets the
     // other fields when starting the next transaction.
