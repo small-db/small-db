@@ -193,19 +193,18 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
         // Only the row's owner does anything visible; non-owners return
         // their input write_ts unchanged. We collect the max across
         // all responses so a push reported by the owner propagates back.
+        size_t packed_len =
+            pg_query__update_stmt__get_packed_size(update_stmt);
+        std::vector<uint8_t> packed(packed_len);
+        pg_query__update_stmt__pack(update_stmt, packed.data());
+
         auto servers = small::gossip::get_nodes(std::nullopt);
         for (auto& [id, server] : servers) {
             small::execution::RawNode request;
-
-            size_t len = pg_query__update_stmt__get_packed_size(update_stmt);
-            auto buf = static_cast<uint8_t*>(malloc(len));
-            pg_query__update_stmt__pack(update_stmt, buf);
-
-            request.set_packed_node(buf, len);
+            request.set_packed_node(packed.data(), packed_len);
             request.set_ts(write_ts);
             request.set_txn_id(txn_id);
             request.set_coordinator_addr(coordinator_addr);
-            free(buf);
 
             auto channel = grpc::CreateChannel(
                 server.grpc_addr, grpc::InsecureChannelCredentials());
