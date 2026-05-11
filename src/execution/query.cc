@@ -207,22 +207,13 @@ absl::StatusOr<std::shared_ptr<arrow::RecordBatch>> query(
     auto input_schema = get_input_schema(*table_optional.value());
     SPDLOG_INFO("schema: {}", input_schema->ToString());
 
-    // Closed-timestamp gate: wait until the local registry's T_closed
-    // is at or above our snapshot_ts before scanning. This is what
-    // closes the cross-shard partial-read race traced in
-    // small-db-book/src/distributed_database/closed_timestamps.md --
-    // the wait guarantees no in-flight writer with eventual
-    // write_ts <= snapshot_ts will appear on this node after we
-    // start scanning.
-    constexpr auto kClosedTsTimeout = std::chrono::seconds(2);
     bool closed_ok =
         small::closedts::InFlightRegistry::GetInstance()->WaitUntilSafeToRead(
-            snapshot_ts, kClosedTsTimeout);
+            snapshot_ts, std::chrono::seconds(2));
     if (!closed_ok) {
-        SPDLOG_WARN(
-            "closed-ts gate timed out at snapshot_ts={} ({}); proceeding "
-            "with potentially-incomplete view",
-            snapshot_ts, small::util::FormatTsMs(snapshot_ts));
+        return absl::DeadlineExceededError(
+            fmt::format("closed-ts gate timed out at snapshot_ts={} ({})",
+                        snapshot_ts, small::util::FormatTsMs(snapshot_ts)));
     }
 
     auto rows = small::txn::read_table_at_snapshot(table_name, snapshot_ts);
