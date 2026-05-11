@@ -97,12 +97,19 @@ void InFlightRegistry::RefreshAndDrop() {
         switch (resp_or.value().status()) {
             case small::txn::ResolveIntentResponse::COMMITTED:
             case small::txn::ResolveIntentResponse::ABORTED:
-            case small::txn::ResolveIntentResponse::UNKNOWN:
+                // final state, safe to drop from registry
                 to_drop.push_back(txn_id);
                 break;
             case small::txn::ResolveIntentResponse::ACTIVE:
+                // still in flight, keep in registry
                 break;
-            default:
+            case small::txn::ResolveIntentResponse::UNKNOWN:
+                // coordinator lost the record; treat as orphaned-aborted
+                SPDLOG_WARN(
+                    "registry refresh: coordinator {} has no record for "
+                    "txn_id={}; dropping orphaned intent",
+                    addr, txn_id);
+                to_drop.push_back(txn_id);
                 break;
         }
     }
