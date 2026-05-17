@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import socket
+import sys
 
 import cxc_toolkit
 from tabulate import tabulate
@@ -27,8 +28,12 @@ class CLITool:
         self.description = description
         self.min_version = min_version
         self.version_regex = version_regex
+        self._info = None
+        self._satisfied = None
 
-    def get_installed_info(self):
+    def _probe(self):
+        if self._info is not None:
+            return
         output, _ = cxc_toolkit.exec.run_command(
             f"{self.name} --version",
             ignore_failure=True,
@@ -39,9 +44,16 @@ class CLITool:
         version = match.group(1) if match else "unknown"
 
         location = shutil.which(self.name)
-        if location:
-            return f"{version} ({location})"
-        return version
+        self._satisfied = location is not None
+        self._info = f"{version} ({location})" if location else version
+
+    def get_installed_info(self):
+        self._probe()
+        return self._info
+
+    def is_satisfied(self):
+        self._probe()
+        return self._satisfied
 
 
 class SystemLibrary:
@@ -50,8 +62,12 @@ class SystemLibrary:
         self.description = description
         self.min_version = min_version
         self.version_regex = r"^Version:\s*(\S+)"
+        self._info = None
+        self._satisfied = None
 
-    def get_installed_info(self):
+    def _probe(self):
+        if self._info is not None:
+            return
         # Caution: use "dpkg -s" instead of "apt show" since the latter also
         # shows the information of uninstalled packages.
         output, _ = cxc_toolkit.exec.run_command(
@@ -61,7 +77,16 @@ class SystemLibrary:
         )
 
         match = re.search(self.version_regex, output, flags=re.MULTILINE)
-        return match.group(1) if match else "unknown"
+        self._satisfied = match is not None
+        self._info = match.group(1) if match else "unknown"
+
+    def get_installed_info(self):
+        self._probe()
+        return self._info
+
+    def is_satisfied(self):
+        self._probe()
+        return self._satisfied
 
 
 class ToolList:
@@ -76,16 +101,13 @@ class ToolList:
         library = SystemLibrary(name, description, min_version)
         self.tools.append(library)
 
-    def display(self):
-        table_data = [
-            [
-                tool.name,
-                tool.description,
-                tool.min_version,
-                tool.get_installed_info(),
-            ]
-            for tool in self.tools
-        ]
+    def display(self, failures):
+        table_data = []
+        for tool in self.tools:
+            info = tool.get_installed_info()
+            table_data.append([tool.name, tool.description, tool.min_version, info])
+            if not tool.is_satisfied():
+                failures.append(f"{tool.name} not installed")
         print(
             tabulate(
                 table_data,
@@ -102,6 +124,8 @@ class ToolList:
 
 
 def check_env():
+    failures = []
+
     build_tools = ToolList()
     build_tools.add_cli_tool(
         "cmake", "build-system generator", "3.15", r"cmake\s+version\s+([0-9.]+)"
@@ -120,7 +144,7 @@ def check_env():
     build_tools.add_system_library("uuid-dev", "UUID library", "2.36.0")
 
     print("Tools Required for Building:")
-    build_tools.display()
+    build_tools.display(failures)
 
     format_tools = ToolList()
     format_tools.add_cli_tool(
@@ -143,7 +167,7 @@ def check_env():
     )
 
     print("\nTools Required for Linting/Formatting:")
-    format_tools.display()
+    format_tools.display(failures)
 
     jepsend_tools = ToolList()
     jepsend_tools.add_cli_tool(
@@ -163,7 +187,7 @@ def check_env():
     )
 
     print("\nTools Required for Jepsen Testing:")
-    jepsend_tools.display()
+    jepsend_tools.display(failures)
 
     print("\nKernel Modules Required by Vagrant:")
     output, _ = cxc_toolkit.exec.run_command("lsmod", slient=True)
@@ -188,6 +212,7 @@ def check_env():
         print(message)
         if not is_ok:
             print(f"    fix: {fix_cmd}")
+            failures.append(f"kernel module {module} state")
 
     print("\nVagrant VM Status:")
     output, _ = cxc_toolkit.exec.run_command(
@@ -208,6 +233,7 @@ def check_env():
         print(f"- {mark} {vm}: {state} (should be running)")
         if not is_ok:
             print(f"    fix: (cd {VAGRANT_DIR} && vagrant up {vm})")
+            failures.append(f"VM {vm} not running")
 
     print("\nVagrant Hostname Resolution (/etc/hosts via hostctl):")
     expected = {}
@@ -232,6 +258,27 @@ def check_env():
             print(
                 f"    fix: (cd {VAGRANT_DIR} && sudo $(go env GOPATH)/bin/hostctl add small-db-jepsen --from ./nodes)"
             )
+            failures.append(f"{vm} hostname does not resolve to expected IP")
+
+    print("\nVagrant VMs Reachable (SSH port 22 on private IP):")
+    for vm in VAGRANT_VMS:
+        want = expected.get(vm)
+        if not want:
+            is_ok = False
+            detail = "no IP in nodes file"
+        else:
+            try:
+                with socket.create_connection((want, 22), timeout=3):
+                    is_ok = True
+                    detail = f"{want}:22 reachable"
+            except OSError as e:
+                is_ok = False
+                detail = f"{want}:22 unreachable ({e.__class__.__name__})"
+        mark = "✓" if is_ok else "✗"
+        print(f"- {mark} {vm}: {detail}")
+        if not is_ok:
+            print(f"    fix: (cd {VAGRANT_DIR} && vagrant reload {vm})")
+            failures.append(f"{vm} VM not reachable on SSH port")
 
     debug_tools = ToolList()
     debug_tools.add_cli_tool(
@@ -241,7 +288,7 @@ def check_env():
         r"psql\s+\(PostgreSQL\)\s+([0-9.]+)",
     )
     print("\nTools Required for Debugging:")
-    debug_tools.display()
+    debug_tools.display(failures)
 
     book_tools = ToolList()
     book_tools.add_cli_tool(
@@ -254,7 +301,15 @@ def check_env():
         r"mdbook\s+v([0-9.]+)",
     )
     print("\nTools Required for Building the Book:")
-    book_tools.display()
+    book_tools.display(failures)
+
+    print()
+    if failures:
+        print(f"Unsatisfied conditions ({len(failures)}):")
+        for f in failures:
+            print(f"  - {f}")
+        sys.exit(-1)
+    print("All checks satisfied.")
 
 
 if __name__ == "__main__":
