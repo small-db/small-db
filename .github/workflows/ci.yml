@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install uv for Python Scripts
         run: wget -qO- https://astral.sh/uv/install.sh | sh
       - name: Install Dependencies
