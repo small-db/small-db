@@ -193,8 +193,7 @@ absl::StatusOr<UpdateResult> update(PgQuery__UpdateStmt* update_stmt,
         // Only the row's owner does anything visible; non-owners return
         // their input write_ts unchanged. We collect the max across
         // all responses so a push reported by the owner propagates back.
-        size_t packed_len =
-            pg_query__update_stmt__get_packed_size(update_stmt);
+        size_t packed_len = pg_query__update_stmt__get_packed_size(update_stmt);
         std::vector<uint8_t> packed(packed_len);
         pg_query__update_stmt__pack(update_stmt, packed.data());
 

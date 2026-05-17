@@ -2,6 +2,16 @@
 
 [![build](https://github.com/small-db/small-db/actions/workflows/ci.yml/badge.svg)](https://github.com/small-db/small-db/actions/workflows/ci.yml)
 
+## Goal
+
+1. **Single-server transaction internals** — completed in [small-rows-rust](./small-rows-rust).
+   - Tree-/page-latch implementation in a single-server B+tree.
+   - The four basic SQL isolation levels in a single-server database.
+
+2. **Distributed transaction model** — current focus.
+   - The different models and the motivation behind each.
+   - How the model changes across deployment scales: cross-data-center, cross-region, cross-continent, cross-planet.
+
 ## Deveopment
 
 ### Essential Commands & Environment
