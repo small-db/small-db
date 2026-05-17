@@ -112,16 +112,6 @@
     ;; corresponding :invoke index in history.txt and grep for that.
     (let [tag (str "/* op=" (:index op) " */ ")]
       (case (:f op)
-        :query-system-tables
-        (let [result (pg.core/query (:conn this) (str tag "SELECT * FROM system.tables;"))]
-          (info (:node this) "System tables:" result)
-          (assoc op :type :ok, :value result))
-
-        :query-system-partitions
-        (let [result (pg.core/query (:conn this) (str tag "SELECT * FROM system.partitions WHERE table_name = 'users';"))]
-          (info (:node this) "System partitions:" result)
-          (assoc op :type :ok, :value result))
-
         :read
         (let [results (pg.core/query (:conn this) (str tag "SELECT id, balance FROM users;"))]
           (assoc op :type :ok, :value (into {} (map (fn [row] [(:id row) (:balance row)]) results))))
@@ -232,22 +222,6 @@
     jepsen.db/LogFiles
     (log-files [_ test node]
       [logfile])))
-
-(defn query-test
-  "Run simple queries on all nodes."
-  [opts]
-  (merge jepsen.tests/noop-test
-         opts
-         {:name "query-test"
-          :os jepsen.os.debian/os
-          :db (small-db)
-          :client (Client. nil)
-          :generator (jepsen.generator/clients
-                      (jepsen.generator/phases
-                       (jepsen.generator/each-thread
-                        {:type :invoke, :f :query-system-tables})
-                       (jepsen.generator/each-thread
-                        {:type :invoke, :f :query-system-partitions})))}))
 
 (defn bank-test
   "Bank test: transfers between accounts."

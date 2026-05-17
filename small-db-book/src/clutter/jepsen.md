@@ -39,7 +39,6 @@ The test copies the built binary from `build/debug/src/server/server` and its dy
 | Test | Description |
 |------|-------------|
 | `bank-test` | Transfers between accounts, checks total balance is conserved |
-| `query-test` | Runs system table queries on all nodes |
 
 ## VM Details
 

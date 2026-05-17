@@ -122,7 +122,6 @@ cd small-db-jepsen && lein run test-all --node america --node europe --node asia
 
 **Available tests** (defined in `small-db-jepsen/src/small_db_jepsen/runner.clj`):
 - `bank-test` — Transfers between accounts, checks total balance is conserved
-- `query-test` — Runs system table queries on all nodes
 
 **Web UI for results:** "Start the Jepsen server" means the test-results web UI:
 ```bash
